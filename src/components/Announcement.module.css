@@ -1,31 +1,32 @@
 /* =====================================================
    Announcement.module.css
-   Matches ProductManagement/OrderManagement design system
+   Maroon Editorial Theme Design System
+   Colors: #D94F1F (maroon), #2D0A0A (dark maroon), #F5F5DC (gold), #404040 (dark grey)
    ===================================================== */
 
 /* =====================================================
-   DESIGN TOKENS
+   DESIGN TOKENS - Maroon Editorial Theme
    ===================================================== */
 :root {
-  --ann-bg:           #f8fafc;
-  --ann-card-bg:      #ffffff;
-  --ann-border:       #e2e8f0;
-  --ann-text-primary: #0f172a;
-  --ann-text-secondary: #64748b;
-  --ann-text-muted:   #94a3b8;
-  --ann-blue:         #3b82f6;
-  --ann-blue-dark:    #2563eb;
-  --ann-blue-light:   #eff6ff;
-  --ann-green:        #10b981;
-  --ann-amber:        #f59e0b;
-  --ann-red:          #ef4444;
-  --ann-purple:       #9c27b0;
-  --ann-orange:       #ff9800;
-  --ann-radius:       12px;
-  --ann-shadow-sm:    0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --ann-shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  --ann-shadow-lg:    0 12px 40px rgba(0,0,0,0.12);
-  --ann-font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ann-bg: var(--color-bg-primary);
+  --ann-card-bg: var(--color-bg-secondary);
+  --ann-border: var(--color-border-primary);
+  --ann-accent: var(--color-accent-primary);
+  --ann-accent-hover: var(--color-accent-hover);
+  --ann-accent-light: var(--color-accent-light);
+  --ann-text-primary: var(--color-text-primary);
+  --ann-text-secondary: var(--color-text-secondary);
+  --ann-text-muted: var(--color-text-muted);
+  --ann-gold: var(--color-text-primary);
+  --ann-dark-grey: var(--color-bg-tertiary);
+  --ann-success: var(--color-success);
+  --ann-warning: var(--color-warning);
+  --ann-error: var(--color-error);
+  --ann-radius: 12px;
+  --ann-shadow-sm: var(--shadow-sm);
+  --ann-shadow-md: var(--shadow-md);
+  --ann-shadow-lg: var(--shadow-lg);
+  --ann-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* =====================================================
@@ -37,6 +38,8 @@
   color: var(--ann-text-primary);
   min-height: 100vh;
   padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* =====================================================
@@ -44,14 +47,20 @@
    ===================================================== */
 .header {
   margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--ann-card-bg) 0%, rgba(217, 79, 31, 0.1) 100%);
+  border: 2px solid var(--ann-accent);
+  border-radius: var(--ann-radius);
+  box-shadow: var(--ann-shadow-md);
 }
 
 .mainTitle {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--ann-text-primary);
+  color: var(--ann-gold);
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.02em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .headerSubtitle {
@@ -67,7 +76,7 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 2rem;
-  border-bottom: 1px solid var(--ann-border);
+  border-bottom: 2px solid var(--ann-accent);
   padding-bottom: 0.75rem;
   flex-wrap: wrap;
 }
@@ -76,9 +85,9 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  background: transparent;
-  border: 1px solid var(--ann-border);
+  padding: 0.75rem 1.25rem;
+  background: var(--ann-dark-grey);
+  border: 2px solid var(--ann-border);
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -89,25 +98,28 @@
 }
 
 .tab:hover {
-  background: var(--ann-bg);
-  color: var(--ann-text-primary);
-  border-color: #94a3b8;
+  background: var(--ann-card-bg);
+  color: var(--ann-gold);
+  border-color: var(--ann-accent);
+  transform: translateY(-1px);
+  box-shadow: var(--ann-shadow-sm);
 }
 
 .tabActive {
-  background: var(--ann-blue);
-  color: white;
-  border-color: var(--ann-blue);
+  background: var(--ann-accent);
+  color: var(--ann-text-primary);
+  border-color: var(--ann-accent);
+  box-shadow: var(--ann-shadow-md);
 }
 
 .tabActive:hover {
-  background: var(--ann-blue-dark);
-  border-color: var(--ann-blue-dark);
-  color: white;
+  background: var(--ann-accent-hover);
+  border-color: var(--ann-accent-hover);
+  color: var(--ann-text-primary);
 }
 
 .tabBadge {
-  background: rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.25);
   color: white;
   font-size: 0.68rem;
   font-weight: 700;
@@ -117,8 +129,8 @@
 }
 
 .tab:not(.tabActive) .tabBadge {
-  background: var(--ann-blue-light);
-  color: var(--ann-blue);
+  background: rgba(217, 79, 31, 0.2);
+  color: var(--ann-accent);
 }
 
 /* =====================================================
@@ -128,17 +140,20 @@
   background: var(--ann-card-bg);
   border: 1px solid var(--ann-border);
   border-radius: var(--ann-radius);
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
   box-shadow: var(--ann-shadow-sm);
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .sectionTitle {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ann-text-primary);
-  margin: 0 0 1.5rem 0;
-  padding-bottom: 0.75rem;
+  margin: 0 0 0.875rem 0;
+  padding-bottom: 0.5rem;
   border-bottom: 2px solid var(--ann-border);
 }
 
@@ -148,23 +163,23 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .formRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
 
 .label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--ann-text-primary);
   display: flex;
@@ -179,11 +194,11 @@
 .input,
 .textarea,
 .select {
-  padding: 0.75rem;
+  padding: 0.5rem 0.625rem;
   border: 1px solid var(--ann-border);
   border-radius: 8px;
   background: var(--ann-card-bg);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--ann-text-primary);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -193,13 +208,13 @@
 .input:focus,
 .textarea:focus,
 .select:focus {
-  border-color: var(--ann-blue);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  border-color: var(--ann-accent);
+  box-shadow: 0 0 0 3px rgba(217, 79, 31, 0.2);
 }
 
 .textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 70px;
 }
 
 .select {
@@ -207,23 +222,23 @@
 }
 
 .fileInput {
-  padding: 0.75rem;
+  padding: 0.5rem;
   border: 2px dashed var(--ann-border);
   border-radius: 8px;
   background: var(--ann-bg);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--ann-text-primary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .fileInput:hover {
-  border-color: var(--ann-blue);
-  background: var(--ann-blue-light);
+  border-color: var(--ann-accent);
+  background: linear-gradient(135deg, rgba(45, 10, 10, 0.3) 0%, rgba(217, 79, 31, 0.1) 100%);
 }
 
 .helperText {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--ann-text-muted);
   margin: 0;
 }
@@ -232,17 +247,42 @@
    IMAGE PREVIEW
    ===================================================== */
 .imagePreviewContainer {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .imagePreview {
-  max-width: 300px;
-  max-height: 200px;
-  border-radius: 8px;
+  max-width: 150px;
+  max-height: 100px;
+  width: auto;
+  height: auto;
+  border-radius: 6px;
   border: 2px solid var(--ann-border);
-  object-fit: cover;
+  object-fit: contain;
+  box-shadow: var(--ann-shadow-sm);
+  background: var(--ann-bg);
+}
+
+.removeImageBtn {
+  padding: 0.4rem 0.75rem;
+  background: var(--ann-red);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--ann-font);
+  white-space: nowrap;
+}
+
+.removeImageBtn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
   box-shadow: var(--ann-shadow-sm);
 }
 
@@ -250,7 +290,7 @@
    CHECKBOX
    ===================================================== */
 .checkboxGroup {
-  padding: 1rem;
+  padding: 0.625rem;
   background: var(--ann-bg);
   border-radius: 8px;
   border: 1px solid var(--ann-border);
@@ -259,18 +299,18 @@
 .checkboxLabel {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   color: var(--ann-text-primary);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   cursor: pointer;
   font-weight: 500;
 }
 
 .checkbox {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
-  accent-color: var(--ann-blue);
+  accent-color: var(--ann-accent);
 }
 
 /* =====================================================
@@ -278,20 +318,20 @@
    ===================================================== */
 .buttonGroup {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.625rem;
   flex-wrap: wrap;
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .submitButton {
   flex: 1;
-  min-width: 200px;
-  padding: 0.875rem 1.5rem;
-  background: var(--ann-blue);
+  min-width: 160px;
+  padding: 0.625rem 1rem;
+  background: var(--ann-card-bg);
   color: white;
-  border: none;
+  border: 1px solid var(--ann-border);
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -299,13 +339,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  box-shadow: 0 2px 8px rgba(217, 79, 31, 0.3);
 }
 
 .submitButton:hover {
-  background: var(--ann-blue-dark);
+  background: linear-gradient(135deg, var(--ann-accent-hover) 0%, rgba(217, 79, 31, 0.9) 100%);
   transform: translateY(-1px);
-  box-shadow: var(--ann-shadow-md);
+  box-shadow: 0 4px 12px rgba(217, 79, 31, 0.4);
 }
 
 .submitButton:disabled {
@@ -317,13 +358,13 @@
 
 .cancelButton {
   flex: 1;
-  min-width: 200px;
-  padding: 0.875rem 1.5rem;
+  min-width: 160px;
+  padding: 0.625rem 1rem;
   background: var(--ann-red);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -331,7 +372,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .cancelButton:hover {
@@ -347,8 +388,10 @@
   background: var(--ann-card-bg);
   border: 1px solid var(--ann-border);
   border-radius: var(--ann-radius);
-  padding: 2rem;
+  padding: 1.25rem;
   box-shadow: var(--ann-shadow-sm);
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .emptyState {
@@ -369,7 +412,7 @@
 }
 
 .announcementCard {
-  background: var(--ann-card-bg);
+  background: var(--ann-bg);
   border: 1px solid var(--ann-border);
   border-radius: 8px;
   overflow: hidden;
@@ -386,7 +429,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 1rem;
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -400,23 +443,23 @@
 }
 
 .announcementTitle {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ann-text-primary);
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.4rem 0;
 }
 
 .announcementMeta {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   flex-wrap: wrap;
 }
 
 .categoryBadge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.625rem;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: white;
   display: inline-flex;
@@ -425,7 +468,7 @@
 }
 
 .announcementDate {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--ann-text-secondary);
   display: flex;
   align-items: center;
@@ -433,9 +476,9 @@
 }
 
 .expandIcon {
-  font-size: 1.25rem;
-  color: var(--ann-blue);
-  margin-left: 1rem;
+  font-size: 1.125rem;
+  color: var(--ann-accent);
+  margin-left: 0.75rem;
   transition: transform 0.2s ease;
 }
 
@@ -454,57 +497,84 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 0.75rem;
 }
 
 .announcementImage {
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: 100%;
   max-height: 300px;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  border-radius: 6px;
 }
 
 /* =====================================================
    ANNOUNCEMENT BODY
    ===================================================== */
 .announcementBody {
-  padding: 0 1.5rem 1.5rem 1.5rem;
+  padding: 0 1rem 1rem 1rem;
   background: var(--ann-bg);
 }
 
 .announcementDetail {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .detailLabel {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--ann-text-primary);
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .detailValue {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--ann-text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
+  max-height: 150px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for description */
+.detailValue::-webkit-scrollbar {
+  width: 6px;
+}
+
+.detailValue::-webkit-scrollbar-track {
+  background: var(--ann-bg);
+  border-radius: 3px;
+}
+
+.detailValue::-webkit-scrollbar-thumb {
+  background: var(--ann-border);
+  border-radius: 3px;
+}
+
+.detailValue::-webkit-scrollbar-thumb:hover {
+  background: var(--ann-text-muted);
 }
 
 .announcementActions {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
+  gap: 0.625rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--ann-border);
 }
 
 .editButton,
 .deleteButton {
   flex: 1;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  min-width: 120px;
+  max-width: 200px;
+  padding: 0.625rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
@@ -513,19 +583,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .editButton {
-  background: var(--ann-blue-light);
-  color: var(--ann-blue);
-  border-color: rgba(59,130,246,0.15);
+  background: rgba(217, 79, 31, 0.15);
+  color: var(--ann-accent);
+  border: 1px solid rgba(217, 79, 31, 0.3);
+  border-color: rgba(217, 79, 31, 0.15);
 }
 
 .editButton:hover {
-  background: var(--ann-blue);
+  background: var(--ann-accent);
   color: white;
-  border-color: var(--ann-blue);
+  border-color: var(--ann-accent);
   transform: translateY(-1px);
   box-shadow: var(--ann-shadow-sm);
 }
@@ -533,7 +604,7 @@
 .deleteButton {
   background: #fef2f2;
   color: var(--ann-red);
-  border-color: rgba(239,68,68,0.15);
+  border-color: rgba(239, 68, 68, 0.15);
 }
 
 .deleteButton:hover {
@@ -554,6 +625,9 @@
   padding: 2rem;
   margin-bottom: 2rem;
   box-shadow: var(--ann-shadow-sm);
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .calendarWrapper {
@@ -577,7 +651,7 @@
 .calendarNavButton {
   padding: 0.5rem 1rem;
   background: var(--ann-card-bg);
-  color: var(--ann-blue);
+  color: var(--ann-accent);
   border: 1px solid var(--ann-border);
   border-radius: 8px;
   font-size: 1.125rem;
@@ -587,9 +661,9 @@
 }
 
 .calendarNavButton:hover {
-  background: var(--ann-blue);
+  background: var(--ann-accent);
   color: white;
-  border-color: var(--ann-blue);
+  border-color: var(--ann-accent);
 }
 
 .calendarDayNames {
@@ -626,13 +700,13 @@
 }
 
 .calendarDay:hover {
-  background: var(--ann-blue-light);
-  border-color: var(--ann-blue);
+  background: rgba(217, 79, 31, 0.15);
+  border-color: var(--ann-accent);
 }
 
 .calendarDayToday {
-  border: 2px solid var(--ann-blue);
-  background: var(--ann-blue-light);
+  border: 2px solid var(--ann-accent);
+  background: rgba(217, 79, 31, 0.15);
   font-weight: 700;
 }
 
@@ -680,6 +754,8 @@
   border-radius: var(--ann-radius);
   padding: 2rem;
   box-shadow: var(--ann-shadow-sm);
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .eventsList {
@@ -844,15 +920,6 @@
    DARK MODE SUPPORT
    ===================================================== */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --ann-bg:           #0f172a;
-    --ann-card-bg:      #1e293b;
-    --ann-border:       #334155;
-    --ann-text-primary: #f1f5f9;
-    --ann-text-secondary: #94a3b8;
-    --ann-text-muted:   #64748b;
-    --ann-blue-light:   rgba(59,130,246,0.12);
-  }
 
   .tab {
     background: #273548;
@@ -876,10 +943,10 @@
   }
 
   .announcementHeader:hover {
-    background: rgba(255,255,255,0.025);
+    background: rgba(255, 255, 255, 0.025);
   }
 
   .calendarDay:hover {
-    background: rgba(59,130,246,0.15);
+    background: rgba(59, 130, 246, 0.15);
   }
 }

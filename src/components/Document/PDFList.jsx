@@ -1,7 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import styles from './PDFDashboard.module.css';
+import { 
+  HiSearch, 
+  HiEye, 
+  HiDownload, 
+  HiTrash,
+  HiExternalLink,
+  HiRefresh,
+  HiX
+} from 'react-icons/hi';
 
-function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, loading }) {
+function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, onStatusChange, loading }) {
   // Filter and search state
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -135,16 +144,28 @@ function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, loading }) {
     <div className={styles.pdfListContainer}>
       {/* Filters Section */}
       <div className={styles.filtersSection}>
-        <div className={styles.filters}>
+        <div className={styles.searchBar}>
+          <HiSearch className={styles.searchIcon} />
           <input
             type="text"
-            placeholder="🔍 Search by name, creator, or filename..."
+            placeholder="Search by name, creator, or filename..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
             disabled={loading}
           />
-          
+          {searchTerm && (
+            <button 
+              className={styles.clearSearchBtn}
+              onClick={() => setSearchTerm('')}
+              title="Clear search"
+            >
+              <HiX />
+            </button>
+          )}
+        </div>
+        
+        <div className={styles.filters}>
           <select 
             value={filterCategory} 
             onChange={(e) => setFilterCategory(e.target.value)}
@@ -182,7 +203,7 @@ function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, loading }) {
               className={styles.clearFiltersBtn}
               disabled={loading}
             >
-              ✕ Clear
+              <HiX /> Clear
             </button>
           )}
         </div>
@@ -269,7 +290,7 @@ function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, loading }) {
                           title="Preview in Modal"
                           disabled={loading}
                         >
-                          👁️
+                          <HiEye />
                         </button>
                         <button 
                           onClick={() => onView(pdf.pdfBase64)}
@@ -277,7 +298,7 @@ function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, loading }) {
                           title="Open in New Tab"
                           disabled={loading}
                         >
-                          ↗️
+                          <HiExternalLink />
                         </button>
                         <button 
                           onClick={() => onDownload(pdf.pdfBase64, pdf.fileName)}
@@ -285,7 +306,15 @@ function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, loading }) {
                           title="Download PDF"
                           disabled={loading}
                         >
-                          ⬇️
+                          <HiDownload />
+                        </button>
+                        <button 
+                          onClick={() => onStatusChange(pdf)}
+                          className={`${styles.actionBtn} ${styles.statusBtn}`}
+                          title="Change Status"
+                          disabled={loading}
+                        >
+                          <HiRefresh />
                         </button>
                         <button 
                           onClick={() => onDelete(pdf.id, pdf.pdfName)}
@@ -293,7 +322,7 @@ function PDFList({ pdfs, onPreview, onView, onDownload, onDelete, loading }) {
                           title="Delete PDF"
                           disabled={loading}
                         >
-                          🗑️
+                          <HiTrash />
                         </button>
                       </div>
                     </td>

@@ -5,7 +5,16 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
-import { Download, RefreshCw, Filter, Search } from 'lucide-react';
+import { 
+  HiDownload, 
+  HiRefresh, 
+  HiFilter, 
+  HiSearch,
+  HiCurrencyDollar,
+  HiTrendingUp,
+  HiChartBar,
+  HiCheckCircle
+} from 'react-icons/hi';
 
 const BudgetAnalytics = () => {
   const { budgets, statistics, loading, fetchBudgets } = useFinance();
@@ -90,7 +99,7 @@ const BudgetAnalytics = () => {
   };
 
   // Chart Colors
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+  const COLORS = ['#3b82f6', '#10b981', '#E66B3D', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
   if (loading) {
     return (
@@ -106,15 +115,18 @@ const BudgetAnalytics = () => {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.titleGroup}>
-          <h2>Financial Dashboard</h2>
+          <h2>
+            <HiChartBar style={{marginRight: '0.5rem', verticalAlign: 'middle'}} />
+            Financial Dashboard
+          </h2>
           <p style={{color: '#ffffffff', margin: '5px 0 0 0'}}>Overview of fiscal year allocations</p>
         </div>
         <div style={{display: 'flex', gap: '10px'}}>
            <button onClick={fetchBudgets} className={styles.refreshButton}>
-            <RefreshCw size={18} /> Refresh
+            <HiRefresh size={18} /> Refresh
           </button>
           <button onClick={exportToCSV} className={styles.refreshButton}>
-            <Download size={18} /> Export CSV
+            <HiDownload size={18} /> Export CSV
           </button>
         </div>
       </div>
@@ -122,6 +134,7 @@ const BudgetAnalytics = () => {
       {/* KPI Cards */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
+          <HiCurrencyDollar style={{fontSize: '2rem', color: '#3b82f6', marginBottom: '0.5rem'}} />
           <span className={styles.statLabel}>Total Allocated</span>
           <span className={styles.statValue} style={{color: '#3b82f6'}}>
             {formatCurrency(statistics.totalAllocated)}
@@ -131,6 +144,7 @@ const BudgetAnalytics = () => {
           </span>
         </div>
         <div className={styles.statCard}>
+          <HiTrendingUp style={{fontSize: '2rem', color: '#ef4444', marginBottom: '0.5rem'}} />
           <span className={styles.statLabel}>Total Spent</span>
           <span className={styles.statValue} style={{color: '#ef4444'}}>
              {formatCurrency(statistics.totalSpent)}
@@ -140,6 +154,7 @@ const BudgetAnalytics = () => {
           </div>
         </div>
         <div className={styles.statCard}>
+          <HiCheckCircle style={{fontSize: '2rem', color: '#10b981', marginBottom: '0.5rem'}} />
           <span className={styles.statLabel}>Remaining Funds</span>
           <span className={styles.statValue} style={{color: '#10b981'}}>
              {formatCurrency(statistics.totalRemaining)}
@@ -205,7 +220,7 @@ const BudgetAnalytics = () => {
           <h3 className={styles.chartTitle} style={{margin: 0}}>Budget Details</h3>
           <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
             <div style={{position: 'relative'}}>
-                <Search size={16} style={{position: 'absolute', left: '12px', top: '12px', color: '#94a3b8'}} />
+                <HiSearch size={16} style={{position: 'absolute', left: '12px', top: '12px', color: '#94a3b8'}} />
                 <input 
                     type="text" 
                     placeholder="Search event or resolution..." 

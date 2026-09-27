@@ -80,7 +80,7 @@ import { RiGovernmentFill } from 'react-icons/ri';
     const themes = [
       { 
         id: 'dark', 
-        name: 'Dark Mode', 
+        name: 'Classic Mode', 
         description: 'Original maroon editorial theme',
         icon: HiMoon,
         preview: 'linear-gradient(135deg, #2D0A0A 0%, #D94F1F 100%)'
@@ -93,11 +93,11 @@ import { RiGovernmentFill } from 'react-icons/ri';
         preview: 'linear-gradient(135deg, #FFFFFF 0%, #3B82F6 100%)'
       },
       { 
-        id: 'clean', 
-        name: 'Clean Mode', 
-        description: 'Minimal gray theme',
+        id: 'corporate', 
+        name: 'Formal Corporate Theme', 
+        description: 'Blue modern minimalist',
         icon: HiCog,
-        preview: 'linear-gradient(135deg, #FAFAFA 0%, #424242 100%)'
+        preview: 'linear-gradient(135deg, #060b18 0%, #2563eb 100%)'
       }
     ];
 

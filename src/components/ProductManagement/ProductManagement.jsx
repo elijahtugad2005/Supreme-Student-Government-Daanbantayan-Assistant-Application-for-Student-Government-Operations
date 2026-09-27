@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import ProductFormPanelEnhanced from './ProductFormPanelEnhanced';
 import styles from './productmanagement.module.css';
 
 // ========================================
@@ -508,212 +509,6 @@ function ProductTableView({ products, onEdit, onDelete, onNewProduct, loading })
 }
 
 // ========================================
-// PRODUCT FORM PANEL (slide-out)
-// ========================================
-function ProductFormPanel({ isOpen, onClose, onSubmit, editingProductId, loading, productData, setProductData, imagePreview, setImagePreview }) {
-  const [tempSize, setTempSize] = useState('');
-  const [tempColor, setTempColor] = useState('');
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setProductData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-  };
-
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) { setProductData((prev) => ({ ...prev, imageBase64: '' })); setImagePreview(null); return; }
-    if (!file.type.startsWith('image/')) { alert('Please select an image file'); return; }
-    if (file.size > 5 * 1024 * 1024) alert('Image size should be less than 5MB before processing.');
-    try {
-      const compressedBase64 = await CompressImage(file, 1000, 0.8);
-      setProductData((prev) => ({ ...prev, imageBase64: compressedBase64 }));
-      setImagePreview(compressedBase64);
-    } catch (error) {
-      console.error('Error during image compression:', error);
-      alert('Failed to process image. Please try a different file.');
-      setProductData((prev) => ({ ...prev, imageBase64: '' }));
-      setImagePreview(null);
-    }
-  };
-
-  const handleAddSize = () => {
-    if (tempSize.trim()) {
-      setProductData((prev) => ({ ...prev, sizeOptions: [...prev.sizeOptions, tempSize.trim()] }));
-      setTempSize('');
-    }
-  };
-
-  const handleRemoveSize = (index) => {
-    setProductData((prev) => ({ ...prev, sizeOptions: prev.sizeOptions.filter((_, i) => i !== index) }));
-  };
-
-  const handleAddColor = () => {
-    if (tempColor.trim()) {
-      setProductData((prev) => ({ ...prev, colorVariations: [...prev.colorVariations, tempColor.trim()] }));
-      setTempColor('');
-    }
-  };
-
-  const handleRemoveColor = (index) => {
-    setProductData((prev) => ({ ...prev, colorVariations: prev.colorVariations.filter((_, i) => i !== index) }));
-  };
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={`${styles.panelBackdrop} ${isOpen ? styles.panelBackdropVisible : ''}`}
-        onClick={onClose}
-      />
-      {/* Slide-out Panel */}
-      <div className={`${styles.formPanel} ${isOpen ? styles.formPanelOpen : ''}`}>
-        <div className={styles.formPanelHeader}>
-          <h2 className={styles.formPanelTitle}>
-            {editingProductId ? 'Edit Product' : 'New Product'}
-          </h2>
-          <button className={styles.formPanelClose} onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div className={styles.formPanelBody}>
-          <form onSubmit={onSubmit} className={styles.form} id="productForm">
-
-            {/* Product Name */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Product Name <span className={styles.required}>*</span></label>
-              <input type="text" name="productName" value={productData.productName} onChange={handleChange}
-                placeholder="e.g., COED Lanyard" className={styles.input} required />
-            </div>
-
-            {/* Stock and Price */}
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Stock Quantity <span className={styles.required}>*</span></label>
-                <input type="number" name="stockAvailable" value={productData.stockAvailable} onChange={handleChange}
-                  min="0" placeholder="100" className={styles.input} required />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Price (₱) <span className={styles.required}>*</span></label>
-                <input type="number" name="price" value={productData.price} onChange={handleChange}
-                  min="0" step="0.01" placeholder="150.00" className={styles.input} required />
-              </div>
-            </div>
-
-            {/* Supplier */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Supplier Name <span className={styles.required}>*</span></label>
-              <input type="text" name="supplier" value={productData.supplier} onChange={handleChange}
-                placeholder="e.g., ABC Manufacturing Inc." className={styles.input} required />
-            </div>
-
-            {/* Description */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Description <span className={styles.required}>*</span></label>
-              <textarea name="description" value={productData.description} onChange={handleChange}
-                placeholder="Describe the product features, materials, etc." rows="3"
-                className={styles.textarea} required />
-            </div>
-
-            {/* Variations Checkbox */}
-            <div className={styles.checkboxGroup}>
-              <label className={styles.checkboxLabel}>
-                <input type="checkbox" name="hasVariations" checked={productData.hasVariations}
-                  onChange={handleChange} className={styles.checkbox} />
-                <span>This product has variations (sizes/colors)</span>
-              </label>
-            </div>
-
-            {productData.hasVariations && (
-              <div className={styles.variationsSection}>
-                <h4 className={styles.variationsTitle}>Product Variations</h4>
-
-                {/* Sizes */}
-                <div className={styles.variationGroup}>
-                  <label className={styles.label}>Size Options</label>
-                  <div className={styles.addVariationContainer}>
-                    <input type="text" value={tempSize} onChange={(e) => setTempSize(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSize())}
-                      placeholder="e.g., Small, Medium, Large" className={styles.variationInput} />
-                    <button type="button" onClick={handleAddSize} className={styles.addButton}>+ Add</button>
-                  </div>
-                  {productData.sizeOptions.length > 0 && (
-                    <div className={styles.tagsList}>
-                      {productData.sizeOptions.map((size, index) => (
-                        <div key={index} className={styles.tag}>
-                          <span>{size}</span>
-                          <button type="button" onClick={() => handleRemoveSize(index)} className={styles.removeTagButton}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Colors */}
-                <div className={styles.variationGroup}>
-                  <label className={styles.label}>Color Variations</label>
-                  <div className={styles.addVariationContainer}>
-                    <input type="text" value={tempColor} onChange={(e) => setTempColor(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddColor())}
-                      placeholder="e.g., Red, Blue, Black" className={styles.variationInput} />
-                    <button type="button" onClick={handleAddColor} className={styles.addButton}>+ Add</button>
-                  </div>
-                  {productData.colorVariations.length > 0 && (
-                    <div className={styles.tagsList}>
-                      {productData.colorVariations.map((color, index) => (
-                        <div key={index} className={styles.tag}>
-                          <span>{color}</span>
-                          <button type="button" onClick={() => handleRemoveColor(index)} className={styles.removeTagButton}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Image Upload */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Product Image</label>
-              {imagePreview ? (
-                <div className={styles.imageUploadPreview}>
-                  <img src={imagePreview} alt="Preview" className={styles.imagePreviewLarge} />
-                  <label className={styles.changeImageBtn}>
-                    Change Image
-                    <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
-                  </label>
-                </div>
-              ) : (
-                <label className={styles.fileDropZone}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                  <span className={styles.fileDropZoneText}>Click to upload image</span>
-                  <span className={styles.fileDropZoneSub}>JPG, PNG up to 5MB</span>
-                  <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
-                </label>
-              )}
-            </div>
-          </form>
-        </div>
-
-        {/* Panel Footer */}
-        <div className={styles.formPanelFooter}>
-          <button type="button" onClick={onClose} className={styles.cancelButton}>Cancel</button>
-          <button type="submit" form="productForm" disabled={loading} className={styles.submitButton}>
-            {loading && <span className={styles.spinner} />}
-            {loading ? 'Saving…' : editingProductId ? 'Update Product' : 'Add Product'}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ========================================
 // SETTINGS VIEW
 // ========================================
 function SettingsView() {
@@ -745,6 +540,7 @@ function ProductManagement() {
     hasVariations: false,
     sizeOptions: [],
     colorVariations: [],
+    customVariations: [], // NEW: Array of {type: string, options: [{name: string, image: string, stock: number}]}
     description: '',
     supplier: '',
     price: 0,
@@ -822,6 +618,7 @@ function ProductManagement() {
       hasVariations: false,
       sizeOptions: [],
       colorVariations: [],
+      customVariations: [], // NEW
       description: '',
       price: 0,
       supplier: '',
@@ -854,6 +651,7 @@ function ProductManagement() {
       supplier: product.supplier,
       sizeOptions: product.sizeOptions || [],
       colorVariations: product.colorVariations || [],
+      customVariations: product.customVariations || [], // NEW
       imageBase64: product.imageBase64 || '',
       productId: product.productId,
       imageFile: null,
@@ -879,6 +677,7 @@ function ProductManagement() {
         hasVariations: productData.hasVariations,
         sizeOptions: productData.hasVariations ? productData.sizeOptions : [],
         colorVariations: productData.hasVariations ? productData.colorVariations : [],
+        customVariations: productData.hasVariations ? productData.customVariations : [], // NEW
         description: productData.description,
         price: parseFloat(productData.price),
         supplier: productData.supplier,
@@ -914,6 +713,7 @@ function ProductManagement() {
         hasVariations: productData.hasVariations,
         sizeOptions: productData.hasVariations ? productData.sizeOptions : [],
         colorVariations: productData.hasVariations ? productData.colorVariations : [],
+        customVariations: productData.hasVariations ? productData.customVariations : [], // NEW
         description: productData.description,
         price: parseFloat(productData.price),
         supplier: productData.supplier,
@@ -1012,7 +812,7 @@ function ProductManagement() {
       </div>
 
       {/* Slide-out Form Panel */}
-      <ProductFormPanel
+      <ProductFormPanelEnhanced
         isOpen={isPanelOpen}
         onClose={() => { setIsPanelOpen(false); resetForm(); }}
         onSubmit={editingProductId ? handleUpdateProduct : handleAddProduct}

@@ -7,25 +7,25 @@
    DESIGN TOKENS
    ===================================================== */
 :root {
-  --to-bg:           #f8fafc;
-  --to-card-bg:      #ffffff;
-  --to-border:       #e2e8f0;
-  --to-text-primary: #0f172a;
-  --to-text-secondary: #64748b;
-  --to-text-muted:   #94a3b8;
+  --to-bg:           var(--color-bg-primary, #f8fafc);
+  --to-card-bg:      var(--color-bg-secondary, #ffffff);
+  --to-border:       var(--color-border-primary, #e2e8f0);
+  --to-text-primary: var(--color-text-primary, #0f172a);
+  --to-text-secondary: var(--color-text-secondary, #64748b);
+  --to-text-muted:   var(--color-text-muted, #94a3b8);
   --to-blue:         #3b82f6;
   --to-blue-dark:    #2563eb;
   --to-blue-light:   #eff6ff;
   --to-green:        #10b981;
   --to-green-light:  #ecfdf5;
-  --to-amber:        #f59e0b;
+  --to-amber:        #E66B3D;
   --to-amber-light:  #fffbeb;
   --to-red:          #ef4444;
   --to-red-light:    #fef2f2;
   --to-radius:       12px;
-  --to-shadow-sm:    0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --to-shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  --to-shadow-lg:    0 12px 40px rgba(0,0,0,0.12);
+  --to-shadow-sm:    var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.07));
+  --to-shadow-md:    var(--shadow-md, 0 4px 16px rgba(0,0,0,0.08));
+  --to-shadow-lg:    var(--shadow-lg, 0 12px 40px rgba(0,0,0,0.12));
   --to-font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -243,7 +243,7 @@
 
 .searchButton:disabled {
   background: #cbd5e1;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -605,7 +605,7 @@
 
 .homeButton:hover {
   background: var(--to-bg);
-  border-color: #94a3b8;
+  border-color: var(--color-text-muted);
   color: var(--to-text-primary);
 }
 
@@ -730,8 +730,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --to-bg:           #0f172a;
-    --to-card-bg:      #1e293b;
+    --to-bg:           var(--color-bg-primary, #1A1A1A);
+    --to-card-bg:      var(--color-bg-secondary, #252525);
     --to-border:       #334155;
     --to-text-primary: #f1f5f9;
     --to-text-secondary: #94a3b8;

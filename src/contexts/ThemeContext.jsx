@@ -20,7 +20,7 @@ export const ThemeProvider = ({ children }) => {
   // Apply theme to document root
   useEffect(() => {
     // Remove all theme classes
-    document.documentElement.classList.remove('theme-dark', 'theme-light', 'theme-clean');
+    document.documentElement.classList.remove('theme-dark', 'theme-light', 'theme-clean', 'theme-corporate');
     
     // Add current theme class
     document.documentElement.classList.add(`theme-${theme}`);
@@ -38,7 +38,7 @@ export const ThemeProvider = ({ children }) => {
     changeTheme,
     isDark: theme === 'dark',
     isLight: theme === 'light',
-    isClean: theme === 'clean'
+    isCorporate: theme === 'corporate'
   };
 
   return (

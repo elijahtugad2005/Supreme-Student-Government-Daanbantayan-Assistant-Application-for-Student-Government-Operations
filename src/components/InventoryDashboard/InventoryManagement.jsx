@@ -50,8 +50,8 @@ const InventoryManagement = () => {
     minQuantity: 5,
   });
 
-  // Check if user has admin/secretary permissions
-  const canEdit = ['admin', 'secretary'].includes(userRole);
+  // Check if user has admin/secretary/representative permissions
+  const canEdit = ['admin', 'secretary', 'representative'].includes(userRole);
 
   const handleOpenDialog = (item = null) => {
     if (item) {

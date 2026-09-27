@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase/firebaseConfig.js';
-import { collection, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, DollarSign, Check, X, ClockIcon, CreditCard, Truck } from 'lucide-react';
+import { collection, onSnapshot, deleteDoc, doc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, DollarSign, Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet } from 'lucide-react';
 import Order from '../Order/order.jsx';
+import SheetSyncPanel from './SheetSyncPanel.jsx';
 import styles from './OrderManagement.module.css';
 
 function OrderManagement() {
@@ -20,6 +21,23 @@ function OrderManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   
+  // Toast notification state
+  const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
+  const showToast = (msg, type = 'success') => {
+    setToast({ isOpen: true, message: msg, type });
+    setTimeout(() => setToast({ isOpen: false, message: '', type: 'success' }), 3000);
+  };
+  
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    orderId: '',
+    currentStatus: '',
+    newStatus: '',
+    order: null,
+    docId: ''
+  });
+  
   // Filter states
   const [statusFilter, setStatusFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
@@ -28,8 +46,11 @@ function OrderManagement() {
   // Pagination
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
+  const [selectedOrders, setSelectedOrders] = useState([]);
 
   // ========================================
+  const [bulkDeleteModal, setBulkDeleteModal] = useState(false);
+
   // FETCH ORDERS FROM FIREBASE
   // ========================================
   useEffect(() => {
@@ -63,18 +84,111 @@ function OrderManagement() {
   // ========================================
   // UPDATE ORDER STATUS
   // ========================================
-  const updateOrderStatus = async (docId, newStatus) => {
+  const updateOrderStatus = async (docId, newStatus, order) => {
+    // Show loading toast (optional)
+    showToast(`Updating order ${order.orderId}...`, 'info');
+
     try {
+      const oldStatus = order.orderStatus;
+      
+      // Handle stock deduction when order is marked as Completed
+      if (newStatus === 'Completed' && oldStatus !== 'Completed' && oldStatus !== 'Cancelled') {
+        // Deduct stock when completing an order
+        const productId = order.productInfo?.productId;
+        const quantity = order.productInfo?.quantity || 0;
+
+        if (productId && quantity > 0) {
+          // Find the product document
+          const productsSnapshot = await getDocs(collection(db, 'products'));
+          const productDoc = productsSnapshot.docs.find(
+            doc => doc.data().productId === productId
+          );
+
+          if (productDoc) {
+            const currentStock = productDoc.data().stockAvailable || 0;
+            const newStock = currentStock - quantity; // Deduct stock
+
+            if (newStock < 0) {
+              showToast(`Cannot complete order: Insufficient stock!`, 'error');
+              return;
+            }
+
+            await updateDoc(doc(db, 'products', productDoc.id), {
+              stockAvailable: newStock,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+
+      // Handle stock restoration when order is cancelled
+      if (newStatus === 'Cancelled' && oldStatus !== 'Cancelled') {
+        // Only restore stock if order was already completed
+        if (oldStatus === 'Completed') {
+          const productId = order.productInfo?.productId;
+          const quantity = order.productInfo?.quantity || 0;
+
+          if (productId && quantity > 0) {
+            // Find the product document
+            const productsSnapshot = await getDocs(collection(db, 'products'));
+            const productDoc = productsSnapshot.docs.find(
+              doc => doc.data().productId === productId
+            );
+
+            if (productDoc) {
+              const currentStock = productDoc.data().stockAvailable || 0;
+              const newStock = currentStock + quantity; // Restore stock
+
+              await updateDoc(doc(db, 'products', productDoc.id), {
+                stockAvailable: newStock,
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+
+      // Handle stock restoration when changing from Completed to another status
+      if (oldStatus === 'Completed' && newStatus !== 'Completed' && newStatus !== 'Cancelled') {
+        // Restore stock when un-completing an order
+        const productId = order.productInfo?.productId;
+        const quantity = order.productInfo?.quantity || 0;
+
+        if (productId && quantity > 0) {
+          // Find the product document
+          const productsSnapshot = await getDocs(collection(db, 'products'));
+          const productDoc = productsSnapshot.docs.find(
+            doc => doc.data().productId === productId
+          );
+
+          if (productDoc) {
+            const currentStock = productDoc.data().stockAvailable || 0;
+            const newStock = currentStock + quantity; // Restore stock
+
+            await updateDoc(doc(db, 'products', productDoc.id), {
+              stockAvailable: newStock,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+
+      // Update order status
       await updateDoc(doc(db, 'orders', docId), {
         orderStatus: newStatus,
         updatedAt: new Date().toISOString()
       });
       
-      // Show success message
-      alert(`✅ Order status updated to: ${newStatus}`);
+      // Show success state
+      showToast(`Order status updated to ${newStatus}`, 'success');
+      
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert('❌ Failed to update order status. Please try again.');
+      
+      // Show error state
+      showToast('Failed to update order status. Please try again.', 'error');
+      
+      // No auto‑close needed for toast (handled in showToast)
     }
   };
 
@@ -82,10 +196,133 @@ function OrderManagement() {
   // STATUS CHANGE HANDLERS
   // ========================================
   const handleStatusChange = (order, newStatus) => {
-    if (window.confirm(`Change order ${order.orderId} status to "${newStatus}"?`)) {
-      updateOrderStatus(order.docId, newStatus);
+    // Show confirmation modal instead of browser confirm
+    setConfirmModal({
+      isOpen: true,
+      orderId: order.orderId,
+      currentStatus: order.orderStatus,
+      newStatus: newStatus,
+      order: order,
+      docId: order.docId
+    });
+  };
+  
+  const handleConfirmStatusChange = () => {
+    // Close confirmation modal
+    setConfirmModal({
+      isOpen: false,
+      orderId: '',
+      currentStatus: '',
+      newStatus: '',
+      order: null,
+      docId: ''
+    });
+    
+    // Proceed with status update
+    updateOrderStatus(confirmModal.docId, confirmModal.newStatus, confirmModal.order);
+  };
+  
+  const handleCancelStatusChange = () => {
+    // Close confirmation modal
+    setConfirmModal({ isOpen: false, orderId: '', currentStatus: '', newStatus: '', order: null, docId: '' });
+  };
+
+  // Bulk delete modal state
+
+
+  // Open bulk delete confirmation modal
+  const openBulkDeleteModal = () => {
+    if (selectedOrders.length === 0) return;
+    setBulkDeleteModal(true);
+  };
+
+  // Close bulk delete modal
+  const closeBulkDeleteModal = () => {
+    setBulkDeleteModal(false);
+  };
+
+  // Perform bulk deletion after confirmation
+  const handleBulkDelete = async () => {
+    const ordersToDelete = orders.filter(o => selectedOrders.includes(o.docId));
+    if (ordersToDelete.length === 0) {
+      closeBulkDeleteModal();
+      return;
+    }
+    const batch = writeBatch(db);
+    for (const order of ordersToDelete) {
+      // Restore stock if order was completed
+      if (order.orderStatus === 'Completed') {
+        const productId = order.productInfo?.productId;
+        const quantity = order.productInfo?.quantity || 0;
+        if (productId && quantity > 0) {
+          const productsSnapshot = await getDocs(collection(db, 'products'));// eslint-disable-next-line no-await-in-loop
+          const productDoc = productsSnapshot.docs.find(doc => doc.data().productId === productId);
+          if (productDoc) {
+            const currentStock = productDoc.data().stockAvailable || 0;
+            const newStock = currentStock + quantity;
+            await updateDoc(doc(db, 'products', productDoc.id), { stockAvailable: newStock, updatedAt: new Date().toISOString() });
+          }
+        }
+      }
+      // Queue order deletion
+      const orderRef = doc(db, 'orders', order.docId);
+      batch.delete(orderRef);
+    }
+    await batch.commit();
+    setSelectedOrders([]);
+    closeBulkDeleteModal();
+    showToast(`${ordersToDelete.length} order(s) deleted successfully.`, 'success');
+  };
+
+  // Delete all orders instantly
+  const handleDeleteAllOrders = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'orders'));
+      const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(doc(db, 'orders', docSnap.id)));
+      await Promise.all(deletePromises);
+      // Clear local state
+      setOrders([]);
+      setSelectedOrders([]);
+    } catch (error) {
+      console.error('Error deleting all orders:', error);
     }
   };
+
+
+  // Toggle select all visible rows
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      const ids = orders.map((o) => o.docId);
+      setSelectedOrders(Array.from(new Set(ids)));
+    } else {
+      setSelectedOrders([]);
+    }
+  };
+
+  // Toggle individual row selection
+  const toggleSelectOrder = (docId) => {
+    setSelectedOrders((prev) =>
+      prev.includes(docId) ? prev.filter((id) => id !== docId) : [...prev, docId]
+    );
+  };
+
+  const toggleClaimStatus = async (order) => {
+    const newClaimed = !(order.claimed ?? false);
+    const newStatus = newClaimed ? 'Claimed' : 'Unclaimed';
+    try {
+      await updateDoc(doc(db, 'orders', order.docId), {
+        claimed: newClaimed,
+        orderStatus: newStatus,
+        updatedAt: new Date().toISOString(),
+      });
+      showToast(`Order ${order.orderId} marked as ${newStatus}.`, 'success');
+    } catch (err) {
+      console.error('Error toggling claim status:', err);
+      showToast('Failed to update claim status.', 'error');
+    }
+  };
+
+
 
   // ========================================
   // FILTER ORDERS (MEMOIZED)
@@ -119,16 +356,14 @@ function OrderManagement() {
   // STATISTICS CALCULATION
   // ========================================
   const getStatistics = () => {
+    const claimedOrders = orders.filter(o => o.claimed || o.orderStatus === 'Claimed');
+    const unclaimedOrders = orders.filter(o => !o.claimed && o.orderStatus !== 'Claimed');
+
     return {
       total: orders.length,
-      pending: orders.filter(o => o.orderStatus === 'Pending').length,
-      paid: orders.filter(o => o.orderStatus === 'Paid').length,
-      ongoing: orders.filter(o => o.orderStatus === 'Ongoing').length,
-      completed: orders.filter(o => o.orderStatus === 'Completed').length,
-      cancelled: orders.filter(o => o.orderStatus === 'Cancelled').length,
-      totalRevenue: orders
-        .filter(o => o.orderStatus === 'Paid' || o.orderStatus === 'Completed')
-        .reduce((sum, order) => sum + (order.productInfo?.totalPrice || 0), 0),
+      claimed: claimedOrders.length,
+      unclaimed: unclaimedOrders.length,
+      totalRevenue: claimedOrders.reduce((sum, order) => sum + (order.productInfo?.totalPrice || 0), 0),
     };
   };
 
@@ -155,17 +390,46 @@ function OrderManagement() {
   // ========================================
   // DELETE ORDER
   // ========================================
-  const handleDeleteOrder = async (docId, orderId) => {
-    if (!window.confirm(`Are you sure you want to delete order ${orderId}?\nThis action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteOrder = async (docId, orderId, order) => {
+    
+
 
     try {
+      // Restore stock ONLY if order was Completed (stock was already deducted)
+      if (order.orderStatus === 'Completed') {
+        const productId = order.productInfo?.productId;
+        const quantity = order.productInfo?.quantity || 0;
+
+        if (productId && quantity > 0) {
+          // Find the product document
+          const productsSnapshot = await getDocs(collection(db, 'products'));
+          const productDoc = productsSnapshot.docs.find(
+            doc => doc.data().productId === productId
+          );
+
+          if (productDoc) {
+            const currentStock = productDoc.data().stockAvailable || 0;
+            const newStock = currentStock + quantity; // Restore stock
+
+            await updateDoc(doc(db, 'products', productDoc.id), {
+              stockAvailable: newStock,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+
+      // Delete the order
       await deleteDoc(doc(db, 'orders', docId));
-      alert('🗑️ Order deleted successfully!');
+
+      if (order.orderStatus === 'Completed') {
+        showToast('Order deleted. Stock has been restored.', 'success');
+      } else {
+        showToast('Order deleted successfully.', 'success');
+      }
     } catch (error) {
       console.error('Error deleting order:', error);
-      alert('Error deleting order. Please try again.');
+      showToast('Error deleting order. Please try again.', 'error');
     }
   };
 
@@ -200,6 +464,8 @@ function OrderManagement() {
       case 'Paid': return '#d1e7dd';
       case 'Ongoing': return '#cfe2ff';
       case 'Completed': return '#d1e7dd';
+      case 'Claimed': return '#d1e7dd';
+      case 'Unclaimed': return '#fff3cd';
       case 'Cancelled': return '#f8d7da';
       default: return '#e2e3e5';
     }
@@ -211,6 +477,8 @@ function OrderManagement() {
       case 'Paid': return '#0f5132';
       case 'Ongoing': return '#084298';
       case 'Completed': return '#0f5132';
+      case 'Claimed': return '#0f5132';
+      case 'Unclaimed': return '#856404';
       case 'Cancelled': return '#842029';
       default: return '#41464b';
     }
@@ -242,68 +510,35 @@ function OrderManagement() {
 
         <div className={styles.kpiCard}>
           <div className={styles.kpiCardHeader}>
-            <span className={styles.kpiCardLabel}>Pending</span>
-            <span className={styles.kpiCardIcon}>
-              <Clock size={20} />
-            </span>
-          </div>
-          <p className={styles.kpiCardValue}>{stats.pending}</p>
-          <p className={styles.kpiCardSub}>awaiting payment</p>
-        </div>
-
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiCardHeader}>
-            <span className={styles.kpiCardLabel}>Paid</span>
-            <span className={styles.kpiCardIcon}>
-              <CreditCard size={20} />
-            </span>
-          </div>
-          <p className={styles.kpiCardValue}>{stats.paid}</p>
-          <p className={styles.kpiCardSub}>payment confirmed</p>
-        </div>
-
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiCardHeader}>
-            <span className={styles.kpiCardLabel}>Ongoing</span>
-            <span className={styles.kpiCardIcon}>
-              <Truck size={20} />
-            </span>
-          </div>
-          <p className={styles.kpiCardValue}>{stats.ongoing}</p>
-          <p className={styles.kpiCardSub}>in progress</p>
-        </div>
-
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiCardHeader}>
-            <span className={styles.kpiCardLabel}>Completed</span>
+            <span className={styles.kpiCardLabel}>Claimed Orders</span>
             <span className={styles.kpiCardIcon}>
               <CheckCircle size={20} />
             </span>
           </div>
-          <p className={styles.kpiCardValue}>{stats.completed}</p>
-          <p className={styles.kpiCardSub}>successfully delivered</p>
+          <p className={styles.kpiCardValue}>{stats.claimed}</p>
+          <p className={styles.kpiCardSub}>fulfilled & claimed</p>
         </div>
 
         <div className={styles.kpiCard}>
           <div className={styles.kpiCardHeader}>
-            <span className={styles.kpiCardLabel}>Cancelled</span>
+            <span className={styles.kpiCardLabel}>Unclaimed Orders</span>
             <span className={styles.kpiCardIcon}>
-              <X size={20} />
+              <Clock size={20} />
             </span>
           </div>
-          <p className={styles.kpiCardValue}>{stats.cancelled}</p>
-          <p className={styles.kpiCardSub}>cancelled orders</p>
+          <p className={styles.kpiCardValue}>{stats.unclaimed}</p>
+          <p className={styles.kpiCardSub}>pending pickup/claim</p>
         </div>
 
         <div className={styles.kpiCard}>
           <div className={styles.kpiCardHeader}>
-            <span className={styles.kpiCardLabel}>Revenue</span>
+            <span className={styles.kpiCardLabel}>Claimed Revenue</span>
             <span className={styles.kpiCardIcon}>
               <DollarSign size={20} />
             </span>
           </div>
           <p className={styles.kpiCardValue}>₱{stats.totalRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          <p className={styles.kpiCardSub}>total revenue</p>
+          <p className={styles.kpiCardSub}>revenue from claimed orders</p>
         </div>
       </div>
     </div>
@@ -338,6 +573,8 @@ function OrderManagement() {
             <option value="Paid">Paid</option>
             <option value="Ongoing">Ongoing</option>
             <option value="Completed">Completed</option>
+            <option value="Claimed">Claimed</option>
+            <option value="Unclaimed">Unclaimed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
 
@@ -350,6 +587,43 @@ function OrderManagement() {
             <option value="Cash">Cash</option>
             <option value="Online">Online</option>
           </select>
+        </div>
+
+        <div className={styles.productsToolbarRight}>
+            <button
+              type="button"
+              className={styles.syncToolbarBtn}
+              onClick={() => setActiveSection('settings')}
+              title="Import and dynamically sync orders from Excel or Google Sheets"
+            >
+              <FileSpreadsheet size={16} />
+              Sync Sheet / Excel
+            </button>
+            {/* Bulk Delete */}
+            <button
+              type="button"
+              className={styles.syncToolbarBtn}
+              onClick={openBulkDeleteModal}
+              disabled={selectedOrders.length === 0}
+              title="Delete selected orders"
+            >
+              <Trash2 size={16} />
+              Delete Selected
+            </button>
+            <button
+              type="button"
+              className={styles.syncToolbarBtn}
+              onClick={handleDeleteAllOrders}
+              disabled={orders.length === 0}
+              title="Delete all orders"
+            >
+              <Trash2 size={16} />
+              Delete All
+            </button>
+            {/* Selected count */}
+            {selectedOrders.length > 0 && (
+              <span className={styles.selectionInfo}>Selected: {selectedOrders.length}</span>
+            )}
         </div>
       </div>
 
@@ -372,6 +646,7 @@ function OrderManagement() {
           <table className={styles.orderTable}>
             <thead>
               <tr>
+                <th><input type="checkbox" onChange={toggleSelectAll} checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrders.includes(o.docId))} /></th>
                 <th>Order ID</th>
                 <th>Customer</th>
                 <th>Product</th>
@@ -380,12 +655,13 @@ function OrderManagement() {
                 <th>Status</th>
                 <th>Payment</th>
                 <th>Date</th>
-                <th>Actions</th>
+
               </tr>
             </thead>
             <tbody>
               {paginatedOrders.map((order) => (
                 <tr key={order.docId} className={styles.tableRow}>
+                  <td><input type="checkbox" checked={selectedOrders.includes(order.docId)} onChange={() => toggleSelectOrder(order.docId)} /></td>
                   <td className={styles.orderIdCell}>{order.orderId}</td>
                   <td>
                     <div className={styles.customerCell}>
@@ -405,18 +681,25 @@ function OrderManagement() {
                       )}
                     </div>
                   </td>
-                  <td className={styles.quantityCell}>{order.productInfo?.quantity}</td>
+                  <td className={styles.quantityCell}>
+                    <span>{order.productInfo?.quantity}</span>
+                  </td>
                   <td className={styles.priceCell}>₱{order.productInfo?.totalPrice?.toFixed(2)}</td>
                   <td>
-                    <span 
-                      className={styles.statusBadge}
-                      style={{
-                        backgroundColor: getStatusColor(order.orderStatus),
-                        color: getStatusTextColor(order.orderStatus)
-                      }}
-                    >
-                      {order.orderStatus}
-                    </span>
+                      <span 
+                        className={styles.statusBadge}
+                        style={{
+                          backgroundColor: getStatusColor(order.orderStatus),
+                          color: getStatusTextColor(order.orderStatus)
+                        }}
+                      >
+                        {order.orderStatus}
+                      </span>
+                      <span 
+                        className={order.claimed ? styles.claimBadgeClaimed : styles.claimBadgeUnclaimed}
+                      >
+                        {order.claimed ? "Claimed" : "Unclaimed"}
+                      </span>
                   </td>
                   <td>
                     <span className={styles.paymentBadge}>
@@ -425,42 +708,14 @@ function OrderManagement() {
                   </td>
                   <td className={styles.dateCell}>{formatDate(order.dateOrdered)}</td>
                   <td>
-                    <div className={styles.tableActions}>
-                      {/* Status Change Dropdown */}
-                      <select
-                        className={styles.statusSelect}
-                        value={order.orderStatus}
-                        onChange={(e) => {
-                          if (window.confirm(`Change order ${order.orderId} status to "${e.target.value}"?`)) {
-                            updateOrderStatus(order.docId, e.target.value);
-                          }
-                        }}
-                        title="Change Status"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Ongoing">Ongoing</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
-                      
-                      <button
-                        className={styles.tableEditBtn}
-                        onClick={() => handleEditClick(order)}
-                        title="Edit Order"
-                      >
-                        <Edit2 size={14} />
-                        Edit
-                      </button>
-                      <button
-                        className={styles.tableDeleteBtn}
-                        onClick={() => handleDeleteOrder(order.docId, order.orderId)}
-                        title="Delete Order"
-                      >
-                        <Trash2 size={14} />
-                        Delete
-                      </button>
-                    </div>
+                    <button
+                      className={styles.claimBtn}
+                      onClick={() => toggleClaimStatus(order)}
+                      title={order.claimed ? "Mark as Unclaimed" : "Mark as Claimed"}
+                    >
+                      {order.claimed ? <X size={14} /> : <CheckCircle size={14} />}
+                      {order.claimed ? "Unclaim" : "Claim"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -470,6 +725,21 @@ function OrderManagement() {
       </div>
 
       {/* Pagination */}
+{bulkDeleteModal && (
+  <div className={styles.modalOverlay}>
+    <div className={styles.modalContent}>
+      <h3>Confirm Bulk Delete</h3>
+      <p>Delete {selectedOrders.length} selected order(s)? This action cannot be undone.</p>
+      <div className={styles.modalButtons}>
+        <button className={styles.modalButtonCancel} onClick={closeBulkDeleteModal}>Cancel</button>
+        <button className={styles.modalButtonConfirm} onClick={handleBulkDelete}>Delete</button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
       {filteredOrders.length > 0 && (
         <div className={styles.pagination}>
           <span className={styles.paginationInfo}>
@@ -502,14 +772,7 @@ function OrderManagement() {
   // ========================================
   const renderSettingsView = () => (
     <div className={styles.settingsView}>
-      <div className={styles.settingsPlaceholder}>
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-        <h3>Settings</h3>
-        <p>Order management settings will appear here.</p>
-      </div>
+      <SheetSyncPanel />
     </div>
   );
 
@@ -518,6 +781,9 @@ function OrderManagement() {
   // ========================================
   return (
     <div className={styles.container}>
+      {toast.isOpen && (
+        <div className={styles.toast} data-type={toast.type}>{toast.message}</div>
+      )}
       
       {/* Internal Tab Navigation */}
       <div className={styles.omTabNav}>
@@ -538,7 +804,7 @@ function OrderManagement() {
           className={`${styles.omTabBtn} ${activeSection === 'settings' ? styles.omTabBtnActive : ''}`}
           onClick={() => setActiveSection('settings')}
         >
-          ⚙️ Settings
+          📊 Sheet & Excel Sync
         </button>
       </div>
 
@@ -546,7 +812,14 @@ function OrderManagement() {
         {/* Render views based on active section */}
         {activeSection === 'dashboard' && renderDashboardView()}
         {activeSection === 'orders' && renderOrdersTableView()}
-        {activeSection === 'settings' && renderSettingsView()}
+        {activeSection === 'settings' && (
+          <div className={styles.settingsView}>
+            <SheetSyncPanel onSyncCompleted={() => {
+              // Switch to orders view after brief delay so user can immediately see synced orders
+              setTimeout(() => setActiveSection('orders'), 1200);
+            }} />
+          </div>
+        )}
       </div>
 
       {/* EDIT MODAL */}
@@ -560,6 +833,41 @@ function OrderManagement() {
           </div>
         </div>
       )}
+
+      {/* CONFIRMATION MODAL */}
+      {confirmModal.isOpen && (
+        <div className={styles.confirmModalOverlay}>
+          <div className={styles.confirmModalContent}>
+            <div className={styles.confirmModalIcon}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+            </div>
+            <h3 className={styles.confirmModalTitle}>Confirm Status Change</h3>
+            <p className={styles.confirmModalMessage}>
+              Change order <strong>{confirmModal.orderId}</strong> status to <strong className={styles.confirmStatusBadge}>{confirmModal.newStatus}</strong>?
+            </p>
+            <div className={styles.confirmModalActions}>
+              <button 
+                className={styles.confirmCancelBtn}
+                onClick={handleCancelStatusChange}
+              >
+                Cancel
+              </button>
+              <button 
+                className={styles.confirmOkBtn}
+                onClick={handleConfirmStatusChange}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
     </div>
   );

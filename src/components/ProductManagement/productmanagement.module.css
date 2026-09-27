@@ -7,27 +7,27 @@
    DESIGN TOKENS
    ===================================================== */
 :root {
-  --pm-bg: #f8fafc;
-  --pm-sidebar-bg: #0f172a;
+  --pm-bg: var(--color-bg-primary, #f8fafc);
+  --pm-sidebar-bg: var(--color-bg-primary, #1A1A1A);
   --pm-sidebar-width: 240px;
-  --pm-card-bg: #ffffff;
-  --pm-border: #e2e8f0;
-  --pm-text-primary: #0f172a;
-  --pm-text-secondary: #64748b;
-  --pm-text-muted: #94a3b8;
+  --pm-card-bg: var(--color-bg-secondary, #ffffff);
+  --pm-border: var(--color-border-primary, #e2e8f0);
+  --pm-text-primary: var(--color-text-primary, #0f172a);
+  --pm-text-secondary: var(--color-text-secondary, #64748b);
+  --pm-text-muted: var(--color-text-muted, #94a3b8);
   --pm-blue: #3b82f6;
   --pm-blue-dark: #2563eb;
   --pm-blue-light: #eff6ff;
   --pm-green: #10b981;
   --pm-green-light: #ecfdf5;
-  --pm-amber: #f59e0b;
+  --pm-amber: #E66B3D;
   --pm-amber-light: #fffbeb;
   --pm-red: #ef4444;
   --pm-red-light: #fef2f2;
   --pm-radius: 12px;
-  --pm-shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --pm-shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  --pm-shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --pm-shadow-sm: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.07));
+  --pm-shadow-md: var(--shadow-md, 0 4px 16px rgba(0,0,0,0.08));
+  --pm-shadow-lg: var(--shadow-lg, 0 12px 40px rgba(0,0,0,0.12));
   --pm-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -72,7 +72,7 @@
 .pmTabBtn:hover {
   background: var(--pm-bg);
   color: var(--pm-text-primary);
-  border-color: #94a3b8;
+  border-color: var(--color-text-muted);
 }
 
 .pmTabBtnActive {
@@ -1365,7 +1365,7 @@
 
 .submitButton:disabled {
   background: #cbd5e1;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -1386,7 +1386,7 @@
 
 .cancelButton:hover {
   background: var(--pm-bg);
-  border-color: #94a3b8;
+  border-color: var(--color-text-muted);
   color: var(--pm-text-primary);
 }
 
@@ -1405,7 +1405,7 @@
 
 .resetButton:hover {
   background: var(--pm-bg);
-  border-color: #94a3b8;
+  border-color: var(--color-text-muted);
   color: var(--pm-text-primary);
 }
 
@@ -1611,8 +1611,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --pm-bg: #0f172a;
-    --pm-card-bg: #1e293b;
+    --pm-bg: var(--color-bg-primary, #1A1A1A);
+    --pm-card-bg: var(--color-bg-secondary, #252525);
     --pm-border: #334155;
     --pm-text-primary: #f1f5f9;
     --pm-text-secondary: #94a3b8;
@@ -1713,5 +1713,277 @@
   .barChartTrack {
     background: rgba(255,255,255,0.05);
     border-color: rgba(255,255,255,0.08);
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   CUSTOM VARIATIONS STYLES
+══════════════════════════════════════════════════════════ */
+
+.customVariationsSection {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--pm-border);
+}
+
+.customVariationsHeader {
+  margin-bottom: 1rem;
+}
+
+.helperText {
+  font-size: 0.8rem;
+  color: var(--pm-text-secondary);
+  margin: 0.25rem 0 0;
+  font-style: italic;
+}
+
+.customVariationCard {
+  background: rgba(59,130,246,0.03);
+  border: 1px solid rgba(59,130,246,0.15);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.customVariationCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(59,130,246,0.15);
+}
+
+.customVariationTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--pm-blue);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.removeVariationTypeBtn {
+  padding: 0.4rem 0.8rem;
+  background: var(--pm-red-light);
+  color: var(--pm-red);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.removeVariationTypeBtn:hover {
+  background: var(--pm-red);
+  color: white;
+  border-color: var(--pm-red);
+}
+
+.variationOptionsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.variationOptionCard {
+  background: white;
+  border: 1px solid var(--pm-border);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.variationOptionCard:hover {
+  box-shadow: var(--pm-shadow-md);
+  border-color: var(--pm-blue);
+}
+
+.variationOptionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--pm-border);
+}
+
+.variationOptionName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pm-text-primary);
+}
+
+.removeOptionBtn {
+  width: 24px;
+  height: 24px;
+  background: var(--pm-red-light);
+  color: var(--pm-red);
+  border: none;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.removeOptionBtn:hover {
+  background: var(--pm-red);
+  color: white;
+  transform: scale(1.1);
+}
+
+.variationOptionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.variationOptionImageSection {
+  width: 100%;
+}
+
+.variationOptionImagePreview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--pm-border);
+}
+
+.variationOptionImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.changeVariationImageBtn {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.changeVariationImageBtn:hover {
+  background: rgba(0,0,0,0.9);
+  transform: translateY(-2px);
+}
+
+.variationOptionImageUpload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1/1;
+  border: 2px dashed var(--pm-border);
+  border-radius: 8px;
+  background: var(--pm-bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 0.5rem;
+}
+
+.variationOptionImageUpload:hover {
+  border-color: var(--pm-blue);
+  background: var(--pm-blue-light);
+}
+
+.variationOptionImageUpload svg {
+  transition: transform 0.2s ease;
+}
+
+.variationOptionImageUpload:hover svg {
+  transform: scale(1.1);
+}
+
+.variationOptionImageUpload span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pm-text-secondary);
+}
+
+.variationOptionStockSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.variationOptionStockLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pm-text-secondary);
+  min-width: 50px;
+}
+
+.variationOptionStockInput {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--pm-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pm-text-primary);
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.variationOptionStockInput:focus {
+  outline: none;
+  border-color: var(--pm-blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+/* Dark mode support for custom variations */
+@media (prefers-color-scheme: dark) {
+  .customVariationCard {
+    background: rgba(59,130,246,0.08);
+    border-color: rgba(59,130,246,0.25);
+  }
+
+  .variationOptionCard {
+    background: var(--pm-card-bg);
+  }
+
+  .variationOptionImageUpload {
+    background: rgba(255,255,255,0.03);
+  }
+
+  .variationOptionStockInput {
+    background: var(--pm-card-bg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .variationOptionsList {
+    grid-template-columns: 1fr;
+  }
+
+  .customVariationCardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .removeVariationTypeBtn {
+    width: 100%;
   }
 }

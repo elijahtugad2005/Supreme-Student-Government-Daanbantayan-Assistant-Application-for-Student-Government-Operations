@@ -5,6 +5,21 @@ import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/fi
 import {useFinance} from '../FinanceContext/FinanceProvider.jsx';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import styles from './BudgetForm.module.css';
+import { 
+  HiCurrencyDollar,
+  HiClipboardList,
+  HiCash,
+  HiCreditCard,
+  HiTag,
+  HiUserGroup,
+  HiCalendar,
+  HiDocumentText,
+  HiLink,
+  HiSave,
+  HiX,
+  HiExclamationCircle,
+  HiCheckCircle
+} from 'react-icons/hi';
 
 const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
   const { userName, userRole } = useAuth();
@@ -27,6 +42,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [categories] = useState([
     'Event', 
     'Project', 
@@ -210,11 +226,14 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         });
       }
 
-      // Show success message
-      alert(editingBudget ? 'Budget updated successfully!' : 'Budget allocated successfully!');
+      // Show success modal instead of alert
+      setShowSuccessModal(true);
       
-      // Call success callback
-      onSuccess(result);
+      // Auto-close modal and call success callback after 2 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        onSuccess(result);
+      }, 2000);
 
     } catch (error) {
       console.error('Error saving budget:', error);
@@ -252,7 +271,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2 className={styles.title}>
-          <span className={styles.titleIcon}>💰</span>
+          <HiCurrencyDollar className={styles.titleIcon} />
           {editingBudget ? 'Edit Budget Allocation' : 'New Budget Allocation'}
         </h2>
         <p className={styles.subtitle}>
@@ -264,7 +283,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         {/* Error Alert */}
         {errors.submit && (
           <div className={styles.errorAlert}>
-            <span className={styles.errorIcon}>⚠️</span>
+            <HiExclamationCircle className={styles.errorIcon} />
             {errors.submit}
           </div>
         )}
@@ -322,7 +341,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           {/* Event/Project Name */}
           <div className={styles.formGroup}>
             <label htmlFor="eventName" className={styles.label}>
-              <span className={styles.labelIcon}>📋</span>
+              <HiClipboardList className={styles.labelIcon} />
               Event/Project Name *
             </label>
             <input
@@ -341,7 +360,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           {/* Allocated Amount */}
           <div className={styles.formGroup}>
             <label htmlFor="allocatedAmount" className={styles.label}>
-              <span className={styles.labelIcon}>💵</span>
+              <HiCash className={styles.labelIcon} />
               Allocated Amount (₱) *
             </label>
             <div className={styles.currencyInput}>
@@ -365,7 +384,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           {/* Spent Amount */}
           <div className={styles.formGroup}>
             <label htmlFor="spentAmount" className={styles.label}>
-              <span className={styles.labelIcon}>💸</span>
+              <HiCreditCard className={styles.labelIcon} />
               Spent Amount (₱)
             </label>
             <div className={styles.currencyInput}>
@@ -389,7 +408,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           {/* Category */}
           <div className={styles.formGroup}>
             <label htmlFor="category" className={styles.label}>
-              <span className={styles.labelIcon}>🏷️</span>
+              <HiTag className={styles.labelIcon} />
               Category
             </label>
             <select
@@ -408,7 +427,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           {/* Committee */}
           <div className={styles.formGroup}>
             <label htmlFor="committee" className={styles.label}>
-              <span className={styles.labelIcon}>👥</span>
+              <HiUserGroup className={styles.labelIcon} />
               Committee
             </label>
             <select
@@ -427,7 +446,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           {/* Fiscal Year */}
           <div className={styles.formGroup}>
             <label htmlFor="fiscalYear" className={styles.label}>
-              <span className={styles.labelIcon}>📅</span>
+              <HiCalendar className={styles.labelIcon} />
               Fiscal Year
             </label>
             <select
@@ -478,7 +497,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         {/* Resolution Number */}
         <div className={styles.formGroup}>
           <label htmlFor="resolution" className={styles.label}>
-            <span className={styles.labelIcon}>📄</span>
+            <HiDocumentText className={styles.labelIcon} />
             Resolution Number/Name
           </label>
           <input
@@ -495,7 +514,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         {/* Description */}
         <div className={styles.formGroup}>
           <label htmlFor="description" className={styles.label}>
-            <span className={styles.labelIcon}>📝</span>
+            <HiDocumentText className={styles.labelIcon} />
             Description
           </label>
           <textarea
@@ -512,7 +531,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         {/* Receipt URL */}
         <div className={styles.formGroup}>
           <label htmlFor="receiptUrl" className={styles.label}>
-            <span className={styles.labelIcon}>🔗</span>
+            <HiLink className={styles.labelIcon} />
             Receipt/Document URL
           </label>
           <input
@@ -556,13 +575,24 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
               </>
             ) : (
               <>
-                <span className={styles.buttonIcon}>💾</span>
+                <HiSave className={styles.buttonIcon} />
                 {editingBudget ? 'Update Budget' : 'Save Budget Allocation'}
               </>
             )}
           </button>
         </div>
       </form>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className={styles.successModalOverlay}>
+          <div className={styles.successModal}>
+            <HiCheckCircle className={styles.successIcon} />
+            <h3>{editingBudget ? 'Budget Updated!' : 'Budget Created!'}</h3>
+            <p>Your changes have been saved successfully.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

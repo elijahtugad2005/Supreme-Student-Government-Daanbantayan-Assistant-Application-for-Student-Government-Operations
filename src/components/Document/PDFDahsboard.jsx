@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import PDFList from './PDFList';
 import { db } from "../../firebase/firebaseConfig";
-import { collection, addDoc, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import styles from './PDFDashboard.module.css';
+import { 
+  HiDocumentText, 
+  HiUpload, 
+  HiEye, 
+  HiDownload, 
+  HiTrash,
+  HiX,
+  HiCheckCircle,
+  HiClock,
+  HiFlag,
+  HiArchive,
+  HiPencil,
+  HiRefresh
+} from 'react-icons/hi';
 
 function PDFDashboard() {
   const [pdf, setPdf] = useState({
@@ -21,6 +35,7 @@ function PDFDashboard() {
   const [selectedPdf, setSelectedPdf] = useState(null);
   const [viewMode, setViewMode] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [statusChangeModal, setStatusChangeModal] = useState(null);
 
   // Load PDFs from Firestore with error handling
   useEffect(() => {
@@ -223,6 +238,30 @@ function PDFDashboard() {
     }
   };
 
+  // Change PDF status
+  const handleStatusChange = async (pdfId, newStatus) => {
+    try {
+      setLoading(true);
+      await updateDoc(doc(db, "pdfs", pdfId), {
+        pdfStatus: newStatus,
+        lastModified: new Date().toISOString(),
+      });
+      
+      setStatusChangeModal(null);
+      alert(`✅ Status updated to "${newStatus}" successfully!`);
+    } catch (error) {
+      console.error("❌ Error updating status:", error);
+      alert(`❌ Error updating status: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Open status change modal
+  const openStatusChangeModal = (pdf) => {
+    setStatusChangeModal(pdf);
+  };
+
   // Submit PDF to Firestore
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -295,14 +334,38 @@ function PDFDashboard() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Get status icon
+  const getStatusIcon = (status) => {
+    const statusIcons = {
+      approved: <HiCheckCircle />,
+      pending: <HiClock />,
+      completed: <HiFlag />,
+      archived: <HiArchive />,
+      ongoing: <HiRefresh />,
+      draft: <HiPencil />
+    };
+    return statusIcons[status] || <HiCheckCircle />;
+  };
+
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>📄 PDF Management Dashboard</h1>
+      <header className={styles.dashboardHeader}>
+        <div className={styles.headerContent}>
+          <HiDocumentText className={styles.headerIcon} />
+          <div>
+            <h1 className={styles.title}>PDF Management Dashboard</h1>
+            <p className={styles.subtitle}>Upload, manage, and organize your PDF documents</p>
+          </div>
+        </div>
+      </header>
       
       <div className={styles.dashboardLayout}>
         {/* Left: Upload Form */}
         <div className={styles.uploadSection}>
-          <h2>Upload New PDF</h2>
+          <div className={styles.sectionHeader}>
+            <HiUpload className={styles.sectionIcon} />
+            <h2>Upload New PDF</h2>
+          </div>
           
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
@@ -407,19 +470,22 @@ function PDFDashboard() {
               className={styles.uploadButton}
               disabled={loading || !pdf.pdfBase64}
             >
-              {loading ? "📤 Uploading..." : "📥 Upload PDF"}
+              <HiUpload />
+              <span>{loading ? "Uploading..." : "Upload PDF"}</span>
             </button>
 
             {pdf.pdfBase64 && !loading && (
               <div className={styles.uploadInfo}>
-                <p>✅ PDF ready to upload</p>
+                <p className={styles.uploadReady}>
+                  <HiCheckCircle /> PDF ready to upload
+                </p>
                 <button 
                   type="button" 
                   onClick={() => viewPDF(pdf.pdfBase64)}
                   className={styles.previewBtn}
                   disabled={loading}
                 >
-                  👁️ Preview Before Upload
+                  <HiEye /> Preview Before Upload
                 </button>
               </div>
             )}
@@ -429,7 +495,10 @@ function PDFDashboard() {
         {/* Right: PDF List */}
         <div className={styles.listSection}>
           <div className={styles.sectionHeader}>
-            <h2>PDF Documents ({pdfs.length})</h2>
+            <div className={styles.sectionHeaderLeft}>
+              <HiDocumentText className={styles.sectionIcon} />
+              <h2>PDF Documents ({pdfs.length})</h2>
+            </div>
             {pdfs.length > 0 && (
               <div className={styles.viewControls}>
                 <button 
@@ -445,7 +514,15 @@ function PDFDashboard() {
                   className={styles.toggleViewBtn}
                   disabled={loading}
                 >
-                  {viewMode ? "📋 List View" : "👁️ Preview Mode"}
+                  {viewMode ? (
+                    <>
+                      <HiDocumentText /> List View
+                    </>
+                  ) : (
+                    <>
+                      <HiEye /> Preview Mode
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -465,7 +542,7 @@ function PDFDashboard() {
                   }} 
                   className={styles.closeBtn}
                 >
-                  ✕ Close
+                  <HiX /> Close
                 </button>
               </div>
               <div className={styles.pdfViewer}>
@@ -489,6 +566,7 @@ function PDFDashboard() {
               onView={viewPDF}
               onDownload={downloadPDF}
               onDelete={handleDelete}
+              onStatusChange={openStatusChangeModal}
               loading={loading}
             />
           )}
@@ -498,26 +576,83 @@ function PDFDashboard() {
       {/* Statistics */}
       <div className={styles.stats}>
         <div className={styles.statCard}>
-          <h3>Total PDFs</h3>
-          <p className={styles.statNumber}>{pdfs.length}</p>
+          <HiDocumentText className={styles.statIcon} />
+          <div className={styles.statContent}>
+            <h3>Total PDFs</h3>
+            <p className={styles.statNumber}>{pdfs.length}</p>
+          </div>
         </div>
         <div className={styles.statCard}>
-          <h3>By Category</h3>
-          <p className={styles.statText}>
-            {pdfs.filter(p => p.pdfCategory === "Memorandum").length} Memo • {' '}
-            {pdfs.filter(p => p.pdfCategory === "Announcement").length} Announce • {' '}
-            {pdfs.filter(p => p.pdfCategory === "Letter").length} Letters
-          </p>
+          <HiArchive className={styles.statIcon} />
+          <div className={styles.statContent}>
+            <h3>By Category</h3>
+            <p className={styles.statText}>
+              {pdfs.filter(p => p.pdfCategory === "Memorandum").length} Memo • {' '}
+              {pdfs.filter(p => p.pdfCategory === "Announcement").length} Announce • {' '}
+              {pdfs.filter(p => p.pdfCategory === "Letter").length} Letters
+            </p>
+          </div>
         </div>
         <div className={styles.statCard}>
-          <h3>By Status</h3>
-          <p className={styles.statText}>
-            {pdfs.filter(p => p.pdfStatus === "approved").length} ✅ • {' '}
-            {pdfs.filter(p => p.pdfStatus === "pending").length} ⏳ • {' '}
-            {pdfs.filter(p => p.pdfStatus === "completed").length} 🏁
-          </p>
+          <HiCheckCircle className={styles.statIcon} />
+          <div className={styles.statContent}>
+            <h3>By Status</h3>
+            <p className={styles.statText}>
+              {pdfs.filter(p => p.pdfStatus === "approved").length} Approved • {' '}
+              {pdfs.filter(p => p.pdfStatus === "pending").length} Pending • {' '}
+              {pdfs.filter(p => p.pdfStatus === "completed").length} Completed
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Status Change Modal */}
+      {statusChangeModal && (
+        <div className={styles.modalOverlay} onClick={() => setStatusChangeModal(null)}>
+          <div className={styles.statusModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.statusModalHeader}>
+              <h3>Change Status</h3>
+              <button 
+                className={styles.modalCloseBtn}
+                onClick={() => setStatusChangeModal(null)}
+              >
+                <HiX />
+              </button>
+            </div>
+            <div className={styles.statusModalBody}>
+              <p className={styles.statusModalTitle}>{statusChangeModal.pdfName}</p>
+              <p className={styles.statusModalCurrent}>
+                Current Status: <span className={`${styles.statusBadge} ${styles[statusChangeModal.pdfStatus]}`}>
+                  {getStatusIcon(statusChangeModal.pdfStatus)} {statusChangeModal.pdfStatus}
+                </span>
+              </p>
+              <div className={styles.statusOptions}>
+                {[
+                  { value: 'approved', label: 'Approved', icon: <HiCheckCircle /> },
+                  { value: 'pending', label: 'Pending', icon: <HiClock /> },
+                  { value: 'completed', label: 'Completed', icon: <HiFlag /> },
+                  { value: 'archived', label: 'Archived', icon: <HiArchive /> },
+                  { value: 'ongoing', label: 'Ongoing', icon: <HiRefresh /> },
+                  { value: 'draft', label: 'Draft', icon: <HiPencil /> }
+                ].map((status) => (
+                  <button
+                    key={status.value}
+                    className={`${styles.statusOption} ${statusChangeModal.pdfStatus === status.value ? styles.currentStatus : ''}`}
+                    onClick={() => handleStatusChange(statusChangeModal.id, status.value)}
+                    disabled={loading || statusChangeModal.pdfStatus === status.value}
+                  >
+                    {status.icon}
+                    <span>{status.label}</span>
+                    {statusChangeModal.pdfStatus === status.value && (
+                      <span className={styles.currentBadge}>Current</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

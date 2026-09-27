@@ -236,7 +236,7 @@ const handleImageChange = async (e) => {
     try {
         const announcementRef = doc(db, 'announcements', editingAnnouncementId);
         
-        // Create a copy WITHOUT the imageFile object
+        // `Create a` copy WITHOUT the imageFile object
         const dataToUpdate = {
             title: announcementForm.title,
             description: announcementForm.description,
@@ -272,7 +272,8 @@ const handleImageChange = async (e) => {
 };
 
   const handleDeleteAnnouncement = async (id, title) => {
-    if (!window.confirm(`Delete announcement: "${title}"?`)) return;
+    if (!window.
+      confirm(`Delete announcement: "${title}"?`)) return;
 
     try {
       await deleteDoc(doc(db, 'announcements', id));
@@ -586,7 +587,7 @@ const handleImageChange = async (e) => {
                   value={announcementForm.description}
                   onChange={handleAnnouncementChange}
                   placeholder="Detailed description of the announcement..."
-                  rows="4"
+                  rows="3"
                   className={styles.textarea}
                   required
                 />
@@ -666,12 +667,22 @@ const handleImageChange = async (e) => {
                   className={styles.fileInput}
                 />
                 <p className={styles.helperText}>
-                  Recommended: JPG or PNG, max 1MB (will be compressed automatically)
+                  JPG or PNG, max 1MB (auto-compressed)
                 </p>
                 
                 {imagePreview && (
                   <div className={styles.imagePreviewContainer}>
                     <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview(null);
+                        setAnnouncementForm(prev => ({ ...prev, imageBase64: '' }));
+                      }}
+                      className={styles.removeImageBtn}
+                    >
+                      ✕ Remove
+                    </button>
                   </div>
                 )}
               </div>
@@ -878,7 +889,7 @@ const handleImageChange = async (e) => {
                   value={eventForm.description}
                   onChange={handleEventChange}
                   placeholder="Additional details about this event..."
-                  rows="3"
+                  rows="2"
                   className={styles.textarea}
                 />
               </div>

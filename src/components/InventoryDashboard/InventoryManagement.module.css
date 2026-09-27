@@ -5,7 +5,7 @@
   margin: 0 auto;
   padding: 1.5rem;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #1e293b;
+  color: var(--color-text-primary);
 }
 
 /* Header Styles */
@@ -21,7 +21,7 @@
 .title {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--color-text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -34,7 +34,7 @@
 
 .subtitle {
   font-size: 0.95rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin-top: 0.25rem;
 }
 
@@ -55,7 +55,7 @@
   background: white;
   padding: 1.5rem;
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -78,18 +78,18 @@
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
 .statValue {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .warningCard {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #E66B3D;
 }
 
 .infoCard {
@@ -134,7 +134,7 @@
   cursor: pointer;
   border-bottom: 3px solid transparent;
   font-size: 0.95rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -146,7 +146,7 @@
 
 .tab:hover {
   color: #3b82f6;
-  background: #f8fafc;
+  background-color: var(--color-bg-primary);
 }
 
 .activeTab {
@@ -243,7 +243,7 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   overflow-x: auto;
 }
 
@@ -254,12 +254,12 @@
 }
 
 .table th {
-  background: #f8fafc;
+  background-color: var(--color-bg-primary);
   padding: 1rem 1.5rem;
   text-align: left;
   font-weight: 600;
-  color: #64748b;
-  border-bottom: 1px solid #e2e8f0;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-primary);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -278,7 +278,7 @@
 }
 
 .table tbody tr:hover {
-  background: #f8fafc;
+  background-color: var(--color-bg-primary);
 }
 
 .lowStockRow {
@@ -299,7 +299,7 @@
 
 /* Item Styles */
 .itemName {
-  color: #1e293b;
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -308,7 +308,7 @@
 }
 
 .itemDescription {
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   line-height: 1.4;
   font-weight: 400;
@@ -333,7 +333,7 @@
 }
 
 .warningIcon {
-  color: #f59e0b;
+  color: #E66B3D;
   font-size: 1.1rem;
 }
 
@@ -377,7 +377,7 @@
 
 .actionButton {
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
   cursor: pointer;
@@ -387,11 +387,11 @@
   align-items: center;
   gap: 0.35rem;
   transition: all 0.2s ease;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .actionButton:hover:not(:disabled) {
-  background: #f8fafc;
+  background-color: var(--color-bg-primary);
   border-color: #cbd5e1;
   color: #3b82f6;
 }
@@ -419,7 +419,7 @@
 .loadingContainer {
   padding: 4rem;
   text-align: center;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .spinner {
@@ -441,7 +441,7 @@
 .emptyState {
   padding: 4rem;
   text-align: center;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .emptyIcon {
@@ -458,7 +458,7 @@
 }
 
 .emptyState p {
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin-bottom: 1.5rem;
 }
 
@@ -468,7 +468,7 @@
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
 }
 
 .categoriesList {
@@ -482,9 +482,9 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f8fafc;
+  background-color: var(--color-bg-primary);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   transition: all 0.2s ease;
 }
 
@@ -498,7 +498,7 @@
 }
 
 .categoryName {
-  color: #1e293b;
+  color: var(--color-text-primary);
   flex: 1;
   font-weight: 600;
   font-size: 1rem;
@@ -564,14 +564,14 @@
 
 /* Dialog Container - The modal box */
 .modal {
-  background-color: #ffffff;
+  background-color: var(--color-bg-secondary);
   border-radius: 16px;
   max-width: 800px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   position: relative;
   animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -584,8 +584,8 @@
 /* Dialog Header */
 .modalHeader {
   padding: 1.5rem 2rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -596,15 +596,15 @@
 
 .modalHeader h2 {
   font-size: 1.5rem;
-  color: #1e293b;
+  color: var(--color-text-primary);
   font-weight: 700;
   margin: 0;
 }
 
 .closeButton {
   background: white;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-secondary);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0.5rem;
@@ -627,7 +627,7 @@
 /* Form Styles */
 .form {
   padding: 2rem;
-  background-color: #ffffff;
+  background-color: var(--color-bg-secondary);
 }
 
 .formGrid {
@@ -664,7 +664,7 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.2s ease;
-  background-color: #ffffff;
+  background-color: var(--color-bg-secondary);
   color: #1f2937;
   box-sizing: border-box;
   font-family: inherit;
@@ -680,7 +680,7 @@
 
 .formInput::placeholder,
 .formTextarea::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .formSelect {
@@ -707,7 +707,7 @@
 .helperText {
   display: block;
   margin-top: 0.4rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   font-style: italic;
 }
@@ -722,11 +722,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background-color: #f8fafc;
+  background-color: var(--color-bg-primary);
   border: 2px dashed #cbd5e1;
   padding: 1rem 1.5rem;
   border-radius: 8px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-weight: 600;
   transition: all 0.2s ease;
   width: 100%;
@@ -763,7 +763,7 @@
   gap: 1rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border-primary);
 }
 
 .primaryButton,
@@ -911,15 +911,15 @@
   .container { color: #f1f5f9; }
   
   .title { color: #f1f5f9; }
-  .subtitle { color: #94a3b8; }
+  .subtitle { color: var(--color-text-muted); }
   .userName { color: #60a5fa; }
   
   .statCard {
-    background: #1e293b;
+    background-color: var(--color-bg-secondary);
     border-color: #334155;
   }
   
-  .statLabel { color: #94a3b8; }
+  .statLabel { color: var(--color-text-muted); }
   .statValue { color: #f8fafc; }
   
   .alertWarning {
@@ -928,18 +928,18 @@
     color: #fef3c7;
   }
   
-  .tab { color: #94a3b8; }
+  .tab { color: var(--color-text-muted); }
   .tab:hover { background: #334155; color: #60a5fa; }
   .activeTab { color: #60a5fa; border-bottom-color: #60a5fa; }
   
   .tableContainer, .categoriesContainer {
-    background: #1e293b;
+    background-color: var(--color-bg-secondary);
     border-color: #334155;
   }
   
   .table th {
-    background: #0f172a;
-    color: #94a3b8;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-muted);
     border-color: #334155;
   }
   
@@ -953,33 +953,33 @@
   }
   
   .itemName { color: #f1f5f9; }
-  .itemDescription { color: #94a3b8; }
+  .itemDescription { color: var(--color-text-muted); }
   
   .categoryItem {
-    background: #0f172a;
+    background-color: var(--color-bg-primary);
     border-color: #334155;
   }
   
   .categoryItem:hover {
-    background: #1e293b;
+    background-color: var(--color-bg-secondary);
     border-color: #475569;
   }
   
   .categoryName { color: #f1f5f9; }
   
   .categoryInput {
-    background: #0f172a;
+    background-color: var(--color-bg-primary);
     border-color: #475569;
     color: white;
   }
   
   .modal {
-    background: #1e293b;
+    background-color: var(--color-bg-secondary);
     border-color: #334155;
   }
   
   .modalHeader {
-    background: #0f172a;
+    background-color: var(--color-bg-primary);
     border-color: #334155;
   }
   
@@ -996,14 +996,14 @@
     border-color: #ef4444;
   }
   
-  .form { background: #1e293b; }
+  .form { background-color: var(--color-bg-secondary); }
   
   .formGroup label { color: #e5e7eb; }
   
   .formInput,
   .formSelect,
   .formTextarea {
-    background: #0f172a;
+    background-color: var(--color-bg-primary);
     border-color: #475569;
     color: #f9fafb;
   }
@@ -1015,13 +1015,13 @@
   }
   
   .fileUploadButton {
-    background: #0f172a;
+    background-color: var(--color-bg-primary);
     border-color: #475569;
-    color: #94a3b8;
+    color: var(--color-text-muted);
   }
   
   .fileUploadButton:hover {
-    background: #1e293b;
+    background-color: var(--color-bg-secondary);
     border-color: #60a5fa;
     color: #60a5fa;
   }
@@ -1036,10 +1036,10 @@
     background: #475569;
   }
   
-  .helperText { color: #9ca3af; }
+  .helperText { color: var(--color-text-muted); }
   
   .emptyState h3 { color: #f1f5f9; }
-  .emptyState p { color: #94a3b8; }
+  .emptyState p { color: var(--color-text-muted); }
   
   .actionButton {
     background: #334155;

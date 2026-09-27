@@ -116,7 +116,7 @@ function TrackOrder() {
       case 'Pending':
         return {
           icon: <Clock size={24} />,
-          color: '#f59e0b',
+          color: '#E66B3D',
           bgColor: '#fffbeb',
           label: 'Pending',
           description: 'Your order has been received and is awaiting payment confirmation.'

@@ -7,25 +7,25 @@
    DESIGN TOKENS — mirrors productmanagement.module.css
    ===================================================== */
 :root {
-  --om-bg:           #f8fafc;
-  --om-card-bg:      #ffffff;
-  --om-border:       #e2e8f0;
-  --om-text-primary: #0f172a;
-  --om-text-secondary: #64748b;
-  --om-text-muted:   #94a3b8;
+  --om-bg:           var(--color-bg-primary, #f8fafc);
+  --om-card-bg:      var(--color-bg-secondary, #ffffff);
+  --om-border:       var(--color-border-primary, #e2e8f0);
+  --om-text-primary: var(--color-text-primary, #0f172a);
+  --om-text-secondary: var(--color-text-secondary, #64748b);
+  --om-text-muted:   var(--color-text-muted, #94a3b8);
   --om-blue:         #3b82f6;
   --om-blue-dark:    #2563eb;
   --om-blue-light:   #eff6ff;
   --om-green:        #10b981;
   --om-green-light:  #ecfdf5;
-  --om-amber:        #f59e0b;
+  --om-amber:        #E66B3D;
   --om-amber-light:  #fffbeb;
   --om-red:          #ef4444;
   --om-red-light:    #fef2f2;
   --om-radius:       12px;
-  --om-shadow-sm:    0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --om-shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  --om-shadow-lg:    0 12px 40px rgba(0,0,0,0.12);
+  --om-shadow-sm:    var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.07));
+  --om-shadow-md:    var(--shadow-md, 0 4px 16px rgba(0,0,0,0.08));
+  --om-shadow-lg:    var(--shadow-lg, 0 12px 40px rgba(0,0,0,0.12));
   --om-font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -74,7 +74,7 @@
 .omTabBtn:hover {
   background: var(--om-bg);
   color: var(--om-text-primary);
-  border-color: #94a3b8;
+  border-color: var(--color-text-muted);
 }
 
 .omTabBtnActive {
@@ -260,6 +260,39 @@
   box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
 }
 
+.productsToolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.syncToolbarBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25);
+  transition: all 0.2s ease;
+  font-family: var(--om-font);
+}
+
+.syncToolbarBtn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.syncToolbarBtn:active {
+  transform: translateY(0);
+}
+
 /* =====================================================
    TABLE WRAPPER — matches ProductManagement
    ===================================================== */
@@ -333,14 +366,14 @@
 
 .orderTable {
   width: 100%;
-  min-width: 1400px; /* Increased to accommodate Actions column */
+  min-width: 1100px;
   border-collapse: collapse;
   font-size: 0.85rem;
-  table-layout: fixed; /* Fixed layout for better column control */
+  table-layout: fixed;
 }
 
 .orderTable th {
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 1.25rem;
   text-align: left;
   font-size: 0.72rem;
   font-weight: 700;
@@ -352,19 +385,29 @@
   white-space: nowrap;
 }
 
-/* Set specific column widths */
-.orderTable th:nth-child(1) { width: 130px; } /* Order ID */
-.orderTable th:nth-child(2) { width: 180px; } /* Customer */
-.orderTable th:nth-child(3) { width: 200px; } /* Product */
-.orderTable th:nth-child(4) { width: 80px; }  /* Quantity */
-.orderTable th:nth-child(5) { width: 100px; } /* Total */
-.orderTable th:nth-child(6) { width: 100px; } /* Status */
-.orderTable th:nth-child(7) { width: 90px; }  /* Payment */
-.orderTable th:nth-child(8) { width: 150px; } /* Date */
-.orderTable th:nth-child(9) { width: 370px; } /* Actions - increased width */
+/* Checkbox */
+.orderTable th:nth-child(1)  { width: 40px;  }
+/* Order ID */
+.orderTable th:nth-child(2)  { width: 140px; }
+/* Customer */
+.orderTable th:nth-child(3)  { width: 220px; }
+/* Product */
+.orderTable th:nth-child(4)  { width: 240px; }
+/* Quantity */
+.orderTable th:nth-child(5)  { width: 100px; text-align: center; }
+/* Total */
+.orderTable th:nth-child(6)  { width: 120px; }
+/* Status */
+.orderTable th:nth-child(7)  { width: 130px; }
+/* Payment */
+.orderTable th:nth-child(8)  { width: 100px; }
+/* Date */
+.orderTable th:nth-child(9)  { width: 160px; }
+/* Claim btn */
+.orderTable th:nth-child(10) { width: 110px; }
 
 .orderTable td {
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1.25rem;
   border-bottom: 1px solid var(--om-border);
   vertical-align: middle;
   color: var(--om-text-primary);
@@ -382,7 +425,43 @@
   background: #fafbfc;
 }
 
-/* Table Cell Styles */
+  .claimBtn {
+    background: var(--om-blue-light);
+    color: var(--om-blue);
+    border: none;
+    border-radius: var(--om-radius);
+    padding: 0.3rem 0.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .claimBtn:hover {
+    background: var(--om-blue);
+    color: white;
+  }
+
+  .claimBadgeClaimed {
+    background: var(--om-green-light);
+    color: var(--om-green);
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--om-radius);
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+  }
+
+  .claimBadgeUnclaimed {
+    background: var(--om-red-light);
+    color: var(--om-red);
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--om-radius);
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+  }
+
 .orderIdCell {
   font-family: 'Courier New', monospace;
   font-weight: 700;
@@ -426,15 +505,24 @@
 }
 
 .quantityCell {
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  min-width: 80px;
+  padding: 0.9rem 1.25rem !important;
+}
+
+.quantityCell span {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  min-width: 28px;
 }
 
 .priceCell {
   font-weight: 700;
   color: var(--om-blue);
-  min-width: 100px;
+  padding: 0.9rem 1.25rem !important;
 }
 
 .dateCell {
@@ -924,15 +1012,64 @@
   animation: fadeIn 0.2s ease-out;
 }
 
-.modalContent {
-  background: transparent;
-  border-radius: var(--om-radius);
-  max-width: 900px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
+  .modalContent {
+    background: var(--om-card-bg);
+    padding: 2rem;
+    border-radius: var(--om-radius);
+    box-shadow: var(--om-shadow-lg);
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 500px;
+  }
+
+  .modalHeader {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--om-text-primary);
+  }
+
+  .modalBody {
+    margin-bottom: 1.5rem;
+    color: var(--om-text-secondary);
+    line-height: 1.4;
+  }
+
+  .modalButtons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .modalButtonCancel, .modalButtonConfirm {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: var(--om-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+  }
+
+  .modalButtonCancel {
+    background: var(--om-red-light);
+    color: var(--om-red);
+  }
+
+  .modalButtonCancel:hover {
+    background: var(--om-red);
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .modalButtonConfirm {
+    background: var(--om-blue);
+    color: white;
+  }
+
+  .modalButtonConfirm:hover {
+    background: var(--om-blue-dark);
+    transform: translateY(-1px);
+  }
+
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -1150,8 +1287,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --om-bg:           #0f172a;
-    --om-card-bg:      #1e293b;
+    --om-bg:           var(--color-bg-primary, #1A1A1A);
+    --om-card-bg:      var(--color-bg-secondary, #252525);
     --om-border:       #334155;
     --om-text-primary: #f1f5f9;
     --om-text-secondary: #94a3b8;
@@ -1218,7 +1355,7 @@
   .pendingBtn {
     background: rgba(245,158,11,0.15);
     border-color: rgba(245,158,11,0.25);
-    color: #fbbf24;
+    color: #D94F1F;
   }
 
   .paidBtn,
@@ -1250,5 +1387,552 @@
   .tableDeleteBtn {
     background: rgba(239,68,68,0.12);
     border-color: rgba(239,68,68,0.2);
+  }
+}
+
+/* =====================================================
+   STATUS UPDATE MODAL WITH ANIMATIONS
+   ===================================================== */
+
+.statusModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.75);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.statusModalContent {
+  background: var(--om-card-bg);
+  border-radius: 16px;
+  padding: 3rem 2.5rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* =====================================================
+   LOADING SPINNER ANIMATION
+   ===================================================== */
+
+.statusModalSpinner {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+}
+
+.spinnerCircle {
+  animation: rotate 2s linear infinite;
+  width: 80px;
+  height: 80px;
+}
+
+.spinnerPath {
+  stroke: var(--om-blue);
+  stroke-linecap: round;
+  animation: dash 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+/* =====================================================
+   SUCCESS CHECKMARK ANIMATION
+   ===================================================== */
+
+.statusModalSuccess {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+}
+
+.successCheckmark {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 3;
+  stroke: #10b981;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0 0 0 #10b981;
+  animation: fillSuccess 0.4s ease-in-out 0.4s forwards, scaleSuccess 0.3s ease-in-out 0.9s both;
+}
+
+.successCircle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 3;
+  stroke-miterlimit: 10;
+  stroke: #10b981;
+  fill: none;
+  animation: strokeSuccess 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.successCheck {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: #10b981;
+  stroke-width: 3;
+  animation: strokeSuccess 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes strokeSuccess {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes scaleSuccess {
+  0%, 100% {
+    transform: none;
+  }
+  50% {
+    transform: scale3d(1.1, 1.1, 1);
+  }
+}
+
+@keyframes fillSuccess {
+  100% {
+    box-shadow: inset 0 0 0 30px #10b981;
+  }
+}
+
+/* =====================================================
+   ERROR ICON ANIMATION
+   ===================================================== */
+
+.statusModalError {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+}
+
+.errorIcon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 3;
+  stroke: #ef4444;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0 0 0 #ef4444;
+  animation: fillError 0.4s ease-in-out 0.4s forwards, scaleError 0.3s ease-in-out 0.9s both;
+}
+
+.errorCircle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 3;
+  stroke-miterlimit: 10;
+  stroke: #ef4444;
+  fill: none;
+  animation: strokeError 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.errorCross {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: #ef4444;
+  stroke-width: 3;
+  animation: strokeError 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes strokeError {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes scaleError {
+  0%, 100% {
+    transform: none;
+  }
+  50% {
+    transform: scale3d(1.1, 1.1, 1);
+  }
+}
+
+@keyframes fillError {
+  100% {
+    box-shadow: inset 0 0 0 30px #ef4444;
+  }
+}
+
+/* =====================================================
+   MODAL TEXT STYLES
+   ===================================================== */
+
+.statusModalTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--om-text-primary);
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.02em;
+}
+
+.statusModalMessage {
+  font-size: 0.95rem;
+  color: var(--om-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 480px) {
+  .statusModalContent {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .statusModalSpinner,
+  .statusModalSuccess,
+  .statusModalError {
+    width: 60px;
+    height: 60px;
+  }
+
+  .spinnerCircle,
+  .successCheckmark,
+  .errorIcon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .statusModalTitle {
+    font-size: 1.25rem;
+  }
+
+  .statusModalMessage {
+    font-size: 0.875rem;
+  }
+}
+
+/* =====================================================
+   DARK MODE
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+  .statusModalContent {
+    background-color: var(--color-bg-secondary);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+}
+
+/* =====================================================
+   CONFIRMATION MODAL
+   ===================================================== */
+
+.confirmModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.75);
+  backdrop-filter: blur(8px);
+  z-index: 1900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.confirmModalContent {
+  background: var(--om-card-bg);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  max-width: 450px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: confirmSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--om-border);
+}
+
+@keyframes confirmSlideUp {
+  from {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* =====================================================
+   CONFIRMATION MODAL ICON
+   ===================================================== */
+
+.confirmModalIcon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.5rem;
+  background: var(--om-blue-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--om-blue);
+  animation: iconPulse 0.6s ease-out;
+}
+
+@keyframes iconPulse {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.confirmModalIcon svg {
+  animation: iconRotate 0.5s ease-out 0.2s both;
+}
+
+@keyframes iconRotate {
+  from {
+    transform: rotate(-180deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* =====================================================
+   CONFIRMATION MODAL TEXT
+   ===================================================== */
+
+.confirmModalTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--om-text-primary);
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+  animation: textSlideIn 0.4s ease-out 0.1s both;
+}
+
+.confirmModalMessage {
+  font-size: 1rem;
+  color: var(--om-text-secondary);
+  margin: 0 0 2rem 0;
+  line-height: 1.6;
+  animation: textSlideIn 0.4s ease-out 0.2s both;
+}
+
+@keyframes textSlideIn {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.confirmModalMessage strong {
+  color: var(--om-text-primary);
+  font-weight: 700;
+}
+
+.confirmStatusBadge {
+  display: inline-block;
+  padding: 0.2rem 0.75rem;
+  background: var(--om-blue-light);
+  color: var(--om-blue);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0 0.25rem;
+  border: 1px solid rgba(59,130,246,0.2);
+}
+
+/* =====================================================
+   CONFIRMATION MODAL ACTIONS
+   ===================================================== */
+
+.confirmModalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  animation: buttonsSlideIn 0.4s ease-out 0.3s both;
+}
+
+@keyframes buttonsSlideIn {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.confirmCancelBtn,
+.confirmOkBtn {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  font-family: var(--om-font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.confirmCancelBtn {
+  background: var(--om-card-bg);
+  color: var(--om-text-secondary);
+  border-color: var(--om-border);
+}
+
+.confirmCancelBtn:hover {
+  background: var(--om-bg);
+  color: var(--om-text-primary);
+  border-color: var(--om-text-muted);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.confirmCancelBtn:active {
+  transform: translateY(0);
+}
+
+.confirmOkBtn {
+  background: var(--om-blue);
+  color: white;
+  border-color: var(--om-blue);
+}
+
+.confirmOkBtn:hover {
+  background: var(--om-blue-dark);
+  border-color: var(--om-blue-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+}
+
+.confirmOkBtn:active {
+  transform: translateY(0);
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 480px) {
+  .confirmModalContent {
+    padding: 2rem 1.5rem;
+  }
+
+  .confirmModalIcon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .confirmModalIcon svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .confirmModalTitle {
+    font-size: 1.25rem;
+  }
+
+  .confirmModalMessage {
+    font-size: 0.9rem;
+  }
+
+  .confirmModalActions {
+    flex-direction: column;
+  }
+
+  .confirmCancelBtn,
+  .confirmOkBtn {
+    width: 100%;
+  }
+}
+
+/* =====================================================
+   DARK MODE
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+  .confirmModalContent {
+    background-color: var(--color-bg-secondary);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    border-color: var(--om-border);
+  }
+
+  .confirmModalIcon {
+    background: rgba(59,130,246,0.15);
+  }
+
+  .confirmStatusBadge {
+    background: rgba(59,130,246,0.15);
+    border-color: rgba(59,130,246,0.3);
+    color: #60a5fa;
+  }
+
+  .confirmCancelBtn {
+    background: #273548;
+    border-color: var(--om-border);
+  }
+
+  .confirmCancelBtn:hover {
+    background: #334155;
+    border-color: #475569;
   }
 }

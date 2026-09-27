@@ -241,6 +241,28 @@ function Order(props) {
     // Check if editing or creating new
     if (editingOrder && docId) {
       // UPDATE existing order
+      // Stock is NOT adjusted here - it's only managed when order status changes to "Completed"
+      // Just verify stock availability for the new quantity
+      const newQuantity = parseInt(formData.quantity);
+
+      // Find the product document to verify stock
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      const productDoc = productsSnapshot.docs.find(
+        doc => doc.data().productId === formData.productId
+      );
+
+      if (productDoc) {
+        const currentStock = productDoc.data().stockAvailable || 0;
+        
+        // Only check if there's enough stock available (don't deduct)
+        if (currentStock < newQuantity) {
+          alert(`❌ Insufficient stock! Only ${currentStock} items available.`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Update the order without changing stock
       await updateDoc(doc(db, 'orders', docId), orderData);
       alert('✅ Order updated successfully!');
       
@@ -249,9 +271,34 @@ function Order(props) {
         props.onSuccess();
       }
     } else {
-      // CREATE new order
-      orderData.createdAt = Timestamp.now(); // Fixed: use Timestamp instead of string
+      // CREATE new order - Stock will be deducted when order status changes to "Completed"
+      // Find the product document in Firebase to verify stock availability
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      const productDoc = productsSnapshot.docs.find(
+        doc => doc.data().productId === formData.productId
+      );
+
+      if (!productDoc) {
+        alert('❌ Product not found. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      const currentStock = productDoc.data().stockAvailable || 0;
+      const orderQuantity = parseInt(formData.quantity);
+
+      // Check stock availability (but don't deduct yet)
+      if (currentStock < orderQuantity) {
+        alert(`❌ Insufficient stock! Only ${currentStock} items available.`);
+        setLoading(false);
+        return;
+      }
+
+      // Create the order WITHOUT deducting stock
+      // Stock will be deducted in OrderManagement when status changes to "Completed"
+      orderData.createdAt = Timestamp.now();
       await addDoc(collection(db, 'orders'), orderData);
+      
       setGeneratedOrderId(orderId);
       setSubmitSuccess(true);
     }
@@ -472,7 +519,7 @@ useEffect(() => {
                   <option value = "1st year">First Year</option>
                   <option value = "2nd year">Second Year</option>
                   <option value = "3rd year">Third Year</option>
-                  <option value = "4th year">Third Year</option>
+                  <option value = "4th year">Fourth Year</option>
                 </select>
                 {errors.section && <span className={styles.errorText}>{errors.section}</span>}
               </div>
