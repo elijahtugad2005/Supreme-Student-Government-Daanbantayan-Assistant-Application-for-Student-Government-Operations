@@ -82,6 +82,51 @@
   flex: 1;
 }
 
+/* ─── Modal Mode (when rendered inside a modal) ─── */
+.container.modalMode {
+  min-height: auto;
+  background: transparent;
+}
+
+.modalMode .topBar {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: var(--o-radius, 12px) var(--o-radius, 12px) 0 0;
+}
+
+.modalMode .topBarLeft {
+  flex: 1;
+}
+
+.modalCloseBtn {
+  background: transparent;
+  border: none;
+  color: var(--o-text-secondary);
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.modalCloseBtn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--o-text-primary);
+}
+
+.modalMode .formWrapper {
+  padding: 1.25rem 1.5rem 1.75rem;
+  max-width: 100%;
+}
+
 /* =====================================================
    STEP INDICATOR — shows progress through 3 sections
    ===================================================== */
@@ -238,12 +283,13 @@
   border-radius: 8px;
   background: var(--o-card-bg);
   color: var(--o-text-primary);
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   font-family: var(--o-font);
   width: 100%;
   box-sizing: border-box;
+  min-height: 42px;
 }
 
 .input::placeholder {
@@ -752,19 +798,118 @@
 
 @media (max-width: 480px) {
   .topBar {
-    padding: 1.25rem 0.75rem 0.85rem;
+    padding: 1rem 0.75rem 0.75rem;
   }
 
   .formWrapper {
-    padding: 1.25rem 0.75rem 1.5rem;
+    padding: 0.85rem 0.5rem 1.5rem;
+  }
+
+  .modalMode .formWrapper {
+    padding: 0.85rem 0.5rem 1.25rem;
+  }
+
+  .modalMode .topBar {
+    padding: 0.85rem 0.75rem;
   }
 
   .title {
     font-size: 1.15rem;
   }
 
+  .subtitle {
+    font-size: 0.78rem;
+  }
+
+  .sectionHeader {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .sectionTitle {
+    font-size: 0.9rem;
+  }
+
+  .sectionBadge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+  }
+
   .sectionBody {
-    padding: 1rem;
+    padding: 0.85rem 0.75rem;
+    gap: 0.85rem;
+  }
+
+  .label {
+    font-size: 0.78rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .input,
+  .select {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+    min-height: 40px;
+  }
+
+  .radioGroup {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .radioLabel {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  .productPreview {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .productPreviewImage {
+    max-width: 160px;
+    height: 130px;
+    margin: 0 auto;
+  }
+
+  .productPreviewTitle {
+    font-size: 0.9rem;
+  }
+
+  .productPreviewDesc {
+    font-size: 0.76rem;
+  }
+
+  .productPreviewPrice {
+    font-size: 0.82rem;
+  }
+
+  .productPreviewStock {
+    font-size: 0.72rem;
+  }
+
+  .totalBox {
+    padding: 0.75rem;
+  }
+
+  .totalLabel {
+    font-size: 0.78rem;
+  }
+
+  .totalPrice {
+    font-size: 1.25rem;
+  }
+
+  .buttonGroup {
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .submitButton,
+  .cancelButton {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+    font-size: 0.86rem;
   }
 
   .successCard {
@@ -774,6 +919,10 @@
 
   .successTitle {
     font-size: 1.2rem;
+  }
+
+  .successMessage {
+    font-size: 0.8rem;
   }
 }
 

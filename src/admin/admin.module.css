@@ -205,31 +205,80 @@
     }
 }
 
-/* ─── Small phones (≤ 360px) ─── */
-@media (max-width: 360px) {
+/* ─── Mobile (< 768px) ─── */
+@media (max-width: 768px) {
     .container {
-        padding: 0.75rem;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .pagetitle {
+        padding: 0.85rem 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .pagetitle h1 {
+        font-size: 1.6rem;
+    }
+
+    .pagetitle h2 {
+        font-size: 0.8rem;
+    }
+
+    .tabNavigation {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .tabButton {
+        min-width: unset;
+        flex: unset;
+        padding: 0.75rem 0.6rem;
+        font-size: 0.82rem;
+        gap: 0.4rem;
+    }
+
+    .tabIcon {
+        font-size: 1.1rem;
+    }
+
+    .dashboard_card {
+        padding: 0.75rem 0.5rem;
+        border-radius: 0.75rem;
+    }
+}
+
+/* ─── Small phones (≤ 480px) ─── */
+@media (max-width: 480px) {
+    .container {
+        padding: 0.5rem 0.25rem;
     }
 
     .pagetitle {
         padding: 0.75rem;
+        margin-bottom: 0.75rem;
     }
 
     .pagetitle h1 {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
+    }
+
+    .tabNavigation {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.4rem;
     }
 
     .tabButton {
-        min-width: 100%;
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
+        padding: 0.65rem 0.35rem;
+        font-size: 0.76rem;
     }
 
     .tabLabel {
-        font-size: 0.875rem;
+        font-size: 0.76rem;
     }
 
     .dashboard_card {
-        padding: 0.75rem;
+        padding: 0.5rem 0.25rem;
     }
 }

@@ -1,8 +1,7 @@
 .app {
   min-height: 100vh; 
   overflow-x: hidden;
-  overflow: hidden;
-  background-color: var(--color-charcoal);
+  background-color: var(--color-bg-primary);
 }
 
 .mainContent {

@@ -4,6 +4,12 @@ import styles from './Header.module.css';
 function Header({ sidebarOpen, toggleSidebar }) {
   const [isShrunk, setIsShrunk] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,10 +62,15 @@ function Header({ sidebarOpen, toggleSidebar }) {
         <p className={styles.subtitle}>Cebu Technological University — Daanbantayan Campus</p>
       </div>
 
-      {/* Right — campus detail */}
-      <div className={styles.campusDetail}>
-        <span className={styles.campusName}>CTU Daanbantayan</span>
-        <span className={styles.campusLocation}>Agujo, Daanbantayan, Cebu</span>
+      {/* Right — campus detail & clock */}
+      <div className={styles.rightSection}>
+        <div className={styles.clock}>
+          {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </div>
+        <div className={styles.campusDetail}>
+          <span className={styles.campusName}>CTU Daanbantayan</span>
+          <span className={styles.campusLocation}>Agujo, Daanbantayan, Cebu</span>
+        </div>
       </div>
     </header>
   );

@@ -4,6 +4,7 @@ import styles from './admin.module.css';
 import MemberDashboard from '../components/MemberDashboard';
 import ProductManagement from '../components/ProductManagement/ProductManagement';
 import Data from '../components/Data/OrderManagement.jsx';
+import UserManagement from '../components/UserManagement/UserManagement.jsx';
 
 function Admin() {
     const [activeTab, setActiveTab] = useState('products');
@@ -39,6 +40,14 @@ function Admin() {
                     <span className={styles.tabIcon}>👥</span>
                     <span className={styles.tabLabel}>Member Management</span>
                 </button>
+                
+                <button
+                    className={`${styles.tabButton} ${activeTab === 'users' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('users')}
+                >
+                    <span className={styles.tabIcon}>👑</span>
+                    <span className={styles.tabLabel}>User Management</span>
+                </button>
             </div>
 
             {/* Tab Content */}
@@ -58,6 +67,12 @@ function Admin() {
                 {activeTab === 'members' && (
                     <div className={styles.dashboard_card}>
                         <MemberDashboard />
+                    </div>
+                )}
+                
+                {activeTab === 'users' && (
+                    <div className={styles.dashboard_card}>
+                        <UserManagement />
                     </div>
                 )}
             </div>

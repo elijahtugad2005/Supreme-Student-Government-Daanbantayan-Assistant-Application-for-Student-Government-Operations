@@ -167,3 +167,127 @@
   background-color: #297029;
   transform: translateY(-2px);
 }
+/* ========================================
+   Google Sign-In Styles
+   ======================================== */
+
+.googleSignInContainer {
+  margin-top: 2rem;
+  border-top: 1px solid rgba(254, 92, 3, 0.2);
+  padding-top: 2rem;
+}
+
+.googleSignInButton {
+  width: 100%;
+  padding: 1rem;
+  background-color: white;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.googleSignInButton:hover {
+  background-color: #f8f9fa;
+  border-color: #c8ccd0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.googleSignInButton:disabled {
+  background-color: #f8f9fa;
+  color: #9aa0a6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.googleSignInButton:disabled:hover {
+  background-color: #f8f9fa;
+  border-color: #dadce0;
+}
+
+.googleButtonContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.googleIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.googleDivider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.googleDivider::before,
+.googleDivider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(254, 92, 3, 0.2);
+}
+
+.dividerText {
+  padding: 0 1rem;
+  color: #c0c0c0;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.googleErrorBox {
+  background-color: #fce8e6;
+  color: #c5221f;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #f5c6cb;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.googleSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #5f6368;
+  border-radius: 50%;
+  animation: googleSpinner 0.8s linear infinite;
+}
+
+@keyframes googleSpinner {
+  to { transform: rotate(360deg); }
+}
+
+.googleHelpText {
+  text-align: center;
+  color: #c0c0c0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .googleSignInButton {
+    padding: 0.875rem;
+    font-size: 0.95rem;
+  }
+  
+  .googleIcon {
+    width: 18px;
+    height: 18px;
+  }
+}

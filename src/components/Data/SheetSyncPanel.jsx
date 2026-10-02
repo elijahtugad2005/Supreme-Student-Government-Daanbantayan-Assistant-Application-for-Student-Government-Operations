@@ -285,59 +285,63 @@ function SheetSyncPanel({ onSyncCompleted }) {
 
     try {
       const activeSource = sourceMode === 'excel' ? excelFile : sheetUrl.trim();
-      await syncSourceToFirestore(activeSource, mappingConfig, resolvedMappings, {
-        onProgress: (msg, progress) => {
-          if (msg) addLog(msg, 'info');
-          if (progress) {
-            setSyncProgress(progress);
-            switch (progress.stage) {
-              case 'fetching':
-                if (progress.percentage <= 10) {
-                  updateSyncStep('prepare', true);
-                  updateSyncStep('fetch', false, true);
-                }
-                break;
-              case 'processing':
-                updateSyncStep('fetch', true);
-                updateSyncStep('process', false, true);
-                break;
-              case 'uploading':
-                updateSyncStep('process', true);
-                updateSyncStep('upload', false, true);
-                break;
-              case 'completed':
-                updateSyncStep('upload', true);
-                updateSyncStep('complete', true, true);
-                break;
+      // syncSourceToFirestore takes a single options object. Passing positional
+      // arguments made every named parameter undefined, so it threw on
+      // `mappingConfig.collection` before parsing anything.
+      await syncSourceToFirestore({
+        source: activeSource,
+        mappingConfig,
+        customMappings: resolvedMappings,
+        callbacks: {
+          onProgress: (msg, progress) => {
+            if (msg) addLog(msg, 'info');
+            if (progress) {
+              setSyncProgress(progress);
+              switch (progress.stage) {
+                case 'fetching':
+                  if (progress.percentage <= 10) {
+                    updateSyncStep('prepare', true);
+                    updateSyncStep('fetch', false, true);
+                  }
+                  break;
+                case 'processing':
+                  updateSyncStep('fetch', true);
+                  updateSyncStep('process', false, true);
+                  break;
+                case 'uploading':
+                  updateSyncStep('process', true);
+                  updateSyncStep('upload', false, true);
+                  break;
+                case 'completed':
+                  updateSyncStep('upload', true);
+                  updateSyncStep('complete', true, true);
+                  break;
+                default:
+                  break;
+              }
             }
-          }
-        },
-        onComplete: (res) => {
-          updateSyncStep('complete', true, false);
-          setSyncProgress({ stage: 'completed', currentBatch: 0, totalBatches: 0, percentage: 100, details: 'Sync completed successfully!' });
-          setResult(res);
-          if (res.errors.length > 0) {
-            addLog(`${res.errors.length} errors encountered during sync.`, 'warning');
-          } else {
-            addLog(
-              `Sync successful! ${res.created} records created, ${res.updated} records updated.`,
-              'success'
-            );
-          }
-          // Open custom success modal
-          setSuccessModal({
-            isOpen: true,
-            created: res.created || 0,
-            updated: res.updated || 0,
-          });
-          if (onSyncCompleted) {
-            onSyncCompleted(res);
-          }
-        },
-        onError: (err) => {
-          addLog(`Sync failed: ${err.message}`, 'error');
-          setSyncProgress({ stage: 'error', currentBatch: 0, totalBatches: 0, percentage: 0, details: `Error: ${err.message}` });
-          resetSyncSteps();
+          },
+          onComplete: (res) => {
+            updateSyncStep('complete', true, false);
+            setSyncProgress({ stage: 'completed', currentBatch: 0, totalBatches: 0, percentage: 100, details: 'Sync completed successfully!' });
+            setResult(res);
+            if (res.errors.length > 0) {
+              addLog(`${res.errors.length} errors encountered during sync.`, 'warning');
+            } else {
+              addLog(
+                `Sync successful! ${res.created} records created, ${res.updated} records updated.`,
+                'success'
+              );
+            }
+            if (onSyncCompleted) {
+              onSyncCompleted(res);
+            }
+          },
+          onError: (err) => {
+            addLog(`Sync failed: ${err.message}`, 'error');
+            setSyncProgress({ stage: 'error', currentBatch: 0, totalBatches: 0, percentage: 0, details: `Error: ${err.message}` });
+            resetSyncSteps();
+          },
         },
       });
     } catch (err) {

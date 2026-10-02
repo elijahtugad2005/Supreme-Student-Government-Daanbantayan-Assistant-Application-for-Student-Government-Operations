@@ -1,0 +1,417 @@
+rules_version = '2';
+
+// =============================================================================
+// firestore.rules
+//
+// READ THIS BEFORE DEPLOYING
+// -----------------------
+// This repository previously had NO rules file. Whatever rules are live in the
+// Firebase console for project `ssg-prototype` were set up outside the repo and
+// are therefore NOT reflected here.
+//
+// The roster rules (classRosters / classSections) are strict and are the point
+// of this file. The rules for every other collection are deliberately written to
+// match how the app already behaves — review them against the console before
+// deploying, or you may lock out a feature that currently works.
+//
+// Deploy with:  firebase deploy --only firestore:rules
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() && exists(userPath());
+    }
+
+    // The role stored on the user document. Anonymous callers get null.
+    function myRole() {
+      return hasUserDoc() ? get(userPath()).data.role : null;
+    }
+
+    function isAdmin() {
+      return myRole() == 'admin';
+    }
+
+    // SSG Officers: the only roles allowed to verify a roster or ask for a
+    // correction. Matches `canManageRosters` in src/utils/permissions.js.
+    function isOfficer() {
+      return myRole() == 'admin' || myRole() == 'secretary';
+    }
+
+    // True when an Admin has individually granted this account a permission.
+    // Mirrors the `permissionOverrides` map written by User Management, so the
+    // database agrees with what the UI offers. Without this the roster browser
+    // would appear for a granted user and then fail on every query.
+    function hasOverride(permission) {
+      return hasUserDoc()
+        && get(userPath()).data.permissionOverrides[permission] == true;
+    }
+
+    // Roles allowed to read student lists. Mayors (who are Guests) and Members
+    // may submit a roster but must never read one back — this mirrors
+    // `canViewRosters` in src/utils/permissions.js. The Secretary is included
+    // because verifying a submission requires reading it.
+    function canReadRosters() {
+      return myRole() == 'admin'
+        || myRole() == 'secretary'
+        || myRole() == 'governor'
+        || hasOverride('canViewRosters');
+    }
+
+    // Roles allowed to accept a remittance and confirm it. Must stay in step with
+    // DEATH_AID_MANAGER_ROLES in src/utils/permissions.js. An allowlist, so any
+    // role not named here — Members, Guests, Senators, Creatives — is excluded.
+    // Note this is wider than isOfficer(), which still governs roster
+    // verification and the section registry.
+    function canManageDeathAid() {
+      return myRole() == 'admin'
+        || myRole() == 'secretary'
+        || myRole() == 'finance_secretary'
+        || myRole() == 'governor'
+        || myRole() == 'representative';
+    }
+
+    // A Mayor may read exactly one roster: the one they submitted. They cannot
+    // browse the roster registry, but Death Aid payment marks have to be made
+    // against their own students.
+    function isOwnRoster() {
+      return isSignedIn() && resource.data.mayorUid == request.auth.uid;
+    }
+
+    // A submission is only ever a proposal. `status`, `isCurrent` and `version`
+    // are the fields that make a roster official, so nobody outside an officer
+    // may set them.
+    function isUnverifiedProposal() {
+      return request.resource.data.status == 'pending'
+        && request.resource.data.isCurrent == false
+        && request.resource.data.version == null;
+    }
+
+    function hasRosterShape() {
+      return request.resource.data.keys().hasAll([
+          'college', 'program', 'section', 'sectionKey',
+          'students', 'studentCount', 'status', 'submittedAt'
+        ])
+        && request.resource.data.students is list
+        && request.resource.data.studentCount == request.resource.data.students.size();
+    }
+
+    // =========================================================================
+    // CLASS ROSTERS
+    //
+    // The financial guarantee: a Mayor may submit a list, but only an officer
+    // can turn one into the verified roster that Death Aid reporting bills
+    // against. Anonymous visitors can submit too — Mayors have no login.
+    // =========================================================================
+    match /classRosters/{rosterId} {
+
+      // Student lists are readable by Governors, the Secretary and Admin only,
+      // plus the Mayor who submitted the roster (needed to mark payments).
+      // Everyone else may still create a roster (see `allow create` below).
+      allow read: if canReadRosters() || isOwnRoster();
+
+      // Anyone may submit a proposal, signed in or not — provided it arrives
+      // explicitly unverified.
+      allow create: if isUnverifiedProposal() && hasRosterShape();
+
+      // Only officers may act on a roster arbitrarily.
+      // A roster that is already verified has its student list frozen, so an
+      // officer cannot silently rewrite an official historical record; the only
+      // way to change a verified list is to verify a NEW submission, which
+      // supersedes this one and preserves it as an earlier version.
+      //
+      // The submitter also has limited rights, because a Mayor who uploaded the
+      // wrong file must be able to fix it:
+      //   - while it is still pending they may edit or delete it freely;
+      //   - a VERIFIED roster may only be amended for student transfers, and
+      //     such an amendment is forced back to pending so an officer verifies
+      //     it. It is never applied silently to an official record.
+      allow update: if (
+        isOfficer() && (
+          resource.data.status != 'verified'
+          || request.resource.data.students == resource.data.students
+        )
+      ) || (
+        isSignedIn()
+        && resource.data.mayorUid == request.auth.uid
+        && (
+          resource.data.status != 'verified'
+          || (
+            // Transfers must be declared, and re-verified before they count.
+            request.resource.data.status == 'pending'
+            && request.resource.data.hasTransfers == true
+            && request.resource.data.transferCount is int
+            && request.resource.data.transferCount > 0
+            && request.resource.data.transferReason is string
+            && request.resource.data.transferReason.size() > 0
+          )
+        )
+      );
+
+      // Deleting a VERIFIED roster stays officer/admin-only: it is the source of
+      // the enrolled count that every Death Aid collection is checked against,
+      // so removing it would orphan the financial records built on it. A
+      // submitter may withdraw their own submission before it is verified.
+      allow delete: if isAdmin() || (
+        isSignedIn()
+        && resource.data.mayorUid == request.auth.uid
+        && resource.data.status != 'verified'
+      );
+    }
+
+    // =========================================================================
+    // CLASS SECTIONS (the registry)
+    //
+    // Maintained by officers on verification. The `currentRosterId` pointer
+    // here is what retires a superseded version, so it is never writable by a
+    // submitter.
+    // =========================================================================
+    match /classSections/{sectionId} {
+      allow read: if canReadRosters();
+      allow write: if isOfficer();
+    }
+
+    // =========================================================================
+    // USERS
+    // =========================================================================
+    match /users/{userId} {
+      allow read: if isAdmin() || isOfficer() || (isSignedIn() && request.auth.uid == userId);
+
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      // Changing the role or the individual access map is an administrative act.
+      // A user may edit the rest of their own profile, but never their own
+      // authority — otherwise a Member could promote themselves to admin.
+      allow update: if isAdmin() || isOfficer()
+        || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['role', 'permissionOverrides'])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // AUDIT LOGS — append only, never editable or removable
+    // =========================================================================
+    match /audit_logs/{logId} {
+      allow read: if isAdmin() || isOfficer();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // =========================================================================
+    // PUBLIC-FACING CONTENT — readable without signing in
+    // =========================================================================
+    match /announcements/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /newsArticles/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /calendarEvents/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /terms/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =========================================================================
+    // CATALOGUE — public catalogue, staff-managed stock records
+    // =========================================================================
+    match /products/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /inventory/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // =========================================================================
+    // ORDERS
+    // =========================================================================
+    match /orders/{orderId} {
+      allow read: if isSignedIn();
+      // A signed-in member places their own order; staff manage any order.
+      allow create: if isSignedIn()
+        && (isOfficer() || isAdmin() || request.resource.data.userId == request.auth.uid);
+      allow update, delete: if isOfficer() || isAdmin();
+    }
+
+    // =========================================================================
+    // MEMBERS / ORGANIZATIONS
+    // =========================================================================
+    match /members/{memberId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /organizations/{orgId} {
+      allow read: if true;
+      allow write: if isOfficer() || isAdmin();
+    }
+
+    match /borrowingLogs/{logId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // =========================================================================
+    // FINANCE — officers only. Members may still see their own dues, so finance
+    // documents are readable by any signed-in user but never written by one.
+    // =========================================================================
+    match /budgets/{budgetId} {
+      allow read: if isSignedIn();
+      allow write: if isOfficer() || isAdmin();
+    }
+
+    match /funds/{fundId} {
+      allow read: if isSignedIn();
+      allow write: if myRole() == 'finance_secretary' || isOfficer() || isAdmin();
+    }
+
+    // =========================================================================
+    // DEATH AID
+    //
+    // Integrity rules that the client cannot be trusted to enforce:
+    //   - a collection must belong to a roster this Mayor actually submitted
+    //   - expectedCollection must equal paidCount x contributionPerStudent
+    //   - the counts must agree with the payment marks
+    //   - a Mayor may never confirm their own remittance
+    //   - remittance amounts are written once and never overwritten
+    // =========================================================================
+
+    // The roster a collection was built from, used to prove ownership.
+    function rosterFor(id) {
+      return get(/databases/$(database)/documents/classRosters/$(id)).data;
+    }
+
+    // A collection whose arithmetic is self-consistent and whose enrolled count
+    // matches the verified roster it was recorded against.
+    //
+    // The roster cross-check is the important one: enrolledCount is what the
+    // debt is calculated against, so an officer (or anyone who reaches this
+    // rule) cannot shrink it to erase an outstanding balance.
+    function hasValidCollectionTotals() {
+      let r = request.resource.data;
+      let roster = rosterFor(r.rosterId);
+      return roster.status == 'verified'
+        && r.enrolledCount == roster.studentCount
+        && r.beneficiaryCount >= 0
+        && r.beneficiaryCount <= r.enrolledCount
+        && r.contributionPerStudent >= 0
+        && r.collectedAmount == r.beneficiaryCount * r.contributionPerStudent
+        && r.expectedCollection == r.enrolledCount * r.contributionPerStudent
+        && r.debtCount == r.enrolledCount - r.beneficiaryCount
+        && r.debtAmount == r.debtCount * r.contributionPerStudent
+        && r.status == 'for_verification'
+        && r.recordedByUid == request.auth.uid;
+    }
+
+    match /deathAidCollections/{collectionId} {
+      // Officers only. Unlike the roster registry, no student-facing read is
+      // needed: the whole workflow is driven by SSG staff.
+      allow read: if canManageDeathAid();
+
+      // Recorded by an officer, always as FOR VERIFICATION. The counted figures
+      // are forced to agree with the roster and with each other.
+      allow create: if canManageDeathAid() && hasValidCollectionTotals();
+
+      // Once recorded, the counts are frozen. Debt DETAIL may be filled in
+      // later — that is a note, not a change of money — and the officer's
+      // verdict and received amount may be added.
+      allow update: if canManageDeathAid()
+        && request.resource.data.enrolledCount == resource.data.enrolledCount
+        && request.resource.data.beneficiaryCount == resource.data.beneficiaryCount
+        && request.resource.data.contributionPerStudent == resource.data.contributionPerStudent
+        && request.resource.data.collectedAmount == resource.data.collectedAmount
+        && request.resource.data.expectedCollection == resource.data.expectedCollection
+        && request.resource.data.debtCount == resource.data.debtCount
+        && request.resource.data.debtAmount == resource.data.debtAmount
+        && request.resource.data.recordedByUid == resource.data.recordedByUid
+        && request.resource.data.submittedAt == resource.data.submittedAt
+        // Only the debt explanation may change; it can never claim more rows
+        // than there are students owing.
+        && request.resource.data.debtRecords.size() <= resource.data.debtCount;
+
+      allow delete: if isAdmin();
+    }
+
+    match /deathAidRemittances/{remittanceId} {
+      allow read: if canManageDeathAid();
+
+      // Written once, by an officer, for a collection still awaiting
+      // verification. The officer who RECORDED the collection holds the same
+      // cash, so they may not also certify it.
+      allow create: if canManageDeathAid()
+        && request.auth.uid
+             != get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.recordedByUid
+        && get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.status
+             == 'for_verification'
+        && request.resource.data.collectionId == remittanceId
+        && request.resource.data.reportedAmount
+             == get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.collectedAmount
+        && request.resource.data.difference
+             == request.resource.data.amountReceived - request.resource.data.reportedAmount
+        && request.resource.data.status == (
+              request.resource.data.difference == 0 ? 'confirmed' : 'discrepancy'
+            )
+        && request.resource.data.receivedByUid == request.auth.uid;
+
+      // Amounts are immutable. An officer may only later mark a discrepancy
+      // resolved; the figures that were verified can never change.
+      allow update: if canManageDeathAid()
+        && request.resource.data.reportedAmount == resource.data.reportedAmount
+        && request.resource.data.amountReceived == resource.data.amountReceived
+        && request.resource.data.difference == resource.data.difference
+        && request.resource.data.receivedByUid == resource.data.receivedByUid
+        && request.resource.data.status == 'resolved';
+
+      allow delete: if isAdmin();
+    }
+
+    // Append-only. An audit entry that can be edited is not an audit entry.
+    match /deathAidAuditLog/{entryId} {
+      allow read: if canManageDeathAid();
+      allow create: if canManageDeathAid();
+      allow update, delete: if false;
+    }
+
+    // Collection id allocation. Officers only now that officers do the
+    // recording; the counter is restricted to the one field it needs.
+    match /deathAidCounters/{year} {
+      allow read, create, update: if canManageDeathAid()
+        && request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    // Anything not matched above is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

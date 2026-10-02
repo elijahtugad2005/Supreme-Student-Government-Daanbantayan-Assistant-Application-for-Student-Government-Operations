@@ -20,23 +20,23 @@ html, body {
   --color-bg-tertiary: #2F2F2F;
   --color-bg-card: #252525;
   --color-bg-hover: rgba(217, 79, 31, 0.1);
-  
+
   /* Text Colors */
   --color-text-primary: #FFFFFF;
   --color-text-secondary: #F5F5DC;
   --color-text-muted: #9CA3AF;
   --color-text-inverse: #1A1A1A;
-  
+
   /* Border Colors */
   --color-border-primary: #D94F1F;
   --color-border-secondary: rgba(217, 79, 31, 0.1);
   --color-border-accent: #D94F1F;
-  
+
   /* Accent Colors */
   --color-accent-primary: #D94F1F;
   --color-accent-hover: #E66B3D;
   --color-accent-light: rgba(217, 79, 31, 0.15);
-  
+
   /* Status Colors */
   --color-success: #10b981;
   --color-success-light: rgba(16, 185, 129, 0.1);
@@ -46,65 +46,84 @@ html, body {
   --color-error-light: rgba(239, 68, 68, 0.1);
   --color-info: #3b82f6;
   --color-info-light: rgba(59, 130, 246, 0.1);
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
-  
+
   /* Overlay */
   --overlay-bg: rgba(0, 0, 0, 0.85);
 }
 
 /* ══════════════════════════════════════════════════════════
-   THEME: LIGHT (Clean White)
+   THEME: LIGHT  (Paper / Government Office)
+   
+   Visual hierarchy:
+     #F4F5F7  application background
+     #FFFFFF  surfaces / cards
+     #17202A  primary information
+     #64748B  secondary information
+     #2563EB  interactions
+     semantic  status colors
+     #7F1D1D  subtle institutional identity
 ══════════════════════════════════════════════════════════ */
 .theme-light {
-  /* Background Colors */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8FAFC;
-  --color-bg-tertiary: #E2E8F0;
-  --color-bg-card: #FFFFFF;
-  --color-bg-hover: rgba(59, 130, 246, 0.05);
-  
-  /* Text Colors */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94A3B8;
-  --color-text-inverse: #FFFFFF;
-  
-  /* Border Colors */
-  --color-border-primary: #E2E8F0;
-  --color-border-secondary: #CBD5E1;
-  --color-border-accent: #3B82F6;
-  
-  /* Accent Colors */
-  --color-accent-primary: #3B82F6;
-  --color-accent-hover: #2563EB;
-  --color-accent-light: rgba(59, 130, 246, 0.1);
-  
-  /* Status Colors */
-  --color-success: #10b981;
-  --color-success-light: rgba(16, 185, 129, 0.1);
-  --color-warning: #E66B3D;
-  --color-warning-light: rgba(245, 158, 11, 0.1);
-  --color-error: #ef4444;
-  --color-error-light: rgba(239, 68, 68, 0.1);
-  --color-info: #3b82f6;
-  --color-info-light: rgba(59, 130, 246, 0.1);
 
-  /* Hero */
-  
-  --hero-text-color:  #FFFFFF;
-  --hero-eyebrow-color: #FFFFFF ;
-  --quickAccess-color: #FFFFFF ;
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.07);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
-  
-  /* Overlay */
-  --overlay-bg: rgba(0, 0, 0, 0.5);
+  /* ── Application canvas ── */
+  --color-bg-primary:   #F4F5F7;   /* page background — neutral gray, not white */
+  --color-bg-secondary: #FFFFFF;   /* cards, modals, surfaces */
+  --color-bg-tertiary:  #F0F2F5;   /* input backgrounds, table headers, inner sections */
+  --color-bg-card:      #FFFFFF;
+  --color-bg-hover:     #EFF6FF;   /* blue-tinted hover — only for interactive items */
+
+  /* ── Typography ── */
+  --color-text-primary:   #17202A; /* strong, readable dark navy */
+  --color-text-secondary: #64748B; /* softer, secondary labels */
+  --color-text-muted:     #94A3B8; /* placeholders, hints */
+  --color-text-inverse:   #FFFFFF; /* text on coloured backgrounds */
+
+  /* ── Borders ──
+     Neutral by default. Blue ONLY for interactive/active focus.       */
+  --color-border-primary:   #D9DEE7; /* default border — neutral gray */
+  --color-border-secondary: #CBD5E1; /* slightly stronger separator */
+  --color-border-accent:    #D9DEE7; /* was blue everywhere — now neutral */
+
+  /* ── Interactive / Brand blue ── */
+  --color-accent-primary: #2563EB;
+  --color-accent-hover:   #1D4ED8;
+  --color-accent-light:   #EFF6FF;  /* very pale blue — hover/selected bg */
+
+  /* ── Institutional maroon (use sparingly) ── */
+  --color-brand:          #7F1D1D;
+  --color-brand-light:    #FEF2F2;
+
+  /* ── Semantic status ── */
+  --color-success:        #16A34A;
+  --color-success-light:  #DCFCE7;
+  --color-success-border: #BBF7D0;
+  --color-warning:        #D97706;
+  --color-warning-light:  #FEF3C7;
+  --color-warning-border: #FDE68A;
+  --color-error:          #DC2626;
+  --color-error-light:    #FEE2E2;
+  --color-error-border:   #FECACA;
+  --color-info:           #2563EB;
+  --color-info-light:     #DBEAFE;
+  --color-info-border:    #BFDBFE;
+
+  /* ── Shadows — subtle, professional ── */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 3px 10px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.10);
+
+  /* ── Overlay ── */
+  --overlay-bg: rgba(15, 23, 42, 0.50);
+
+  /* ── Hero (homepage banner keeps white text on maroon bg) ── */
+  --hero-text-color:       #FFFFFF;
+  --hero-eyebrow-color:    #FFFFFF;
+  --quickAccess-color:     #FFFFFF;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -117,23 +136,23 @@ html, body {
   --color-bg-tertiary: #0d1a30;
   --color-bg-card: rgba(10, 20, 40, 0.8);
   --color-bg-hover: rgba(59, 130, 246, 0.1);
-  
+
   /* Text Colors */
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
   --color-text-muted: #475569;
   --color-text-inverse: #ffffff;
-  
+
   /* Border Colors */
   --color-border-primary: rgba(59, 130, 246, 0.18);
   --color-border-secondary: rgba(59, 130, 246, 0.1);
   --color-border-accent: rgba(59, 130, 246, 0.25);
-  
+
   /* Accent Colors */
   --color-accent-primary: #2563eb;
   --color-accent-hover: #1d4ed8;
   --color-accent-light: rgba(37, 99, 235, 0.2);
-  
+
   /* Status Colors */
   --color-success: #10b981;
   --color-success-light: rgba(16, 185, 129, 0.1);
@@ -143,20 +162,20 @@ html, body {
   --color-error-light: rgba(239, 68, 68, 0.1);
   --color-info: #3b82f6;
   --color-info-light: rgba(59, 130, 246, 0.1);
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08);
-  
+
   /* Overlay */
   --overlay-bg: rgba(0, 0, 0, 0.4);
 }
 
-/* ══════════════════════════════════════════════════════════
-   GLOBAL STYLES - Apply theme variables
-══════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════
+   GLOBAL BASE STYLES
+══════════════════════════════════════════════════════════ */
 body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
@@ -173,4 +192,423 @@ body {
 /* Prevent transition on page load */
 .no-transition * {
   transition: none !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   LIGHT MODE — COMPONENT-LEVEL OVERRIDES
+   These target elements that hardcode non-theme-aware colors
+   so we can upgrade them without modifying each component file.
+══════════════════════════════════════════════════════════ */
+
+/* ─── App shell: neutral canvas background ─── */
+html.theme-light body,
+html.theme-light #root,
+html.theme-light .app {
+  background-color: #F4F5F7;
+}
+
+/* ─── Header: white surface, not charcoal ─── */
+html.theme-light .header {
+  background-color: #FFFFFF !important;
+  color: #17202A !important;
+  border-bottom: 1px solid #D9DEE7 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+html.theme-light .hamburgerBar {
+  background: #334155 !important;
+}
+
+html.theme-light .hamburger {
+  border-color: #D9DEE7 !important;
+}
+
+html.theme-light .hamburger:hover {
+  background: #F0F2F5 !important;
+  border-color: #CBD5E1 !important;
+}
+
+html.theme-light .eyebrow {
+  color: #94A3B8 !important;
+}
+
+html.theme-light .ssgtitle {
+  color: #17202A !important;
+}
+
+html.theme-light .subtitle {
+  color: #64748B !important;
+}
+
+html.theme-light .campusName {
+  color: #334155 !important;
+}
+
+html.theme-light .campusLocation {
+  color: #94A3B8 !important;
+}
+
+/* ─── Sidebar: white surface ─── */
+html.theme-light .sidebarContainer,
+html.theme-light [class*="Sidebar_container"] {
+  background-color: #FFFFFF;
+  border-right: 1px solid #D9DEE7;
+  box-shadow: 1px 0 4px rgba(15, 23, 42, 0.06);
+}
+
+/* Sidebar header section */
+html.theme-light [class*="Sidebar_sidebarHeader"] {
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #D9DEE7;
+}
+
+/* Sidebar nav links — dark readable text */
+html.theme-light [class*="Sidebar_navLink"] {
+  color: #334155;
+}
+
+html.theme-light [class*="Sidebar_navLink"]:hover {
+  background-color: #EFF6FF;
+  color: #2563EB;
+}
+
+/* Active nav item — blue, readable */
+html.theme-light [class*="Sidebar_active"] {
+  background-color: #2563EB;
+  color: #FFFFFF;
+}
+
+html.theme-light [class*="Sidebar_active"]:hover {
+  background-color: #1D4ED8;
+  color: #FFFFFF;
+}
+
+/* User info block in sidebar */
+html.theme-light [class*="Sidebar_userInfo"] {
+  background-color: #F4F5F7;
+  border: 1px solid #D9DEE7;
+}
+
+html.theme-light [class*="Sidebar_userRole"] {
+  background-color: #EFF6FF;
+  color: #2563EB;
+}
+
+/* Settings button */
+html.theme-light [class*="Sidebar_settingsButton"] {
+  border-color: #D9DEE7;
+  color: #334155;
+}
+
+html.theme-light [class*="Sidebar_settingsButton"]:hover {
+  background-color: #EFF6FF;
+  border-color: #2563EB;
+  color: #2563EB;
+}
+
+/* Button section footer */
+html.theme-light [class*="Sidebar_buttonSection"] {
+  background-color: #FFFFFF;
+  border-top: 1px solid #D9DEE7;
+}
+
+/*
+  Logout button — restrained in light mode.
+  Destructive meaning kept via red text & red hover,
+  but NOT a solid red block that dominates the sidebar.
+*/
+html.theme-light [class*="Sidebar_logoutButton"] {
+  background-color: transparent !important;
+  color: #DC2626 !important;
+  border: 1.5px solid #FECACA !important;
+}
+
+html.theme-light [class*="Sidebar_logoutButton"]:hover {
+  background-color: #FEE2E2 !important;
+  border-color: #DC2626 !important;
+  color: #991B1B !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Login button — clean blue */
+html.theme-light [class*="Sidebar_loginButton"] {
+  background-color: #2563EB !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+html.theme-light [class*="Sidebar_loginButton"]:hover {
+  background-color: #1D4ED8 !important;
+}
+
+/* Theme modal — white surface */
+html.theme-light [class*="Sidebar_themeModal"] {
+  background-color: #FFFFFF;
+  border: 1px solid #D9DEE7;
+}
+
+html.theme-light [class*="Sidebar_themeModalHeader"] {
+  background-color: #F4F5F7;
+  border-bottom: 1px solid #D9DEE7;
+}
+
+html.theme-light [class*="Sidebar_themeModalClose"] {
+  border-color: #D9DEE7;
+  color: #334155;
+}
+
+html.theme-light [class*="Sidebar_themeOption"] {
+  border-color: #D9DEE7;
+  background-color: #FFFFFF;
+}
+
+html.theme-light [class*="Sidebar_themeOption"]:hover {
+  background-color: #EFF6FF;
+  border-color: #2563EB;
+}
+
+html.theme-light [class*="Sidebar_themeOptionActive"] {
+  background-color: #EFF6FF;
+  border-color: #2563EB;
+}
+
+/* ─── Table improvements: strong contrast ─── */
+html.theme-light table td {
+  color: #17202A;
+}
+
+html.theme-light table th {
+  background-color: #F4F5F7;
+  color: #64748B;
+  border-bottom: 1px solid #D9DEE7;
+}
+
+html.theme-light table tbody tr:hover {
+  background-color: #F8FAFC;
+}
+
+/* ─── Inventory KPI cards on light mode ─── */
+html.theme-light [class*="statCard"] {
+  background-color: #FFFFFF;
+  border: 1px solid #D9DEE7;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+html.theme-light [class*="statLabel"] {
+  color: #64748B;
+}
+
+html.theme-light [class*="statValue"] {
+  color: #17202A;
+}
+
+/* ─── Form inputs ─── */
+html.theme-light input:not([type="file"]),
+html.theme-light select,
+html.theme-light textarea {
+  background-color: #FFFFFF;
+  border-color: #CBD5E1;
+  color: #17202A;
+}
+
+html.theme-light input:not([type="file"]):focus,
+html.theme-light select:focus,
+html.theme-light textarea:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+html.theme-light input::placeholder,
+html.theme-light textarea::placeholder {
+  color: #94A3B8;
+}
+
+/* ─── Table containers (cards) ─── */
+html.theme-light [class*="tableContainer"],
+html.theme-light [class*="categoriesContainer"] {
+  background-color: #FFFFFF;
+  border-color: #D9DEE7;
+}
+
+/* ─── Tabs ─── */
+html.theme-light [class*="tabs"],
+html.theme-light [class*="tabsContainer"] {
+  border-bottom-color: #D9DEE7;
+}
+
+html.theme-light [class*="tab"]:not([class*="activeTab"]) {
+  color: #64748B;
+}
+
+html.theme-light [class*="tab"]:hover {
+  color: #2563EB;
+  background-color: #EFF6FF;
+}
+
+html.theme-light [class*="activeTab"] {
+  color: #2563EB;
+  border-bottom-color: #2563EB;
+}
+
+/* ─── Alert warning ─── */
+html.theme-light [class*="alertWarning"] {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+  border-left-color: #D97706;
+  color: #78350F;
+}
+
+/* ─── Status badges — semantic ─── */
+html.theme-light [class*="statusInStock"] {
+  background: #DCFCE7;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+}
+
+html.theme-light [class*="statusOutOfStock"] {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+html.theme-light [class*="statusBorrowed"] {
+  background: #DBEAFE;
+  color: #1E40AF;
+  border: 1px solid #BFDBFE;
+}
+
+html.theme-light [class*="statusReturned"] {
+  background: #DCFCE7;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+}
+
+html.theme-light [class*="categoryBadge"] {
+  background: #DBEAFE;
+  color: #1E40AF;
+  border: 1px solid #BFDBFE;
+}
+
+/* ─── Modal / dialog ─── */
+html.theme-light [class*="modalHeader"],
+html.theme-light [class*="modal"] > [class*="header"] {
+  background-color: #F4F5F7;
+  border-bottom-color: #D9DEE7;
+}
+
+html.theme-light [class*="closeButton"] {
+  background-color: #FFFFFF;
+  border-color: #D9DEE7;
+  color: #334155;
+}
+
+/* ─── Low-stock row — warm amber, not harsh yellow ─── */
+html.theme-light [class*="lowStockRow"] {
+  background-color: #FFFBEB !important;
+}
+
+html.theme-light [class*="lowStockRow"]:hover {
+  background-color: #FEF3C7 !important;
+}
+
+/* ─── Action buttons (table row) ─── */
+html.theme-light [class*="actionButton"] {
+  color: #475569;
+  border-color: transparent;
+}
+
+html.theme-light [class*="actionButton"]:hover:not(:disabled) {
+  background-color: #EFF6FF;
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #2563EB;
+}
+
+html.theme-light [class*="deleteButton"] {
+  color: #DC2626;
+}
+
+html.theme-light [class*="deleteButton"]:hover:not(:disabled) {
+  background-color: #FEE2E2;
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #991B1B;
+}
+
+html.theme-light [class*="editButton"]:hover:not(:disabled) {
+  background-color: #FFFBEB;
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #92400E;
+}
+
+html.theme-light [class*="actionDivider"] {
+  background: #D9DEE7;
+}
+
+/* ─── Primary / secondary buttons ─── */
+html.theme-light [class*="primaryButton"] {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.20);
+}
+
+html.theme-light [class*="secondaryButton"] {
+  background-color: #FFFFFF;
+  border-color: #D9DEE7;
+  color: #334155;
+}
+
+html.theme-light [class*="secondaryButton"]:hover:not(:disabled) {
+  background-color: #F4F5F7;
+  border-color: #CBD5E1;
+  color: #17202A;
+}
+
+/* ─── Categories list ─── */
+html.theme-light [class*="categoryItem"] {
+  background-color: #F4F5F7;
+  border-color: #D9DEE7;
+}
+
+html.theme-light [class*="categoryItem"]:hover {
+  background-color: #FFFFFF;
+  border-color: #CBD5E1;
+}
+
+/* ─── Helper text, small metadata ─── */
+html.theme-light [class*="helperText"],
+html.theme-light [class*="itemDescription"] {
+  color: #64748B;
+}
+
+/* ─── File upload zone ─── */
+html.theme-light [class*="fileUploadButton"] {
+  background-color: #F4F5F7;
+  border-color: #CBD5E1;
+  color: #64748B;
+}
+
+html.theme-light [class*="fileUploadButton"]:hover {
+  background-color: #EFF6FF;
+  border-color: #2563EB;
+  color: #2563EB;
+}
+
+/* ─── Form actions border ─── */
+html.theme-light [class*="formActions"] {
+  border-top-color: #D9DEE7;
+}
+
+/* ─── Empty state text ─── */
+html.theme-light [class*="emptyState"] h3 {
+  color: #334155;
+}
+
+html.theme-light [class*="emptyState"] p {
+  color: #64748B;
+}
+
+/* ─── Spinner ─── */
+html.theme-light [class*="spinner"] {
+  border-color: #E5E7EB;
+  border-top-color: #2563EB;
 }

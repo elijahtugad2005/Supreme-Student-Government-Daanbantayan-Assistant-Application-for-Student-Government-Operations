@@ -11,9 +11,11 @@
   height: 5rem;
   background-color: var(--color-charcoal);
   color: var(--color-white);
-  display: flex;
+  /* Equal outer tracks so the title sits dead centre regardless of how
+     wide the hamburger and the clock/campus block happen to be. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 0 1.5rem 0 1.25rem;
   box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 12px rgba(0,0,0,0.45);
   z-index: 999;
@@ -48,6 +50,7 @@
   cursor: pointer;
   padding: 7px 8px;
   flex-shrink: 0;
+  justify-self: start;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
@@ -73,7 +76,6 @@
 
 /* ─── Centre title block ─── */
 .titleBlock {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -117,12 +119,27 @@
   white-space: nowrap;
 }
 
-/* ─── Right campus detail ─── */
+/* ─── Right section ─── */
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-shrink: 0;
+  justify-self: end;
+}
+
+.clock {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  color: var(--color-white);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
 .campusDetail {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  flex-shrink: 0;
   gap: 2px;
 }
 
@@ -173,7 +190,7 @@
     font-size: 1.15rem;
   }
 
-  .campusDetail {
+  .rightSection {
     display: none; /* hide on mobile to save space */
   }
 

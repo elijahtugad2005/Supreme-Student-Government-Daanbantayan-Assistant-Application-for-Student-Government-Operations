@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Login.module.css';
+import GoogleSignInButton from './GoogleSignInButton.jsx';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -69,6 +70,9 @@ function Login() {
           </div>
         )}
            
+        {/* Google Sign-In Option */}
+        <GoogleSignInButton />
+        
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
             <label className={styles.label}>Email Address</label>
@@ -110,7 +114,7 @@ function Login() {
             disabled={loading}
             className={styles.loginButton}
           >
-            {loading ? 'Logging in...' : '🔐 Login'}
+            {loading ? 'Logging in...' : ' Login'}
           </button>
 
          <button 
@@ -119,7 +123,7 @@ function Login() {
             className={styles.homeButton}
             disabled={loading}
             >
-            🏠 Go Home
+            Go Home
             </button>
           
         </form>

@@ -3,6 +3,13 @@
    Deep navy base · Blue/indigo accents · Glassmorphism UI
    ========================================================= */
 
+/* ── Global Smooth Scrolling Optimization ── */
+* {
+  /* Hardware acceleration for smooth scrolling */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* ── Root Container ── */
 .container {
   width: 100%;
@@ -12,6 +19,10 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem 2.5rem;
   box-sizing: border-box;
+  /* Smooth scrolling optimization */
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+  contain: layout style;
 }
 
 /* ── Top Header Bar ── */
@@ -112,36 +123,6 @@
 
 .clearSearchBtn:hover {
   color: var(--color-text-muted);
-}
-
-.addMemberBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--color-accent-primary);
-  color: var(--color-text-inverse);
-  border: none;
-  padding: 0.68rem 1.35rem;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.22s ease;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.addMemberBtn:hover {
-  background: linear-gradient(135deg, #1d4ed8, #1e40af);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
-}
-
-.addPlusIcon {
-  font-size: 1.1rem;
-  line-height: 1;
-  font-weight: 700;
 }
 
 /* ── Member List Wrapper ── */
@@ -478,21 +459,37 @@
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .container {
-    padding: 1.25rem 1rem;
+    padding: 0.75rem 0.5rem;
+    min-height: auto;
   }
 
   .topHeader {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .mainTitle {
+    font-size: 1.5rem;
   }
 
   .headerActions {
     width: 100%;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
   }
 
   .searchWrapper {
     width: 100%;
+  }
+
+  .addMemberBtn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem;
   }
 
   .formGrid {
@@ -501,6 +498,7 @@
 
   .modalContainer {
     border-radius: 14px;
+    max-height: 92vh;
   }
 
   .modalHeader {
@@ -518,5 +516,37 @@
   .submitBtn {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .mainTitle {
+    font-size: 1.3rem;
+  }
+
+  .subTitle {
+    font-size: 0.78rem;
+  }
+
+  .modalOverlay {
+    padding: 0.5rem;
+  }
+
+  .modalForm {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .socialInputRow {
+    flex-direction: column;
+  }
+
+  .platformSelect {
+    flex: 1;
+    width: 100%;
   }
 }

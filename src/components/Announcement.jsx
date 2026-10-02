@@ -1,7 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { db } from '../firebase/firebaseConfig';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import styles from './Announcement.module.css';
+import GlassModal from './GlassModal/GlassModal';
+import {
+  ANNOUNCEMENT_TYPES,
+  ANNOUNCEMENT_TYPE_VALUES,
+  TELEGRAM_CHANNELS,
+  BOTH_CHANNELS,
+  getTypeConfig,
+  getChannelConfig,
+  buildTelegramMessage,
+  buildTelegramMessageParts,
+  resolveChannels,
+  normalizeTelegramRecords,
+} from '../utils/announcementTypes';
+import {
+  sendAnnouncementToTelegram,
+  deleteTelegramMessage,
+  isTelegramReady,
+} from '../services/telegramService';
+
+const EMPTY_ANNOUNCEMENT_FORM = {
+  title: '',
+  description: '',
+  venue: '',
+  eventDate: '',
+  eventTime: '',
+  category: 'General',
+  type: '',
+  homepageVisible: false,
+  imageBase64: '',
+};
+
+// Which fields the announcement form insists on before it will save
+const ANNOUNCEMENT_REQUIRED_FIELDS = [
+  { name: 'title', label: 'Announcement Title' },
+  { name: 'description', label: 'Description' },
+  { name: 'venue', label: 'Venue' },
+  { name: 'eventDate', label: 'Event Date' },
+  { name: 'eventTime', label: 'Event Time' },
+];
 
 function Announcement() {
   // ========================================
@@ -11,21 +50,62 @@ function Announcement() {
   // Announcements
   const [announcements, setAnnouncements] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-  const [announcementForm, setAnnouncementForm] = useState({
-    title: '',
-    description: '',
-    venue: '',
-    eventDate: '',
-    eventTime: '',
-    category: 'General',
-    imageBase64: '',
-  });
+  const [announcementForm, setAnnouncementForm] = useState({ ...EMPTY_ANNOUNCEMENT_FORM });
 //Image previewer 
 const [imagePreview, setImagePreview] = useState(null);
 const [selectedImage, setSelectedImage] = useState(null);
 
+  // Telegram publishing
+  const [telegramChannel, setTelegramChannel] = useState('');
+  const [publishStatus, setPublishStatus] = useState('idle'); // idle | publishing | published | failed
+  const [publishError, setPublishError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Inline form validation
+  const [formErrors, setFormErrors] = useState({});
 
+  // Glass dialog — replaces window.alert / window.confirm
+  const [dialog, setDialog] = useState(null);
+  const dialogResolver = useRef(null);
+
+  const closeDialog = useCallback((result) => {
+    setDialog(null);
+    const resolve = dialogResolver.current;
+    dialogResolver.current = null;
+    resolve?.(result);
+  }, []);
+
+  /**
+   * Show a glass dialog and resolve once it is dismissed.
+   * If one is already open the new request is refused (resolves false) so a
+   * second Enter press cannot orphan the first promise.
+   */
+  const ask = useCallback((options) => new Promise((resolve) => {
+    if (dialogResolver.current) {
+      resolve(false);
+      return;
+    }
+    dialogResolver.current = resolve;
+    setDialog({ showCancel: false, confirmLabel: 'OK', tone: 'info', ...options });
+  }), []);
+
+  /** Single-button notice (replaces alert). */
+  const notify = useCallback((options) => ask(options), [ask]);
+
+  // Drop a pending dialog if the component unmounts
+  useEffect(() => () => { dialogResolver.current = null; }, []);
+
+  // News Articles
+  const [newsArticles, setNewsArticles] = useState([]);
+  const [editingNewsId, setEditingNewsId] = useState(null);
+  const [newsForm, setNewsForm] = useState({
+    title: '',
+    description: '',
+    tag: 'event',
+    images: [],
+    expiryDate: '',
+  });
+  const [newsImagePreviews, setNewsImagePreviews] = useState([]);
 
 
 
@@ -91,7 +171,11 @@ const handleImageChange = async (e) => {
     }
 
     if(!file.type.startsWith('image/')){
-        alert('Please select an image file.');
+        await notify({
+          tone: 'error',
+          title: 'Unsupported file',
+          message: 'Please select an image file (JPG or PNG).',
+        });
         return;
     }
 
@@ -106,8 +190,12 @@ const handleImageChange = async (e) => {
         setImagePreview(compressedBase64);
     } catch (error){
         console.error("Error processing image:", error);
-        alert("Failed to process image. Please try another file.");
-        setMember(prev => ({ ...prev, image64: ""}));
+        await notify({
+          tone: 'error',
+          title: 'Could not process image',
+          message: 'Please try another file.',
+        });
+        setAnnouncementForm(prev => ({ ...prev, imageBase64: ""}));
         setImagePreview(null);
     }
 };
@@ -123,7 +211,7 @@ const handleImageChange = async (e) => {
   });
 
   // UI States
-  const [activeTab, setActiveTab] = useState('announcements'); // 'announcements' or 'calendar'
+  const [activeTab, setActiveTab] = useState('announcements'); // 'announcements', 'calendar', or 'news'
   const [loading, setLoading] = useState(false);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState(null);
   const [editingEventId, setEditingEventId] = useState(null);
@@ -171,15 +259,103 @@ const handleImageChange = async (e) => {
   }, []);
 
   // ========================================
+  // FETCH NEWS ARTICLES FROM FIREBASE
+  // ========================================
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'newsArticles'), (snapshot) => {
+      const newsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      newsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setNewsArticles(newsData);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // ========================================
   // ANNOUNCEMENT HANDLERS
   // ========================================
+  const clearFieldError = (name) => {
+    setFormErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
+  };
+
   const handleAnnouncementChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, checked } = e.target;
+    if (name === 'homepageVisible') {
+      setAnnouncementForm(prev => ({ ...prev, homepageVisible: checked }));
+      return;
+    }
     setAnnouncementForm(prev => ({ ...prev, [name]: value }));
+    // Clear the error as soon as the field is filled in
+    if (formErrors[name]) clearFieldError(name);
+  };
+
+  // Clearing a type or content invalidates a previous publish result
+  const resetPublishState = () => {
+    setPublishStatus('idle');
+    setPublishError('');
+    setConfirmOpen(false);
+  };
+
+  /** Check the announcement fields, including the homepage release option. */
+  const validateAnnouncement = () => {
+    const errors = {};
+    ANNOUNCEMENT_REQUIRED_FIELDS.forEach(({ name, label }) => {
+      const value = announcementForm[name];
+      if (!value || !String(value).trim()) {
+        errors[name] = `${label} is required.`;
+      }
+    });
+    if (announcementForm.eventDate && Number.isNaN(new Date(announcementForm.eventDate).getTime())) {
+      errors.eventDate = 'Enter a valid date.';
+    }
+    return errors;
+  };
+
+  // Pressing Enter in any field submits the form, so nothing is written until
+  // the manager confirms — and the homepage release choice is spelled out.
+  const confirmAnnouncementSave = async (isUpdate) => {
+    const errors = validateAnnouncement();
+    setFormErrors(errors);
+
+    const missing = ANNOUNCEMENT_REQUIRED_FIELDS.filter((f) => errors[f.name]).map((f) => f.label);
+
+    if (missing.length > 0) {
+      await notify({
+        tone: 'error',
+        title: 'Announcement not saved',
+        message: `Please complete these fields first:\n\n• ${missing.join('\n• ')}`,
+      });
+      return false;
+    }
+
+    const release = announcementForm.homepageVisible
+      ? '✅ Will be shown in the Homepage announcement section.'
+      : '🔒 Saved only. It will NOT appear on the Homepage.';
+
+    return ask({
+      tone: announcementForm.homepageVisible ? 'success' : 'info',
+      title: isUpdate ? 'Update announcement?' : 'Add announcement?',
+      message: [
+        `Title: ${announcementForm.title}`,
+        `Venue: ${announcementForm.venue}`,
+        `When: ${announcementForm.eventDate} at ${announcementForm.eventTime}`,
+        '',
+        release,
+      ].join('\n'),
+      showCancel: true,
+      confirmLabel: isUpdate ? 'Update' : 'Add',
+      cancelLabel: 'Cancel',
+    });
   };
 
   const handleAddAnnouncement = async (e) => {
     e.preventDefault();
+
+    const confirmed = await confirmAnnouncementSave(false);
+    if (!confirmed) return;
+
     setLoading(true);
 
     try {
@@ -190,26 +366,30 @@ const handleImageChange = async (e) => {
             eventDate: announcementForm.eventDate,
             eventTime: announcementForm.eventTime,
             category: announcementForm.category,
+            type: announcementForm.type || '',
+            homepageVisible: !!announcementForm.homepageVisible,
             imageBase64: announcementForm.imageBase64,
             createdAt: new Date().toISOString(),
         });
 
-        alert('✅ Announcement added successfully!');
-        setAnnouncementForm({
-            title: '',
-            description: '',
-            venue: '',
-            eventDate: '',
-            eventTime: '',
-            category: 'General',     // ADD THIS
-            imageBase64: '',       // ADD THIS
+        await notify({
+          tone: 'success',
+          title: 'Announcement added',
+          message: announcementForm.homepageVisible
+            ? '"' + announcementForm.title + '" was added and is now live on the Homepage.'
+            : '"' + announcementForm.title + '" was added. It is not shown on the Homepage yet.',
         });
+
+        setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
         setImagePreview(null); 
         setSelectedImage(null); // ADD THIS
+        setFormErrors({});
+        setTelegramChannel('');
+        resetPublishState();
         setLoading(false);
     } catch (error) {
         console.error('Error adding announcement:', error);
-        alert('Error adding announcement');
+        await notify({ tone: 'error', title: 'Could not add announcement', message: 'Please try again.' });
         setLoading(false);
     }
 };
@@ -222,15 +402,25 @@ const handleImageChange = async (e) => {
       eventDate: announcement.eventDate,
       eventTime: announcement.eventTime,
       category: announcement.category,                              // ADD THIS
+      type: announcement.type || '',
+      homepageVisible: !!announcement.homepageVisible,
       imageBase64: announcement.imageBase64 || '',  
     });
      setImagePreview(announcement.imageBase64);
      setSelectedImage(null);
+     setTelegramChannel(announcement.telegram?.channel || '');
+     setPublishStatus(announcement.telegram?.status || 'idle');
+     setPublishError('');
+     setFormErrors({});
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
  const handleUpdateAnnouncement = async (e) => {
     e.preventDefault();
+
+    const confirmed = await confirmAnnouncementSave(true);
+    if (!confirmed) return;
+
     setLoading(true);
 
     try {
@@ -244,43 +434,268 @@ const handleImageChange = async (e) => {
             eventDate: announcementForm.eventDate,
             eventTime: announcementForm.eventTime,
             category: announcementForm.category,
+            type: announcementForm.type || '',
+            homepageVisible: !!announcementForm.homepageVisible,
             imageBase64: announcementForm.imageBase64,
             updatedAt: new Date().toISOString(),
         };
 
         await updateDoc(announcementRef, dataToUpdate);
 
-        alert('✅ Announcement updated successfully!');
-        setAnnouncementForm({
-            title: '',
-            description: '',
-            venue: '',
-            eventDate: '',
-            eventTime: '',
-            category: 'General',
-            imageBase64: '',
+        await notify({
+          tone: 'success',
+          title: 'Announcement updated',
+          message: announcementForm.homepageVisible
+            ? '"' + announcementForm.title + '" was updated and is live on the Homepage.'
+            : '"' + announcementForm.title + '" was updated. It is hidden from the Homepage.',
         });
+
+        setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
         setEditingAnnouncementId(null);
         setImagePreview(null);
         setSelectedImage(null);
+        setFormErrors({});
+        setTelegramChannel('');
+        resetPublishState();
         setLoading(false);
     } catch (error) {
         console.error('Error updating announcement:', error);
-        alert('Error updating announcement');
+        await notify({ tone: 'error', title: 'Could not update announcement', message: 'Please try again.' });
         setLoading(false);
     }
 };
 
-  const handleDeleteAnnouncement = async (id, title) => {
-    if (!window.
-      confirm(`Delete announcement: "${title}"?`)) return;
+  // ========================================
+  // TELEGRAM PUBLISHING
+  // ========================================
+
+  // Exactly what will be sent: type emoji + title, the bolded announcement
+  // title, then the manager's own text. The preview renders the same parts
+  // the message is built from, so the two cannot drift apart.
+  const telegramParts = useMemo(
+    () => buildTelegramMessageParts(
+      announcementForm.type,
+      announcementForm.description,
+      announcementForm.title
+    ),
+    [announcementForm.type, announcementForm.description, announcementForm.title]
+  );
+
+  const telegramPreview = useMemo(
+    () => buildTelegramMessage(
+      announcementForm.type,
+      announcementForm.description,
+      announcementForm.title
+    ),
+    [announcementForm.type, announcementForm.description, announcementForm.title]
+  );
+
+  // Which channels a saved announcement actually reached
+  const publishedChannelLabels = (announcement) => {
+    const records = normalizeTelegramRecords(announcement.telegram);
+    const sent = Object.keys(records).filter((c) => records[c]?.status && records[c].status !== 'failed');
+    if (sent.length === 0) return 'Telegram';
+    return sent.map((c) => getChannelConfig(c)?.label || c).join(' + ');
+  };
+
+  const renderTelegramText = (parts) => (    <>
+      {parts.prefix && <>{parts.prefix}</>}
+      {parts.title && (
+        <>
+          {parts.prefix && '\n\n'}
+          <strong>{parts.title}</strong>
+        </>
+      )}
+      {parts.body.trim() && (
+        <>
+          {(parts.prefix || parts.title) && '\n\n'}
+          {parts.body}
+        </>
+      )}
+    </>
+  );
+
+  const selectedTypeConfig = getTypeConfig(announcementForm.type);
+  const selectedChannelConfig =
+    telegramChannel === BOTH_CHANNELS
+      ? { label: 'Faculty + All Mayors' }
+      : getChannelConfig(telegramChannel);
+  const targetChannels = resolveChannels(telegramChannel);
+
+  const publishChecks = [
+    { label: 'Announcement Type:', value: selectedTypeConfig?.label || 'Not selected', ok: !!selectedTypeConfig },
+    {
+      label: 'Publish To:',
+      value: selectedChannelConfig?.label || 'Not selected',
+      ok: !!selectedChannelConfig,
+    },
+  ];
+  const canPublish = publishChecks.every((c) => c.ok)
+    && announcementForm.description.trim().length > 0
+    && publishStatus !== 'publishing';
+
+  // The message body belongs to the website announcement and is never
+  // modified — only the type prefix is generated on top of it.
+  const announcementPayload = () => ({
+    title: announcementForm.title,
+    description: announcementForm.description,
+    venue: announcementForm.venue,
+    eventDate: announcementForm.eventDate,
+    eventTime: announcementForm.eventTime,
+    category: announcementForm.category,
+    type: announcementForm.type || '',
+    homepageVisible: !!announcementForm.homepageVisible,
+    imageBase64: announcementForm.imageBase64,
+  });
+
+  // Make sure there is an announcement document to attach the Telegram
+  // result to, without ever duplicating the announcement.
+  const ensureAnnouncementDoc = async () => {
+    if (editingAnnouncementId) {
+      await updateDoc(doc(db, 'announcements', editingAnnouncementId), {
+        ...announcementPayload(),
+        updatedAt: new Date().toISOString(),
+      });
+      return editingAnnouncementId;
+    }
+    const created = await addDoc(collection(db, 'announcements'), {
+      ...announcementPayload(),
+      createdAt: new Date().toISOString(),
+    });
+    setEditingAnnouncementId(created.id);
+    return created.id;
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!canPublish) return;
+
+    setConfirmOpen(false);
+    setPublishStatus('publishing');
+    setPublishError('');
+
+    const selection = telegramChannel;
+    const channels = resolveChannels(selection);
+    const message = telegramPreview;
+    const imageBase64 = announcementForm.imageBase64 || '';
+    let announcementId = null;
+
+    try {
+      announcementId = await ensureAnnouncementDoc();
+
+      // Fan out to every selected channel, collecting each result separately
+      const results = {};
+      for (const channel of channels) {
+        try {
+          const result = await sendAnnouncementToTelegram({ channel, message, imageBase64 });
+          results[channel] = {
+            status: result.photo.status === 'failed' ? 'partial' : 'published',
+            messageId: result.messageId,
+            publishedAt: new Date().toISOString(),
+            error: result.photo.status === 'failed' ? result.photo.error : '',
+          };
+        } catch (channelError) {
+          console.error(`Telegram publish to ${channel} failed:`, channelError);
+          results[channel] = {
+            status: 'failed',
+            messageId: null,
+            publishedAt: '',
+            error: channelError?.userMessage || 'Publishing failed. Please try again.',
+          };
+        }
+      }
+
+      const values = Object.values(results);
+      const sentCount = values.filter((r) => r.status !== 'failed').length;
+      const overall = sentCount === 0 ? 'failed' : (sentCount === values.length ? 'published' : 'partial');
+
+      // Surface the first problem so it is not silently swallowed
+      const problem = values.find((r) => r.status === 'failed' || r.status === 'partial');
+      setPublishError(problem && problem.status !== 'published' ? problem.error : '');
+      setPublishStatus(overall);
+
+      await updateDoc(doc(db, 'announcements', announcementId), {
+        telegram: {
+          status: overall,
+          channel: channels.length === 1 ? channels[0] : selection,
+          message,
+          channels: results,
+          publishedAt: new Date().toISOString(),
+          error: problem && problem.status !== 'published' ? problem.error : '',
+        },
+      });
+    } catch (error) {
+      console.error('Telegram publish failed:', error);
+      // Only a generic, redacted message ever reaches the UI
+      const safeMessage = error?.userMessage || 'Publishing failed. Please try again.';
+      setPublishError(safeMessage);
+      setPublishStatus('failed');
+
+      if (announcementId) {
+        try {
+          await updateDoc(doc(db, 'announcements', announcementId), {
+            telegram: {
+              status: 'failed',
+              channel: selection,
+              message,
+              publishedAt: '',
+              error: safeMessage,
+            },
+          });
+        } catch (metaError) {
+          console.error('Could not record publish failure:', metaError);
+        }
+      }
+    }
+  };
+
+  const handleDeleteAnnouncement = async (announcement) => {
+    const { id, title } = announcement;
+    const records = normalizeTelegramRecords(announcement.telegram);
+    const sentChannels = Object.keys(records);
+
+    const warning = sentChannels.length > 0
+      ? `\n\nThe Telegram message will also be removed from: ${sentChannels
+          .map((c) => getChannelConfig(c)?.label || c)
+          .join(', ')}.\n\nNote: Telegram only allows bots to delete messages sent in the last 48 hours, so an older message may stay in the channel.`
+      : '';
+
+    const confirmed = await ask({
+      tone: 'danger',
+      title: 'Delete announcement?',
+      message: `"${title}" will be permanently removed.${warning}`,
+      showCancel: true,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Keep',
+    });
+    if (!confirmed) return;
+
+    // Remove the Telegram message(s) first — if that fails the announcement
+    // is still deleted, and the user is told what was left behind.
+    const failures = [];
+    for (const channel of sentChannels) {
+      const result = await deleteTelegramMessage({ channel, messageId: records[channel]?.messageId });
+      if (!result.deleted && records[channel]?.messageId) {
+        failures.push(`${getChannelConfig(channel)?.label || channel}: ${result.error}`);
+      }
+    }
 
     try {
       await deleteDoc(doc(db, 'announcements', id));
-      alert('🗑️ Announcement deleted!');
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      alert('Error deleting announcement');
+      await notify({ tone: 'error', title: 'Could not delete', message: 'Please try again.' });
+      return;
+    }
+
+    // The confirmation is the acknowledgement — no follow-up on success.
+    // A failure is still surfaced so a Telegram message left behind is never
+    // silently forgotten.
+    if (failures.length > 0) {
+      await notify({
+        tone: 'error',
+        title: 'Telegram message not removed',
+        message: `These Telegram messages are still in the channel:\n\n• ${failures.join('\n• ')}`,
+      });
     }
   };
 
@@ -305,7 +720,7 @@ const handleImageChange = async (e) => {
         createdAt: new Date().toISOString(),
       });
 
-      alert('✅ Event added to calendar!');
+      await notify({ tone: 'success', title: 'Event added', message: `"${eventForm.eventName}" was added to the calendar.` });
       setEventForm({
         eventName: '',
         eventDate: '',
@@ -316,7 +731,7 @@ const handleImageChange = async (e) => {
       setLoading(false);
     } catch (error) {
       console.error('Error adding event:', error);
-      alert('Error adding event');
+      await notify({ tone: 'error', title: 'Could not add event', message: 'Please try again.' });
       setLoading(false);
     }
   };
@@ -343,7 +758,7 @@ const handleImageChange = async (e) => {
         updatedAt: new Date().toISOString(),
       });
 
-      alert('✅ Event updated!');
+      await notify({ tone: 'success', title: 'Event updated', message: `"${eventForm.eventName}" was updated.` });
       setEventForm({
         eventName: '',
         eventDate: '',
@@ -356,20 +771,28 @@ const handleImageChange = async (e) => {
       setLoading(false);
     } catch (error) {
       console.error('Error updating event:', error);
-      alert('Error updating event');
+      await notify({ tone: 'error', title: 'Could not update event', message: 'Please try again.' });
       setLoading(false);
     }
   };
 
   const handleDeleteEvent = async (id, name) => {
-    if (!window.confirm(`Delete event: "${name}"?`)) return;
+    const confirmed = await ask({
+      tone: 'danger',
+      title: 'Delete event?',
+      message: `"${name}" will be permanently removed from the calendar.`,
+      showCancel: true,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Keep',
+    });
+    if (!confirmed) return;
 
     try {
       await deleteDoc(doc(db, 'calendarEvents', id));
-      alert('🗑️ Event deleted!');
+      await notify({ tone: 'success', title: 'Deleted', message: `"${name}" was removed.` });
     } catch (error) {
       console.error('Error deleting event:', error);
-      alert('Error deleting event');
+      await notify({ tone: 'error', title: 'Could not delete', message: 'Please try again.' });
     }
   };
 
@@ -425,7 +848,164 @@ const handleImageChange = async (e) => {
     return colors[type] || '#2196f3';
   };
 
+  // ========================================
+  // NEWS ARTICLE HANDLERS
+  // ========================================
+  const handleNewsChange = (e) => {
+    const { name, value } = e.target;
+    setNewsForm(prev => ({ ...prev, [name]: value }));
+  };
 
+  const handleNewsImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const validImages = files.filter(f => f.type.startsWith('image/'));
+    if (validImages.length !== files.length) {
+      await notify({
+        tone: 'info',
+        title: 'Some files skipped',
+        message: 'Files that were not images were skipped.',
+      });
+    }
+
+    try {
+      const compressedImages = await Promise.all(
+        validImages.map(file => CompressImage(file))
+      );
+      setNewsForm(prev => ({
+        ...prev,
+        images: [...prev.images, ...compressedImages],
+      }));
+      setNewsImagePreviews(prev => [...prev, ...compressedImages]);
+    } catch (error) {
+      console.error('Error processing images:', error);
+      await notify({
+        tone: 'error',
+        title: 'Could not process images',
+        message: 'Some images failed to process. Please try again.',
+      });
+    }
+  };
+
+  const removeNewsImage = (index) => {
+    setNewsForm(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+    setNewsImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddNews = async (e) => {
+    e.preventDefault();
+    if (newsForm.images.length < 1) {
+      await notify({
+        tone: 'error',
+        title: 'Photo required',
+        message: 'Please add at least 1 photo for the news article.',
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      await addDoc(collection(db, 'newsArticles'), {
+        title: newsForm.title,
+        description: newsForm.description,
+        tag: newsForm.tag,
+        images: newsForm.images,
+        expiryDate: newsForm.expiryDate || '',
+        createdAt: new Date().toISOString(),
+      });
+      await notify({ tone: 'success', title: 'News published', message: `"${newsForm.title}" is now live on the Homepage.` });
+      resetNewsForm();
+    } catch (error) {
+      console.error('Error adding news:', error);
+      await notify({ tone: 'error', title: 'Could not publish', message: 'Please try again.' });
+    }
+    setLoading(false);
+  };
+
+  const handleEditNews = (article) => {
+    setEditingNewsId(article.id);
+    setNewsForm({
+      title: article.title,
+      description: article.description,
+      tag: article.tag,
+      images: article.images || [],
+      expiryDate: article.expiryDate || '',
+    });
+    setNewsImagePreviews(article.images || []);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleUpdateNews = async (e) => {
+    e.preventDefault();
+    if (newsForm.images.length < 1) {
+      await notify({
+        tone: 'error',
+        title: 'Photo required',
+        message: 'Please add at least 1 photo for the news article.',
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const newsRef = doc(db, 'newsArticles', editingNewsId);
+      await updateDoc(newsRef, {
+        title: newsForm.title,
+        description: newsForm.description,
+        tag: newsForm.tag,
+        images: newsForm.images,
+        expiryDate: newsForm.expiryDate || '',
+        updatedAt: new Date().toISOString(),
+      });
+      await notify({ tone: 'success', title: 'News updated', message: `"${newsForm.title}" was updated.` });
+      resetNewsForm();
+    } catch (error) {
+      console.error('Error updating news:', error);
+      await notify({ tone: 'error', title: 'Could not update', message: 'Please try again.' });
+    }
+    setLoading(false);
+  };
+
+  const handleDeleteNews = async (id, title) => {
+    const confirmed = await ask({
+      tone: 'danger',
+      title: 'Delete news article?',
+      message: `"${title}" will be permanently removed from the Homepage.`,
+      showCancel: true,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Keep',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteDoc(doc(db, 'newsArticles', id));
+      await notify({ tone: 'success', title: 'Deleted', message: `"${title}" was removed.` });
+    } catch (error) {
+      console.error('Error deleting news:', error);
+      await notify({ tone: 'error', title: 'Could not delete', message: 'Please try again.' });
+    }
+  };
+
+  const resetNewsForm = () => {
+    setNewsForm({ title: '', description: '', tag: 'event', images: [], expiryDate: '' });
+    setNewsImagePreviews([]);
+    setEditingNewsId(null);
+  };
+
+  const getNewsTagStyle = (tag) => {
+    switch (tag) {
+      case 'event': return styles.newsTagEvent;
+      case 'policy': return styles.newsTagPolicy;
+      case 'news': return styles.newsTagNews;
+      default: return styles.newsTagNews;
+    }
+  };
+
+  const isArticleExpired = (expiryDate) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+  };
 
   
 
@@ -551,6 +1131,13 @@ const handleImageChange = async (e) => {
           📅 Event Calendar
           <span className={styles.tabBadge}>{calendarEvents.length}</span>
         </button>
+        <button
+          onClick={() => setActiveTab('news')}
+          className={`${styles.tab} ${activeTab === 'news' ? styles.tabActive : ''}`}
+        >
+          📰 Latest News
+          <span className={styles.tabBadge}>{newsArticles.length}</span>
+        </button>
       </div>
 
       {/* ANNOUNCEMENTS TAB */}
@@ -562,7 +1149,7 @@ const handleImageChange = async (e) => {
               {editingAnnouncementId ? '✏️ Edit Announcement' : '➕ Create New Announcement'}
             </h3>
 
-            <form onSubmit={editingAnnouncementId ? handleUpdateAnnouncement : handleAddAnnouncement} className={styles.form}>
+            <form onSubmit={editingAnnouncementId ? handleUpdateAnnouncement : handleAddAnnouncement} className={styles.form} noValidate>
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Announcement Title <span className={styles.required}>*</span>
@@ -573,9 +1160,36 @@ const handleImageChange = async (e) => {
                   value={announcementForm.title}
                   onChange={handleAnnouncementChange}
                   placeholder="e.g., Student Council Meeting"
-                  className={styles.input}
+                  className={`${styles.input} ${formErrors.title ? styles.inputError : ''}`}
                   required
                 />
+                {formErrors.title && <span className={styles.fieldError}>{formErrors.title}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Announcement Type <span className={styles.required}>*</span>
+                </label>
+                <select
+                  name="type"
+                  value={announcementForm.type}
+                  onChange={(e) => {
+                    handleAnnouncementChange(e);
+                    resetPublishState();
+                  }}
+                  className={styles.select}
+                >
+                  <option value="">Select Announcement Type</option>
+                  {ANNOUNCEMENT_TYPE_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {ANNOUNCEMENT_TYPES[value].label}
+                    </option>
+                  ))}
+                </select>
+                <p className={styles.helperText}>
+                  Sets the emoji and title that open the Telegram message. It does not
+                  change the announcement text you write below.
+                </p>
               </div>
 
               <div className={styles.formGroup}>
@@ -586,11 +1200,16 @@ const handleImageChange = async (e) => {
                   name="description"
                   value={announcementForm.description}
                   onChange={handleAnnouncementChange}
-                  placeholder="Detailed description of the announcement..."
-                  rows="3"
-                  className={styles.textarea}
+                  placeholder="Write the announcement exactly how you want it posted..."
+                  rows="6"
+                  className={`${styles.textarea} ${formErrors.description ? styles.inputError : ''}`}
                   required
                 />
+                {formErrors.description && <span className={styles.fieldError}>{formErrors.description}</span>}
+                <p className={styles.helperText}>
+                  This is your custom message. It is used for the website and sent to
+                  Telegram unchanged.
+                </p>
               </div>
 
               <div className={styles.formRow}>
@@ -604,9 +1223,10 @@ const handleImageChange = async (e) => {
                     value={announcementForm.venue}
                     onChange={handleAnnouncementChange}
                     placeholder="e.g., Main Auditorium"
-                    className={styles.input}
+                    className={`${styles.input} ${formErrors.venue ? styles.inputError : ''}`}
                     required
                   />
+                  {formErrors.venue && <span className={styles.fieldError}>{formErrors.venue}</span>}
                 </div>
 
                 <div className={styles.formGroup}>
@@ -638,9 +1258,10 @@ const handleImageChange = async (e) => {
                     name="eventDate"
                     value={announcementForm.eventDate}
                     onChange={handleAnnouncementChange}
-                    className={styles.input}
+                    className={`${styles.input} ${formErrors.eventDate ? styles.inputError : ''}`}
                     required
                   />
+                  {formErrors.eventDate && <span className={styles.fieldError}>{formErrors.eventDate}</span>}
                 </div>
 
                 <div className={styles.formGroup}>
@@ -652,9 +1273,10 @@ const handleImageChange = async (e) => {
                     name="eventTime"
                     value={announcementForm.eventTime}
                     onChange={handleAnnouncementChange}
-                    className={styles.input}
+                    className={`${styles.input} ${formErrors.eventTime ? styles.inputError : ''}`}
                     required
                   />
+                  {formErrors.eventTime && <span className={styles.fieldError}>{formErrors.eventTime}</span>}
                 </div>
               </div>
 
@@ -687,6 +1309,132 @@ const handleImageChange = async (e) => {
                 )}
               </div>
 
+              {/* HOMEPAGE RELEASE */}
+              <div className={styles.releaseBlock}>
+                <label className={styles.releaseToggle}>
+                  <input
+                    type="checkbox"
+                    name="homepageVisible"
+                    checked={announcementForm.homepageVisible}
+                    onChange={handleAnnouncementChange}
+                    className={styles.checkbox}
+                  />
+                  <span className={styles.releaseToggleText}>
+                    <strong>Release to Homepage</strong>
+                    <span className={styles.releaseToggleHint}>
+                      {announcementForm.homepageVisible
+                        ? '✅ This announcement will appear in the Homepage announcement section.'
+                        : '🔒 Saved privately. It will stay out of the Homepage announcement section until you tick this.'}
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              {/* TELEGRAM PREVIEW */}
+              <div className={styles.telegramBlock}>
+                <span className={styles.telegramBlockLabel}>Telegram Preview</span>
+                {selectedTypeConfig ? (
+                  <pre className={styles.telegramPreview}>{renderTelegramText(telegramParts)}</pre>
+                ) : (
+                  <p className={styles.telegramPlaceholder}>
+                    Select an Announcement Type to see the Telegram message.
+                  </p>
+                )}
+              </div>
+
+              {/* PUBLISH */}
+              <div className={styles.telegramBlock}>
+                <span className={styles.telegramBlockLabel}>Publish To</span>
+                <div className={styles.channelOptions}>
+                  {Object.values(TELEGRAM_CHANNELS).map((channel) => (
+                    <label
+                      key={channel.value}
+                      className={`${styles.channelOption} ${telegramChannel === channel.value ? styles.channelOptionActive : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="telegramChannel"
+                        value={channel.value}
+                        checked={telegramChannel === channel.value}
+                        onChange={(e) => {
+                          setTelegramChannel(e.target.value);
+                          resetPublishState();
+                        }}
+                        className={styles.checkbox}
+                      />
+                      <span>{channel.label}</span>
+                    </label>
+                  ))}
+
+                  <label
+                    className={`${styles.channelOption} ${telegramChannel === BOTH_CHANNELS ? styles.channelOptionActive : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="telegramChannel"
+                      value={BOTH_CHANNELS}
+                      checked={telegramChannel === BOTH_CHANNELS}
+                      onChange={(e) => {
+                        setTelegramChannel(e.target.value);
+                        resetPublishState();
+                      }}
+                      className={styles.checkbox}
+                    />
+                    <span>Both Channels</span>
+                  </label>
+                </div>
+
+                {/* Readiness summary */}
+                <div className={styles.publishSummary}>
+                  {publishChecks.map((check) => (
+                    <div key={check.label} className={styles.publishSummaryRow}>
+                      <span className={styles.publishSummaryLabel}>{check.label}</span>
+                      <span className={`${styles.publishSummaryValue} ${check.ok ? '' : styles.publishSummaryMissing}`}>
+                        {check.value}
+                      </span>
+                    </div>
+                  ))}
+                  {!announcementForm.description.trim() && (
+                    <div className={styles.publishSummaryRow}>
+                      <span className={styles.publishSummaryLabel}>Message:</span>
+                      <span className={`${styles.publishSummaryValue} ${styles.publishSummaryMissing}`}>
+                        Empty
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {telegramChannel && !targetChannels.every((c) => isTelegramReady(c)) && (
+                  <p className={styles.publishWarning}>
+                    ⚠️ Telegram is not fully configured for {selectedChannelConfig?.label}. Add the
+                    bot token and any missing channel IDs to your environment file.
+                  </p>
+                )}
+
+                <div className={styles.publishRow}>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={!canPublish}
+                    className={styles.publishButton}
+                  >
+                    {publishStatus === 'publishing' ? '⏳ Publishing...' : '📤 Publish'}
+                  </button>
+
+                  {publishStatus === 'published' && (
+                    <span className={styles.publishStatusSuccess}>✓ Published successfully</span>
+                  )}
+                  {publishStatus === 'partial' && publishError && (
+                    <span className={styles.publishStatusPartial}>
+                      ⚠ Text sent, but the photo failed: {publishError}
+                    </span>
+                  )}
+                  {publishStatus === 'failed' && publishError && (
+                    <span className={styles.publishStatusError}>✕ {publishError}</span>
+                  )}
+                </div>
+              </div>
+
               <div className={styles.buttonGroup}>
                 <button
                   type="submit"
@@ -705,17 +1453,11 @@ const handleImageChange = async (e) => {
                     type="button"
                     onClick={() => {
                       setEditingAnnouncementId(null);
-                      setAnnouncementForm({
-                        title: '',
-                        description: '',
-                        venue: '',
-                        eventDate: '',
-                        eventTime: '',
-                        category: 'General',
-                        imageBase64: '',
-                      });
+                      setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
                       setImagePreview(null);
                       setSelectedImage(null);
+                      setTelegramChannel('');
+                      resetPublishState();
                     }}
                     className={styles.cancelButton}
                   >
@@ -751,6 +1493,27 @@ const handleImageChange = async (e) => {
                           >
                             {announcement.category}
                           </span>
+                          {getTypeConfig(announcement.type) && (
+                            <span className={styles.typeBadge}>
+                              {getTypeConfig(announcement.type).label}
+                            </span>
+                          )}
+                          <span className={`${styles.releaseBadge} ${announcement.homepageVisible ? styles.releaseBadgeLive : ''}`}>
+                            {announcement.homepageVisible ? '🌐 On Homepage' : '🔒 Not released'}
+                          </span>
+                          {announcement.telegram?.status === 'published' && (
+                            <span className={styles.publishedBadge}>
+                              📤 {publishedChannelLabels(announcement)}
+                            </span>
+                          )}
+                          {announcement.telegram?.status === 'partial' && (
+                            <span className={styles.partialBadge}>
+                              ⚠ Photo not sent
+                            </span>
+                          )}
+                          {announcement.telegram?.status === 'failed' && (
+                            <span className={styles.failedBadge}>✕ Not published</span>
+                          )}
                           <span className={styles.announcementDate}>
                             📅 {formatDate(announcement.eventDate)} at {announcement.eventTime}
                           </span>
@@ -794,7 +1557,7 @@ const handleImageChange = async (e) => {
                             ✏️ Edit
                           </button>
                           <button
-                            onClick={() => handleDeleteAnnouncement(announcement.id, announcement.title)}
+                            onClick={() => handleDeleteAnnouncement(announcement)}
                             className={styles.deleteButton}
                           >
                             🗑️ Delete
@@ -807,6 +1570,53 @@ const handleImageChange = async (e) => {
               </div>
             )}
           </div>
+
+          {/* PUBLISH CONFIRMATION */}
+          {confirmOpen && (
+            <div className={styles.confirmOverlay} onClick={() => setConfirmOpen(false)}>
+              <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+                <h3 className={styles.confirmTitle}>Publish Announcement</h3>
+
+                <div className={styles.confirmRows}>
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmLabel}>Type:</span>
+                    <span className={styles.confirmValue}>{selectedTypeConfig?.label}</span>
+                  </div>
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmLabel}>Channel:</span>
+                    <span className={styles.confirmValue}>{selectedChannelConfig?.label}</span>
+                  </div>
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmLabel}>Attachment:</span>
+                    <span className={styles.confirmValue}>
+                      {announcementForm.imageBase64 ? '🖼 Photo' : 'None'}
+                    </span>
+                  </div>
+                </div>
+
+                <span className={styles.confirmLabel}>Message:</span>
+                <pre className={styles.confirmMessage}>{renderTelegramText(telegramParts)}</pre>
+
+                <div className={styles.confirmActions}>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmOpen(false)}
+                    className={styles.cancelButton}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmPublish}
+                    disabled={publishStatus === 'publishing'}
+                    className={styles.publishButton}
+                  >
+                    {publishStatus === 'publishing' ? '⏳ Publishing...' : 'Confirm Publish'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -993,6 +1803,248 @@ const handleImageChange = async (e) => {
           </div>
         </div>
       )}
+
+      {/* NEWS TAB */}
+      {activeTab === 'news' && (
+        <div>
+          {/* ADD/EDIT NEWS FORM */}
+          <div className={styles.formWrapper}>
+            <h3 className={styles.sectionTitle}>
+              {editingNewsId ? '✏️ Edit News Article' : '➕ Create News Article'}
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--ann-text-muted, #888)', marginBottom: '1rem' }}>
+              News articles appear in the "What's New" section on the Homepage. Add photos, a tag, and an optional expiry date.
+            </p>
+
+            <form onSubmit={editingNewsId ? handleUpdateNews : handleAddNews} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Article Title <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={newsForm.title}
+                  onChange={handleNewsChange}
+                  placeholder="e.g., SSG General Assembly 2025"
+                  className={styles.input}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Description <span className={styles.required}>*</span>
+                </label>
+                <textarea
+                  name="description"
+                  value={newsForm.description}
+                  onChange={handleNewsChange}
+                  placeholder="Write a brief summary of this news..."
+                  rows="3"
+                  className={styles.textarea}
+                  required
+                />
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Tag <span className={styles.required}>*</span>
+                  </label>
+                  <select
+                    name="tag"
+                    value={newsForm.tag}
+                    onChange={handleNewsChange}
+                    className={styles.select}
+                  >
+                    <option value="event">🎉 Event</option>
+                    <option value="policy">📋 Policy</option>
+                    <option value="news">📰 News</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Expiry Date (Optional)</label>
+                  <input
+                    type="datetime-local"
+                    name="expiryDate"
+                    value={newsForm.expiryDate}
+                    onChange={handleNewsChange}
+                    className={styles.input}
+                  />
+                  <p className={styles.helperText}>
+                    Article will be hidden from the homepage after this date.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Photos <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleNewsImageChange}
+                  className={styles.fileInput}
+                />
+                <p className={styles.helperText}>
+                  Add at least 1 photo (recommended 3+). JPG/PNG, auto-compressed.
+                </p>
+
+                {newsImagePreviews.length > 0 && (
+                  <div className={styles.multiImageGrid}>
+                    {newsImagePreviews.map((img, index) => (
+                      <div key={index} className={styles.multiImageCard}>
+                        <img src={img} alt={`Photo ${index + 1}`} className={styles.multiImageThumb} />
+                        <button
+                          type="button"
+                          onClick={() => removeNewsImage(index)}
+                          className={styles.multiImageRemove}
+                        >
+                          ✕
+                        </button>
+                        <span className={styles.multiImageIndex}>#{index + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.buttonGroup}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={styles.submitButton}
+                >
+                  {loading
+                    ? '⏳ Processing...'
+                    : editingNewsId
+                      ? '💾 Update Article'
+                      : '📰 Publish Article'}
+                </button>
+
+                {editingNewsId && (
+                  <button
+                    type="button"
+                    onClick={resetNewsForm}
+                    className={styles.cancelButton}
+                  >
+                    ❌ Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          {/* NEWS ARTICLES LIST */}
+          <div className={styles.announcementsWrapper}>
+            <h3 className={styles.sectionTitle}>All News Articles</h3>
+
+            {newsArticles.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p className={styles.emptyText}>No news articles yet. Publish your first one above!</p>
+              </div>
+            ) : (
+              <div className={styles.announcementsList}>
+                {newsArticles.map((article) => (
+                  <div key={article.id} className={styles.announcementCard}>
+                    <div
+                      className={styles.announcementHeader}
+                      onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
+                    >
+                      <div className={styles.announcementHeaderLeft}>
+                        <h4 className={styles.announcementTitle}>{article.title}</h4>
+                        <div className={styles.announcementMeta}>
+                          <span className={`${styles.newsTagBadge} ${getNewsTagStyle(article.tag)}`}>
+                            {article.tag}
+                          </span>
+                          {article.expiryDate && (
+                            isArticleExpired(article.expiryDate)
+                              ? <span className={styles.expiredBadge}>⏰ Expired</span>
+                              : <span className={styles.expiryBadge}>⏳ Expires {new Date(article.expiryDate).toLocaleDateString()}</span>
+                          )}
+                          <span className={styles.announcementDate}>
+                            📅 {formatDate(article.createdAt?.split('T')[0] || '')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={`${styles.expandIcon} ${expandedId === article.id ? styles.expandIconExpanded : ''}`}>
+                        ▼
+                      </div>
+                    </div>
+
+                    {/* Show first image as preview */}
+                    {article.images?.[0] && (
+                      <div className={styles.announcementImageWrapper}>
+                        <img
+                          src={article.images[0]}
+                          alt={article.title}
+                          className={styles.announcementImage}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+
+                    {expandedId === article.id && (
+                      <div className={styles.announcementBody}>
+                        <div className={styles.announcementDetail}>
+                          <strong className={styles.detailLabel}>Description:</strong>
+                          <p className={styles.detailValue}>{article.description}</p>
+                        </div>
+
+                        {article.images?.length > 1 && (
+                          <div className={styles.announcementDetail}>
+                            <strong className={styles.detailLabel}>All Photos ({article.images.length}):</strong>
+                            <div className={styles.multiImageGrid}>
+                              {article.images.map((img, idx) => (
+                                <div key={idx} className={styles.multiImageCard}>
+                                  <img src={img} alt={`Photo ${idx + 1}`} className={styles.multiImageThumb} />
+                                  <span className={styles.multiImageIndex}>#{idx + 1}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={styles.announcementActions}>
+                          <button
+                            onClick={() => handleEditNews(article)}
+                            className={styles.editButton}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteNews(article.id, article.title)}
+                            className={styles.deleteButton}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* GLASS DIALOG — replaces every window.alert / window.confirm */}
+      <GlassModal
+        open={!!dialog}
+        tone={dialog?.tone}
+        title={dialog?.title}
+        message={dialog?.message}
+        confirmLabel={dialog?.confirmLabel}
+        cancelLabel={dialog?.cancelLabel}
+        showCancel={dialog?.showCancel}
+        onConfirm={() => closeDialog(true)}
+        onCancel={() => closeDialog(false)}
+      />
     </div>
   );
 }

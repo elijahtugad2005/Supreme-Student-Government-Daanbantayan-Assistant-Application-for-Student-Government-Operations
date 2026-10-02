@@ -46,6 +46,8 @@ Thumbs.db
 # Firebase local emulator / debug logs
 # =========================
 firebase-debug.log
+firestore-debug.log
+ui-debug.log
 .firebaserc.local
 
 # =========================

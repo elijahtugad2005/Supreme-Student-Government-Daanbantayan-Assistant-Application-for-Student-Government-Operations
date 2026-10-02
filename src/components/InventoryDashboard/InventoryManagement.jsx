@@ -289,7 +289,7 @@ const InventoryManagement = () => {
             className={styles.primaryButton}
             onClick={() => handleOpenDialog()}
           >
-            <span className={styles.buttonIcon}>+</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add New Item
           </button>
         </div>
@@ -367,36 +367,46 @@ const InventoryManagement = () => {
                     </td>
                     <td className={styles.textCenter}>
                       <div className={styles.actionButtons}>
+                        {/* Borrow */}
                         <button
                           className={styles.actionButton}
                           onClick={() => handleOpenBorrowDialog(item)}
                           disabled={item.quantity === 0}
-                          title="Borrow Item"
+                          title={item.quantity === 0 ? 'Out of stock' : 'Borrow item'}
+                          aria-label="Borrow item"
                         >
-                          <span className={styles.actionIcon}>📥</span>
-                          Borrow
+                          <svg className={styles.actionIcon} xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                          <span>Borrow</span>
                         </button>
+
                         {canEdit && (
                           <>
+                            <div className={styles.actionDivider} />
+
+                            {/* Edit */}
                             <button
-                              className={styles.actionButton}
+                              className={`${styles.actionButton} ${styles.editButton}`}
                               onClick={() => handleOpenDialog(item)}
-                              title="Edit Item"
+                              title="Edit item"
+                              aria-label="Edit item"
                             >
-                              <span className={styles.actionIcon}>✏️</span>
-                              Edit
+                              <svg className={styles.actionIcon} xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              <span>Edit</span>
                             </button>
+
+                            {/* Delete */}
                             <button
                               className={`${styles.actionButton} ${styles.deleteButton}`}
                               onClick={() => {
-                                if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
+                                if (window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
                                   deleteInventoryItem(item.id);
                                 }
                               }}
-                              title="Delete Item"
+                              title="Delete item"
+                              aria-label="Delete item"
                             >
-                              <span className={styles.actionIcon}>🗑️</span>
-                              Delete
+                              <svg className={styles.actionIcon} xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                              <span>Delete</span>
                             </button>
                           </>
                         )}
@@ -453,9 +463,11 @@ const InventoryManagement = () => {
                     <td className={styles.textCenter}>
                       {!log.returned && (
                         <button
-                          className={styles.primaryButton}
+                          className={styles.successButton}
                           onClick={() => handleOpenReturnDialog(log)}
+                          title="Mark as returned"
                         >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                           Mark Returned
                         </button>
                       )}
@@ -609,7 +621,8 @@ const InventoryManagement = () => {
                   Cancel
                 </button>
                 <button type="submit" className={styles.primaryButton}>
-                  {selectedItem ? 'Update Item' : 'Add Item'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  {selectedItem ? 'Save Changes' : 'Add Item'}
                 </button>
               </div>
             </form>
@@ -696,6 +709,7 @@ const InventoryManagement = () => {
                   className={styles.primaryButton}
                   disabled={borrowForm.quantityBorrowed > selectedItem.quantity}
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   Confirm Borrow
                 </button>
               </div>
@@ -746,7 +760,8 @@ const InventoryManagement = () => {
                   Cancel
                 </button>
                 <button type="submit" className={styles.successButton}>
-                  ✓ Confirm Return
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Confirm Return
                 </button>
               </div>
             </form>

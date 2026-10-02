@@ -1,0 +1,295 @@
+/* components/AccessDenied/AccessDenied.module.css */
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a1a;
+  padding: 2rem;
+  color: #f0f0f0;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.content {
+  max-width: 800px;
+  width: 100%;
+  background-color: #2a2a2a;
+  border-radius: 12px;
+  padding: 3rem;
+  border: 2px solid #444;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 1.5rem;
+}
+
+.icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  color: #f44336;
+}
+
+.title {
+  font-size: 2.5rem;
+  color: #ffffff;
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #ccc;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Section Titles */
+.sectionTitle {
+  font-size: 1.25rem;
+  color: #fff;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+  border-bottom: 2px solid #444;
+  padding-bottom: 0.5rem;
+}
+
+/* User Information */
+.userInfo {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #333;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.infoLabel {
+  font-size: 0.9rem;
+  color: #a0a0a0;
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: 1rem;
+  color: #fff;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.roleBadge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background-color: #4CAF50;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Requirements */
+.requirements {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #333;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.requirementItem {
+  margin-bottom: 1rem;
+}
+
+.requirementItem:last-child {
+  margin-bottom: 0;
+}
+
+.requirementLabel {
+  display: block;
+  font-size: 0.9rem;
+  color: #a0a0a0;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.requirementValue {
+  display: block;
+}
+
+.requiredRoleBadge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background-color: #2196F3;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.permissionsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.permissionBadge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background-color: #FF9800;
+  color: #000;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* Actions */
+.actions {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #333;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.backButton,
+.homeButton,
+.contactButton {
+  flex: 1;
+  min-width: 140px;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.backButton {
+  background-color: #2196F3;
+  color: white;
+}
+
+.backButton:hover {
+  background-color: #1976D2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.homeButton {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.homeButton:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.contactButton {
+  background-color: #9C27B0;
+  color: white;
+}
+
+.contactButton:hover {
+  background-color: #7b1fa2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+}
+
+/* Help Text */
+.helpText {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #444;
+  text-align: center;
+}
+
+.helpParagraph {
+  color: #ccc;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
+}
+
+.timestamp {
+  font-size: 0.85rem;
+  color: #777;
+  margin-top: 1rem;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .content {
+    padding: 2rem;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .icon {
+    font-size: 3rem;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+  }
+  
+  .backButton,
+  .homeButton,
+  .contactButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 1.5rem;
+  }
+  
+  .title {
+    font-size: 1.75rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+}

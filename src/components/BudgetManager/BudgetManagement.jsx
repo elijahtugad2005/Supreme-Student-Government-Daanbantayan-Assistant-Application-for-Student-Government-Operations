@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import BudgetForm from '../BudgetForm/BudgetForm.jsx';
+import financeAuditService from '../../services/financeAuditService.js';
+import { useAuth } from '../AuthContext/AuthContext.jsx';
 import styles from './BudgetManager.module.css';
 import { 
   HiSearch, 
@@ -19,6 +21,7 @@ import {
 
 const BudgetManager = () => {
   const { budgets, deleteBudget, loading } = useFinance();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortBy, setSortBy] = useState('date'); // 'date', 'amount', 'name'
@@ -90,6 +93,16 @@ const BudgetManager = () => {
     
     setIsDeleting(true);
     try {
+      // Log audit before deletion
+      await financeAuditService.logBudgetDeletion(currentUser.uid, {
+        id: deleteModal.budget.id,
+        title: deleteModal.budget.eventName,
+        amount: deleteModal.budget.allocated,
+        category: deleteModal.budget.category,
+        committee: deleteModal.budget.committee,
+        resolution: deleteModal.budget.resolution
+      });
+
       await deleteBudget(deleteModal.budget.id);
       setDeleteModal({ isOpen: false, budget: null });
     } catch (error) {

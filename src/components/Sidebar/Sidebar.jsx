@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext/AuthContext.jsx'; 
 import { useTheme } from '../../contexts/ThemeContext';
+import usePermissions from '../../hooks/usePermissions.js';
 import styles from './Sidebar.module.css';
 // Professional icon imports from react-icons
 import { 
@@ -27,6 +28,7 @@ import { RiGovernmentFill } from 'react-icons/ri';
    function Sidebar({ isOpen, toggleSidebar }) {
     const { currentUser, userRole, logout, loading, userName } = useAuth(); 
     const { theme, changeTheme } = useTheme();
+    const permissions = usePermissions();
     const navigate = useNavigate();
     const [showThemeModal, setShowThemeModal] = useState(false);
 
@@ -38,16 +40,31 @@ import { RiGovernmentFill } from 'react-icons/ri';
     const name = currentUser ? (userName || 'user ') : 'name';
     
     const navItems = [
-      { to: "/", text: "Home", icon: HiHome, roles: ['public', 'admin', 'secretary', 'representative'] },
-      { to: "/order", text: "Place Order", icon: HiShoppingCart, roles: ['public', 'admin', 'secretary', 'representative'] },
-      { to: "/track-order", text: "Track Order", icon: HiSearch, roles: ['public', 'admin', 'secretary', 'representative'] },
-      { to: "/admin", text: "Admin Dashboard", icon: HiChartBar, roles: ['admin'] },
-      { to: "/commerce", text: "Commerce Hub", icon: HiShoppingBag, roles: ['admin', 'representative'] },
-      { to: "/finance", text: "Finance", icon: HiCurrencyDollar, roles: ['admin' , 'secretary'] },
-      { to: "/reports", text: "Reports", icon: HiDocumentText, roles: ['admin'] },
-      { to: "/inventory", text: "Inventory", icon: HiCube, roles: ['admin' , 'representative'] },
-      { to: "/announcement", text: "Announcements", icon: HiSpeakerphone, roles: ['admin', 'secretary', 'representative'] },
-      { to: "/documents", text: "Documents", icon: HiFolder, roles: ['admin', 'secretary', 'representative'] }
+      { to: "/", text: "Home", icon: HiHome, roles: ['public', 'admin', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest'] },
+      
+      // Order Management — Place Order + Track Order are open to guests too
+      { to: "/order", text: "Place Order", icon: HiShoppingCart, roles: ['public', 'admin', 'secretary', 'representative', 'member'], permissions: ['canManageOrders'], publicAccess: true },
+      { to: "/track-order", text: "Track Order", icon: HiSearch, roles: ['public', 'admin', 'secretary', 'representative', 'member'], permissions: ['canManageOrders'], publicAccess: true },
+      { to: "/commerce", text: "Commerce Hub", icon: HiShoppingBag, roles: ['admin', 'secretary', 'representative', 'member'], permissions: ['canManageOrders'] },
+      
+      // Admin Section
+      { to: "/admin", text: "Admin Dashboard", icon: HiChartBar, roles: ['admin'], permissions: ['canManageUsers'] },
+      { to: "/admin/users", text: "User Management", icon: HiCog, roles: ['admin'], permissions: ['canManageUsers'] },
+      { to: "/admin/audit", text: "Audit Trail", icon: HiDocumentText, roles: ['admin'], permissions: ['canManageUsers'] },
+      
+      // Finance & Analytics — secretary can view, finance_secretary can edit
+      { to: "/finance", text: "Finance", icon: HiCurrencyDollar, roles: ['admin', 'secretary', 'finance_secretary'], permissions: ['canViewFinance'] },
+      // Class Roster — Mayors submit without signing up, so 'public' is included
+      { to: "/reports", text: "Class Roster", icon: HiDocumentText, roles: ['public', 'admin', 'secretary', 'governor', 'finance_secretary', 'senator', 'representative', 'member', 'guest'], permissions: ['canSubmitRoster'], publicAccess: true },
+      // Death Aid — requires an account so the audit trail can name the Mayor
+      { to: "/death-aid", text: "Death Aid", icon: HiDocumentText, roles: ['admin', 'secretary', 'finance_secretary', 'governor', 'senator', 'representative', 'member', 'guest'], permissions: ['canSubmitRoster'] },
+      
+      // Inventory & Products — senator can access
+      { to: "/inventory", text: "Inventory", icon: HiCube, roles: ['admin', 'secretary', 'representative', 'senator'], permissions: ['canManageProducts'] },
+      
+      // Announcements & Documents — senator can access Documents
+      { to: "/announcement", text: "Announcements", icon: HiSpeakerphone, roles: ['admin', 'secretary', 'representative'], permissions: ['canSendNotifications'] },
+      { to: "/documents", text: "Documents", icon: HiFolder, roles: ['admin', 'secretary', 'representative', 'senator'], permissions: ['canExportData'] }
     ];
 
     const closeSidebar = () => {
@@ -145,28 +162,44 @@ import { RiGovernmentFill } from 'react-icons/ri';
             </div>
             
             <ul className={styles.navList}>
-              {navItems
-                .filter(item => item.roles.includes(role))
-                .map((item) => {
-                  const IconComponent = item.icon;
-                  return (
-                    <li key={item.to}>
-                      <NavLink
-                        to={item.to}
-                        className={({ isActive }) => 
-                          isActive ? `${styles.navLink} ${styles.active}` : styles.navLink
-                        }
-                        onClick={() => {
-                          /* Auto-close sidebar on any nav click */
-                          if (isOpen) toggleSidebar();
-                        }}
-                        title={!isOpen ? item.text : ''}
-                      >
-                        <IconComponent className={styles.navIcon} />
-                        {isOpen && <span className={styles.linkText}>{item.text}</span>}
-                      </NavLink>
-                    </li>
-                  );
+              {permissions.filterNavigation(navItems).map((item) => {
+                const IconComponent = item.icon;
+                
+                // Check if user has required permissions
+                // Items marked publicAccess skip the permission gate for guests,
+                // who hold no permissions by definition.
+                const hasRequiredPermissions = (!currentUser && item.publicAccess)
+                  ? true
+                  : (item.permissions
+                      ? permissions.checkAnyPermission(item.permissions)
+                      : true);
+                
+                // Check if user has required role
+                const hasRequiredRole = item.roles.includes(role);
+                
+                // Only show item if user has both role and permissions
+                if (!hasRequiredRole || !hasRequiredPermissions) {
+                  return null;
+                }
+                
+                return (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      className={({ isActive }) => 
+                        isActive ? `${styles.navLink} ${styles.active}` : styles.navLink
+                      }
+                      onClick={() => {
+                        /* Auto-close sidebar on any nav click */
+                        if (isOpen) toggleSidebar();
+                      }}
+                      title={!isOpen ? item.text : ''}
+                    >
+                      <IconComponent className={styles.navIcon} />
+                      {isOpen && <span className={styles.linkText}>{item.text}</span>}
+                    </NavLink>
+                  </li>
+                );
               })}
             </ul>
             

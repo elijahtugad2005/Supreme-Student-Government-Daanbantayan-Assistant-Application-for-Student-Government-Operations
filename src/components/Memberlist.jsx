@@ -1,13 +1,86 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, memo, useCallback } from "react";
 import styles from "./memberlist.module.css";
 import { db } from "../firebase/firebaseConfig";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import OrgBanner from "./UserManagement/OrgBanner";
+import { SSG_DEFAULT_NAME, FALLBACK_TERM } from "./orgUtils";
 
-export default function Memberlist({ members = [], setMembers, searchQuery = "" }) {
+// ─── TOP-LEVEL: defined OUTSIDE Memberlist so React.memo works correctly ───
+// If this is defined inside the component body, React sees a new component
+// type every render, unmounting + remounting every card (memo has no effect).
+export const MemberCard = memo(({ member, variant = "default", crown = false, onEdit, onDelete }) => (
+  <div className={`${styles.memberCard} ${styles[`card_${variant}`] || ''}`}>
+    <div className={styles.avatarWrapper}>
+      {member.image64 ? (
+        <img
+          src={member.image64}
+          alt={member.name}
+          className={styles.memberAvatar}
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <div className={styles.avatarPlaceholder}>
+          {member.name ? member.name.charAt(0).toUpperCase() : "M"}
+        </div>
+      )}
+      {crown && (
+        <span className={styles.crownBadge} title="Head">👑</span>
+      )}
+    </div>
+
+    <div className={styles.cardInfo}>
+      <div className={styles.positionBadge}>
+        {member.position || "Member"}
+      </div>
+      <h4 className={styles.memberName}>{member.name}</h4>
+      <div className={styles.memberIdRow}>
+        <span>ID: {member.id || "N/A"}</span>
+      </div>
+    </div>
+
+    <div className={styles.cardActions}>
+      <button
+        type="button"
+        className={styles.editBtn}
+        onClick={() => onEdit(member)}
+        title="Edit Member"
+      >
+        ✏️ Edit
+      </button>
+      <button
+        type="button"
+        className={styles.deleteBtn}
+        onClick={() => onDelete(member.docId)}
+        title="Delete Member"
+      >
+        🗑️ Delete
+      </button>
+    </div>
+  </div>
+));
+
+MemberCard.displayName = 'MemberCard';
+
+export default function Memberlist({
+  members = [], setMembers, searchQuery = "", onOpenAddModal,
+  org, term = FALLBACK_TERM, terms = [], isArchived = false, onEditOrg,
+}) {
   const [editingMember, setEditingMember] = useState(null);
   const [editedMember, setEditedMember] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
+
+  // Memoized — stable object reference, no allocation on every render
+  const memberLimits = useMemo(() => ({
+    advisory: 3,
+    executive: 4,
+    representatives: 12,
+    cabinet: 8,
+    creatives: 10,
+    senators: 6,
+    legislativeOfficers: 3
+  }), []);
 
   const toggleSection = (sectionKey) => {
     setCollapsedSections((prev) => ({
@@ -17,20 +90,21 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
   };
 
   // Open Modal for Editing
-  const handleEditClick = (member) => {
+  const handleEditClick = useCallback((member) => {
     setEditingMember(member.docId);
     setEditedMember({ ...member });
     setShowModal(true);
-  };
+  }, []);
 
   // Handle edit changes
-  const handleEditChange = (e) => {
+  const handleEditChange = useCallback((e) => {
     const { name, value } = e.target;
-    setEditedMember({ ...editedMember, [name]: value });
-  };
+    setEditedMember((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
-  // Save to Firestore and local state
-  const handleSave = async () => {
+  // Save to Firestore — uses functional updater so `members` is NOT a dep,
+  // preventing this callback from being recreated on every Firestore push.
+  const handleSave = useCallback(async () => {
     if (!editingMember) return;
 
     try {
@@ -45,226 +119,205 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
         facebookLink: editedMember.facebookLink || "",
         instagramLink: editedMember.instagramLink || "",
         twitterLink: editedMember.twitterLink || "",
+        term: editedMember.term || term,
         status: editedMember.status || "Active",
       };
 
       await updateDoc(memberRef, updateData);
 
-      const updatedMembers = members.map((m) =>
+      // Functional updater: reads latest state from React, no stale closure
+      setMembers((prev) => prev.map((m) =>
         m.docId === editingMember ? { ...m, ...updateData } : m
-      );
-      setMembers(updatedMembers);
-      closeModal();
+      ));
+      setShowModal(false);
+      setEditingMember(null);
+      setEditedMember({});
     } catch (error) {
       console.error("Error updating member:", error);
       alert("Error updating member. Please check the console.");
     }
-  };
+  }, [editingMember, editedMember, setMembers]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setShowModal(false);
     setEditingMember(null);
     setEditedMember({});
-  };
+  }, []);
 
-  const handleDelete = async (docIdToDelete) => {
+  const handleDelete = useCallback(async (docIdToDelete) => {
     if (!docIdToDelete) return;
 
     if (window.confirm("Are you sure you want to delete this member?")) {
       try {
         await deleteDoc(doc(db, "members", docIdToDelete));
-        setMembers(members.filter((m) => m.docId !== docIdToDelete));
+        // Functional updater: no dependency on `members` array
+        setMembers((prev) => prev.filter((m) => m.docId !== docIdToDelete));
       } catch (error) {
         console.error("Error deleting member:", error);
         alert("Error deleting member. Please check the console.");
       }
     }
-  };
+  }, [setMembers]);
 
-  // Filter members based on search query
-  const filteredMembers = members.filter((m) => {
-    if (!searchQuery.trim()) return true;
+  // Filter members based on search query - Memoized for performance
+  const filteredMembers = useMemo(() => {
+    if (!searchQuery.trim()) return members;
     const q = searchQuery.toLowerCase();
-    return (
+    return members.filter((m) => (
       (m.name && m.name.toLowerCase().includes(q)) ||
       (m.id && m.id.toLowerCase().includes(q)) ||
       (m.position && m.position.toLowerCase().includes(q))
+    ));
+  }, [members, searchQuery]);
+
+  // Categorize members - Memoized to prevent recalculation
+  const categorizedMembers = useMemo(() => {
+    const executivePresident = filteredMembers.filter(
+      (m) => m.position && m.position.toLowerCase() === "president"
     );
-  });
 
-  // Categorize members into Branches matching the reference image
-  const executivePresident = filteredMembers.filter(
-    (m) => m.position && m.position.toLowerCase() === "president"
-  );
-
-  const executiveVicePresidents = filteredMembers.filter(
-    (m) => m.position && m.position.toLowerCase().includes("vice president")
-  );
-
-  // Governors sit beside VP under the President
-  const executiveGovernors = filteredMembers.filter(
-    (m) =>
-      m.position &&
-      m.position.toLowerCase().includes("governor")
-  );
-
-  const legislativeSenators = filteredMembers.filter(
-    (m) => m.position && m.position.toLowerCase().includes("senator")
-  );
-
-  const legislativeOfficers = filteredMembers.filter(
-    (m) =>
-      m.position &&
-      (m.position.toLowerCase() === "treasurer" ||
-        m.position.toLowerCase() === "auditor")
-  );
-
-  const representatives = filteredMembers.filter(
-    (m) =>
-      m.position &&
-      m.position.toLowerCase().includes("representative")
-  );
-
-  /* CREATIVE FILTER SUB*/
-
-  // ── Department of Creatives – hierarchy splits ──
-  const creativesMultimediaDirector = filteredMembers.filter(
-    (m) => m.position && m.position.toLowerCase().includes("multimedia director")
-  );
-
-  const creativesEventDirector = filteredMembers.filter(
-    (m) => m.position && m.position.toLowerCase().includes("event director")
-  );
-
-  // Everyone who reports to the Multimedia Director
-  const creativesUnderMultimedia = filteredMembers.filter(
-    (m) =>
-      m.position &&
-      (m.position.toLowerCase().includes("multimedia staff") ||
-        m.position.toLowerCase().includes("graphic") ||
-        m.position.toLowerCase().includes("social media"))
-  );
-
-  // Everyone who reports to the Event Director
-  const creativesActivityOfficers = filteredMembers.filter(
-    (m) => m.position && m.position.toLowerCase().includes("activity officer")
-  );
-
-
-
-
-  const cabinet = filteredMembers.filter(
-    (m) =>
-      m.position &&
-      (m.position.toLowerCase().includes("administrative") ||
-        m.position.toLowerCase().includes("finance") ||
-        m.position.toLowerCase().includes("planning") ||
-        m.position.toLowerCase().includes("public relations") ||
-        m.position.toLowerCase().includes("information") ||
-        m.position.toLowerCase().includes("communications") ||
-        m.position.toLowerCase() === "secretary" ||
-        m.position.toLowerCase().includes("executive secretary") ||
-        m.position.toLowerCase().includes("press secretary") ||
-        m.position.toLowerCase().includes("secretary on"))
-
-  );
-
-  const creatives = filteredMembers.filter(
-    (m) =>
-      m.position &&
-      (m.position.toLowerCase().includes("graphic") ||
-        m.position.toLowerCase().includes("multimedia") ||
-        m.position.toLowerCase().includes("content") ||
-        m.position.toLowerCase().includes("creative") ||
-        m.position.toLowerCase().includes("design") ||
-        m.position.toLowerCase().includes("event director") ||
-        m.position.toLowerCase().includes("activity officer"))
-  );
-
-  const advisory = filteredMembers.filter(
-    (m) =>
-      m.position &&
-      (m.position.toLowerCase().includes("ssg adviser") ||
-        m.position.toLowerCase().includes("assistant ssg adviser"))
-  );
-
-  // Any remaining members that don't fit into the above
-  const categorizedIds = new Set([
-    ...advisory,
-    ...executivePresident,
-    ...executiveVicePresidents,
-    ...executiveGovernors,
-    ...legislativeSenators,
-    ...legislativeOfficers,
-    ...representatives,
-    ...cabinet,
-    ...creatives,
-    ...creativesMultimediaDirector,
-    ...creativesEventDirector,
-    ...creativesUnderMultimedia,
-    ...creativesActivityOfficers,
-  ].map((m) => m.docId));
-
-  const generalMembers = filteredMembers.filter((m) => !categorizedIds.has(m.docId));
-
-  // Helper renderer for a single member card
-  const renderCard = (member, variant = "default", crown = false) => {
-    return (
-      <div
-        key={member.docId}
-        className={`${styles.memberCard} ${styles[`card_${variant}`] || ''}`}
-      >
-        <div className={styles.avatarWrapper}>
-          {member.image64 ? (
-            <img src={member.image64} alt={member.name} className={styles.memberAvatar} />
-          ) : (
-            <div className={styles.avatarPlaceholder}>
-              {member.name ? member.name.charAt(0).toUpperCase() : "M"}
-            </div>
-          )}
-          {crown && (
-            <span className={styles.crownBadge} title="Head">👑</span>
-          )}
-        </div>
-
-        <div className={styles.cardInfo}>
-          <div className={styles.positionBadge}>
-            {member.position || "Member"}
-          </div>
-          <h4 className={styles.memberName}>{member.name}</h4>
-          <div className={styles.memberIdRow}>
-            <span>ID: {member.id || "N/A"}</span>
-          </div>
-          <div className={styles.statusPill}>
-            <span className={styles.statusDot}></span>
-            {member.status || "Active"}
-          </div>
-        </div>
-
-        <div className={styles.cardActions}>
-          <button
-            type="button"
-            className={styles.editBtn}
-            onClick={() => handleEditClick(member)}
-            title="Edit Member"
-          >
-            ✏️ Edit
-          </button>
-          <button
-            type="button"
-            className={styles.deleteBtn}
-            onClick={() => handleDelete(member.docId)}
-            title="Delete Member"
-          >
-            🗑️ Delete
-          </button>
-        </div>
-      </div>
+    const executiveVicePresidents = filteredMembers.filter(
+      (m) => m.position && m.position.toLowerCase().includes("vice president")
     );
-  };
+
+    const executiveGovernors = filteredMembers.filter(
+      (m) =>
+        m.position &&
+        m.position.toLowerCase().includes("governor")
+    );
+
+    const legislativeSenators = filteredMembers.filter(
+      (m) => m.position && m.position.toLowerCase().includes("senator")
+    );
+
+    const legislativeOfficers = filteredMembers.filter(
+      (m) =>
+        m.position &&
+        (m.position.toLowerCase() === "treasurer" ||
+          m.position.toLowerCase() === "auditor")
+    );
+
+    const representatives = filteredMembers.filter(
+      (m) =>
+        m.position &&
+        m.position.toLowerCase().includes("representative")
+    );
+
+    const creativesMultimediaDirector = filteredMembers.filter(
+      (m) => m.position && m.position.toLowerCase().includes("multimedia director")
+    );
+
+    const creativesEventDirector = filteredMembers.filter(
+      (m) => m.position && m.position.toLowerCase().includes("event director")
+    );
+
+    const creativesUnderMultimedia = filteredMembers.filter(
+      (m) =>
+        m.position &&
+        (m.position.toLowerCase().includes("multimedia staff") ||
+          m.position.toLowerCase().includes("graphic") ||
+          m.position.toLowerCase().includes("social media"))
+    );
+
+    const creativesActivityOfficers = filteredMembers.filter(
+      (m) => m.position && m.position.toLowerCase().includes("activity officer")
+    );
+
+    const cabinet = filteredMembers.filter(
+      (m) =>
+        m.position &&
+        (m.position.toLowerCase().includes("administrative") ||
+          m.position.toLowerCase().includes("finance") ||
+          m.position.toLowerCase().includes("planning") ||
+          m.position.toLowerCase().includes("public relations") ||
+          m.position.toLowerCase().includes("information") ||
+          m.position.toLowerCase().includes("communications") ||
+          m.position.toLowerCase() === "secretary" ||
+          m.position.toLowerCase().includes("executive secretary") ||
+          m.position.toLowerCase().includes("press secretary") ||
+          m.position.toLowerCase().includes("secretary on"))
+    );
+
+    const creatives = filteredMembers.filter(
+      (m) =>
+        m.position &&
+        (m.position.toLowerCase().includes("graphic") ||
+          m.position.toLowerCase().includes("multimedia") ||
+          m.position.toLowerCase().includes("content") ||
+          m.position.toLowerCase().includes("creative") ||
+          m.position.toLowerCase().includes("design") ||
+          m.position.toLowerCase().includes("event director") ||
+          m.position.toLowerCase().includes("activity officer"))
+    );
+
+    const advisory = filteredMembers.filter(
+      (m) =>
+        m.position &&
+        (m.position.toLowerCase().includes("ssg adviser") ||
+          m.position.toLowerCase().includes("assistant ssg adviser"))
+    );
+
+    const categorizedIds = new Set([
+      ...advisory,
+      ...executivePresident,
+      ...executiveVicePresidents,
+      ...executiveGovernors,
+      ...legislativeSenators,
+      ...legislativeOfficers,
+      ...representatives,
+      ...cabinet,
+      ...creatives,
+      ...creativesMultimediaDirector,
+      ...creativesEventDirector,
+      ...creativesUnderMultimedia,
+      ...creativesActivityOfficers,
+    ].map((m) => m.docId));
+
+    const generalMembers = filteredMembers.filter((m) => !categorizedIds.has(m.docId));
+
+    return {
+      executivePresident,
+      executiveVicePresidents,
+      executiveGovernors,
+      legislativeSenators,
+      legislativeOfficers,
+      representatives,
+      creativesMultimediaDirector,
+      creativesEventDirector,
+      creativesUnderMultimedia,
+      creativesActivityOfficers,
+      cabinet,
+      creatives,
+      advisory,
+      generalMembers
+    };
+  }, [filteredMembers]);
+
+  // renderCard — thin helper that passes stable callbacks as props so
+  // MemberCard (defined at module scope above) can memo-compare them correctly.
+  const renderCard = useCallback((member, variant = "default", crown = false) => (
+    <MemberCard
+      key={member.docId}
+      member={member}
+      variant={variant}
+      crown={crown}
+      onEdit={handleEditClick}
+      onDelete={handleDelete}
+    />
+  ), [handleEditClick, handleDelete]);
 
   return (
     <div className={styles.container}>
+      {/* ── SUPREME STUDENT GOVERNMENT TITLE ── */}
+      <OrgBanner
+        name={org?.name || SSG_DEFAULT_NAME}
+        logo={org?.logo64}
+        term={term}
+        isArchived={isArchived}
+        description={org?.description}
+        onEdit={onEditOrg}
+      />
+
       {/* ── SECTION 1: ADVISORY ── */}
       <div className={`${styles.branchSection} ${styles.advisoryBranch}`}>
         <div className={styles.sectionHeader}>
@@ -281,14 +334,25 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
             </div>
           </div>
 
-          <span className={styles.branchTag}>
-            Advisory
-          </span>
+          <div className={styles.headerActions}>
+            <span className={styles.memberLimitIndicator}>
+              {categorizedMembers.advisory.length}/{memberLimits.advisory}
+            </span>
+            <button 
+              className={`${styles.addSectionBtn} ${categorizedMembers.advisory.length >= memberLimits.advisory ? styles.addBtnDisabled : ''}`}
+              onClick={() => onOpenAddModal && onOpenAddModal('advisory')}
+              disabled={categorizedMembers.advisory.length >= memberLimits.advisory}
+              title={categorizedMembers.advisory.length >= memberLimits.advisory ? 'Member limit reached' : 'Add Advisory Member'}
+            >
+              <span className={styles.addBtnIcon}>+</span>
+              Add Advisor
+            </button>
+          </div>
         </div>
 
         <div className={styles.cardsGridThree}>
-          {advisory.length > 0 ? (
-            advisory.map((m) => renderCard(m, "advisory"))
+          {categorizedMembers.advisory.length > 0 ? (
+            categorizedMembers.advisory.map((m) => renderCard(m, "advisory"))
           ) : (
             <p className={styles.emptyBranchNotice}>
               No Advisory members added yet.
@@ -309,14 +373,28 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
               <p className={styles.branchSubtitle}>Leads. Plans. Executes.</p>
             </div>
           </div>
-          <span className={styles.branchTag}>Executive Branch</span>
+          
+          <div className={styles.headerActions}>
+            <span className={styles.memberLimitIndicator}>
+              {[...categorizedMembers.executivePresident, ...categorizedMembers.executiveVicePresidents, ...categorizedMembers.executiveGovernors].length}/{memberLimits.executive}
+            </span>
+            <button 
+              className={`${styles.addSectionBtn} ${[...categorizedMembers.executivePresident, ...categorizedMembers.executiveVicePresidents, ...categorizedMembers.executiveGovernors].length >= memberLimits.executive ? styles.addBtnDisabled : ''}`}
+              onClick={() => onOpenAddModal && onOpenAddModal('executive')}
+              disabled={[...categorizedMembers.executivePresident, ...categorizedMembers.executiveVicePresidents, ...categorizedMembers.executiveGovernors].length >= memberLimits.executive}
+              title={[...categorizedMembers.executivePresident, ...categorizedMembers.executiveVicePresidents, ...categorizedMembers.executiveGovernors].length >= memberLimits.executive ? 'Member limit reached' : 'Add Executive Member'}
+            >
+              <span className={styles.addBtnIcon}>+</span>
+              Add Executive
+            </button>
+          </div>
         </div>
 
         <div className={styles.executiveTree}>
           {/* President level */}
           <div className={styles.treeTopLevel}>
-            {executivePresident.length > 0 ? (
-              executivePresident.map((m) => renderCard(m, "executiveLeader", true))
+            {categorizedMembers.executivePresident.length > 0 ? (
+              categorizedMembers.executivePresident.map((m) => renderCard(m, "executiveLeader", true))
             ) : (
               <div className={styles.emptySlotNotice}>No President assigned yet</div>
             )}
@@ -330,10 +408,10 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
 
           {/* Vice Presidents & Governors level — always shown side by side */}
           <div className={styles.treeSecondLevel}>
-            {(executiveVicePresidents.length > 0 || executiveGovernors.length > 0) ? (
+            {(categorizedMembers.executiveVicePresidents.length > 0 || categorizedMembers.executiveGovernors.length > 0) ? (
               [
-                ...executiveVicePresidents.map((m) => renderCard(m, "executiveSub")),
-                ...executiveGovernors.map((m) => renderCard(m, "executiveSub")),
+                ...categorizedMembers.executiveVicePresidents.map((m) => renderCard(m, "executiveSub")),
+                ...categorizedMembers.executiveGovernors.map((m) => renderCard(m, "executiveSub")),
               ]
             ) : (
               <div className={styles.emptySlotNotice}>No Vice President or Governor assigned yet</div>
@@ -359,9 +437,9 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
 
 
         {/* Key Officers row (Secretary, Treasurer, Auditor) */}
-        {legislativeOfficers.length > 0 && (
+        {categorizedMembers.legislativeOfficers.length > 0 && (
           <div className={styles.cardsRowThree}>
-            {legislativeOfficers.map((m) => renderCard(m, "legislativeOfficer"))}
+            {categorizedMembers.legislativeOfficers.map((m) => renderCard(m, "legislativeOfficer"))}
           </div>
         )}
 
@@ -376,9 +454,21 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
               <h3>HOUSE OF REPRESENTATIVES</h3>
             </div>
             <div className={styles.subHeaderRight}>
-              <span className={styles.countBadge}>
-                {representatives.length} Members
+              <span className={styles.memberLimitIndicator}>
+                {categorizedMembers.representatives.length}/{memberLimits.representatives}
               </span>
+              <button 
+                className={`${styles.addSectionBtn} ${styles.addSubSectionBtn} ${categorizedMembers.representatives.length >= memberLimits.representatives ? styles.addBtnDisabled : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAddModal && onOpenAddModal('representatives');
+                }}
+                disabled={categorizedMembers.representatives.length >= memberLimits.representatives}
+                title={categorizedMembers.representatives.length >= memberLimits.representatives ? 'Member limit reached' : 'Add Representative'}
+              >
+                <span className={styles.addBtnIcon}>+</span>
+                Add Rep
+              </button>
               <span className={styles.collapseToggle}>
                 {collapsedSections['representatives'] ? '⌄' : '⌃'}
               </span>
@@ -387,8 +477,8 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
 
           {!collapsedSections['representatives'] && (
             <div className={styles.cardsGridFour}>
-              {representatives.length > 0 ? (
-                representatives.map((m) => renderCard(m, "representative"))
+              {categorizedMembers.representatives.length > 0 ? (
+                categorizedMembers.representatives.map((m) => renderCard(m, "representative"))
               ) : (
                 <p className={styles.emptyBranchNotice}>No Representatives added yet.</p>
               )}
@@ -406,9 +496,21 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
               <h3>THE SENATE</h3>
             </div>
             <div className={styles.subHeaderRight}>
-              <span className={`${styles.countBadge} ${styles.countBadgeSenate}`}>
-                {legislativeSenators.length} Senators
+              <span className={styles.memberLimitIndicator}>
+                {categorizedMembers.legislativeSenators.length}/{memberLimits.senators}
               </span>
+              <button 
+                className={`${styles.addSectionBtn} ${styles.addSubSectionBtn} ${categorizedMembers.legislativeSenators.length >= memberLimits.senators ? styles.addBtnDisabled : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAddModal && onOpenAddModal('senators');
+                }}
+                disabled={categorizedMembers.legislativeSenators.length >= memberLimits.senators}
+                title={categorizedMembers.legislativeSenators.length >= memberLimits.senators ? 'Member limit reached' : 'Add Senator'}
+              >
+                <span className={styles.addBtnIcon}>+</span>
+                Add Senator
+              </button>
               <span className={styles.collapseToggle}>
                 {collapsedSections['senators'] ? '⌄' : '⌃'}
               </span>
@@ -417,8 +519,8 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
 
           {!collapsedSections['senators'] && (
             <div className={styles.cardsGridFour}>
-              {legislativeSenators.length > 0 ? (
-                legislativeSenators.map((m) => renderCard(m, "senator"))
+              {categorizedMembers.legislativeSenators.length > 0 ? (
+                categorizedMembers.legislativeSenators.map((m) => renderCard(m, "senator"))
               ) : (
                 <p className={styles.emptyBranchNotice}>No Senators added yet.</p>
               )}
@@ -441,12 +543,26 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
               <p className={styles.branchSubtitle}>Manages operations. Builds programs. Creates impact.</p>
             </div>
           </div>
-          <span className={styles.branchTag}>Executive Cabinet</span>
+          
+          <div className={styles.headerActions}>
+            <span className={styles.memberLimitIndicator}>
+              {categorizedMembers.cabinet.length}/{memberLimits.cabinet}
+            </span>
+            <button 
+              className={`${styles.addSectionBtn} ${categorizedMembers.cabinet.length >= memberLimits.cabinet ? styles.addBtnDisabled : ''}`}
+              onClick={() => onOpenAddModal && onOpenAddModal('cabinet')}
+              disabled={categorizedMembers.cabinet.length >= memberLimits.cabinet}
+              title={categorizedMembers.cabinet.length >= memberLimits.cabinet ? 'Member limit reached' : 'Add Cabinet Member'}
+            >
+              <span className={styles.addBtnIcon}>+</span>
+              Add Cabinet
+            </button>
+          </div>
         </div>
 
         <div className={styles.cardsGridFive}>
-          {cabinet.length > 0 ? (
-            cabinet.map((m) => renderCard(m, "cabinet"))
+          {categorizedMembers.cabinet.length > 0 ? (
+            categorizedMembers.cabinet.map((m) => renderCard(m, "cabinet"))
           ) : (
             <p className={styles.emptyBranchNotice}>No Executive Cabinet members added yet.</p>
           )}
@@ -465,7 +581,21 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
               <p className={styles.branchSubtitle}>Designs. Creates. Inspires.</p>
             </div>
           </div>
-          <span className={styles.branchTag}>Creative Department</span>
+          
+          <div className={styles.headerActions}>
+            <span className={styles.memberLimitIndicator}>
+              {categorizedMembers.creatives.length}/{memberLimits.creatives}
+            </span>
+            <button 
+              className={`${styles.addSectionBtn} ${categorizedMembers.creatives.length >= memberLimits.creatives ? styles.addBtnDisabled : ''}`}
+              onClick={() => onOpenAddModal && onOpenAddModal('creatives')}
+              disabled={categorizedMembers.creatives.length >= memberLimits.creatives}
+              title={categorizedMembers.creatives.length >= memberLimits.creatives ? 'Member limit reached' : 'Add Creative Member'}
+            >
+              <span className={styles.addBtnIcon}>+</span>
+              Add Creative
+            </button>
+          </div>
         </div>
 
 
@@ -475,8 +605,8 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
           {/* ── LEFT: Multimedia Director ── */}
           <div className={styles.creativesSubtree}>
             <div className={styles.treeTopLevel}>
-              {creativesMultimediaDirector.length > 0 ? (
-                creativesMultimediaDirector.map((m) =>
+              {categorizedMembers.creativesMultimediaDirector.length > 0 ? (
+                categorizedMembers.creativesMultimediaDirector.map((m) =>
                   renderCard(m, "creativesDirector", true)
                 )
               ) : (
@@ -490,8 +620,8 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
             </div>
 
             <div className={styles.treeSecondLevel}>
-              {creativesUnderMultimedia.length > 0 ? (
-                creativesUnderMultimedia.map((m) => renderCard(m, "creatives"))
+              {categorizedMembers.creativesUnderMultimedia.length > 0 ? (
+                categorizedMembers.creativesUnderMultimedia.map((m) => renderCard(m, "creatives"))
               ) : (
                 <div className={styles.emptySlotNotice}>No staff assigned yet</div>
               )}
@@ -501,8 +631,8 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
           {/* ── RIGHT: Event Director ── */}
           <div className={styles.creativesSubtree}>
             <div className={styles.treeTopLevel}>
-              {creativesEventDirector.length > 0 ? (
-                creativesEventDirector.map((m) =>
+              {categorizedMembers.creativesEventDirector.length > 0 ? (
+                categorizedMembers.creativesEventDirector.map((m) =>
                   renderCard(m, "creativesDirector", true)
                 )
               ) : (
@@ -516,8 +646,8 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
             </div>
 
             <div className={styles.treeSecondLevel}>
-              {creativesActivityOfficers.length > 0 ? (
-                creativesActivityOfficers.map((m) => renderCard(m, "creatives"))
+              {categorizedMembers.creativesActivityOfficers.length > 0 ? (
+                categorizedMembers.creativesActivityOfficers.map((m) => renderCard(m, "creatives"))
               ) : (
                 <div className={styles.emptySlotNotice}>No Activity Officers yet</div>
               )}
@@ -527,7 +657,7 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
       </div>
 
       {/* ── SECTION 5: GENERAL / OTHER MEMBERS (If any) ── */}
-      {generalMembers.length > 0 && (
+      {categorizedMembers.generalMembers.length > 0 && (
         <div className={`${styles.branchSection} ${styles.generalBranch}`}>
           <div className={styles.sectionHeader}>
             <div className={styles.headerTitleGroup}>
@@ -539,11 +669,11 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
                 <p className={styles.branchSubtitle}>Active organization team members and officers.</p>
               </div>
             </div>
-            <span className={styles.branchTag}>{generalMembers.length} Members</span>
+            <span className={styles.branchTag}>{categorizedMembers.generalMembers.length} Members</span>
           </div>
 
           <div className={styles.cardsGridFour}>
-            {generalMembers.map((m) => renderCard(m, "general"))}
+            {categorizedMembers.generalMembers.map((m) => renderCard(m, "general"))}
           </div>
         </div>
       )}
@@ -603,7 +733,7 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
                     {/* ── Executive Branch ── */}
                     <optgroup label="Advisory">
                       <option value="SSG Adviser">SSG Adviser</option>
-                      <option value="SSG Assistant Adviser">SSG Assistant Adviser</option>
+                      <option value="Assistant SSG Adviser">Assistant SSG Adviser</option>
                     </optgroup>
                     <optgroup label="Executive Branch">
                       <option value="President">President</option>
@@ -647,6 +777,30 @@ export default function Memberlist({ members = [], setMembers, searchQuery = "" 
                       <option value="Multimedia Staff">Multimedia</option>
                     </optgroup>
                   </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Term:</label>
+                  <select
+                    name="term"
+                    value={editedMember.term || term}
+                    onChange={handleEditChange}
+                  >
+                    {Array.from(new Set([...terms, editedMember.term, term].filter(Boolean))).map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Facebook Profile:</label>
+                  <input
+                    type="url"
+                    name="facebookLink"
+                    value={editedMember.facebookLink || ""}
+                    onChange={handleEditChange}
+                    placeholder="https://facebook.com/username"
+                  />
                 </div>
 
                 <div className={styles.formGroup}>

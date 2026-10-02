@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../../firebase/firebaseConfig.js';
 import { collection, onSnapshot, deleteDoc, doc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
-import { Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, DollarSign, Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet } from 'lucide-react';
+import { Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, DollarSign, Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet, ChevronDown, ChevronUp, MoreVertical, SlidersHorizontal } from 'lucide-react';
 import Order from '../Order/order.jsx';
 import SheetSyncPanel from './SheetSyncPanel.jsx';
 import styles from './OrderManagement.module.css';
@@ -50,6 +50,23 @@ function OrderManagement() {
 
   // ========================================
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false);
+
+  // Mobile-specific state
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const mobileToolsRef = useRef(null);
+
+  // Close mobile tools on outside click
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (mobileToolsRef.current && !mobileToolsRef.current.contains(e.target)) {
+        setMobileToolsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
 
   // FETCH ORDERS FROM FIREBASE
   // ========================================
@@ -491,6 +508,373 @@ function OrderManagement() {
   const paginatedOrders = filteredOrders.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   // ========================================
+  // MOBILE CARD TOGGLE
+  // ========================================
+  const toggleCardExpand = (orderId) => {
+    setExpandedOrderId(prev => prev === orderId ? null : orderId);
+  };
+
+  const toggleMobileSelect = (docId) => {
+    setSelectedOrders(prev =>
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
+    );
+  };
+
+  // ========================================
+  // GET STATUS CHIP COLOR (mobile dark theme)
+  // ========================================
+  const getMobileStatusStyle = (status) => {
+    switch (status) {
+      case 'Pending':    return { bg: 'rgba(234,179,8,0.15)',   color: '#fbbf24', border: 'rgba(234,179,8,0.3)' };
+      case 'Paid':       return { bg: 'rgba(16,185,129,0.15)',  color: '#34d399', border: 'rgba(16,185,129,0.3)' };
+      case 'Ongoing':    return { bg: 'rgba(59,130,246,0.15)',  color: '#60a5fa', border: 'rgba(59,130,246,0.3)' };
+      case 'Completed':  return { bg: 'rgba(16,185,129,0.15)',  color: '#34d399', border: 'rgba(16,185,129,0.3)' };
+      case 'Claimed':    return { bg: 'rgba(16,185,129,0.2)',   color: '#6ee7b7', border: 'rgba(16,185,129,0.4)' };
+      case 'Unclaimed':  return { bg: 'rgba(234,179,8,0.15)',   color: '#fbbf24', border: 'rgba(234,179,8,0.3)' };
+      case 'Cancelled':  return { bg: 'rgba(239,68,68,0.15)',   color: '#f87171', border: 'rgba(239,68,68,0.3)' };
+      default:           return { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: 'rgba(148,163,184,0.3)' };
+    }
+  };
+
+  // ========================================
+  // RENDER MOBILE ORDERS VIEW
+  // ========================================
+  const renderMobileOrdersView = () => {
+    const STATUS_FILTERS = ['All', 'Pending', 'Paid', 'Ongoing', 'Completed', 'Claimed', 'Unclaimed', 'Cancelled'];
+
+    return (
+      <div className={styles.mobileOrdersView}>
+
+        {/* Mobile Header Bar */}
+        <div className={styles.mobileHeader}>
+          <div className={styles.mobileHeaderLeft}>
+            <h2 className={styles.mobileHeaderTitle}>Orders</h2>
+            <span className={styles.mobileOrderCount}>{filteredOrders.length}</span>
+          </div>
+          <div className={styles.mobileHeaderActions}>
+            <button
+              className={`${styles.mobileIconBtn} ${selectMode ? styles.mobileIconBtnActive : ''}`}
+              onClick={() => { setSelectMode(s => !s); setSelectedOrders([]); }}
+              title="Select mode"
+            >
+              <Check size={18} />
+            </button>
+            <div className={styles.mobileToolsWrapper} ref={mobileToolsRef}>
+              <button
+                className={`${styles.mobileIconBtn} ${mobileToolsOpen ? styles.mobileIconBtnActive : ''}`}
+                onClick={() => setMobileToolsOpen(o => !o)}
+                title="More tools"
+              >
+                <MoreVertical size={18} />
+              </button>
+              {mobileToolsOpen && (
+                <div className={styles.mobileToolsMenu}>
+                  <button className={styles.mobileToolsItem} onClick={() => { setActiveSection('settings'); setMobileToolsOpen(false); }}>
+                    <FileSpreadsheet size={16} />
+                    Sync Sheet / Excel
+                  </button>
+                  <button
+                    className={`${styles.mobileToolsItem} ${styles.mobileToolsItemDanger}`}
+                    onClick={() => { openBulkDeleteModal(); setMobileToolsOpen(false); }}
+                    disabled={selectedOrders.length === 0}
+                  >
+                    <Trash2 size={16} />
+                    Delete Selected ({selectedOrders.length})
+                  </button>
+                  <button
+                    className={`${styles.mobileToolsItem} ${styles.mobileToolsItemDanger}`}
+                    onClick={() => { handleDeleteAllOrders(); setMobileToolsOpen(false); }}
+                    disabled={orders.length === 0}
+                  >
+                    <Trash2 size={16} />
+                    Delete All Orders
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Stats Row */}
+        <div className={styles.mobileStatsRow}>
+          <div className={styles.mobileStatChip}>
+            <span className={styles.mobileStatValue}>{stats.total}</span>
+            <span className={styles.mobileStatLabel}>Total</span>
+          </div>
+          <div className={`${styles.mobileStatChip} ${styles.mobileStatChipGreen}`}>
+            <span className={styles.mobileStatValue}>{stats.claimed}</span>
+            <span className={styles.mobileStatLabel}>Claimed</span>
+          </div>
+          <div className={`${styles.mobileStatChip} ${styles.mobileStatChipAmber}`}>
+            <span className={styles.mobileStatValue}>{stats.unclaimed}</span>
+            <span className={styles.mobileStatLabel}>Unclaimed</span>
+          </div>
+          <div className={`${styles.mobileStatChip} ${styles.mobileStatChipBlue}`}>
+            <span className={styles.mobileStatValue}>₱{stats.totalRevenue.toLocaleString('en-PH', { maximumFractionDigits: 0 })}</span>
+            <span className={styles.mobileStatLabel}>Revenue</span>
+          </div>
+        </div>
+
+        {/* Mobile Search */}
+        <div className={styles.mobileSearchBar}>
+          <Search size={16} className={styles.mobileSearchIcon} />
+          <input
+            type="text"
+            className={styles.mobileSearchInput}
+            placeholder="Search orders, names…"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+          />
+          {searchQuery && (
+            <button className={styles.mobileSearchClear} onClick={() => setSearchQuery('')}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Horizontal Filter Chips */}
+        <div className={styles.mobileFilterChips}>
+          {STATUS_FILTERS.map(f => (
+            <button
+              key={f}
+              className={`${styles.mobileFilterChip} ${statusFilter === f ? styles.mobileFilterChipActive : ''}`}
+              onClick={() => { setStatusFilter(f); setPage(1); }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Payment Filter Pills */}
+        <div className={styles.mobilePaymentChips}>
+          {['All', 'Cash', 'Online'].map(m => (
+            <button
+              key={m}
+              className={`${styles.mobilePaymentChip} ${paymentFilter === m ? styles.mobilePaymentChipActive : ''}`}
+              onClick={() => { setPaymentFilter(m); setPage(1); }}
+            >
+              {m === 'All' ? '💳 All Methods' : m === 'Cash' ? '💵 Cash' : '📲 Online'}
+            </button>
+          ))}
+        </div>
+
+        {/* Select Mode Banner */}
+        {selectMode && selectedOrders.length > 0 && (
+          <div className={styles.mobileSelectBanner}>
+            <span>{selectedOrders.length} selected</span>
+            <button className={styles.mobileSelectBannerBtn} onClick={openBulkDeleteModal}>
+              <Trash2 size={14} /> Delete
+            </button>
+            <button className={styles.mobileSelectBannerClear} onClick={() => setSelectedOrders([])}>
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Order Cards */}
+        {loading ? (
+          <div className={styles.mobileEmptyState}>
+            <div className={styles.mobileSpinner} />
+            <p>Loading orders…</p>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className={styles.mobileEmptyState}>
+            <AlertCircle size={40} />
+            <p>{orders.length === 0 ? 'No orders yet.' : 'No orders match your filters.'}</p>
+          </div>
+        ) : (
+          <div className={styles.mobileCardList}>
+            {paginatedOrders.map((order) => {
+              const isExpanded = expandedOrderId === order.docId;
+              const isSelected = selectedOrders.includes(order.docId);
+              const statusStyle = getMobileStatusStyle(order.orderStatus);
+              const claimStyle = getMobileStatusStyle(order.claimed ? 'Claimed' : 'Unclaimed');
+
+              return (
+                <div
+                  key={order.docId}
+                  className={`${styles.mobileOrderCard} ${isExpanded ? styles.mobileOrderCardExpanded : ''} ${isSelected ? styles.mobileOrderCardSelected : ''}`}
+                >
+                  {/* Card Header — always visible */}
+                  <div
+                    className={styles.mobileCardHeader}
+                    onClick={() => selectMode ? toggleMobileSelect(order.docId) : toggleCardExpand(order.docId)}
+                  >
+                    {/* Left: Select checkbox (select mode) or expand indicator */}
+                    <div className={styles.mobileCardHeaderLeft}>
+                      {selectMode ? (
+                        <div className={`${styles.mobileCheckbox} ${isSelected ? styles.mobileCheckboxChecked : ''}`}>
+                          {isSelected && <Check size={12} />}
+                        </div>
+                      ) : (
+                        <div className={styles.mobileCardExpandIcon}>
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Center: Order info */}
+                    <div className={styles.mobileCardInfo}>
+                      <div className={styles.mobileCardTopRow}>
+                        <span className={styles.mobileOrderId}>{order.orderId}</span>
+                        <span
+                          className={styles.mobileStatusPill}
+                          style={{ background: statusStyle.bg, color: statusStyle.color, borderColor: statusStyle.border }}
+                        >
+                          {order.orderStatus}
+                        </span>
+                      </div>
+                      <div className={styles.mobileCardBottomRow}>
+                        <span className={styles.mobileCustomerName}>{order.customerInfo?.fullName}</span>
+                        <span className={styles.mobileOrderPrice}>₱{order.productInfo?.totalPrice?.toFixed(2)}</span>
+                      </div>
+                      <div className={styles.mobileCardMeta}>
+                        <span className={styles.mobileProductName}>{order.productInfo?.productName}</span>
+                        <span
+                          className={styles.mobileClaimPill}
+                          style={{ background: claimStyle.bg, color: claimStyle.color }}
+                        >
+                          {order.claimed ? '✓ Claimed' : '○ Unclaimed'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Details — bottom sheet panel */}
+                  {isExpanded && (
+                    <div className={styles.mobileCardDetails}>
+                      <div className={styles.mobileDetailsDivider} />
+
+                      {/* Customer Section */}
+                      <div className={styles.mobileDetailsSection}>
+                        <span className={styles.mobileDetailsSectionTitle}>👤 Customer</span>
+                        <div className={styles.mobileDetailsGrid}>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Full Name</span>
+                            <span className={styles.mobileDetailValue}>{order.customerInfo?.fullName || '—'}</span>
+                          </div>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Email</span>
+                            <span className={styles.mobileDetailValue}>{order.customerInfo?.email || '—'}</span>
+                          </div>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Contact</span>
+                            <span className={styles.mobileDetailValue}>{order.customerInfo?.contactNumber || '—'}</span>
+                          </div>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Section</span>
+                            <span className={styles.mobileDetailValue}>{order.customerInfo?.section || '—'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Product Section */}
+                      <div className={styles.mobileDetailsSection}>
+                        <span className={styles.mobileDetailsSectionTitle}>📦 Product</span>
+                        <div className={styles.mobileDetailsGrid}>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Name</span>
+                            <span className={styles.mobileDetailValue}>{order.productInfo?.productName || '—'}</span>
+                          </div>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Quantity</span>
+                            <span className={styles.mobileDetailValue}>{order.productInfo?.quantity}</span>
+                          </div>
+                          {order.productInfo?.size && order.productInfo.size !== 'N/A' && (
+                            <div className={styles.mobileDetailItem}>
+                              <span className={styles.mobileDetailLabel}>Size</span>
+                              <span className={styles.mobileDetailValue}>{order.productInfo.size}</span>
+                            </div>
+                          )}
+                          {order.productInfo?.color && order.productInfo.color !== 'N/A' && (
+                            <div className={styles.mobileDetailItem}>
+                              <span className={styles.mobileDetailLabel}>Color</span>
+                              <span className={styles.mobileDetailValue}>{order.productInfo.color}</span>
+                            </div>
+                          )}
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Total Price</span>
+                            <span className={`${styles.mobileDetailValue} ${styles.mobileDetailPrice}`}>₱{order.productInfo?.totalPrice?.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Payment Section */}
+                      <div className={styles.mobileDetailsSection}>
+                        <span className={styles.mobileDetailsSectionTitle}>💳 Payment</span>
+                        <div className={styles.mobileDetailsGrid}>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Method</span>
+                            <span className={styles.mobileDetailValue}>{order.paymentInfo?.paymentMethod || '—'}</span>
+                          </div>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Reference</span>
+                            <span className={styles.mobileDetailValue}>{order.paymentInfo?.referenceNumber || '—'}</span>
+                          </div>
+                          <div className={styles.mobileDetailItem}>
+                            <span className={styles.mobileDetailLabel}>Date Ordered</span>
+                            <span className={styles.mobileDetailValue}>{formatDate(order.dateOrdered)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className={styles.mobileCardActions}>
+                        <button
+                          className={`${styles.mobileActionBtn} ${order.claimed ? styles.mobileActionBtnAmber : styles.mobileActionBtnGreen}`}
+                          onClick={() => toggleClaimStatus(order)}
+                        >
+                          {order.claimed ? <X size={15} /> : <CheckCircle size={15} />}
+                          {order.claimed ? 'Unclaim' : 'Mark Claimed'}
+                        </button>
+                        <button
+                          className={`${styles.mobileActionBtn} ${styles.mobileActionBtnBlue}`}
+                          onClick={() => handleEditClick(order)}
+                        >
+                          <Edit2 size={15} />
+                          Edit Order
+                        </button>
+                        <button
+                          className={`${styles.mobileActionBtn} ${styles.mobileActionBtnRed}`}
+                          onClick={() => handleDeleteOrder(order.docId, order.orderId, order)}
+                        >
+                          <Trash2 size={15} />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Mobile Pagination */}
+        {filteredOrders.length > PER_PAGE && (
+          <div className={styles.mobilePagination}>
+            <button
+              className={styles.mobilePaginationBtn}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              ← Prev
+            </button>
+            <span className={styles.mobilePaginationInfo}>{page} / {totalPages}</span>
+            <button
+              className={styles.mobilePaginationBtn}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next →
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ========================================
   // RENDER DASHBOARD VIEW
   // ========================================
   const renderDashboardView = () => (
@@ -643,84 +1027,96 @@ function OrderManagement() {
             </p>
           </div>
         ) : (
-          <table className={styles.orderTable}>
-            <thead>
-              <tr>
-                <th><input type="checkbox" onChange={toggleSelectAll} checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrders.includes(o.docId))} /></th>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th>Date</th>
-
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedOrders.map((order) => (
-                <tr key={order.docId} className={styles.tableRow}>
-                  <td><input type="checkbox" checked={selectedOrders.includes(order.docId)} onChange={() => toggleSelectOrder(order.docId)} /></td>
-                  <td className={styles.orderIdCell}>{order.orderId}</td>
-                  <td>
-                    <div className={styles.customerCell}>
-                      <span className={styles.customerName}>{order.customerInfo?.fullName}</span>
-                      <span className={styles.customerEmail}>{order.customerInfo?.email}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.productCell}>
-                      <span className={styles.productName}>{order.productInfo?.productName}</span>
-                      {(order.productInfo?.size !== 'N/A' || order.productInfo?.color !== 'N/A') && (
-                        <span className={styles.productVariant}>
-                          {order.productInfo?.size !== 'N/A' && `Size: ${order.productInfo?.size}`}
-                          {order.productInfo?.size !== 'N/A' && order.productInfo?.color !== 'N/A' && ' • '}
-                          {order.productInfo?.color !== 'N/A' && `Color: ${order.productInfo?.color}`}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className={styles.quantityCell}>
-                    <span>{order.productInfo?.quantity}</span>
-                  </td>
-                  <td className={styles.priceCell}>₱{order.productInfo?.totalPrice?.toFixed(2)}</td>
-                  <td>
-                      <span 
-                        className={styles.statusBadge}
-                        style={{
-                          backgroundColor: getStatusColor(order.orderStatus),
-                          color: getStatusTextColor(order.orderStatus)
-                        }}
-                      >
-                        {order.orderStatus}
-                      </span>
-                      <span 
-                        className={order.claimed ? styles.claimBadgeClaimed : styles.claimBadgeUnclaimed}
-                      >
-                        {order.claimed ? "Claimed" : "Unclaimed"}
-                      </span>
-                  </td>
-                  <td>
-                    <span className={styles.paymentBadge}>
-                      {order.paymentInfo?.paymentMethod}
-                    </span>
-                  </td>
-                  <td className={styles.dateCell}>{formatDate(order.dateOrdered)}</td>
-                  <td>
-                    <button
-                      className={styles.claimBtn}
-                      onClick={() => toggleClaimStatus(order)}
-                      title={order.claimed ? "Mark as Unclaimed" : "Mark as Claimed"}
-                    >
-                      {order.claimed ? <X size={14} /> : <CheckCircle size={14} />}
-                      {order.claimed ? "Unclaim" : "Claim"}
-                    </button>
-                  </td>
+          <div className={styles.tableWrapper}>
+            <table className={styles.orderTable}>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" onChange={toggleSelectAll} checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrders.includes(o.docId))} /></th>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Payment</th>
+                  <th>Date</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginatedOrders.map((order) => (
+                  <tr key={order.docId} className={styles.tableRow}>
+                    <td data-label="Select"><input type="checkbox" checked={selectedOrders.includes(order.docId)} onChange={() => toggleSelectOrder(order.docId)} /></td>
+                    <td data-label="Order ID" className={styles.orderIdCell}>{order.orderId}</td>
+                    <td data-label="Customer">
+                      <div className={styles.customerCell}>
+                        <span className={styles.customerName}>{order.customerInfo?.fullName}</span>
+                        <span className={styles.customerEmail}>{order.customerInfo?.email}</span>
+                      </div>
+                    </td>
+                    <td data-label="Product">
+                      <div className={styles.productCell}>
+                        <span className={styles.productName}>{order.productInfo?.productName}</span>
+                        {(order.productInfo?.size !== 'N/A' || order.productInfo?.color !== 'N/A') && (
+                          <span className={styles.productVariant}>
+                            {order.productInfo?.size !== 'N/A' && `Size: ${order.productInfo?.size}`}
+                            {order.productInfo?.size !== 'N/A' && order.productInfo?.color !== 'N/A' && ' • '}
+                            {order.productInfo?.color !== 'N/A' && `Color: ${order.productInfo?.color}`}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td data-label="Quantity" className={styles.quantityCell}>
+                      <span>{order.productInfo?.quantity}</span>
+                    </td>
+                    <td data-label="Total" className={styles.priceCell}>₱{order.productInfo?.totalPrice?.toFixed(2)}</td>
+                    <td data-label="Status">
+                        <span 
+                          className={styles.statusBadge}
+                          style={{
+                            backgroundColor: getStatusColor(order.orderStatus),
+                            color: getStatusTextColor(order.orderStatus)
+                          }}
+                        >
+                          {order.orderStatus}
+                        </span>
+                        <span 
+                          className={order.claimed ? styles.claimBadgeClaimed : styles.claimBadgeUnclaimed}
+                        >
+                          {order.claimed ? "Claimed" : "Unclaimed"}
+                        </span>
+                    </td>
+                    <td data-label="Payment">
+                      <span className={styles.paymentBadge}>
+                        {order.paymentInfo?.paymentMethod}
+                      </span>
+                    </td>
+                    <td data-label="Date" className={styles.dateCell}>{formatDate(order.dateOrdered)}</td>
+                    <td data-label="Actions" className={styles.actionsCell}>
+                      <div className={styles.tableActionsGroup}>
+                        <button
+                          className={styles.claimBtn}
+                          onClick={() => toggleClaimStatus(order)}
+                          title={order.claimed ? "Mark as Unclaimed" : "Mark as Claimed"}
+                        >
+                          {order.claimed ? <X size={14} /> : <CheckCircle size={14} />}
+                          {order.claimed ? "Unclaim" : "Claim"}
+                        </button>
+                        <button
+                          className={styles.tableEditBtn}
+                          onClick={() => handleEditClick(order)}
+                          title="Edit Order"
+                        >
+                          <Edit2 size={14} />
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -811,9 +1207,15 @@ function OrderManagement() {
       <div className={styles.viewContent}>
         {/* Render views based on active section */}
         {activeSection === 'dashboard' && renderDashboardView()}
-        {activeSection === 'orders' && renderOrdersTableView()}
+        {/* Desktop orders table (hidden on mobile) */}
+        {activeSection === 'orders' && (
+          <>
+            <div className={styles.desktopOnly}>{renderOrdersTableView()}</div>
+            <div className={styles.mobileOnly}>{renderMobileOrdersView()}</div>
+          </>
+        )}
         {activeSection === 'settings' && (
-          <div className={styles.settingsView}>
+          <div className={styles.settingsView} style={{minHeight:'unset'}}>
             <SheetSyncPanel onSyncCompleted={() => {
               // Switch to orders view after brief delay so user can immediately see synced orders
               setTimeout(() => setActiveSection('orders'), 1200);
@@ -825,10 +1227,11 @@ function OrderManagement() {
       {/* EDIT MODAL */}
       {isModalOpen && (
         <div className={styles.modalOverlay} onClick={handleModalClose}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
             <Order 
               editingOrder={selectedOrder}
               onSuccess={handleFormSuccess}
+              onCancel={handleModalClose}
             />
           </div>
         </div>

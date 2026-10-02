@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "classRosters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sectionKey", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "isCurrent", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

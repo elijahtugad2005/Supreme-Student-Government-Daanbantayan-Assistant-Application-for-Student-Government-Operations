@@ -1,9 +1,8 @@
 
-import React, { useState, useContext, useEffect } from 'react';
-import { db } from '../../firebase/firebaseConfig';
-import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
 import {useFinance} from '../FinanceContext/FinanceProvider.jsx';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import financeAuditService from '../../services/financeAuditService.js';
 import styles from './BudgetForm.module.css';
 import { 
   HiCurrencyDollar,
@@ -22,7 +21,7 @@ import {
 } from 'react-icons/hi';
 
 const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
-  const { userName, userRole } = useAuth();
+  const { userName, userRole, currentUser } = useAuth();
   const { addBudget, updateBudget } = useFinance();
   
   // Form state
@@ -146,7 +145,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
     try {
       new URL(url);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -202,11 +201,38 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
 
       let result;
       if (editingBudget) {
+        // Log budget update audit
+        await financeAuditService.logBudgetUpdate(currentUser.uid, editingBudget.id, {
+          id: editingBudget.id,
+          title: editingBudget.eventName,
+          amount: editingBudget.allocated,
+          category: editingBudget.category,
+          committee: editingBudget.committee,
+          resolution: editingBudget.resolution
+        }, {
+          id: editingBudget.id,
+          title: budgetData.eventName,
+          amount: budgetData.allocated,
+          category: budgetData.category,
+          committee: budgetData.committee,
+          resolution: budgetData.resolution
+        });
+
         // Update existing budget
         result = await updateBudget(editingBudget.id, budgetData);
       } else {
         // Create new budget
         result = await addBudget(budgetData);
+
+        // Log budget creation audit
+        await financeAuditService.logBudgetCreation(currentUser.uid, {
+          id: result,
+          title: budgetData.eventName,
+          amount: budgetData.allocated,
+          category: budgetData.category,
+          committee: budgetData.committee,
+          description: budgetData.description
+        });
       }
 
       // Reset form if not editing

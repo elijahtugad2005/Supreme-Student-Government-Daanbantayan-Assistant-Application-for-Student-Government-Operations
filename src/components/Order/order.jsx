@@ -440,12 +440,24 @@ useEffect(() => {
   // RENDER: ORDER FORM
   // ========================================
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${editingOrder ? styles.modalMode : ''}`}>
       {/* Top Bar - matches ProductManagement style */}
       <div className={styles.topBar}>
-        <p className={styles.eyebrow}>Order Management</p>
-        <h1 className={styles.title}>{editingOrder ? 'Edit Order' : 'Place Your Order'}</h1>
-        <p className={styles.subtitle}>Fill in the details below to complete your order</p>
+        <div className={styles.topBarLeft}>
+          <p className={styles.eyebrow}>Order Management</p>
+          <h1 className={styles.title}>{editingOrder ? 'Edit Order' : 'Place Your Order'}</h1>
+          <p className={styles.subtitle}>Fill in the details below to complete your order</p>
+        </div>
+        {editingOrder && (
+          <button 
+            type="button" 
+            className={styles.modalCloseBtn}
+            onClick={props.onCancel || handleNewOrder}
+            title="Close"
+          >
+            ×
+          </button>
+        )}
       </div>
 
       <div className={styles.formWrapper}>
@@ -763,8 +775,8 @@ useEffect(() => {
             </button>
 
             <button 
-            type="button"
-              onClick={editingOrder ? handleNewOrder : () => navigate('/')}
+              type="button"
+              onClick={editingOrder ? (props.onCancel || handleNewOrder) : () => navigate('/')}
               className={styles.cancelButton}
             >
               {editingOrder ? 'Cancel' : 'Cancel & Go Back'}
