@@ -19,6 +19,7 @@ import {
   PERMISSION_CATALOG,
   ROLE_PERMISSIONS
 } from '../../utils/permissions.js';
+import { syncClaimsForUser } from '../../services/roleClaims.js';
 import styles from './UserManagement.module.css';
 
 function UserManagement() {
@@ -190,6 +191,19 @@ function UserManagement() {
           editForm.role,
           currentUser.uid
         );
+
+        // Storage rules read the role from the ID token, so the claim has to
+        // follow the new role. Without this the person keeps their previous
+        // Storage access until their token refreshes on its own.
+        try {
+          await syncClaimsForUser(selectedUser.id);
+        } catch (claimError) {
+          // The role change itself succeeded; warn rather than roll it back.
+          setError(
+            `Role saved, but the access token was not updated (${claimError.message}). ` +
+              'Storage permissions will refresh on their next sign-in.'
+          );
+        }
       }
 
       await userManagementService.updateUserPermissionOverrides(

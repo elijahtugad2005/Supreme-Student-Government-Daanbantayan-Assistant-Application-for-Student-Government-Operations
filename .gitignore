@@ -48,7 +48,15 @@ Thumbs.db
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+storage-debug.log
+auth-debug.log
 .firebaserc.local
+
+# Local-only secret overrides for the Firebase emulator. functions/.env is
+# already ignored, but .secret.local is a separate file holding real API keys
+# during development, so it must never be committed.
+.secret.local
+functions/.secret.local
 
 # =========================
 # Local images (student pics)

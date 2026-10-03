@@ -19,6 +19,7 @@ import {
   recordRemittance,
   recordSectionCollection,
 } from '../services/deathAidService';
+import { S, T, banner as bannerStyle, statusPill } from '../utils/themeStyles';
 
 const peso = (n) =>
   `₱${Number(n || 0).toLocaleString('en-PH', {
@@ -79,15 +80,7 @@ function DeathAid() {
       </div>
 
       {banner && (
-        <div
-          style={{
-            ...styles.banner,
-            backgroundColor:
-              banner.type === 'success' ? '#2e7d32' : banner.type === 'error' ? '#b3261e' : '#0b5394',
-          }}
-        >
-          {banner.message}
-        </div>
+        <div style={styles.banner(banner.type)}>{banner.message}</div>
       )}
 
       <div style={styles.tabBar}>
@@ -272,10 +265,10 @@ function RecordView({ actor, say }) {
             <>
               <div style={styles.summaryGrid}>
                 <SummaryTile label="Enrolled" value={String(totals.enrolledCount)} />
-                <SummaryTile label="Beneficiaries" value={String(totals.beneficiaryCount)} tone="#a5d6a7" />
+                <SummaryTile label="Beneficiaries" value={String(totals.beneficiaryCount)} tone={T.success} />
                 <SummaryTile label="Collected" value={peso(totals.collectedAmount)} />
                 <SummaryTile label="Expected" value={peso(totals.expectedCollection)} />
-                <SummaryTile label="Owing" value={`${totals.debtCount} · ${peso(totals.debtAmount)}`} tone="#ffcc80" />
+                <SummaryTile label="Owing" value={`${totals.debtCount} · ${peso(totals.debtAmount)}`} tone={T.warning} />
               </div>
 
               {totals.wasClamped && (
@@ -484,7 +477,7 @@ function PendingView({ actor, say }) {
                 </div>
                 <div style={styles.moneyBox}>
                   <span style={styles.summaryLabel}>Difference</span>
-                  <span style={{ ...styles.moneyValue, color: diff === 0 ? '#a5d6a7' : '#ffcc80' }}>
+                  <span style={{ ...styles.moneyValue, color: diff === 0 ? T.success : T.warning }}>
                     {diff === null ? '—' : `${diff > 0 ? '+' : ''}${peso(diff)}`}
                   </span>
                 </div>
@@ -651,7 +644,7 @@ function OutstandingView({ say }) {
 
       <div style={styles.summaryGrid}>
         <SummaryTile label="Sections" value={String(rows.length)} />
-        <SummaryTile label="Students Owing" value={String(totalStudents)} tone="#ffcc80" />
+        <SummaryTile label="Students Owing" value={String(totalStudents)} tone={T.warning} />
         <SummaryTile label="Outstanding" value={peso(totalAmount)} />
       </div>
 
@@ -937,13 +930,13 @@ function CollectionTable({ rows, loading, empty, showDebts = false }) {
 
 function StatusBadge({ status }) {
   const label = DEATH_AID_STATUS_LABELS[status] || String(status).replace(/_/g, ' ');
-  const bg =
+  const tone =
     status === DEATH_AID_COLLECTION_STATUS.CONFIRMED
-      ? '#4caf50'
+      ? 'success'
       : status === DEATH_AID_COLLECTION_STATUS.DISCREPANCY
-        ? '#ff7043'
-        : '#f0a500';
-  return <span style={{ ...styles.badge, backgroundColor: bg }}>{label}</span>;
+        ? 'warning'
+        : 'info';
+  return <span style={statusPill(tone)}>{label}</span>;
 }
 
 function Loading({ label }) {
@@ -955,64 +948,24 @@ function Loading({ label }) {
 }
 
 // ════════════════════════════════════════════════════════════
+// Styles
+//
+// Built from the shared theme tokens instead of fixed hex values, so this
+// screen re-colours itself the moment the theme changes. Only tokens defined by
+// all three themes are referenced — see utils/themeStyles.js.
+// ════════════════════════════════════════════════════════════
 const styles = {
-  container: {
-    width: '100%',
-    padding: '1.5rem',
-    backgroundColor: '#4c1515',
-    borderRadius: '1rem',
-    fontFamily: 'Arial, sans-serif',
-    boxSizing: 'border-box',
-  },
+  container: S.page,
   header: { marginBottom: '1.5rem' },
-  mainTitle: { fontSize: '2rem', color: '#fe5c03', marginBottom: '0.5rem', fontWeight: 'bold' },
-  headerSubtitle: { fontSize: '1rem', color: '#c0c0c0' },
-  banner: {
-    color: '#fff',
-    padding: '1rem',
-    borderRadius: '0.5rem',
-    marginBottom: '1.5rem',
-    fontWeight: 'bold',
-  },
-  notice: {
-    backgroundColor: '#5a1a1a',
-    padding: '1.2rem',
-    borderRadius: '0.8rem',
-    color: '#f1f1f1',
-    lineHeight: '1.7',
-  },
-  tabBar: {
-    display: 'flex',
-    gap: '0.5rem',
-    marginBottom: '1.5rem',
-    borderBottom: '2px solid rgba(254, 92, 3, 0.3)',
-    flexWrap: 'wrap',
-  },
-  tabButton: {
-    padding: '0.7rem 1.1rem',
-    backgroundColor: 'transparent',
-    color: '#c0c0c0',
-    border: 'none',
-    borderBottom: '3px solid transparent',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  tabButtonActive: { color: '#fe5c03', borderBottomColor: '#fe5c03' },
-  formWrapper: {
-    backgroundColor: '#5a1a1a',
-    borderRadius: '1rem',
-    padding: '2rem',
-    marginBottom: '2rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
-  },
-  sectionTitle: {
-    fontSize: '1.4rem',
-    color: '#fe5c03',
-    marginBottom: '1.2rem',
-    fontWeight: 'bold',
-    borderBottom: '2px solid rgba(254, 92, 3, 0.3)',
-    paddingBottom: '0.5rem',
-  },
+  mainTitle: S.heading,
+  headerSubtitle: S.subheading,
+  banner: (tone) => bannerStyle(tone),
+  notice: { ...S.card, color: T.text, lineHeight: '1.7' },
+  tabBar: S.tabBar,
+  tabButton: S.tab,
+  tabButtonActive: S.tabActive,
+  formWrapper: S.card,
+  sectionTitle: S.sectionTitle,
   formRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -1020,32 +973,13 @@ const styles = {
     marginBottom: '1rem',
   },
   formGroup: { display: 'flex', flexDirection: 'column', marginBottom: '1rem' },
-  label: { fontSize: '0.85rem', color: '#f1f1f1', marginBottom: '0.35rem', fontWeight: '600' },
-  input: {
-    padding: '0.5rem',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.4rem',
-    backgroundColor: '#732020',
-    color: '#f1f1f1',
-    fontSize: '0.85rem',
-    outline: 'none',
-    boxSizing: 'border-box',
-    minWidth: '120px',
-  },
-  select: {
-    padding: '0.5rem',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.4rem',
-    backgroundColor: '#732020',
-    color: '#f1f1f1',
-    fontSize: '0.85rem',
-    outline: 'none',
-    cursor: 'pointer',
-  },
-  helperText: { fontSize: '0.8rem', color: '#c0c0c0', marginTop: '0.35rem' },
-  muted: { color: '#888', fontSize: '0.75rem' },
-  warning: { color: '#ffcc80', fontSize: '0.85rem', margin: '0.5rem 0' },
-  warningInline: { color: '#ffcc80', fontSize: '0.8rem' },
+  label: S.label,
+  input: { ...S.input, padding: '0.5rem', borderRadius: '0.4rem', fontSize: '0.85rem' },
+  select: { ...S.select, padding: '0.5rem', borderRadius: '0.4rem', fontSize: '0.85rem' },
+  helperText: S.helper,
+  muted: { color: T.textMuted, fontSize: '0.75rem' },
+  warning: { color: T.warning, fontSize: '0.85rem', margin: '0.5rem 0' },
+  warningInline: { color: T.warning, fontSize: '0.8rem' },
   debtHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1054,20 +988,13 @@ const styles = {
     flexWrap: 'wrap',
     marginTop: '1.5rem',
   },
-  debtTitle: { color: '#fe5c03', fontSize: '1.05rem', marginBottom: '0.2rem' },
-  tableWrapper: { overflowX: 'auto', marginBottom: '1rem' },
-  table: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#8a2a2a' },
-  tableHeaderRow: { backgroundColor: '#9a3a3a' },
-  tableHeader: {
-    padding: '0.6rem',
-    textAlign: 'left',
-    color: '#fe5c03',
-    fontWeight: 'bold',
-    fontSize: '0.8rem',
-    borderBottom: '2px solid #fe5c03',
-  },
-  tableRow: { borderBottom: '1px solid rgba(254, 92, 3, 0.1)' },
-  tableCell: { padding: '0.5rem', color: '#f1f1f1', fontSize: '0.85rem', verticalAlign: 'middle' },
+  debtTitle: { color: T.accent, fontSize: '1.05rem', marginBottom: '0.2rem' },
+  tableWrapper: S.tableWrap,
+  table: S.table,
+  tableHeaderRow: S.tableHeadRow,
+  tableHeader: S.tableHead,
+  tableRow: { backgroundColor: T.bgCard },
+  tableCell: S.tableCell,
   summaryGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
@@ -1075,24 +1002,30 @@ const styles = {
     margin: '1.2rem 0',
   },
   summaryTile: {
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     borderRadius: '0.6rem',
     padding: '0.9rem',
     display: 'flex',
     flexDirection: 'column',
     gap: '0.3rem',
+    border: `1px solid ${T.borderSoft}`,
   },
-  summaryLabel: { color: '#c0c0c0', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  summaryValue: { color: '#f1f1f1', fontSize: '1.25rem', fontWeight: 'bold' },
+  summaryLabel: {
+    color: T.textSoft,
+    fontSize: '0.72rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  summaryValue: { color: T.text, fontSize: '1.25rem', fontWeight: 'bold' },
   moneyRow: { display: 'flex', gap: '1rem', flexWrap: 'wrap', margin: '1rem 0' },
   moneyBox: { display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: '130px' },
-  moneyValue: { color: '#f1f1f1', fontSize: '1.1rem', fontWeight: 'bold' },
+  moneyValue: { color: T.text, fontSize: '1.1rem', fontWeight: 'bold' },
   reviewCard: {
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     borderRadius: '0.8rem',
     padding: '1.2rem',
     marginBottom: '1rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
+    border: `1px solid ${T.borderSoft}`,
   },
   reviewHeader: {
     display: 'flex',
@@ -1101,68 +1034,29 @@ const styles = {
     gap: '1rem',
     flexWrap: 'wrap',
   },
-  reviewTitle: { color: '#f1f1f1', fontSize: '1.05rem' },
-  badge: {
-    display: 'inline-block',
-    color: '#000',
-    padding: '0.25rem 0.7rem',
-    borderRadius: '50px',
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    whiteSpace: 'nowrap',
+  reviewTitle: { color: T.text, fontSize: '1.05rem' },
+  badge: statusPill('info'),
+  badgeWarning: statusPill('warning'),
+  buttonGroup: {
+    display: 'flex',
+    gap: '0.8rem',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: '1rem',
   },
-  badgeWarning: {
-    display: 'inline-block',
-    color: '#000',
-    backgroundColor: '#ff7043',
-    padding: '0.25rem 0.7rem',
-    borderRadius: '50px',
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    whiteSpace: 'nowrap',
-  },
-  buttonGroup: { display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '1rem' },
-  submitButton: {
-    flex: 1,
-    padding: '1rem',
-    backgroundColor: '#fe5c03',
-    color: '#000',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    minWidth: '220px',
-  },
-  verifyButton: {
-    padding: '0.7rem 1.4rem',
-    backgroundColor: '#4caf50',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '50px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  secondaryButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: 'transparent',
-    color: '#f1f1f1',
-    border: '2px solid #7a2a2a',
-    borderRadius: '50px',
-    fontSize: '0.85rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
+  submitButton: S.primaryButton,
+  verifyButton: S.successButton,
+  secondaryButton: S.secondaryButton,
   linkButton: {
     backgroundColor: 'transparent',
-    color: '#fe5c03',
-    border: '1px solid #7a2a2a',
+    color: T.accent,
+    border: `1px solid ${T.border}`,
     borderRadius: '4px',
     padding: '0.3rem 0.6rem',
     fontSize: '0.75rem',
     cursor: 'pointer',
   },
-  disabled: { backgroundColor: '#7a2a2a', cursor: 'not-allowed', opacity: '0.6' },
+  disabled: S.disabled,
 };
 
 export default DeathAid;

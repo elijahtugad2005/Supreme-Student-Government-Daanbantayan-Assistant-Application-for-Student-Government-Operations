@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// =============================================================================
+// storage.rules
+//
+// The document repository splits storage across two places:
+//   Firestore -> the searchable record (documents/{id})
+//   Storage   -> the original binary, at documents/{id}/{filename}
+//
+// The two must agree. A rule here cannot check the Firestore record, so it
+// repeats the role check. If these lists drift apart, someone either gets a
+// permission error on a visible document or a file whose record is hidden.
+// `canManageDocuments` below must stay in step with firestore.rules.
+// =============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      return isSignedIn()
+        && request.auth.token.role != null
+        ? request.auth.token.role
+        : null;
+    }
+
+    // NOTE: role comes from a custom claim, not the Firestore user document.
+    // Storage rules cannot make a Firestore read. If your users do not carry a
+    // `role` custom claim, every request below fails and uploads will appear to
+    // break with "permission denied".
+    function canManageDocuments() {
+      return myRole() == 'admin'
+        || myRole() == 'secretary'
+        || myRole() == 'representative'
+        || myRole() == 'senator';
+    }
+
+    match /documents/{documentId}/{fileName} {
+      // Reading a document requires the same role as reading its metadata.
+      allow read: if canManageDocuments();
+
+      allow write: if canManageDocuments() && isSignedIn();
+
+      // Type and size are enforced here as well as in the client. The client
+      // check is a courtesy; this one is the guarantee.
+      allow write: if canManageDocuments()
+        && request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType.matches('application/pdf|application/.*word.*|text/plain|image/.*');
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

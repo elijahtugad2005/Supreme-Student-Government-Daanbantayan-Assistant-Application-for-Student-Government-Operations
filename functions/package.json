@@ -1,0 +1,17 @@
+{
+  "name": "ssg-document-ai-functions",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "check": "node --check src/index.js && node --check src/gemini.js && node --check src/prompts.js && node --check src/extract.js && node --check src/apply.js && node --check src/docStatus.js && node --check src/providers/errors.js && node --check src/providers/openrouter.js && node --check src/ai/fallback.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.6.0",
+    "mammoth": "^1.8.0"
+  }
+}

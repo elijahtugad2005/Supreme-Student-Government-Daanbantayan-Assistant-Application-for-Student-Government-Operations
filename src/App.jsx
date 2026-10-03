@@ -24,7 +24,7 @@ import Login from './components/Login/Login.jsx';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute.jsx';
 import FinanceDashboard from './components/Finance/FinanceDashboard.jsx';
 import InventoryManagement from './components/InventoryDashboard/InventoryManagement.jsx';
-import PDFDashboard from './components/Document/PDFDahsboard.jsx';
+import DocumentDashboard from './components/Document/DocumentDashboard.jsx';
 import AccessDenied from './components/AccessDenied/AccessDenied.jsx';
 import UserManagement from './components/UserManagement/UserManagement.jsx';
 import AuditTrail from './components/AuditTrail/AuditTrail.jsx';
@@ -274,7 +274,7 @@ function App() {
             }
           >
             <DashboardLayout>
-              <PDFDashboard />
+              <DocumentDashboard />
             </DashboardLayout>
           </ProtectedRoute>
         } />

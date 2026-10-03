@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext/AuthContext.jsx';
 import { hasPermission } from '../utils/permissions';
 import { COLLEGE_LIST, YEAR_LEVELS, getPrograms, yearLevelOf } from '../utils/academics';
 import { getRosterById, listSections, ROSTER_STATUS } from '../services/rosterService';
+import { S, T } from '../utils/themeStyles';
 
 const ALL_YEARS = 0;
 
@@ -276,92 +277,36 @@ function RosterDirectory({ onError }) {
   );
 }
 
+
+// Styles built from the shared theme tokens so the directory follows the
+// active theme. See utils/themeStyles.js.
 const styles = {
-  formWrapper: {
-    backgroundColor: '#5a1a1a',
-    borderRadius: '1rem',
-    padding: '2rem',
-    marginBottom: '2rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
-  },
-  sectionTitle: {
-    fontSize: '1.5rem',
-    color: '#fe5c03',
-    marginBottom: '1.5rem',
-    fontWeight: 'bold',
-    borderBottom: '2px solid rgba(254, 92, 3, 0.3)',
-    paddingBottom: '0.5rem',
-  },
+  formWrapper: S.card,
+  sectionTitle: S.sectionTitle,
   promptCard: {
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     borderRadius: '0.8rem',
     padding: '1.5rem',
+    border: `1px solid ${T.borderSoft}`,
   },
-  promptText: {
-    color: '#f1f1f1',
-    marginBottom: '1rem',
-  },
-  promptButtons: {
-    display: 'flex',
-    gap: '0.8rem',
-    flexWrap: 'wrap',
-  },
-  departmentButton: {
-    padding: '0.8rem 1.5rem',
-    backgroundColor: '#fe5c03',
-    color: '#000',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '0.95rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
+  promptText: { color: T.text, marginBottom: '1rem' },
+  promptButtons: { display: 'flex', gap: '0.8rem', flexWrap: 'wrap' },
+  departmentButton: { ...S.primaryButton, minWidth: 0, padding: '0.8rem 1.5rem' },
   filterRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
     gap: '1rem',
     marginBottom: '1.5rem',
   },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  label: {
-    fontSize: '0.85rem',
-    color: '#f1f1f1',
-    marginBottom: '0.4rem',
-    fontWeight: '600',
-  },
-  input: {
-    padding: '0.7rem',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.5rem',
-    backgroundColor: '#732020',
-    color: '#f1f1f1',
-    fontSize: '0.9rem',
-    outline: 'none',
-  },
-  select: {
-    padding: '0.7rem',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.5rem',
-    backgroundColor: '#732020',
-    color: '#f1f1f1',
-    fontSize: '0.9rem',
-    outline: 'none',
-    cursor: 'pointer',
-  },
-  helperText: {
-    fontSize: '0.85rem',
-    color: '#c0c0c0',
-    marginTop: '0.4rem',
-  },
-  yearGroup: {
-    marginBottom: '1.5rem',
-  },
+  formGroup: { display: 'flex', flexDirection: 'column' },
+  label: S.label,
+  input: S.input,
+  select: S.select,
+  helperText: S.helper,
+  yearGroup: { marginBottom: '1.5rem' },
   yearHeading: {
     fontSize: '1.05rem',
-    color: '#fe5c03',
+    color: T.accent,
     marginBottom: '0.8rem',
     display: 'flex',
     alignItems: 'center',
@@ -369,17 +314,17 @@ const styles = {
   },
   yearCount: {
     fontSize: '0.75rem',
-    color: '#c0c0c0',
+    color: T.textSoft,
     fontWeight: 'normal',
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     padding: '0.15rem 0.6rem',
     borderRadius: '50px',
   },
   sectionCard: {
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     borderRadius: '0.8rem',
     marginBottom: '0.7rem',
-    border: '1px solid rgba(254, 92, 3, 0.15)',
+    border: `1px solid ${T.borderSoft}`,
     overflow: 'hidden',
   },
   sectionButton: {
@@ -395,66 +340,22 @@ const styles = {
     cursor: 'pointer',
     textAlign: 'left',
   },
-  sectionName: {
-    color: '#f1f1f1',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-  },
-  sectionMeta: {
-    color: '#c0c0c0',
-    fontSize: '0.8rem',
-    flex: '1 1 200px',
-  },
-  sectionToggle: {
-    color: '#fe5c03',
-    fontSize: '0.8rem',
-    fontWeight: 'bold',
-    whiteSpace: 'nowrap',
-  },
+  sectionName: { color: T.text, fontSize: '1rem', fontWeight: 'bold' },
+  sectionMeta: { color: T.textSoft, fontSize: '0.8rem', flex: '1 1 200px' },
+  sectionToggle: { color: T.accent, fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap' },
   rosterBody: {
     padding: '0 1rem 1rem',
-    borderTop: '1px solid rgba(254, 92, 3, 0.15)',
+    borderTop: `1px solid ${T.borderSoft}`,
     paddingTop: '1rem',
   },
-  verifiedNote: {
-    color: '#a5d6a7',
-    fontSize: '0.85rem',
-    marginBottom: '0.5rem',
-  },
-  countNote: {
-    color: '#f1f1f1',
-    fontSize: '0.85rem',
-    fontWeight: 'bold',
-    marginBottom: '0.5rem',
-  },
-  tableWrapper: {
-    overflowX: 'auto',
-    maxHeight: '340px',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    backgroundColor: '#8a2a2a',
-  },
-  tableHeaderRow: {
-    backgroundColor: '#9a3a3a',
-  },
-  tableHeader: {
-    padding: '0.6rem 0.8rem',
-    textAlign: 'left',
-    color: '#fe5c03',
-    fontWeight: 'bold',
-    fontSize: '0.85rem',
-    borderBottom: '2px solid #fe5c03',
-  },
-  tableRow: {
-    borderBottom: '1px solid rgba(254, 92, 3, 0.1)',
-  },
-  tableCell: {
-    padding: '0.5rem 0.8rem',
-    color: '#f1f1f1',
-    fontSize: '0.85rem',
-  },
+  verifiedNote: { color: T.success, fontSize: '0.85rem', marginBottom: '0.5rem' },
+  countNote: { color: T.text, fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' },
+  tableWrapper: { ...S.tableWrap, maxHeight: '340px' },
+  table: S.table,
+  tableHeaderRow: S.tableHeadRow,
+  tableHeader: S.tableHead,
+  tableRow: { backgroundColor: T.bgCard },
+  tableCell: S.tableCell,
 };
 
 export default RosterDirectory;

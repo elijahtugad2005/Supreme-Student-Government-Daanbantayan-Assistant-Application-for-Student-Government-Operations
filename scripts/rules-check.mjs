@@ -1,17 +1,19 @@
 /**
  * Validates firestore.rules against the Firestore emulator.
  *
- *   npx firebase emulators:start --only firestore --project demo-ssg
+ *   npx firebase emulators:start --only firestore --project <your-project-id>
  *   node scripts/rules-check.mjs
  *
  * Roles are read from the Firestore user document (not from token claims), which
  * is how AuthContext populates them, so each context is seeded with a user doc.
  */
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import {
   initializeTestEnvironment,
   assertFails,
   assertSucceeds,
 } from '@firebase/rules-unit-testing';
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { readFileSync } from 'node:fs';
 
 const HOST = '127.0.0.1';
@@ -31,7 +33,7 @@ async function check(label, assertion) {
 }
 
 const testEnv = await initializeTestEnvironment({
-  projectId: 'demo-ssg',
+  projectId: EMULATOR_PROJECT,
   firestore: {
     host: HOST,
     port: PORT,

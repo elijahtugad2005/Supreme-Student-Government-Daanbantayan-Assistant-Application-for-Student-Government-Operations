@@ -30,6 +30,7 @@ import {
   withdrawRoster,
 } from '../services/rosterService';
 import RosterDirectory from './RosterDirectory.jsx';
+import { S, T, banner as bannerStyle, statusPill } from '../utils/themeStyles';
 
 const ACCEPTED_EXTENSIONS = ['.csv', '.xlsx', '.xls'];
 
@@ -39,10 +40,11 @@ const TABS = [
   { id: 'directory', label: 'Browse Rosters' },
 ];
 
+// Tone names, not colours — the pill resolves them through the theme tokens.
 const STATUS_META = {
-  [ROSTER_STATUS.PENDING]: { label: 'Pending Verification', color: '#f0a500' },
-  [ROSTER_STATUS.VERIFIED]: { label: 'Verified', color: '#4caf50' },
-  [ROSTER_STATUS.CORRECTION_REQUESTED]: { label: 'Correction Requested', color: '#ff7043' },
+  [ROSTER_STATUS.PENDING]: { label: 'Pending Verification', tone: 'info' },
+  [ROSTER_STATUS.VERIFIED]: { label: 'Verified', tone: 'success' },
+  [ROSTER_STATUS.CORRECTION_REQUESTED]: { label: 'Correction Requested', tone: 'warning' },
 };
 
 const formatDate = (value) => {
@@ -387,17 +389,7 @@ function ClassUpload() {
         </p>
       </div>
 
-      {banner && (
-        <div
-          style={{
-            ...styles.banner,
-            backgroundColor:
-              banner.type === 'success' ? '#2e7d32' : banner.type === 'error' ? '#b3261e' : '#0b5394',
-          }}
-        >
-          {banner.message}
-        </div>
-      )}
+      {banner && <div style={styles.banner(banner.type)}>{banner.message}</div>}
 
       <div style={styles.tabBar}>
         {TABS.filter((t) => {
@@ -1062,89 +1054,32 @@ function MyRostersPanel({ onMessage }) {
 }
 
 function StatusBadge({ status }) {
-  const meta = STATUS_META[status] || { label: status || 'Unknown', color: '#c0c0c0' };
-  return <span style={{ ...styles.badge, backgroundColor: meta.color }}>{meta.label}</span>;
+  const meta = STATUS_META[status] || { label: status || 'Unknown', tone: 'neutral' };
+  return <span style={statusPill(meta.tone)}>{meta.label}</span>;
 }
 
 // ========================================
 // STYLES
+//
+// Built from the shared theme tokens rather than fixed hex values, so this page
+// re-colours itself the instant the theme changes. Only tokens defined by all
+// three themes are referenced — see utils/themeStyles.js.
 // ========================================
 const styles = {
-  container: {
-    width: '100%',
-    maxWidth: '100%',
-    padding: '1.5rem',
-    backgroundColor: '#4c1515',
-    borderRadius: '1rem',
-    fontFamily: 'Arial, sans-serif',
-    boxSizing: 'border-box',
-  },
-  header: {
-    marginBottom: '2rem',
-  },
-  mainTitle: {
-    fontSize: '2rem',
-    color: '#fe5c03',
-    marginBottom: '0.5rem',
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    fontSize: '1rem',
-    color: '#c0c0c0',
-  },
-  banner: {
-    color: '#fff',
-    padding: '1rem',
-    borderRadius: '0.5rem',
-    marginBottom: '2rem',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-  },
-  tabBar: {
-    display: 'flex',
-    gap: '0.5rem',
-    marginBottom: '1.5rem',
-    borderBottom: '2px solid rgba(254, 92, 3, 0.3)',
-    flexWrap: 'wrap',
-  },
-  tabButton: {
-    padding: '0.8rem 1.5rem',
-    backgroundColor: 'transparent',
-    color: '#c0c0c0',
-    border: 'none',
-    borderBottom: '3px solid transparent',
-    fontSize: '0.95rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  tabButtonActive: {
-    color: '#fe5c03',
-    borderBottomColor: '#fe5c03',
-  },
-  formWrapper: {
-    backgroundColor: '#5a1a1a',
-    borderRadius: '1rem',
-    padding: '2rem',
-    marginBottom: '2rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
-  },
-  sectionTitle: {
-    fontSize: '1.5rem',
-    color: '#fe5c03',
-    marginBottom: '1.5rem',
-    fontWeight: 'bold',
-    borderBottom: '2px solid rgba(254, 92, 3, 0.3)',
-    paddingBottom: '0.5rem',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.2rem',
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
+  container: S.page,
+  header: { marginBottom: '2rem' },
+  mainTitle: S.heading,
+  headerSubtitle: S.subheading,
+  banner: (tone) => bannerStyle(tone),
+
+  tabBar: S.tabBar,
+  tabButton: S.tab,
+  tabButtonActive: S.tabActive,
+
+  formWrapper: S.card,
+  sectionTitle: S.sectionTitle,
+  form: { display: 'flex', flexDirection: 'column', gap: '1.2rem' },
+  formGroup: { display: 'flex', flexDirection: 'column' },
   formRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -1156,154 +1091,104 @@ const styles = {
     gap: '1rem',
     marginTop: '1.2rem',
   },
-  label: {
-    fontSize: '0.9rem',
-    color: '#f1f1f1',
-    marginBottom: '0.4rem',
-    fontWeight: '600',
-  },
-  input: {
-    padding: '0.8rem',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.5rem',
-    backgroundColor: '#732020',
-    color: '#f1f1f1',
-    fontSize: '0.95rem',
-    outline: 'none',
-  },
-  select: {
-    padding: '0.8rem',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.5rem',
-    backgroundColor: '#732020',
-    color: '#f1f1f1',
-    fontSize: '0.95rem',
-    outline: 'none',
-    cursor: 'pointer',
-  },
+  label: S.label,
+  input: S.input,
+  select: S.select,
+
   dropzone: {
     padding: '1.5rem',
-    border: '2px dashed #7a2a2a',
+    border: `2px dashed ${T.border}`,
     borderRadius: '0.8rem',
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
   },
   dropzoneActive: {
-    borderColor: '#fe5c03',
-    backgroundColor: '#7d2424',
+    borderColor: T.accent,
+    backgroundColor: T.accentLight,
   },
   fileInput: {
     width: '100%',
     marginBottom: '0.8rem',
-    color: '#f1f1f1',
+    color: T.text,
     fontSize: '0.9rem',
     cursor: 'pointer',
   },
-  helperText: {
-    fontSize: '0.8rem',
-    color: '#c0c0c0',
-    marginTop: '0.4rem',
-  },
+  helperText: S.helper,
+
   errorBox: {
-    backgroundColor: '#f44336',
-    color: '#fff',
+    backgroundColor: T.errorLight,
+    color: T.error,
+    border: `1px solid ${T.error}`,
     padding: '1rem',
     borderRadius: '0.5rem',
     fontSize: '0.95rem',
     marginTop: '1rem',
   },
+
   issueBox: {
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     padding: '1rem',
     borderRadius: '0.8rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
+    border: `1px solid ${T.borderSoft}`,
     marginTop: '1.2rem',
   },
-  issueTitle: {
-    fontSize: '1rem',
-    color: '#fe5c03',
-    marginBottom: '0.6rem',
-    fontWeight: 'bold',
-  },
+  issueTitle: { fontSize: '1rem', color: T.accent, marginBottom: '0.6rem', fontWeight: 'bold' },
   issueList: {
-    color: '#f1f1f1',
+    color: T.text,
     fontSize: '0.85rem',
     lineHeight: '1.7',
     paddingLeft: '1.2rem',
     margin: 0,
   },
-  issueWarn: {
-    color: '#ffcc80',
-  },
+  issueWarn: { color: T.warning },
+
   previewSection: {
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     padding: '1.5rem',
     borderRadius: '0.8rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
+    border: `1px solid ${T.borderSoft}`,
     marginTop: '1.2rem',
   },
-  previewTitle: {
-    fontSize: '1.2rem',
-    color: '#4caf50',
-    marginBottom: '1rem',
-    fontWeight: 'bold',
+  previewTitle: { fontSize: '1.2rem', color: T.success, marginBottom: '1rem', fontWeight: 'bold' },
+  toolbarRow: {
+    display: 'flex',
+    gap: '0.8rem',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    margin: '1rem 0',
   },
-  tableWrapper: {
-    overflowX: 'auto',
-    marginBottom: '1rem',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    backgroundColor: '#8a2a2a',
-    borderRadius: '0.5rem',
-  },
-  tableHeaderRow: {
-    backgroundColor: '#9a3a3a',
-  },
-  tableHeader: {
-    padding: '0.8rem',
-    textAlign: 'left',
-    color: '#fe5c03',
-    fontWeight: 'bold',
-    fontSize: '0.9rem',
-    borderBottom: '2px solid #fe5c03',
-  },
-  tableRow: {
-    borderBottom: '1px solid rgba(254, 92, 3, 0.1)',
-  },
-  tableCell: {
-    padding: '0.6rem 0.8rem',
-    color: '#f1f1f1',
-    fontSize: '0.85rem',
-    verticalAlign: 'middle',
-  },
+
+  tableWrapper: S.tableWrap,
+  table: S.table,
+  tableHeaderRow: S.tableHeadRow,
+  tableHeader: S.tableHead,
+  tableRow: { backgroundColor: T.bgCard },
+  tableCell: S.tableCell,
+
   cellInput: {
+    ...S.input,
     width: '100%',
     minWidth: '220px',
     padding: '0.5rem',
-    border: '1px solid #7a2a2a',
     borderRadius: '0.4rem',
-    backgroundColor: '#732020',
-    color: '#f1f1f1',
     fontSize: '0.9rem',
-    outline: 'none',
-    boxSizing: 'border-box',
   },
-  cellFlag: {
-    display: 'block',
-    color: '#ffcc80',
-    fontSize: '0.75rem',
-    marginTop: '0.2rem',
-  },
+  cellFlag: { display: 'block', color: T.warning, fontSize: '0.75rem', marginTop: '0.2rem' },
   rowRemove: {
     backgroundColor: 'transparent',
-    color: '#fe5c03',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.4rem',
+    color: T.accent,
+    border: `1px solid ${T.border}`,
+    borderRadius: '4px',
     padding: '0.35rem 0.7rem',
     fontSize: '0.75rem',
     cursor: 'pointer',
   },
+  textarea: {
+    ...S.input,
+    width: '100%',
+    minHeight: '70px',
+    resize: 'vertical',
+  },
+
   buttonGroup: {
     display: 'flex',
     gap: '0.8rem',
@@ -1311,60 +1196,28 @@ const styles = {
     marginTop: '1rem',
     alignItems: 'center',
   },
-  submitButton: {
-    flex: 1,
-    padding: '1rem',
-    backgroundColor: '#fe5c03',
-    color: '#000',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    minWidth: '200px',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#7a2a2a',
-    cursor: 'not-allowed',
-    opacity: '0.6',
-  },
-  verifyButton: {
-    padding: '0.6rem 1.4rem',
-    backgroundColor: '#4caf50',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '50px',
-    fontSize: '0.9rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  secondaryButton: {
-    padding: '0.6rem 1.4rem',
-    backgroundColor: 'transparent',
-    color: '#f1f1f1',
-    border: '2px solid #7a2a2a',
-    borderRadius: '50px',
-    fontSize: '0.9rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
+  submitButton: S.primaryButton,
+  submitButtonDisabled: S.disabled,
+  verifyButton: S.successButton,
+  secondaryButton: S.secondaryButton,
   resetButton: {
     padding: '1rem',
     backgroundColor: 'transparent',
-    color: '#c0c0c0',
-    border: '2px solid #7a2a2a',
+    color: T.textSoft,
+    border: `2px solid ${T.border}`,
     borderRadius: '50px',
     fontSize: '1rem',
     fontWeight: 'bold',
     cursor: 'pointer',
     minWidth: '160px',
   },
+
   reviewCard: {
-    backgroundColor: '#732020',
+    backgroundColor: T.bgTertiary,
     borderRadius: '0.8rem',
     padding: '1.2rem',
     marginBottom: '1rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
+    border: `1px solid ${T.borderSoft}`,
   },
   reviewHeader: {
     display: 'flex',
@@ -1373,55 +1226,25 @@ const styles = {
     gap: '1rem',
     flexWrap: 'wrap',
   },
-  reviewTitle: {
-    color: '#f1f1f1',
-    fontSize: '1.05rem',
-  },
+  reviewTitle: { color: T.text, fontSize: '1.05rem' },
   correctionBox: {
     marginTop: '1rem',
     paddingTop: '1rem',
-    borderTop: '1px solid rgba(254, 92, 3, 0.2)',
+    borderTop: `1px solid ${T.borderSoft}`,
   },
-  textarea: {
-    width: '100%',
-    padding: '0.7rem',
-    border: '1px solid #7a2a2a',
-    borderRadius: '0.5rem',
-    backgroundColor: '#5a1a1a',
-    color: '#f1f1f1',
-    fontSize: '0.9rem',
-    outline: 'none',
-    boxSizing: 'border-box',
-    resize: 'vertical',
-  },
-  badge: {
-    display: 'inline-block',
-    color: '#000',
-    padding: '0.25rem 0.7rem',
-    borderRadius: '50px',
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    whiteSpace: 'nowrap',
-  },
-  versionLine: {
-    color: '#c0c0c0',
-    fontSize: '0.8rem',
-    margin: '0.2rem 0',
-  },
+  versionLine: { color: T.textSoft, fontSize: '0.8rem', margin: '0.2rem 0' },
+
+  badge: statusPill('info'),
+
   instructionsBox: {
-    backgroundColor: '#5a1a1a',
+    backgroundColor: T.bgCard,
     padding: '1.5rem',
     borderRadius: '1rem',
-    border: '1px solid rgba(254, 92, 3, 0.2)',
+    border: `1px solid ${T.borderSoft}`,
   },
-  instructionsTitle: {
-    fontSize: '1.2rem',
-    color: '#fe5c03',
-    marginBottom: '1rem',
-    fontWeight: 'bold',
-  },
+  instructionsTitle: { fontSize: '1.2rem', color: T.accent, marginBottom: '1rem', fontWeight: 'bold' },
   instructionsList: {
-    color: '#f1f1f1',
+    color: T.text,
     fontSize: '0.95rem',
     lineHeight: '1.8',
     paddingLeft: '1.5rem',

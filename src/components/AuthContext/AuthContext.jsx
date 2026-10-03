@@ -10,6 +10,8 @@ import { auth, db, googleProvider } from "../../firebase/firebaseConfig.js";
 // Statically imported: this module is also imported by many others, so the
 // dynamic import only produced a mixed-import warning without saving anything.
 import { getDefaultPermissionsForRole } from '../../utils/permissions.js';
+import { ensureRoleClaim } from '../../services/roleClaims.js';
+import { usingEmulators } from '../../firebase/emulators.js';
 import { 
   signInWithEmailAndPassword, 
   signOut, 
@@ -297,12 +299,61 @@ export function AuthProvider({ children }) {
             // would never reach the app.
             setUserPermissions(userData.permissions || {});
             setUserPermissionOverrides(userData.permissionOverrides || {});
+
+            // Storage rules authorise on the role claim in the ID token, which
+            // is separate from this Firestore document. Fire-and-forget: a
+            // failure here must not interrupt sign-in, and most of the app works
+            // without the claim because Firestore rules read the document.
+            ensureRoleClaim(user, userData.role);
           } else {
-            console.log('No user document found for UID:', user.uid);
-            setUserRole(null);
-            setUserName(null);
-            setUserPermissions({});
-            setUserPermissionOverrides({});
+            // No profile document.
+            //
+            // With the Firestore emulator active, its data does NOT survive a
+            // restart, so every fresh emulator begins empty. The user's role
+            // lives in that Firestore, so without a document the role resolves
+            // to null and EVERY route denies — including the home page — with a
+            // confusing "role (Unknown)" message.
+            //
+            // Auto-provisioning fixes that loop. It is deliberately gated on the
+            // emulator flag: production never has it set, so this can never
+            // create an admin document in a real database.
+            if (usingEmulators()) {
+              try {
+                const { setDoc } = await import('firebase/firestore');
+                await setDoc(
+                  doc(db, 'users', user.uid),
+                  {
+                    role: 'admin',
+                    name: user.displayName || user.email || 'Local developer',
+                    permissions: getDefaultPermissionsForRole('admin'),
+                    provisionedLocally: true,
+                    provisionedAt: new Date().toISOString(),
+                  },
+                  { merge: true }
+                );
+                console.warn(
+                  `[auth] No profile found, so one was created with role=admin in the ` +
+                    'EMULATOR database. This does not happen in production.'
+                );
+                setUserRole('admin');
+                setUserName(user.displayName || user.email || 'Local developer');
+                setUserPermissions(getDefaultPermissionsForRole('admin'));
+                setUserPermissionOverrides({});
+                ensureRoleClaim(user, 'admin');
+              } catch (provisionError) {
+                console.error('[auth] Could not provision a local profile:', provisionError);
+                setUserRole(null);
+                setUserName(null);
+                setUserPermissions({});
+                setUserPermissionOverrides({});
+              }
+            } else {
+              console.log('No user document found for UID:', user.uid);
+              setUserRole(null);
+              setUserName(null);
+              setUserPermissions({});
+              setUserPermissionOverrides({});
+            }
           }
         } catch (error) {
           console.error('Error fetching user data:', error);

@@ -409,6 +409,66 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // =========================================================================
+    // DOCUMENT REPOSITORY (Phase 1)
+    //
+    // Firestore holds the searchable record; the binary lives in Storage.
+    // Roles are checked against the office that manages documents, which is
+    // kept deliberately narrow — a member should not be able to read every
+    // signed administrative record in the institution.
+    // =========================================================================
+
+    // Roles permitted to work with the document archive.
+    function canManageDocuments() {
+      return myRole() == 'admin'
+        || myRole() == 'secretary'
+        || myRole() == 'representative'
+        || myRole() == 'senator';
+    }
+
+    match /documents/{documentId} {
+      allow read: if canManageDocuments();
+      allow create: if canManageDocuments() && isSignedIn();
+      allow update: if canManageDocuments() && isSignedIn();
+      allow delete: if isAdmin() || myRole() == 'secretary';
+
+      // Reserved for Phase 4: per-document signature checklists.
+      match /signatures/{signatureId} {
+        allow read: if canManageDocuments();
+        allow write: if isAdmin() || myRole() == 'secretary';
+      }
+
+      // Reserved for Phase 1/3: append-only activity history.
+      match /auditLogs/{logId} {
+        allow read: if canManageDocuments();
+        allow create: if canManageDocuments() && isSignedIn();
+        allow update, delete: if false;
+      }
+    }
+
+    // The label taxonomy. Anyone managing documents may define labels, since
+    // labels are vocabulary rather than records.
+    match /documentLabels/{labelId} {
+      allow read: if canManageDocuments();
+      allow write: if canManageDocuments() && isSignedIn();
+    }
+
+    // Reserved for Phase 6/7: report templates and approval workflows.
+    match /documentTemplates/{templateId} {
+      allow read: if canManageDocuments();
+      allow write: if isAdmin() || myRole() == 'secretary';
+    }
+
+    match /officials/{officialId} {
+      allow read: if canManageDocuments();
+      allow write: if isAdmin() || myRole() == 'secretary';
+    }
+
+    match /approvalWorkflows/{workflowId} {
+      allow read: if canManageDocuments();
+      allow write: if isAdmin() || myRole() == 'secretary';
+    }
+
     // Anything not matched above is denied.
     match /{document=**} {
       allow read, write: if false;

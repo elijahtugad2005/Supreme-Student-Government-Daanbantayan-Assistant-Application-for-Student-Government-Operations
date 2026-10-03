@@ -1,18 +1,20 @@
 /**
  * Validates the Death Aid rules against the Firestore emulator.
  *
- *   npx firebase emulators:start --only firestore --project demo-ssg
+ *   npx firebase emulators:start --only firestore --project <your-project-id>
  *   npm run test:death-aid
  */
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import {
   initializeTestEnvironment,
   assertFails,
   assertSucceeds,
 } from '@firebase/rules-unit-testing';
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { readFileSync } from 'node:fs';
 
 const testEnv = await initializeTestEnvironment({
-  projectId: 'demo-ssg',
+  projectId: EMULATOR_PROJECT,
   firestore: { host: '127.0.0.1', port: 8080, rules: readFileSync('firestore.rules', 'utf8') },
 });
 

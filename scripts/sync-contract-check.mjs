@@ -11,11 +11,14 @@
  * reading `mappingConfig.collection`, so a valid contract reaches the source
  * check and a broken one dies on the property access instead.
  *
- *   npx firebase emulators:start --only firestore --project demo-ssg
+ *   npx firebase emulators:start --only firestore --project <your-project-id>
  *   node scripts/sync-contract-check.mjs
  */
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { syncSourceToFirestore } from '../src/components/Data/sheetSyncService.js';
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { readFileSync } from 'node:fs';
 
 let failed = 0;
@@ -29,7 +32,7 @@ const mappingConfig = { collection: 'orders', keyField: 'ssgdbId' };
 
 // The emulator-backed Firestore read at the top of the function needs a live db.
 const testEnv = await initializeTestEnvironment({
-  projectId: 'demo-ssg',
+  projectId: EMULATOR_PROJECT,
   firestore: { host: '127.0.0.1', port: 8080, rules: readFileSync('firestore.rules', 'utf8') },
 });
 await testEnv.withSecurityRulesDisabled(async (ctx) => {

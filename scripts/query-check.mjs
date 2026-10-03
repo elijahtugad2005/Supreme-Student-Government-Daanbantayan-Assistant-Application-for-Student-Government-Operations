@@ -8,14 +8,16 @@
  * correct but does NOT prove the production indexes exist. That still has to be
  * confirmed in the Firebase console.
  *
- *   npx firebase emulators:start --only firestore --project demo-ssg
+ *   npx firebase emulators:start --only firestore --project <your-project-id>
  *   node scripts/query-check.mjs
  */
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { readFileSync } from 'node:fs';
 
 const testEnv = await initializeTestEnvironment({
-  projectId: 'demo-ssg',
+  projectId: EMULATOR_PROJECT,
   firestore: {
     host: '127.0.0.1',
     port: 8080,
