@@ -19,12 +19,14 @@ import {
   readQuota,
   secondsUntilReset,
 } from '../../services/documentAiService';
-import { HiSparkles } from 'react-icons/hi';
+import { HiSparkles, HiChevronDown, HiChevronUp, HiX } from 'react-icons/hi';
 
 export default function AiStatusBadge() {
   const [status, setStatus] = useState(null); // null = still checking
   const [quota, setQuota] = useState(readQuota);
   const [usage, setUsage] = useState(getUsage);
+  const [collapsed, setCollapsed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const refreshUsage = useCallback(() => setUsage(getUsage()), []);
 
@@ -72,53 +74,85 @@ export default function AiStatusBadge() {
         ? { bg: T.bgTertiary, fg: T.textSoft, dot: T.textMuted }
         : availability.state === 'limited'
           ? { bg: T.warningLight, fg: T.warning, dot: T.warning }
-          : { bg: T.errorLight, fg: T.error, dot: T.error };
+          : availability.state === 'unavailable'
+            ? { bg: T.infoLight, fg: T.info, dot: T.info }
+            : { bg: T.errorLight, fg: T.error, dot: T.error };
 
   const percent = usagePercent(usage);
 
+  if (dismissed) return null;
+
   return (
     <div style={styles.wrap} role="status" aria-live="polite">
-      <span style={{ ...styles.pill, backgroundColor: tone.bg, borderColor: tone.dot }}>
-        <span style={{ ...styles.dot, backgroundColor: tone.dot }} />
-        {availability.label}
-      </span>
-
-      <div style={styles.capacity}>
-        <div style={styles.capacityHead}>
-          <span style={styles.capacityLabel}>Today: {capacityLabel(usage)}</span>
-          <span style={styles.capacityPct}>{percent}%</span>
-        </div>
-        <div style={styles.bar}>
-          <div
-            style={{
-              ...styles.fill,
-              width: `${percent}%`,
-              backgroundColor: percent >= 100 ? T.error : percent >= 75 ? T.warning : T.success,
-            }}
-          />
-        </div>
-        <span style={styles.estimateNote}>
-          Estimate from the free-tier limits ({'~'}15 requests/minute, 1,500/day, ~3 per
-          document) and this browser's own count.
+      <div style={styles.headerRow}>
+        <span style={{ ...styles.pill, backgroundColor: tone.bg, borderColor: tone.dot }}>
+          <span style={{ ...styles.dot, backgroundColor: tone.dot }} />
+          {availability.label}
         </span>
+        
+        <div style={styles.controls}>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            style={styles.iconBtn}
+            title={collapsed ? 'Show details' : 'Hide details'}
+            aria-label={collapsed ? 'Show details' : 'Hide details'}
+          >
+            {collapsed ? <HiChevronDown /> : <HiChevronUp />}
+          </button>
+          <button
+            onClick={() => setDismissed(true)}
+            style={styles.iconBtn}
+            title="Dismiss"
+            aria-label="Dismiss status badge"
+          >
+            <HiX />
+          </button>
+        </div>
       </div>
 
-      {availability.reason && (
-        <div style={{ ...styles.reason, color: tone.fg }}>
-          <HiSparkles /> {availability.reason}
-          {availability.resetAt && (
-            <span style={styles.resetAt}>
-              {' '}
-              Available again{' '}
-              {new Date(availability.resetAt).toLocaleString('en-PH', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-                timeZone: 'Asia/Manila',
-              })}
-              .
+      {!collapsed && (
+        <>
+          <div style={styles.capacity}>
+            <div style={styles.capacityHead}>
+              <span style={styles.capacityLabel}>Today: {capacityLabel(usage)}</span>
+              <span style={styles.capacityPct}>{percent}%</span>
+            </div>
+            <div style={styles.bar}>
+              <div
+                style={{
+                  ...styles.fill,
+                  width: `${percent}%`,
+                  backgroundColor: percent >= 100 ? T.error : percent >= 75 ? T.warning : T.success,
+                }}
+              />
+            </div>
+            <span style={styles.estimateNote}>
+              Estimate from the free-tier limits ({'~'}15 requests/minute, 1,500/day, ~3 per
+              document) and this browser's own count.
             </span>
+          </div>
+
+          {availability.reason && (
+            <div style={{ ...styles.reason, color: tone.fg }}>
+              <HiSparkles />{' '}
+              {availability.state === 'unavailable'
+                ? 'AI document analysis requires the cloud service to be deployed. Uploading, searching, and managing documents works normally.'
+                : availability.reason}
+              {availability.resetAt && (
+                <span style={styles.resetAt}>
+                  {' '}
+                  Available again{' '}
+                  {new Date(availability.resetAt).toLocaleString('en-PH', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    timeZone: 'Asia/Manila',
+                  })}
+                  .
+                </span>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
@@ -134,6 +168,27 @@ const styles = {
     backgroundColor: T.bgCard,
     border: `1px solid ${T.borderSoft}`,
     marginBottom: '1.5rem',
+  },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '0.8rem',
+  },
+  controls: {
+    display: 'flex',
+    gap: '0.4rem',
+  },
+  iconBtn: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: T.textSoft,
+    cursor: 'pointer',
+    padding: '0.3rem',
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '1.1rem',
+    transition: 'color 0.2s ease',
   },
   pill: {
     display: 'inline-flex',

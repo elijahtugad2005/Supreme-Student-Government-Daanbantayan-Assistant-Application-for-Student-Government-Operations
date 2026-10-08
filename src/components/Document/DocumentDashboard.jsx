@@ -439,21 +439,29 @@ function DocumentDashboard() {
             style={styles.fileInput}
             disabled={busy}
           />
-          <span style={styles.fileNote}>
-            {file
-              ? `${file.name} · ${formatBytes(file.size)}`
-              : `Accepted: ${ACCEPT_ATTRIBUTE.replace(/,/g, ', ')} · up to ${formatBytes(MAX_FILE_BYTES)}`}
-          </span>
+          {!file && (
+            <span style={styles.fileNote}>
+              Accepted: {ACCEPT_ATTRIBUTE.replace(/,/g, ', ')} · up to {formatBytes(MAX_FILE_BYTES)}
+            </span>
+          )}
         </div>
 
         {fileError && <p style={styles.errorText}>{fileError}</p>}
 
-        <div style={styles.actionRow}>
-          <button onClick={submitUpload} disabled={busy || !file} style={styles.primary}>
-            {busy ? 'Uploading…' : 'Upload document'}
-          </button>
-          {progress !== null && <span style={styles.progressNote}>{progress}%</span>}
-        </div>
+        {file && (
+          <div style={styles.selectedFile}>
+            <div style={styles.fileInfo}>
+              <strong>{file.name}</strong>
+              <span style={styles.fileSize}>{formatBytes(file.size)}</span>
+            </div>
+            <div style={styles.actionRow}>
+              <button onClick={submitUpload} disabled={busy} style={styles.primary}>
+                {busy ? 'Uploading…' : 'Upload document'}
+              </button>
+              {progress !== null && <span style={styles.progressNote}>{progress}%</span>}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── Filters ── */}
@@ -839,14 +847,29 @@ const styles = {
     alignItems: 'center',
     gap: '0.8rem',
     flexWrap: 'wrap',
-    padding: '0.8rem',
-    border: `2px dashed ${T.border}`,
-    borderRadius: '0.8rem',
-    backgroundColor: T.bgTertiary,
     marginBottom: '1rem',
   },
   fileInput: { color: T.text, fontSize: '0.85rem', maxWidth: '100%' },
   fileNote: { color: T.textSoft, fontSize: '0.78rem' },
+  selectedFile: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.8rem',
+    padding: '0.8rem',
+    borderRadius: '0.6rem',
+    border: `2px solid ${T.success}`,
+    backgroundColor: T.successLight,
+    marginBottom: '1rem',
+  },
+  fileInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.2rem',
+  },
+  fileSize: {
+    color: T.textSoft,
+    fontSize: '0.78rem',
+  },
   errorText: { color: T.error, fontSize: '0.85rem', margin: '0.4rem 0' },
   helper: { color: T.textSoft, fontSize: '0.85rem', padding: '1rem 0' },
   progressNote: { color: T.textSoft, fontSize: '0.85rem' },
