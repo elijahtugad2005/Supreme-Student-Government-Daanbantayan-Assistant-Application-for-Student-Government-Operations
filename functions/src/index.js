@@ -66,6 +66,7 @@ import { GeminiError, generateJson, needsHumanReview } from './gemini.js';
 import { openrouterGenerate } from './providers/openrouter.js';
 import { AiProviderError, PROVIDER } from './providers/errors.js';
 import { describeProviders, runWithFallback } from './ai/fallback.js';
+import { fetchFromGridFS } from './mongodb.js';
 
 // The bucket must be named explicitly. Left to infer it, the Admin SDK derives
 // "<projectId>.appspot.com", which does not match the bucket the web app writes
@@ -199,11 +200,35 @@ const loadLabels = async () => {
   return labels.filter((l) => l.active !== false && l.aiEnabled !== false);
 };
 
-/** Fetch the original file bytes from Storage. */
+/** Fetch the original file bytes from Storage or MongoDB GridFS. */
 const fetchFile = async (doc) => {
+  const backend = doc?.storageBackend || 'firebase';
+
+  if (backend === 'mongodb') {
+    if (!doc?.mongoFileId) {
+      throw new HttpsError('failed-precondition', 'This document is stored in MongoDB but has no mongoFileId.');
+    }
+    const mongoUri = process.env.MONGODB_URI;
+    logger.info('fetchFile: using mongodb backend', { documentId: doc.id, mongoFileId: doc.mongoFileId });
+    try {
+      const result = await fetchFromGridFS(doc.mongoFileId, mongoUri);
+      return { buffer: result.buffer, mimeType: result.mimeType || doc.mimeType || 'application/pdf', name: result.name || doc.originalFileName || 'document' };
+    } catch (err) {
+      if (err.code === 'MONGODB_NOT_CONFIGURED') {
+        throw new HttpsError('failed-precondition', 'MongoDB is not configured for Cloud Functions. Add MONGODB_URI to functions/.env.');
+      }
+      if (err.code === 'GRIDFS_FILE_NOT_FOUND') {
+        throw new HttpsError('not-found', `File not found in MongoDB GridFS (id: ${doc.mongoFileId}).`);
+      }
+      throw new HttpsError('internal', `MongoDB GridFS fetch failed: ${err.message}`);
+    }
+  }
+
+  // firebase backend (default / legacy)
   if (!doc?.storagePath) {
     throw new HttpsError('failed-precondition', 'This document has no file attached.');
   }
+  logger.info('fetchFile: using firebase backend', { documentId: doc.id, storagePath: doc.storagePath });
   const [buffer] = await (await admin()).storage.getStorage().bucket()
     .file(doc.storagePath)
     .download();
