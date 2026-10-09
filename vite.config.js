@@ -9,5 +9,10 @@ export default defineConfig({
   envPrefix: ['VITE_', 'TELEGRAM_'],
   build: {
     modulePreload: false,
+  },
+  server: {
+    host: '0.0.0.0', // Listen on all network interfaces
+    port: 5173,
+    strictPort: true,
   }
 })

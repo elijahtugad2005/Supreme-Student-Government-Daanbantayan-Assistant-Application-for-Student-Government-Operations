@@ -45,6 +45,7 @@ import {
   HiSearch,
   HiPencil,
   HiChevronDown,
+  HiSparkles,
 } from 'react-icons/hi';
 
 const STATUS_TONE = {
@@ -431,30 +432,39 @@ function DocumentDashboard() {
           </div>
         </div>
 
-        <div style={styles.dropRow}>
-          <input
-            type="file"
-            accept={ACCEPT_ATTRIBUTE}
-            onChange={(e) => pickFile(e.target.files?.[0])}
-            style={styles.fileInput}
-            disabled={busy}
-          />
-          {!file && (
+        {/* Step 1: Choose file (always visible) */}
+        <div style={styles.uploadStep}>
+          <div style={styles.stepHeader}>
+            <span style={styles.stepNumber}>1</span>
+            <span style={styles.stepTitle}>Choose a file</span>
+          </div>
+          <div style={styles.dropRow}>
+            <input
+              type="file"
+              accept={ACCEPT_ATTRIBUTE}
+              onChange={(e) => pickFile(e.target.files?.[0])}
+              style={styles.fileInput}
+              disabled={busy}
+            />
             <span style={styles.fileNote}>
               Accepted: {ACCEPT_ATTRIBUTE.replace(/,/g, ', ')} · up to {formatBytes(MAX_FILE_BYTES)}
             </span>
-          )}
+          </div>
+          {fileError && <p style={styles.errorText}>{fileError}</p>}
         </div>
 
-        {fileError && <p style={styles.errorText}>{fileError}</p>}
-
+        {/* Step 2: Upload (only when file selected) */}
         {file && (
-          <div style={styles.selectedFile}>
-            <div style={styles.fileInfo}>
-              <strong>{file.name}</strong>
-              <span style={styles.fileSize}>{formatBytes(file.size)}</span>
+          <div style={styles.uploadStep}>
+            <div style={styles.stepHeader}>
+              <span style={styles.stepNumber}>2</span>
+              <span style={styles.stepTitle}>Confirm and upload</span>
             </div>
-            <div style={styles.actionRow}>
+            <div style={styles.selectedFile}>
+              <div style={styles.fileInfo}>
+                <strong>{file.name}</strong>
+                <span style={styles.fileSize}>{formatBytes(file.size)}</span>
+              </div>
               <button onClick={submitUpload} disabled={busy} style={styles.primary}>
                 {busy ? 'Uploading…' : 'Upload document'}
               </button>
@@ -567,6 +577,67 @@ function DocumentDashboard() {
                 </div>
 
                 <div style={styles.rowActions}>
+                  <button
+                    type="button"
+                    title={
+                      document.aiState === 'processing'
+                        ? 'Analysing document with AI…'
+                        : document.aiState === 'ready_for_review'
+                        ? 'View AI analysis and suggestions'
+                        : document.aiState === 'approved'
+                        ? 'AI suggestions verified'
+                        : 'Analyse this document with AI'
+                    }
+                    onClick={() => {
+                      const nextOpen = openId === document.id ? '' : document.id;
+                      setOpenId(nextOpen);
+                      if (nextOpen && document.aiState !== 'ready_for_review' && document.aiState !== 'approved') {
+                        setAutoAnalyseId(document.id);
+                      }
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: `1px solid ${
+                        document.aiState === 'approved'
+                          ? '#22c55e'
+                          : document.aiState === 'ready_for_review'
+                          ? '#3b82f6'
+                          : 'rgba(99, 102, 241, 0.6)'
+                      }`,
+                      backgroundColor:
+                        document.aiState === 'approved'
+                          ? 'rgba(34, 197, 94, 0.15)'
+                          : document.aiState === 'ready_for_review'
+                          ? 'rgba(59, 130, 246, 0.18)'
+                          : 'rgba(99, 102, 241, 0.15)',
+                      color:
+                        document.aiState === 'approved'
+                          ? '#4ade80'
+                          : document.aiState === 'ready_for_review'
+                          ? '#93c5fd'
+                          : '#a5b4fc',
+                      transition: 'all 0.15s ease-in-out',
+                    }}
+                  >
+                    <HiSparkles style={{ fontSize: '0.95rem' }} />
+                    <span>
+                      {document.aiState === 'processing'
+                        ? 'Analysing…'
+                        : document.aiState === 'ready_for_review'
+                        ? 'Review AI'
+                        : document.aiState === 'approved'
+                        ? 'AI Verified'
+                        : 'Analyze'}
+                    </span>
+                  </button>
+
                   <IconBtn title="Preview" onClick={() => togglePreview(document)}>
                     <HiEye />
                   </IconBtn>
@@ -842,12 +913,41 @@ const styles = {
     gap: '0.2rem',
   },
 
+  uploadStep: {
+    marginBottom: '1.2rem',
+    padding: '1rem',
+    borderRadius: '0.7rem',
+    border: `1px solid ${T.borderSoft}`,
+    backgroundColor: T.bgTertiary,
+  },
+  stepHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    marginBottom: '0.8rem',
+  },
+  stepNumber: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '1.8rem',
+    height: '1.8rem',
+    borderRadius: '50%',
+    backgroundColor: T.accent,
+    color: T.textOnAccent,
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+  },
+  stepTitle: {
+    color: T.text,
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+  },
   dropRow: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.8rem',
     flexWrap: 'wrap',
-    marginBottom: '1rem',
   },
   fileInput: { color: T.text, fontSize: '0.85rem', maxWidth: '100%' },
   fileNote: { color: T.textSoft, fontSize: '0.78rem' },
@@ -859,7 +959,6 @@ const styles = {
     borderRadius: '0.6rem',
     border: `2px solid ${T.success}`,
     backgroundColor: T.successLight,
-    marginBottom: '1rem',
   },
   fileInfo: {
     display: 'flex',

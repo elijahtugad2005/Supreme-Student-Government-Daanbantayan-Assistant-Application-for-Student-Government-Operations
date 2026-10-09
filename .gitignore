@@ -26,6 +26,12 @@ build/
 .env.local
 .env.*.local
 
+# Firebase Admin SDK service account (NEVER commit!)
+backend/firebase-service-account.json
+backend/*firebase-adminsdk*.json
+firebase-service-account.json
+*firebase-adminsdk*.json
+
 # =========================
 # OS and system files
 # =========================

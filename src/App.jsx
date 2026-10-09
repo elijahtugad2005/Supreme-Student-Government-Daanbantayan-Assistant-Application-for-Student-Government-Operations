@@ -76,11 +76,9 @@ function App() {
         
         {/* 1. Public Dashboard Pages */}
         <Route path="/" element={
-          <ProtectedRoute allowGuest redirectTo="/login">
-            <DashboardLayout>
-              <Homepage />
-            </DashboardLayout>
-          </ProtectedRoute>
+          <DashboardLayout>
+            <Homepage />
+          </DashboardLayout>
         } />
 
         {/* 1.1 ORDER PLACEMENT */}

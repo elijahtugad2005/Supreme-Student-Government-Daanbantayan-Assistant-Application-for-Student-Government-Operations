@@ -6,7 +6,7 @@
 // Suggestions live under `aiSuggestion` until someone ticks the boxes and
 // presses Confirm, and a disagreement is recorded as a correction even when the
 // end label happens to match.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ITEM_STATE,
   aiSupported,
@@ -78,6 +78,30 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
   const [signingIndex, setSigningIndex] = useState(-1);
   const [editingCorrection, setEditingCorrection] = useState(false);
   const [reason, setReason] = useState('');
+
+  const ANALYSIS_STAGES = useMemo(() => [
+    { id: 'reading', label: 'Reading document', desc: 'Parsing binary contents and decompressing document text…' },
+    { id: 'author', label: 'Getting author & office', desc: 'Detecting author name, submitting unit and office credentials…' },
+    { id: 'labels', label: 'Identifying Labels', desc: 'Matching institutional taxonomy and classification tags…' },
+    { id: 'signatories', label: 'Getting Signatories', desc: 'Detecting official signatory blocks, positions and sign-off requirements…' },
+    { id: 'keywords', label: 'Finding Keywords', desc: 'Isolating indexable topics, agenda matters and subject keywords…' },
+    { id: 'summary', label: 'Generating Summary', desc: 'Drafting executive institutional summary & compiling final intelligence report…' },
+  ], []);
+
+  const [activeStageIndex, setActiveStageIndex] = useState(0);
+
+  const isAnalyzing = busy || queueState?.state === ITEM_STATE.ANALYZING || document?.aiState === 'processing';
+
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setActiveStageIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setActiveStageIndex((prev) => (prev < ANALYSIS_STAGES.length - 1 ? prev + 1 : prev));
+    }, 1100);
+    return () => clearInterval(interval);
+  }, [isAnalyzing, ANALYSIS_STAGES.length]);
 
   const supported = aiSupported(document);
   const suggestion = document.aiSuggestion || null;
@@ -213,6 +237,12 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     }
   };
 
+  useEffect(() => {
+    if (autoAnalysing && document && document.aiState !== 'processing' && document.aiState !== 'ready_for_review' && document.aiState !== 'approved' && !busy) {
+      analyze();
+    }
+  }, [autoAnalysing]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const confirm = async () => {
     const apply = Object.entries(selected)
       .filter(([, on]) => on)
@@ -300,6 +330,157 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
             : AI_STATE_LABEL[document.aiState] || 'Not analysed'}
         </span>
       </div>
+
+      {/* ── LIVE AI ANALYSIS FEEDBACK REPORT & ANIMATION ── */}
+      {isAnalyzing && (
+        <div style={styles.feedbackCard}>
+          <style>{`
+            @keyframes pulseBorderGlow {
+              0%, 100% { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 0 16px rgba(59, 130, 246, 0.15); }
+              50% { border-color: rgba(99, 102, 241, 0.85); box-shadow: 0 0 30px rgba(99, 102, 241, 0.4); }
+            }
+            @keyframes shimmerGradient {
+              0% { background-position: -200% 0; }
+              100% { background-position: 200% 0; }
+            }
+            @keyframes pulseDot {
+              0%, 100% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.3); opacity: 0.6; }
+            }
+          `}</style>
+
+          <div style={styles.feedbackHead}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <HiSparkles style={{ fontSize: '1.4rem', color: '#60a5fa', animation: 'pulseDot 1.5s infinite ease-in-out' }} />
+              <div>
+                <strong style={{ color: '#f8fafc', fontSize: '0.96rem', letterSpacing: '0.01em' }}>
+                  AI Analysis Feedback Report
+                </strong>
+                <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.75rem' }}>
+                  Live multi-stage neural document evaluation in progress…
+                </span>
+              </div>
+            </div>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: 'rgba(59, 130, 246, 0.18)',
+              border: '1px solid #3b82f6',
+              color: '#93c5fd',
+              borderRadius: '999px',
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}>
+              <span style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                backgroundColor: '#60a5fa',
+                animation: 'pulseDot 1s infinite'
+              }} />
+              {ANALYSIS_STAGES[activeStageIndex]?.label}
+            </span>
+          </div>
+
+          {/* Progress Bar */}
+          <div style={styles.feedbackProgressTrack}>
+            <div
+              style={{
+                ...styles.feedbackProgressFill,
+                width: `${Math.min(96, Math.round(((activeStageIndex + 1) / ANALYSIS_STAGES.length) * 100))}%`,
+              }}
+            />
+          </div>
+
+          {/* Stages Checklist */}
+          <div style={styles.feedbackStagesGrid}>
+            {ANALYSIS_STAGES.map((st, idx) => {
+              const isPast = idx < activeStageIndex;
+              const isCurrent = idx === activeStageIndex;
+              return (
+                <div
+                  key={st.id}
+                  style={{
+                    ...styles.feedbackStageItem,
+                    ...(isCurrent ? styles.feedbackStageCurrent : isPast ? styles.feedbackStagePast : styles.feedbackStageFuture),
+                  }}
+                >
+                  <div style={styles.feedbackStageStatusIcon}>
+                    {isPast ? (
+                      <HiCheckCircle style={{ color: '#22c55e', fontSize: '1.15rem' }} />
+                    ) : isCurrent ? (
+                      <span style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        backgroundColor: '#60a5fa',
+                        boxShadow: '0 0 10px #60a5fa',
+                        animation: 'pulseDot 1s infinite',
+                      }} />
+                    ) : (
+                      <span style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: '#475569',
+                      }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
+                      <strong style={{
+                        fontSize: '0.82rem',
+                        color: isCurrent ? '#60a5fa' : isPast ? '#e2e8f0' : '#64748b',
+                      }}>
+                        {st.label}
+                      </strong>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        color: isCurrent ? '#93c5fd' : isPast ? '#4ade80' : '#475569',
+                        fontWeight: 600,
+                      }}>
+                        {isPast ? 'DONE' : isCurrent ? 'RUNNING…' : 'WAITING'}
+                      </span>
+                    </div>
+                    {isCurrent && (
+                      <span style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.2rem', lineHeight: '1.3' }}>
+                        {st.desc}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Real-time Status Console Bar */}
+          <div style={styles.feedbackConsole}>
+            <span style={{ color: '#38bdf8' }}>&gt;</span>{' '}
+            <span style={{ color: '#94a3b8' }}>Pipeline Status:</span>{' '}
+            <span style={{ color: '#f1f5f9', fontWeight: 600 }}>
+              {ANALYSIS_STAGES[activeStageIndex]?.label} — {ANALYSIS_STAGES[activeStageIndex]?.desc}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Completed feedback summary pill */}
+      {!isAnalyzing && (document.aiState === 'ready_for_review' || document.aiState === 'suggested' || document.summary) && (
+        <div style={styles.completedFeedbackBanner}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <HiCheckCircle style={{ color: '#22c55e', fontSize: '1.3rem' }} />
+            <div>
+              <strong style={{ color: '#f8fafc', fontSize: '0.88rem' }}>AI Feedback Report Complete</strong>
+              <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.74rem' }}>
+                Verified: Reading document · Getting author · Identifying Labels · Getting Signatories · Finding Keywords
+              </span>
+            </div>
+          </div>
+          <span style={statusPill('success')}>Ready for review</span>
+        </div>
+      )}
 
       {status && !status.ok && (
         <p style={styles.setupWarning}>
@@ -944,5 +1125,100 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.4rem',
+  },
+
+  // ── AI LIVE FEEDBACK REPORT & ANIMATION STYLES ──
+  feedbackCard: {
+    background: 'linear-gradient(145deg, #0f172a 0%, #1e1b4b 100%)',
+    border: '1px solid #3b82f6',
+    borderRadius: '0.75rem',
+    padding: '1.25rem',
+    marginBottom: '1.2rem',
+    animation: 'pulseBorderGlow 3s infinite ease-in-out',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+  },
+  feedbackHead: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    flexWrap: 'wrap',
+  },
+  feedbackProgressTrack: {
+    height: '6px',
+    backgroundColor: 'rgba(51, 65, 85, 0.6)',
+    borderRadius: '999px',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  feedbackProgressFill: {
+    height: '100%',
+    background: 'linear-gradient(90deg, #3b82f6, #818cf8, #a855f7)',
+    borderRadius: '999px',
+    transition: 'width 0.4s ease',
+  },
+  feedbackStagesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: '0.65rem',
+  },
+  feedbackStageItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.7rem',
+    padding: '0.65rem 0.85rem',
+    borderRadius: '0.5rem',
+    transition: 'all 0.3s ease',
+  },
+  feedbackStagePast: {
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    border: '1px solid rgba(34, 197, 94, 0.3)',
+  },
+  feedbackStageCurrent: {
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    border: '1px solid #3b82f6',
+    boxShadow: '0 0 14px rgba(59, 130, 246, 0.25)',
+  },
+  feedbackStageFuture: {
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    border: '1px solid rgba(51, 65, 85, 0.5)',
+    opacity: 0.7,
+  },
+  feedbackStageStatusIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: '0.15rem',
+    width: '18px',
+    flexShrink: 0,
+  },
+  feedbackConsole: {
+    fontFamily: 'Consolas, Monaco, monospace',
+    fontSize: '0.78rem',
+    backgroundColor: '#090d16',
+    border: '1px solid #1e293b',
+    borderRadius: '0.4rem',
+    padding: '0.55rem 0.85rem',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+  },
+  completedFeedbackBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '0.8rem',
+    padding: '0.75rem 1rem',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    border: '1px solid rgba(16, 185, 129, 0.35)',
+    borderRadius: '0.55rem',
+    marginBottom: '1.2rem',
+    flexWrap: 'wrap',
   },
 };

@@ -14,11 +14,42 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
 import { GEMINI_LIMITS, recordUsage } from '../utils/aiCapacity';
 
-const FUNCTIONS_REGION = 'us-central1';
+const BACKEND_URL = import.meta.env.VITE_MONGODB_BACKEND_URL || 'http://localhost:3000';
+
+const callBackendAi = async (name, data) => {
+  try {
+    const { auth } = await import('../firebase/firebaseConfig.js');
+    const token = await auth.currentUser?.getIdToken?.();
+    const res = await fetch(`${BACKEND_URL}/api/ai/${name}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(data || {}),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || errData.error || `AI service error: ${res.statusText}`);
+    }
+    const result = await res.json();
+    return { data: result };
+  } catch (err) {
+    console.error(`[AI Backend Fallback] Error calling ${name}:`, err);
+    throw err;
+  }
+};
 
 const callable = (name) => {
-  const fns = getFunctions(getApp(), FUNCTIONS_REGION);
-  return httpsCallable(fns, name);
+  return async (data) => {
+    try {
+      const fns = getFunctions(getApp(), FUNCTIONS_REGION);
+      return await httpsCallable(fns, name)(data);
+    } catch (cfErr) {
+      console.warn(`[AI] Cloud Function "${name}" unavailable (${cfErr.code || cfErr.message}), routing to Express Backend API...`);
+      return await callBackendAi(name, data);
+    }
+  };
 };
 
 /**
@@ -27,13 +58,14 @@ const callable = (name) => {
  * Three requests per document against a 15/minute ceiling works out at roughly
  * five documents per minute. 12s between items leaves headroom for retries.
  */
-export const QUEUE_INTERVAL_MS = 12_000;
+export const QUEUE_INTERVAL_MS = 5_000;
 
 /** Files the function cannot read; not worth queueing. */
 export const AI_UNSUPPORTED = ['application/msword'];
 
 export const aiSupported = (document) =>
-  !!document?.storagePath &&
+  // Accept local/firebase (storagePath) OR MongoDB GridFS (mongoFileId)
+  (!!document?.storagePath || !!document?.mongoFileId) &&
   !AI_UNSUPPORTED.includes(document?.mimeType) &&
   !String(document?.originalFileName || '').toLowerCase().endsWith('.doc');
 

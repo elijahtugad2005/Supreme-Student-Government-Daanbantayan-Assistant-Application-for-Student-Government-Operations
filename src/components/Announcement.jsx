@@ -67,6 +67,7 @@ const [selectedImage, setSelectedImage] = useState(null);
   // Glass dialog — replaces window.alert / window.confirm
   const [dialog, setDialog] = useState(null);
   const dialogResolver = useRef(null);
+  const fileInputRef = useRef(null);
 
   const closeDialog = useCallback((result) => {
     setDialog(null);
@@ -382,7 +383,8 @@ const handleImageChange = async (e) => {
 
         setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
         setImagePreview(null); 
-        setSelectedImage(null); // ADD THIS
+        setSelectedImage(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
         setFormErrors({});
         setTelegramChannel('');
         resetPublishState();
@@ -454,6 +456,7 @@ const handleImageChange = async (e) => {
         setEditingAnnouncementId(null);
         setImagePreview(null);
         setSelectedImage(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
         setFormErrors({});
         setTelegramChannel('');
         resetPublishState();
@@ -1283,6 +1286,7 @@ const handleImageChange = async (e) => {
               <div className={styles.formGroup}>
                 <label className={styles.label}>Announcement Image</label>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
@@ -1300,6 +1304,7 @@ const handleImageChange = async (e) => {
                       onClick={() => {
                         setImagePreview(null);
                         setAnnouncementForm(prev => ({ ...prev, imageBase64: '' }));
+                        if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
                       className={styles.removeImageBtn}
                     >

@@ -79,6 +79,16 @@ export async function sendAnnouncementToTelegram({ channel, message, imageBase64
     // punctuation and line breaks are delivered as written.
     parse_mode: 'HTML',
     disable_web_page_preview: true,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: '❤️ Seen',
+            callback_data: 'reaction_heart'
+          }
+        ]
+      ]
+    },
   });
 
   // The message id is kept so the message can be removed later if the

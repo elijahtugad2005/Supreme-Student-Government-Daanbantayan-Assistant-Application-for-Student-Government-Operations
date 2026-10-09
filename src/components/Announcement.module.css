@@ -327,9 +327,9 @@
   flex: 1;
   min-width: 160px;
   padding: 0.625rem 1rem;
-  background: var(--ann-card-bg);
+  background: linear-gradient(135deg, var(--ann-accent) 0%, rgba(217, 79, 31, 0.85) 100%);
   color: white;
-  border: 1px solid var(--ann-border);
+  border: 1px solid var(--ann-accent);
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -340,13 +340,13 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  box-shadow: 0 2px 8px rgba(217, 79, 31, 0.3);
+  box-shadow: 0 2px 8px rgba(217, 79, 31, 0.35);
 }
 
 .submitButton:hover {
-  background: linear-gradient(135deg, var(--ann-accent-hover) 0%, rgba(217, 79, 31, 0.9) 100%);
+  background: linear-gradient(135deg, var(--ann-accent-hover) 0%, rgba(217, 79, 31, 0.95) 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(217, 79, 31, 0.4);
+  box-shadow: 0 4px 14px rgba(217, 79, 31, 0.5);
 }
 
 .submitButton:disabled {

@@ -202,14 +202,15 @@ const loadLabels = async () => {
 
 /** Fetch the original file bytes from Storage or MongoDB GridFS. */
 const fetchFile = async (doc) => {
-  const backend = doc?.storageBackend || 'firebase';
+  // Support both field names: storageType (frontend) and storageBackend (legacy)
+  const backend = doc?.storageType || doc?.storageBackend || 'firebase';
 
   if (backend === 'mongodb') {
     if (!doc?.mongoFileId) {
       throw new HttpsError('failed-precondition', 'This document is stored in MongoDB but has no mongoFileId.');
     }
     const mongoUri = process.env.MONGODB_URI;
-    logger.info('fetchFile: using mongodb backend', { documentId: doc.id, mongoFileId: doc.mongoFileId });
+    logger.info('fetchFile: using mongodb backend', { documentId: doc.id, mongoFileId: doc.mongoFileId, fieldUsed: doc.storageType ? 'storageType' : 'storageBackend' });
     try {
       const result = await fetchFromGridFS(doc.mongoFileId, mongoUri);
       return { buffer: result.buffer, mimeType: result.mimeType || doc.mimeType || 'application/pdf', name: result.name || doc.originalFileName || 'document' };

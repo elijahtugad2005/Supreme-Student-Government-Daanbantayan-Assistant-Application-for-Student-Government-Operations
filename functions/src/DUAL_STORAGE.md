@@ -10,11 +10,12 @@ This document explains how the system works and how to configure it.
 
 ## How It Works
 
-When a document is analyzed, the `fetchFile()` function checks the Firestore document's `storageBackend` field:
+When a document is analyzed, the `fetchFile()` function checks the Firestore document's `storageType` field (or `storageBackend` for backward compatibility):
 
 ```javascript
 const fetchFile = async (doc) => {
-  const backend = doc?.storageBackend || 'firebase';
+  // Support both field names: storageType (frontend) and storageBackend (legacy)
+  const backend = doc?.storageType || doc?.storageBackend || 'firebase';
   
   if (backend === 'mongodb') {
     // Fetch from MongoDB GridFS using doc.mongoFileId
@@ -24,7 +25,7 @@ const fetchFile = async (doc) => {
 };
 ```
 
-The `storageBackend` field is set by the upload service when a document is created. Cloud Functions **only read** this field — they never write it.
+The `storageType` field is set by the upload service when a document is created. Cloud Functions **only read** this field — they never write it.
 
 ---
 
@@ -36,7 +37,7 @@ The `storageBackend` field is set by the upload service when a document is creat
 {
   id: "abc123",
   title: "Sample Document",
-  storageBackend: "mongodb",           // tells Cloud Functions where to fetch
+  storageType: "mongodb",                // tells Cloud Functions where to fetch
   mongoFileId: "507f1f77bcf86cd799439011",  // ObjectId from GridFS
   mimeType: "application/pdf",
   originalFileName: "sample.pdf",
@@ -50,13 +51,15 @@ The `storageBackend` field is set by the upload service when a document is creat
 {
   id: "xyz789",
   title: "Legacy Document",
-  storageBackend: "firebase",          // or omitted (defaults to firebase)
+  storageType: "firebase",              // or omitted (defaults to firebase)
   storagePath: "documents/xyz789.pdf", // path in Firebase Storage bucket
   mimeType: "application/pdf",
   originalFileName: "legacy.pdf",
   // ... other fields
 }
 ```
+
+**Note**: The system also supports `storageBackend` as an alias for `storageType` for backward compatibility.
 
 ---
 
