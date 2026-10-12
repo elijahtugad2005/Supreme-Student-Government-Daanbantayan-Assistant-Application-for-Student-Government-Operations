@@ -20,6 +20,25 @@ import {
   deleteTelegramMessage,
   isTelegramReady,
 } from '../services/telegramService';
+import { 
+  FiCalendar, 
+  FiClock, 
+  FiMapPin, 
+  FiTag, 
+  FiImage, 
+  FiSend, 
+  FiSave, 
+  FiX, 
+  FiCheckCircle, 
+  FiAlertCircle, 
+  FiEye, 
+  FiGlobe, 
+  FiLock,
+  FiUploadCloud,
+  FiTrash2
+} from 'react-icons/fi';
+import { HiSpeakerphone } from 'react-icons/hi';
+import { FaTelegramPlane } from 'react-icons/fa';
 
 const EMPTY_ANNOUNCEMENT_FORM = {
   title: '',
@@ -626,6 +645,24 @@ const handleImageChange = async (e) => {
           error: problem && problem.status !== 'published' ? problem.error : '',
         },
       });
+
+      // Fully sent: tell the manager, then clear the form for the next one.
+      // Partial/failed keeps the form so they can retry without retyping.
+      if (overall === 'published') {
+        await notify({
+          tone: 'success',
+          title: 'Announcement published',
+          message: `"${announcementForm.title}" was saved and sent to Telegram.`,
+        });
+        setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
+        setEditingAnnouncementId(null);
+        setImagePreview(null);
+        setSelectedImage(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        setFormErrors({});
+        setTelegramChannel('');
+        resetPublishState();
+      }
     } catch (error) {
       console.error('Telegram publish failed:', error);
       // Only a generic, redacted message ever reaches the UI
@@ -739,15 +776,25 @@ const handleImageChange = async (e) => {
     }
   };
 
+  const eventFormRef = useRef(null);
+
   const handleEditEvent = (event) => {
     setEditingEventId(event.id);
     setEventForm({
       eventName: event.eventName,
       eventDate: event.eventDate,
       eventType: event.eventType,
-      requiresAttendance: event.requiresAttendance,
-      description: event.description,
+      requiresAttendance: event.requiresAttendance || false,
+      description: event.description || '',
     });
+    // Smooth scroll directly to the edit form so user immediately sees and can modify the form
+    setTimeout(() => {
+      if (eventFormRef.current) {
+        eventFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+      }
+    }, 50);
   };
 
   const handleUpdateEvent = async (e) => {
@@ -1148,174 +1195,219 @@ const handleImageChange = async (e) => {
         <div>
           {/* ADD/EDIT ANNOUNCEMENT FORM */}
           <div className={styles.formWrapper}>
-            <h3 className={styles.sectionTitle}>
-              {editingAnnouncementId ? '✏️ Edit Announcement' : '➕ Create New Announcement'}
-            </h3>
+            <div className={styles.formHeader}>
+              <div className={styles.formHeaderLeft}>
+                <div className={styles.formIconBubble}>
+                  <HiSpeakerphone className={styles.formBubbleIcon} />
+                </div>
+                <div>
+                  <span className={styles.formEyebrow}>BROADCAST MANAGEMENT</span>
+                  <h3 className={styles.sectionTitle}>
+                    {editingAnnouncementId ? 'Edit Campus Announcement' : 'Publish New Announcement'}
+                  </h3>
+                </div>
+              </div>
+
+              {editingAnnouncementId && (
+                <div className={styles.editModeIndicator}>
+                  <span>Editing Mode Active</span>
+                </div>
+              )}
+            </div>
 
             <form onSubmit={editingAnnouncementId ? handleUpdateAnnouncement : handleAddAnnouncement} className={styles.form} noValidate>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Announcement Title <span className={styles.required}>*</span>
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={announcementForm.title}
-                  onChange={handleAnnouncementChange}
-                  placeholder="e.g., Student Council Meeting"
-                  className={`${styles.input} ${formErrors.title ? styles.inputError : ''}`}
-                  required
-                />
-                {formErrors.title && <span className={styles.fieldError}>{formErrors.title}</span>}
-              </div>
+              
+              {/* PRIMARY CONTENT FIELDS */}
+              <div className={styles.formCard}>
+                <div className={styles.formCardHeader}>
+                  <FiTag className={styles.cardHeaderIcon} />
+                  <span>General Information</span>
+                </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Announcement Type <span className={styles.required}>*</span>
-                </label>
-                <select
-                  name="type"
-                  value={announcementForm.type}
-                  onChange={(e) => {
-                    handleAnnouncementChange(e);
-                    resetPublishState();
-                  }}
-                  className={styles.select}
-                >
-                  <option value="">Select Announcement Type</option>
-                  {ANNOUNCEMENT_TYPE_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {ANNOUNCEMENT_TYPES[value].label}
-                    </option>
-                  ))}
-                </select>
-                <p className={styles.helperText}>
-                  Sets the emoji and title that open the Telegram message. It does not
-                  change the announcement text you write below.
-                </p>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Description <span className={styles.required}>*</span>
-                </label>
-                <textarea
-                  name="description"
-                  value={announcementForm.description}
-                  onChange={handleAnnouncementChange}
-                  placeholder="Write the announcement exactly how you want it posted..."
-                  rows="6"
-                  className={`${styles.textarea} ${formErrors.description ? styles.inputError : ''}`}
-                  required
-                />
-                {formErrors.description && <span className={styles.fieldError}>{formErrors.description}</span>}
-                <p className={styles.helperText}>
-                  This is your custom message. It is used for the website and sent to
-                  Telegram unchanged.
-                </p>
-              </div>
-
-              <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>
-                    Venue <span className={styles.required}>*</span>
+                    Announcement Title <span className={styles.required}>*</span>
                   </label>
                   <input
                     type="text"
-                    name="venue"
-                    value={announcementForm.venue}
+                    name="title"
+                    value={announcementForm.title}
                     onChange={handleAnnouncementChange}
-                    placeholder="e.g., Main Auditorium"
-                    className={`${styles.input} ${formErrors.venue ? styles.inputError : ''}`}
+                    placeholder="e.g., Mandatory Supreme Student Government Assembly"
+                    className={`${styles.input} ${formErrors.title ? styles.inputError : ''}`}
                     required
                   />
-                  {formErrors.venue && <span className={styles.fieldError}>{formErrors.venue}</span>}
+                  {formErrors.title && <span className={styles.fieldError}>{formErrors.title}</span>}
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Category <span className={styles.required}>*</span>
-                  </label>
-                  <select
-                    name="category"
-                    value={announcementForm.category}
-                    onChange={handleAnnouncementChange}
-                    className={styles.select}
-                  >
-                    <option value="General">General</option>
-                    <option value="Academic">Academic</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Cultural">Cultural</option>
-                    <option value="Meeting">Meeting</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Event Date <span className={styles.required}>*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="eventDate"
-                    value={announcementForm.eventDate}
-                    onChange={handleAnnouncementChange}
-                    className={`${styles.input} ${formErrors.eventDate ? styles.inputError : ''}`}
-                    required
-                  />
-                  {formErrors.eventDate && <span className={styles.fieldError}>{formErrors.eventDate}</span>}
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Event Time <span className={styles.required}>*</span>
-                  </label>
-                  <input
-                    type="time"
-                    name="eventTime"
-                    value={announcementForm.eventTime}
-                    onChange={handleAnnouncementChange}
-                    className={`${styles.input} ${formErrors.eventTime ? styles.inputError : ''}`}
-                    required
-                  />
-                  {formErrors.eventTime && <span className={styles.fieldError}>{formErrors.eventTime}</span>}
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Announcement Image</label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className={styles.fileInput}
-                />
-                <p className={styles.helperText}>
-                  JPG or PNG, max 1MB (auto-compressed)
-                </p>
-                
-                {imagePreview && (
-                  <div className={styles.imagePreviewContainer}>
-                    <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImagePreview(null);
-                        setAnnouncementForm(prev => ({ ...prev, imageBase64: '' }));
-                        if (fileInputRef.current) fileInputRef.current.value = '';
+                <div className={styles.formRowTwo}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Announcement Type <span className={styles.required}>*</span>
+                    </label>
+                    <select
+                      name="type"
+                      value={announcementForm.type}
+                      onChange={(e) => {
+                        handleAnnouncementChange(e);
+                        resetPublishState();
                       }}
-                      className={styles.removeImageBtn}
+                      className={styles.select}
                     >
-                      ✕ Remove
-                    </button>
+                      <option value="">Select Announcement Type</option>
+                      {ANNOUNCEMENT_TYPE_VALUES.map((value) => (
+                        <option key={value} value={value}>
+                          {ANNOUNCEMENT_TYPES[value].label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={styles.helperText}>
+                      Sets the emoji + formal prefix broadcasted to external channels.
+                    </p>
                   </div>
-                )}
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Internal Category <span className={styles.required}>*</span>
+                    </label>
+                    <select
+                      name="category"
+                      value={announcementForm.category}
+                      onChange={handleAnnouncementChange}
+                      className={styles.select}
+                    >
+                      <option value="General">General</option>
+                      <option value="Academic">Academic</option>
+                      <option value="Sports">Sports</option>
+                      <option value="Cultural">Cultural</option>
+                      <option value="Meeting">Meeting</option>
+                    </select>
+                    <p className={styles.helperText}>
+                      Used for portal filtering and archive classification.
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Announcement Message Body <span className={styles.required}>*</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    value={announcementForm.description}
+                    onChange={handleAnnouncementChange}
+                    placeholder="Provide details, agendas, requirements, and reminders for the student body..."
+                    rows="5"
+                    className={`${styles.textarea} ${formErrors.description ? styles.inputError : ''}`}
+                    required
+                  />
+                  {formErrors.description && <span className={styles.fieldError}>{formErrors.description}</span>}
+                  <p className={styles.helperText}>
+                    Line breaks, spacing, and emojis are preserved and formatted as HTML.
+                  </p>
+                </div>
               </div>
 
-              {/* HOMEPAGE RELEASE */}
-              <div className={styles.releaseBlock}>
+              {/* LOGISTICS & SCHEDULE */}
+              <div className={styles.formCard}>
+                <div className={styles.formCardHeader}>
+                  <FiClock className={styles.cardHeaderIcon} />
+                  <span>Logistics, Venue & Scheduling</span>
+                </div>
+
+                <div className={styles.formRowThree}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      <FiMapPin className={styles.fieldIconInline} /> Venue <span className={styles.required}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="venue"
+                      value={announcementForm.venue}
+                      onChange={handleAnnouncementChange}
+                      placeholder="e.g., Campus Gymnasium / Main Auditorium"
+                      className={`${styles.input} ${formErrors.venue ? styles.inputError : ''}`}
+                      required
+                    />
+                    {formErrors.venue && <span className={styles.fieldError}>{formErrors.venue}</span>}
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      <FiCalendar className={styles.fieldIconInline} /> Event Date <span className={styles.required}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="eventDate"
+                      value={announcementForm.eventDate}
+                      onChange={handleAnnouncementChange}
+                      className={`${styles.input} ${formErrors.eventDate ? styles.inputError : ''}`}
+                      required
+                    />
+                    {formErrors.eventDate && <span className={styles.fieldError}>{formErrors.eventDate}</span>}
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      <FiClock className={styles.fieldIconInline} /> Event Time <span className={styles.required}>*</span>
+                    </label>
+                    <input
+                      type="time"
+                      name="eventTime"
+                      value={announcementForm.eventTime}
+                      onChange={handleAnnouncementChange}
+                      className={`${styles.input} ${formErrors.eventTime ? styles.inputError : ''}`}
+                      required
+                    />
+                    {formErrors.eventTime && <span className={styles.fieldError}>{formErrors.eventTime}</span>}
+                  </div>
+                </div>
+
+                {/* IMAGE UPLOAD & DROPZONE */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    <FiImage className={styles.fieldIconInline} /> Banner / Media Attachment (Optional)
+                  </label>
+                  
+                  <div className={styles.uploadZone}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className={styles.fileInputHidden}
+                      id="announcement-file-upload"
+                    />
+                    <label htmlFor="announcement-file-upload" className={styles.uploadDropLabel}>
+                      <FiUploadCloud className={styles.uploadCloudIcon} />
+                      <span className={styles.uploadMainText}>Click to upload official banner graphic</span>
+                      <span className={styles.uploadSubText}>PNG or JPG (auto-compressed for database efficiency)</span>
+                    </label>
+                  </div>
+                  
+                  {imagePreview && (
+                    <div className={styles.imagePreviewContainer}>
+                      <div className={styles.previewImageFrame}>
+                        <img src={imagePreview} alt="Announcement preview" className={styles.imagePreview} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null);
+                          setAnnouncementForm(prev => ({ ...prev, imageBase64: '' }));
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className={styles.removeImageBtn}
+                      >
+                        <FiTrash2 /> Remove Attachment
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* HOMEPAGE RELEASE TOGGLE */}
+              <div className={`${styles.releaseBlock} ${announcementForm.homepageVisible ? styles.releaseBlockActive : ''}`}>
                 <label className={styles.releaseToggle}>
                   <input
                     type="checkbox"
@@ -1325,132 +1417,157 @@ const handleImageChange = async (e) => {
                     className={styles.checkbox}
                   />
                   <span className={styles.releaseToggleText}>
-                    <strong>Release to Homepage</strong>
+                    <span className={styles.releaseTitleRow}>
+                      {announcementForm.homepageVisible ? <FiGlobe className={styles.globeIconActive} /> : <FiLock className={styles.globeIconMuted} />}
+                      <strong>Publish to CTU-DB Public Homepage</strong>
+                    </span>
                     <span className={styles.releaseToggleHint}>
                       {announcementForm.homepageVisible
-                        ? '✅ This announcement will appear in the Homepage announcement section.'
-                        : '🔒 Saved privately. It will stay out of the Homepage announcement section until you tick this.'}
+                        ? 'Active — Announcement will immediately display on the public student portal homepage carousel.'
+                        : 'Private — Kept in officer records only. Will not appear on the public homepage until enabled.'}
                     </span>
                   </span>
                 </label>
               </div>
 
-              {/* TELEGRAM PREVIEW */}
-              <div className={styles.telegramBlock}>
-                <span className={styles.telegramBlockLabel}>Telegram Preview</span>
-                {selectedTypeConfig ? (
-                  <pre className={styles.telegramPreview}>{renderTelegramText(telegramParts)}</pre>
-                ) : (
-                  <p className={styles.telegramPlaceholder}>
-                    Select an Announcement Type to see the Telegram message.
-                  </p>
-                )}
+              {/* TELEGRAM EXTERNAL BROADCAST CONSOLE */}
+              <div className={styles.telegramPanel}>
+                <div className={styles.telegramPanelHeader}>
+                  <div className={styles.tgHeaderLeft}>
+                    <FaTelegramPlane className={styles.tgIcon} />
+                    <div>
+                      <h4 className={styles.tgTitle}>Telegram Instant Broadcast Gateway</h4>
+                      <p className={styles.tgSubtitle}>Multicast announcements to registered campus subscriber channels</p>
+                    </div>
+                  </div>
+                  <span className={styles.tgStatusChip}>
+                    {telegramChannel ? 'Channel Target Selected' : 'Optional Delivery'}
+                  </span>
+                </div>
+
+                <div className={styles.tgBodyGrid}>
+                  {/* Left: Channel Selector */}
+                  <div className={styles.tgChannelsCol}>
+                    <span className={styles.telegramBlockLabel}>Target Destination Channel</span>
+                    <div className={styles.channelOptions}>
+                      {Object.values(TELEGRAM_CHANNELS).map((channel) => (
+                        <label
+                          key={channel.value}
+                          className={`${styles.channelOption} ${telegramChannel === channel.value ? styles.channelOptionActive : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name="telegramChannel"
+                            value={channel.value}
+                            checked={telegramChannel === channel.value}
+                            onChange={(e) => {
+                              setTelegramChannel(e.target.value);
+                              resetPublishState();
+                            }}
+                            className={styles.radioNative}
+                          />
+                          <span className={styles.channelOptionName}>{channel.label}</span>
+                        </label>
+                      ))}
+
+                      <label
+                        className={`${styles.channelOption} ${telegramChannel === BOTH_CHANNELS ? styles.channelOptionActive : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name="telegramChannel"
+                          value={BOTH_CHANNELS}
+                          checked={telegramChannel === BOTH_CHANNELS}
+                          onChange={(e) => {
+                            setTelegramChannel(e.target.value);
+                            resetPublishState();
+                          }}
+                          className={styles.radioNative}
+                        />
+                        <span className={styles.channelOptionName}>Broadcast Both Channels</span>
+                      </label>
+                    </div>
+
+                    {/* Readiness summary */}
+                    <div className={styles.publishSummary}>
+                      {publishChecks.map((check) => (
+                        <div key={check.label} className={styles.publishSummaryRow}>
+                          <span className={styles.publishSummaryLabel}>{check.label}</span>
+                          <span className={`${styles.publishSummaryValue} ${check.ok ? styles.summaryOk : styles.publishSummaryMissing}`}>
+                            {check.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {telegramChannel && !targetChannels.every((c) => isTelegramReady(c)) && (
+                      <p className={styles.publishWarning}>
+                        <FiAlertCircle /> Telegram token or channel ID not detected in environment.
+                      </p>
+                    )}
+
+                    <div className={styles.publishActionRow}>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmOpen(true)}
+                        disabled={!canPublish}
+                        className={styles.publishButton}
+                      >
+                        <FaTelegramPlane />
+                        {publishStatus === 'publishing' ? 'Transmitting Broadcast...' : 'Dispatch Telegram Broadcast'}
+                      </button>
+
+                      {publishStatus === 'published' && (
+                        <span className={styles.publishStatusSuccess}>
+                          <FiCheckCircle /> Broadcast Delivered
+                        </span>
+                      )}
+                      {publishStatus === 'partial' && publishError && (
+                        <span className={styles.publishStatusPartial}>
+                          <FiAlertCircle /> Text sent, photo error: {publishError}
+                        </span>
+                      )}
+                      {publishStatus === 'failed' && publishError && (
+                        <span className={styles.publishStatusError}>
+                          <FiX /> {publishError}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Live Preview Box */}
+                  <div className={styles.tgPreviewCol}>
+                    <span className={styles.telegramBlockLabel}>Subscriber Screen Preview</span>
+                    {selectedTypeConfig ? (
+                      <div className={styles.tgBubbleMockup}>
+                        <pre className={styles.telegramPreview}>{renderTelegramText(telegramParts)}</pre>
+                        <div className={styles.tgReactionRow}>
+                          <span className={styles.tgReactionPill}>❤️ Seen 0</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.telegramPlaceholder}>
+                        <FiEye className={styles.tgPlaceholderIcon} />
+                        <p>Select an Announcement Type above to preview the subscriber message template.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* PUBLISH */}
-              <div className={styles.telegramBlock}>
-                <span className={styles.telegramBlockLabel}>Publish To</span>
-                <div className={styles.channelOptions}>
-                  {Object.values(TELEGRAM_CHANNELS).map((channel) => (
-                    <label
-                      key={channel.value}
-                      className={`${styles.channelOption} ${telegramChannel === channel.value ? styles.channelOptionActive : ''}`}
-                    >
-                      <input
-                        type="radio"
-                        name="telegramChannel"
-                        value={channel.value}
-                        checked={telegramChannel === channel.value}
-                        onChange={(e) => {
-                          setTelegramChannel(e.target.value);
-                          resetPublishState();
-                        }}
-                        className={styles.checkbox}
-                      />
-                      <span>{channel.label}</span>
-                    </label>
-                  ))}
-
-                  <label
-                    className={`${styles.channelOption} ${telegramChannel === BOTH_CHANNELS ? styles.channelOptionActive : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="telegramChannel"
-                      value={BOTH_CHANNELS}
-                      checked={telegramChannel === BOTH_CHANNELS}
-                      onChange={(e) => {
-                        setTelegramChannel(e.target.value);
-                        resetPublishState();
-                      }}
-                      className={styles.checkbox}
-                    />
-                    <span>Both Channels</span>
-                  </label>
-                </div>
-
-                {/* Readiness summary */}
-                <div className={styles.publishSummary}>
-                  {publishChecks.map((check) => (
-                    <div key={check.label} className={styles.publishSummaryRow}>
-                      <span className={styles.publishSummaryLabel}>{check.label}</span>
-                      <span className={`${styles.publishSummaryValue} ${check.ok ? '' : styles.publishSummaryMissing}`}>
-                        {check.value}
-                      </span>
-                    </div>
-                  ))}
-                  {!announcementForm.description.trim() && (
-                    <div className={styles.publishSummaryRow}>
-                      <span className={styles.publishSummaryLabel}>Message:</span>
-                      <span className={`${styles.publishSummaryValue} ${styles.publishSummaryMissing}`}>
-                        Empty
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {telegramChannel && !targetChannels.every((c) => isTelegramReady(c)) && (
-                  <p className={styles.publishWarning}>
-                    ⚠️ Telegram is not fully configured for {selectedChannelConfig?.label}. Add the
-                    bot token and any missing channel IDs to your environment file.
-                  </p>
-                )}
-
-                <div className={styles.publishRow}>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmOpen(true)}
-                    disabled={!canPublish}
-                    className={styles.publishButton}
-                  >
-                    {publishStatus === 'publishing' ? '⏳ Publishing...' : '📤 Publish'}
-                  </button>
-
-                  {publishStatus === 'published' && (
-                    <span className={styles.publishStatusSuccess}>✓ Published successfully</span>
-                  )}
-                  {publishStatus === 'partial' && publishError && (
-                    <span className={styles.publishStatusPartial}>
-                      ⚠ Text sent, but the photo failed: {publishError}
-                    </span>
-                  )}
-                  {publishStatus === 'failed' && publishError && (
-                    <span className={styles.publishStatusError}>✕ {publishError}</span>
-                  )}
-                </div>
-              </div>
-
+              {/* ACTION FOOTER */}
               <div className={styles.buttonGroup}>
                 <button
                   type="submit"
                   disabled={loading}
                   className={styles.submitButton}
                 >
+                  <FiSave />
                   {loading 
-                    ? '⏳ Processing...' 
+                    ? 'Saving Announcement...' 
                     : editingAnnouncementId 
-                      ? '💾 Update Announcement' 
-                      : '➕ Add Announcement'}
+                      ? 'Save & Update Announcement' 
+                      : 'Publish Announcement'}
                 </button>
 
                 {editingAnnouncementId && (
@@ -1461,12 +1578,13 @@ const handleImageChange = async (e) => {
                       setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
                       setImagePreview(null);
                       setSelectedImage(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
                       setTelegramChannel('');
                       resetPublishState();
                     }}
                     className={styles.cancelButton}
                   >
-                    ❌ Cancel
+                    <FiX /> Cancel Changes
                   </button>
                 )}
               </div>
@@ -1629,7 +1747,10 @@ const handleImageChange = async (e) => {
       {activeTab === 'calendar' && (
         <div>
           {/* ADD/EDIT EVENT FORM */}
-          <div className={styles.formWrapper}>
+          <div 
+            ref={eventFormRef}
+            className={`${styles.formWrapper} ${editingEventId ? styles.formEditingActive : ''}`}
+          >
             <h3 className={styles.sectionTitle}>
               {editingEventId ? '✏️ Edit Calendar Event' : '➕ Add Calendar Event'}
             </h3>

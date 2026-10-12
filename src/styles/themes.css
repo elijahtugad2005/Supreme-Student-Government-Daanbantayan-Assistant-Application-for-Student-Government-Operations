@@ -249,129 +249,227 @@ html.theme-light .campusLocation {
   color: #94A3B8 !important;
 }
 
-/* ─── Sidebar: white surface ─── */
+/* ─── Sidebar: Swiss Industrial Brutalist Light Surface ─── */
 html.theme-light .sidebarContainer,
 html.theme-light [class*="Sidebar_container"] {
-  background-color: #FFFFFF;
-  border-right: 1px solid #D9DEE7;
-  box-shadow: 1px 0 4px rgba(15, 23, 42, 0.06);
+  background-color: #F4F4F0 !important;
+  border-right: 2px solid #0A0A0A !important;
+  box-shadow: 4px 0px 0px #0A0A0A !important;
+  border-radius: 0px !important;
 }
 
 /* Sidebar header section */
 html.theme-light [class*="Sidebar_sidebarHeader"] {
-  background-color: #FFFFFF;
-  border-bottom: 1px solid #D9DEE7;
+  background-color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
 }
 
-/* Sidebar nav links — dark readable text */
+html.theme-light [class*="Sidebar_logo"] {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+html.theme-light [class*="Sidebar_logoText"] {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  letter-spacing: -0.02em !important;
+  text-transform: uppercase !important;
+}
+
+/* Sidebar nav links — Swiss monospaced rigid tabs */
 html.theme-light [class*="Sidebar_navLink"] {
-  color: #334155;
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+  border: 2px solid transparent !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.02em !important;
+  transition: all 0.15s ease !important;
 }
 
 html.theme-light [class*="Sidebar_navLink"]:hover {
-  background-color: #EFF6FF;
-  color: #2563EB;
+  background-color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  color: #0A0A0A !important;
+  transform: translateX(4px) !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
-/* Active nav item — blue, readable */
+/* Active nav item — Solid black inversion with red accent */
 html.theme-light [class*="Sidebar_active"] {
-  background-color: #2563EB;
-  color: #FFFFFF;
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+html.theme-light [class*="Sidebar_active"] [class*="Sidebar_navIcon"],
+html.theme-light [class*="Sidebar_active"] svg {
+  color: #E61919 !important;
 }
 
 html.theme-light [class*="Sidebar_active"]:hover {
-  background-color: #1D4ED8;
-  color: #FFFFFF;
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  transform: none !important;
 }
 
 /* User info block in sidebar */
 html.theme-light [class*="Sidebar_userInfo"] {
-  background-color: #F4F5F7;
-  border: 1px solid #D9DEE7;
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+html.theme-light [class*="Sidebar_userAvatar"] {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  border: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+html.theme-light [class*="Sidebar_userName"] {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
 }
 
 html.theme-light [class*="Sidebar_userRole"] {
-  background-color: #EFF6FF;
-  color: #2563EB;
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
 }
 
 /* Settings button */
 html.theme-light [class*="Sidebar_settingsButton"] {
-  border-color: #D9DEE7;
-  color: #334155;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  background-color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
 html.theme-light [class*="Sidebar_settingsButton"]:hover {
-  background-color: #EFF6FF;
-  border-color: #2563EB;
-  color: #2563EB;
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+html.theme-light [class*="Sidebar_settingsButton"]:hover svg {
+  color: #E61919 !important;
 }
 
 /* Button section footer */
 html.theme-light [class*="Sidebar_buttonSection"] {
-  background-color: #FFFFFF;
-  border-top: 1px solid #D9DEE7;
+  background-color: #F4F4F0 !important;
+  border-top: 2px solid #0A0A0A !important;
 }
 
-/*
-  Logout button — restrained in light mode.
-  Destructive meaning kept via red text & red hover,
-  but NOT a solid red block that dominates the sidebar.
-*/
 html.theme-light [class*="Sidebar_logoutButton"] {
-  background-color: transparent !important;
-  color: #DC2626 !important;
-  border: 1.5px solid #FECACA !important;
+  background-color: #FFFFFF !important;
+  color: #E61919 !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
 html.theme-light [class*="Sidebar_logoutButton"]:hover {
-  background-color: #FEE2E2 !important;
-  border-color: #DC2626 !important;
-  color: #991B1B !important;
+  background-color: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
   transform: none !important;
-  box-shadow: none !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
-/* Login button — clean blue */
+/* Login button */
 html.theme-light [class*="Sidebar_loginButton"] {
-  background-color: #2563EB !important;
+  background-color: #0A0A0A !important;
   color: #FFFFFF !important;
-  border: none !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
 html.theme-light [class*="Sidebar_loginButton"]:hover {
-  background-color: #1D4ED8 !important;
+  background-color: #E61919 !important;
+  border-color: #0A0A0A !important;
 }
 
-/* Theme modal — white surface */
+/* Theme modal — Swiss Brutalist terminal */
 html.theme-light [class*="Sidebar_themeModal"] {
-  background-color: #FFFFFF;
-  border: 1px solid #D9DEE7;
+  background-color: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 8px 8px 0px #0A0A0A !important;
 }
 
 html.theme-light [class*="Sidebar_themeModalHeader"] {
-  background-color: #F4F5F7;
-  border-bottom: 1px solid #D9DEE7;
+  background-color: #F4F4F0 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+html.theme-light [class*="Sidebar_themeModalTitle"] {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
 }
 
 html.theme-light [class*="Sidebar_themeModalClose"] {
-  border-color: #D9DEE7;
-  color: #334155;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  background: #FFFFFF !important;
 }
 
 html.theme-light [class*="Sidebar_themeOption"] {
-  border-color: #D9DEE7;
-  background-color: #FFFFFF;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  background-color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
 html.theme-light [class*="Sidebar_themeOption"]:hover {
-  background-color: #EFF6FF;
-  border-color: #2563EB;
+  background-color: #F4F4F0 !important;
+  border-color: #0A0A0A !important;
 }
 
 html.theme-light [class*="Sidebar_themeOptionActive"] {
-  background-color: #EFF6FF;
-  border-color: #2563EB;
+  background-color: #0A0A0A !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+html.theme-light [class*="Sidebar_themeOptionActive"] [class*="Sidebar_themeOptionName"],
+html.theme-light [class*="Sidebar_themeOptionActive"] [class*="Sidebar_themeOptionDesc"] {
+  color: #FFFFFF !important;
+}
+
+html.theme-light [class*="Sidebar_themeOptionCheck"] {
+  background-color: #E61919 !important;
+  border-radius: 0px !important;
+  border: 1px solid #FFFFFF !important;
 }
 
 /* ─── Table improvements: strong contrast ─── */

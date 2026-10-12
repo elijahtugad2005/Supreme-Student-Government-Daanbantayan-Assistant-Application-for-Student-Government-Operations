@@ -100,6 +100,14 @@
 .tabIcon {
     font-size: 1.25rem;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tabIcon svg {
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 .tabLabel {
@@ -282,3 +290,87 @@
         padding: 0.5rem 0.25rem;
     }
 }
+
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) - ADMIN DASHBOARD
+   ========================================================================== */
+:global(.theme-light) .container {
+    background-color: #F4F4F0 !important;
+    color: #0A0A0A !important;
+}
+
+:global(.theme-light) .pagetitle {
+    background-color: #FFFFFF !important;
+    border: 2px solid #0A0A0A !important;
+    border-radius: 0px !important;
+    box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .pagetitle h1 {
+    color: #0A0A0A !important;
+    font-family: 'Archivo Black', 'Impact', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: -0.02em !important;
+}
+
+:global(.theme-light) .pagetitle h2 {
+    color: #555555 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) .tabNavigation {
+    gap: 0.5rem !important;
+}
+
+:global(.theme-light) .tabButton {
+    background-color: #FFFFFF !important;
+    border: 2px solid #0A0A0A !important;
+    border-radius: 0px !important;
+    color: #0A0A0A !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.02em !important;
+    box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .tabButton:hover:not(.tabActive) {
+    background-color: #F4F4F0 !important;
+    border-color: #0A0A0A !important;
+    color: #0A0A0A !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+/* Active tab: Inverted solid black with aviation red accent */
+:global(.theme-light) .tabButton.tabActive {
+    background: #0A0A0A !important;
+    color: #FFFFFF !important;
+    border: 2px solid #0A0A0A !important;
+    border-radius: 0px !important;
+    box-shadow: 4px 4px 0px #E61919 !important;
+}
+
+:global(.theme-light) .tabButton.tabActive .tabIcon svg,
+:global(.theme-light) .tabButton.tabActive .tabIcon {
+    color: #E61919 !important;
+}
+
+:global(.theme-light) .dashboard_card {
+    background-color: #FFFFFF !important;
+    border: 2px solid #0A0A0A !important;
+    border-radius: 0px !important;
+    box-shadow: 5px 5px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .dashboard_card h3 {
+    color: #0A0A0A !important;
+    font-family: 'Archivo Black', 'Impact', sans-serif !important;
+    border-bottom: 2px solid #0A0A0A !important;
+    text-transform: uppercase !important;
+}

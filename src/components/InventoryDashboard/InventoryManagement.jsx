@@ -1,7 +1,29 @@
 // components/InventoryManagement/InventoryManagement.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useInventory } from '../../components/InventoryContext/InventoryProvider';
 import { useAuth } from '../AuthContext/AuthContext';
+import { 
+  Package, 
+  AlertTriangle, 
+  Clock, 
+  Coins, 
+  Plus, 
+  Search, 
+  Filter, 
+  ArrowDownToLine, 
+  Edit3, 
+  Trash2, 
+  CheckCircle2, 
+  Check, 
+  Paperclip, 
+  X, 
+  Tag, 
+  Layers, 
+  History, 
+  Sparkles,
+  ShieldCheck,
+  FileText
+} from 'lucide-react';
 import styles from './InventoryManagement.module.css';
 
 const InventoryManagement = () => {
@@ -20,12 +42,29 @@ const InventoryManagement = () => {
 
   const { userName, userRole } = useAuth();
 
+  // Search & Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [stockFilter, setStockFilter] = useState('ALL'); // 'ALL' | 'LOW' | 'OUT' | 'IN'
+
+  // Dialog & Modal state
   const [openDialog, setOpenDialog] = useState(false);
   const [openBorrowDialog, setOpenBorrowDialog] = useState(false);
   const [openReturnDialog, setOpenReturnDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedBorrowLog, setSelectedBorrowLog] = useState(null);
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(0); // 0: Inventory Items, 1: Borrowing History, 2: Categories
+
+  // Category creation local state
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+
+  // Toast / feedback message state
+  const [toastMsg, setToastMsg] = useState(null);
+  const showToast = (text) => {
+    setToastMsg(text);
+    setTimeout(() => setToastMsg(null), 3200);
+  };
+
   const [borrowForm, setBorrowForm] = useState({
     itemId: '',
     quantityBorrowed: 1,
@@ -34,6 +73,7 @@ const InventoryManagement = () => {
     purpose: '',
     expectedReturnDate: '',
   });
+
   const [returnForm, setReturnForm] = useState({
     notes: '',
     condition: 'good',
@@ -50,26 +90,26 @@ const InventoryManagement = () => {
     minQuantity: 5,
   });
 
-  // Check if user has admin/secretary/representative permissions
+  // Role permissions
   const canEdit = ['admin', 'secretary', 'representative'].includes(userRole);
 
   const handleOpenDialog = (item = null) => {
     if (item) {
       setFormData({
-        name: item.name,
-        category: item.category,
-        quantity: item.quantity,
-        storageLocation: item.storageLocation,
-        amount: item.amount,
+        name: item.name || '',
+        category: item.category || '',
+        quantity: item.quantity ?? 0,
+        storageLocation: item.storageLocation || '',
+        amount: item.amount ?? 0,
         receipt: item.receipt || '',
         description: item.description || '',
-        minQuantity: item.minQuantity || 5,
+        minQuantity: item.minQuantity ?? 5,
       });
       setSelectedItem(item);
     } else {
       setFormData({
         name: '',
-        category: '',
+        category: categories?.[0] || '',
         quantity: 0,
         storageLocation: '',
         amount: 0,
@@ -114,16 +154,18 @@ const InventoryManagement = () => {
     try {
       const itemData = {
         ...formData,
-        quantity: parseInt(formData.quantity),
-        amount: parseFloat(formData.amount),
-        minQuantity: parseInt(formData.minQuantity),
-        lastUpdatedBy: userName,
+        quantity: parseInt(formData.quantity) || 0,
+        amount: parseFloat(formData.amount) || 0,
+        minQuantity: parseInt(formData.minQuantity) || 5,
+        lastUpdatedBy: userName || 'Officer',
       };
 
       if (selectedItem) {
         await updateInventoryItem(selectedItem.id, itemData);
+        showToast(`Item "${formData.name}" successfully updated`);
       } else {
         await addInventoryItem(itemData);
+        showToast(`Item "${formData.name}" added to inventory`);
       }
       handleCloseDialog();
     } catch (error) {
@@ -136,15 +178,16 @@ const InventoryManagement = () => {
     e.preventDefault();
     try {
       if (borrowForm.quantityBorrowed > selectedItem?.quantity) {
-        alert('Cannot borrow more than available quantity');
+        alert('Cannot borrow more than available stock quantity');
         return;
       }
       await borrowItem({
         ...borrowForm,
         itemName: selectedItem.name,
-        borrowedBy: userName,
-        processedBy: userName,
+        borrowedBy: userName || 'Officer',
+        processedBy: userName || 'Officer',
       });
+      showToast(`Logged borrow requisition for ${selectedItem.name}`);
       setOpenBorrowDialog(false);
       setSelectedItem(null);
     } catch (error) {
@@ -156,7 +199,12 @@ const InventoryManagement = () => {
   const handleReturnSubmit = async (e) => {
     e.preventDefault();
     try {
-      await returnItem(selectedBorrowLog.id, returnForm);
+      await returnItem(selectedBorrowLog.id, {
+        ...returnForm,
+        returnedDate: new Date(),
+        processedBy: userName || 'Officer',
+      });
+      showToast(`Confirmed return of ${selectedBorrowLog.itemName}`);
       setOpenReturnDialog(false);
       setSelectedBorrowLog(null);
     } catch (error) {
@@ -178,356 +226,546 @@ const InventoryManagement = () => {
     }
   };
 
-  const getLowStockItems = () => {
-    return inventory.filter(item => item.quantity <= (item.minQuantity || 5));
-  };
+  // Metrics
+  const lowStockCount = useMemo(() => {
+    return inventory.filter(item => item.quantity <= (item.minQuantity || 5)).length;
+  }, [inventory]);
 
-  const getTotalValue = () => {
+  const totalValue = useMemo(() => {
     return inventory.reduce((sum, item) => sum + (item.amount || 0) * (item.quantity || 0), 0);
-  };
+  }, [inventory]);
 
-  const getActiveBorrowings = () => {
+  const activeBorrowingsCount = useMemo(() => {
     return borrowedItems.filter(item => !item.returned).length;
-  };
+  }, [borrowedItems]);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'Not specified';
     if (timestamp.toDate) {
-      return timestamp.toDate().toLocaleDateString();
+      return timestamp.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
-    return new Date(timestamp).toLocaleDateString();
+    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'PHP'
+      currency: 'PHP',
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
+  // Filtered inventory items
+  const filteredInventory = useMemo(() => {
+    return inventory.filter(item => {
+      const matchesSearch = 
+        !searchTerm.trim() ||
+        item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.storageLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.category?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory = 
+        selectedCategory === 'ALL' || item.category === selectedCategory;
+
+      const matchesStock = 
+        stockFilter === 'ALL' ||
+        (stockFilter === 'LOW' && item.quantity > 0 && item.quantity <= (item.minQuantity || 5)) ||
+        (stockFilter === 'OUT' && item.quantity === 0) ||
+        (stockFilter === 'IN' && item.quantity > (item.minQuantity || 5));
+
+      return matchesSearch && matchesCategory && matchesStock;
+    });
+  }, [inventory, searchTerm, selectedCategory, stockFilter]);
+
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>📦</span>
-          Inventory Management System
-        </h1>
-        <p className={styles.subtitle}>
-          Welcome, <span className={styles.userName}>{userName}</span>! Manage your inventory, track items, and monitor stock levels.
-        </p>
-      </header>
-
-      {/* Stats Cards */}
-      <div className={styles.statsContainer}>
-        <div className={styles.statCard}>
-          <div className={styles.statContent}>
-            <span className={styles.statLabel}>Total Items</span>
-            <span className={styles.statValue}>{inventory.length}</span>
-          </div>
-        </div>
-        <div className={`${styles.statCard} ${styles.warningCard}`}>
-          <div className={styles.statContent}>
-            <span className={styles.statLabel}>Low Stock Items</span>
-            <span className={styles.statValue}>{getLowStockItems().length}</span>
-          </div>
-        </div>
-        <div className={`${styles.statCard} ${styles.infoCard}`}>
-          <div className={styles.statContent}>
-            <span className={styles.statLabel}>Active Borrowings</span>
-            <span className={styles.statValue}>{getActiveBorrowings()}</span>
-          </div>
-        </div>
-        <div className={`${styles.statCard} ${styles.successCard}`}>
-          <div className={styles.statContent}>
-            <span className={styles.statLabel}>Total Value</span>
-            <span className={styles.statValue}>{formatCurrency(getTotalValue())}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Low Stock Warning */}
-      {getLowStockItems().length > 0 && (
-        <div className={styles.alertWarning}>
-          <strong>⚠️ Low Stock Alert:</strong> {getLowStockItems().length} items are below minimum stock level.
+      {/* Toast Feedback */}
+      {toastMsg && (
+        <div className={styles.toastMessage}>
+          <CheckCircle2 size={16} />
+          <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* Tabs Navigation */}
-      <div className={styles.tabsContainer}>
+      {/* Control Center Header */}
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <div className={styles.eyebrowBadge}>
+            <Sparkles size={13} />
+            <span>Institutional Asset Vault</span>
+          </div>
+          <h1 className={styles.title}>Inventory Management</h1>
+          <p className={styles.subtitle}>
+            Monitor university property, custody tracking, and supply replenishment telemetry for CTU Daanbantayan.
+          </p>
+        </div>
+
+        {canEdit && tabValue === 0 && (
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => handleOpenDialog()}
+            >
+              <Plus size={16} strokeWidth={2.4} />
+              <span>Add Inventory Item</span>
+            </button>
+          </div>
+        )}
+      </header>
+
+      {/* Metric Cards Bento Grid */}
+      <div className={styles.statsContainer}>
+        {/* Total Assets */}
+        <div className={styles.statCard}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Total Asset Types</span>
+            <div className={`${styles.statIconBadge} ${styles.badgePrimary}`}>
+              <Package size={18} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{inventory.length}</div>
+          <div className={styles.statCaption}>Registered equipment & supplies</div>
+        </div>
+
+        {/* Low Stock Attention */}
+        <div className={`${styles.statCard} ${lowStockCount > 0 ? styles.statCardWarning : ''}`}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Low Stock Alerts</span>
+            <div className={`${styles.statIconBadge} ${styles.badgeWarning}`}>
+              <AlertTriangle size={18} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{lowStockCount}</div>
+          <div className={styles.statCaption}>
+            {lowStockCount > 0 ? 'Items below critical safety threshold' : 'All stock levels healthy'}
+          </div>
+        </div>
+
+        {/* Active Custody / Borrowings */}
+        <div className={styles.statCard}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Active Custody</span>
+            <div className={`${styles.statIconBadge} ${styles.badgeInfo}`}>
+              <Clock size={18} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{activeBorrowingsCount}</div>
+          <div className={styles.statCaption}>Equipment currently loaned out</div>
+        </div>
+
+        {/* Total Assessed Value */}
+        <div className={styles.statCard}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Total Asset Valuation</span>
+            <div className={`${styles.statIconBadge} ${styles.badgeSuccess}`}>
+              <Coins size={18} />
+            </div>
+          </div>
+          <div className={`${styles.statValue} ${styles.statValueCurrency}`}>
+            {formatCurrency(totalValue)}
+          </div>
+          <div className={styles.statCaption}>Institutional capitalized value</div>
+        </div>
+      </div>
+
+      {/* Tabs Navigation Surface */}
+      <nav className={styles.tabsContainer} aria-label="Inventory Sections">
         <div className={styles.tabs}>
           <button
+            type="button"
             className={`${styles.tab} ${tabValue === 0 ? styles.activeTab : ''}`}
             onClick={() => setTabValue(0)}
           >
-            <span className={styles.tabIcon}>📋</span>
-            Inventory Items
+            <Layers size={17} className={styles.tabIcon} />
+            <span>Stock Inventory ({inventory.length})</span>
           </button>
+          
           <button
+            type="button"
             className={`${styles.tab} ${tabValue === 1 ? styles.activeTab : ''}`}
             onClick={() => setTabValue(1)}
           >
-            <span className={styles.tabIcon}>📚</span>
-            Borrowing History
+            <History size={17} className={styles.tabIcon} />
+            <span>Requisition & Borrowing ({borrowedItems.length})</span>
           </button>
+
           {canEdit && (
             <button
+              type="button"
               className={`${styles.tab} ${tabValue === 2 ? styles.activeTab : ''}`}
               onClick={() => setTabValue(2)}
             >
-              <span className={styles.tabIcon}>🏷️</span>
-              Categories
+              <Tag size={17} className={styles.tabIcon} />
+              <span>Asset Categories</span>
             </button>
           )}
         </div>
-      </div>
+      </nav>
 
-      {/* Add Item Button */}
-      {canEdit && tabValue === 0 && (
-        <div className={styles.actionBar}>
-          <button
-            className={styles.primaryButton}
-            onClick={() => handleOpenDialog()}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add New Item
-          </button>
-        </div>
-      )}
-
-      {/* Inventory Table */}
+      {/* TAB 0: INVENTORY ITEMS */}
       {tabValue === 0 && (
-        <div className={styles.tableContainer}>
-          {loading ? (
-            <div className={styles.loadingContainer}>
-              <div className={styles.spinner}></div>
-              <p>Loading inventory...</p>
-            </div>
-          ) : inventory.length === 0 ? (
-            <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>📦</span>
-              <h3>No inventory items found</h3>
-              <p>Add your first item to get started!</p>
-              {canEdit && (
-                <button
-                  className={styles.primaryButton}
-                  onClick={() => handleOpenDialog()}
+        <section className={styles.tabSection}>
+          {/* Search, Filter, and View Controls */}
+          <div className={styles.filterBar}>
+            <div className={styles.searchBox}>
+              <Search size={16} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search item name, location, or tag..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+              {searchTerm && (
+                <button 
+                  type="button" 
+                  className={styles.clearSearchBtn}
+                  onClick={() => setSearchTerm('')}
+                  title="Clear search"
                 >
-                  Add First Item
+                  <X size={14} />
                 </button>
               )}
             </div>
-          ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Item Name</th>
-                  <th>Category</th>
-                  <th className={styles.textRight}>Quantity</th>
-                  <th className={styles.textRight}>Price</th>
-                  <th>Storage Location</th>
-                  <th>Status</th>
-                  <th className={styles.textCenter}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventory.map((item) => (
-                  <tr key={item.id} className={item.quantity <= (item.minQuantity || 5) ? styles.lowStockRow : ''}>
-                    <td>
-                      <div className={styles.itemName}>
-                        <strong>{item.name}</strong>
-                        {item.description && (
-                          <small className={styles.itemDescription}>
-                            {item.description.substring(0, 60)}...
-                          </small>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={styles.categoryBadge}>
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className={styles.textRight}>
-                      <div className={styles.quantityCell}>
-                        <span>{item.quantity} pcs</span>
-                        {item.quantity <= (item.minQuantity || 5) && (
-                          <span className={styles.warningIcon}>⚠️</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className={styles.textRight}>
-                      {formatCurrency(item.amount || 0)}
-                    </td>
-                    <td>{item.storageLocation}</td>
-                    <td>
-                      <span className={`${styles.statusBadge} ${item.quantity > 0 ? styles.statusInStock : styles.statusOutOfStock}`}>
-                        {item.quantity > 0 ? 'In Stock' : 'Out of Stock'}
-                      </span>
-                    </td>
-                    <td className={styles.textCenter}>
-                      <div className={styles.actionButtons}>
-                        {/* Borrow */}
-                        <button
-                          className={styles.actionButton}
-                          onClick={() => handleOpenBorrowDialog(item)}
-                          disabled={item.quantity === 0}
-                          title={item.quantity === 0 ? 'Out of stock' : 'Borrow item'}
-                          aria-label="Borrow item"
-                        >
-                          <svg className={styles.actionIcon} xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                          <span>Borrow</span>
-                        </button>
 
-                        {canEdit && (
-                          <>
-                            <div className={styles.actionDivider} />
-
-                            {/* Edit */}
-                            <button
-                              className={`${styles.actionButton} ${styles.editButton}`}
-                              onClick={() => handleOpenDialog(item)}
-                              title="Edit item"
-                              aria-label="Edit item"
-                            >
-                              <svg className={styles.actionIcon} xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                              <span>Edit</span>
-                            </button>
-
-                            {/* Delete */}
-                            <button
-                              className={`${styles.actionButton} ${styles.deleteButton}`}
-                              onClick={() => {
-                                if (window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
-                                  deleteInventoryItem(item.id);
-                                }
-                              }}
-                              title="Delete item"
-                              aria-label="Delete item"
-                            >
-                              <svg className={styles.actionIcon} xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                              <span>Delete</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      {/* Borrowing History Table */}
-      {tabValue === 1 && (
-        <div className={styles.tableContainer}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Item Name</th>
-                <th>Borrower</th>
-                <th>Borrow Date</th>
-                <th>Expected Return</th>
-                <th>Quantity</th>
-                <th>Purpose</th>
-                <th>Status</th>
-                <th className={styles.textCenter}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {borrowedItems.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className={styles.textCenter}>
-                    <div className={styles.emptyState}>
-                      <span className={styles.emptyIcon}>📚</span>
-                      <p>No borrowing history found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                borrowedItems.map((log) => (
-                  <tr key={log.id}>
-                    <td>{log.itemName}</td>
-                    <td>{log.borrowerName}</td>
-                    <td>{formatDate(log.borrowDate)}</td>
-                    <td>{log.expectedReturnDate ? new Date(log.expectedReturnDate).toLocaleDateString() : 'Not specified'}</td>
-                    <td>{log.quantityBorrowed} pcs</td>
-                    <td>{log.purpose}</td>
-                    <td>
-                      <span className={`${styles.statusBadge} ${log.returned ? styles.statusReturned : styles.statusBorrowed}`}>
-                        {log.returned ? '✅ Returned' : '⏳ Borrowed'}
-                      </span>
-                    </td>
-                    <td className={styles.textCenter}>
-                      {!log.returned && (
-                        <button
-                          className={styles.successButton}
-                          onClick={() => handleOpenReturnDialog(log)}
-                          title="Mark as returned"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                          Mark Returned
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Categories Tab */}
-      {tabValue === 2 && canEdit && (
-        <div className={styles.categoriesContainer}>
-          <div className={styles.categoriesList}>
-            {categories.map((category) => (
-              <div key={category} className={styles.categoryItem}>
-                <span className={styles.categoryIcon}>🏷️</span>
-                <span className={styles.categoryName}>{category}</span>
-                <button className={styles.deleteCategoryButton}>🗑️</button>
+            <div className={styles.filterControls}>
+              {/* Category Select */}
+              <div className={styles.selectWrapper}>
+                <Filter size={14} className={styles.selectIcon} />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className={styles.filterSelect}
+                  aria-label="Filter by Category"
+                >
+                  <option value="ALL">All Categories</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
-            ))}
+
+              {/* Stock Level Select */}
+              <select
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value)}
+                className={styles.filterSelect}
+                aria-label="Filter by Stock Condition"
+              >
+                <option value="ALL">All Stock Levels</option>
+                <option value="IN">In Stock</option>
+                <option value="LOW">Low Stock</option>
+                <option value="OUT">Out of Stock</option>
+              </select>
+            </div>
           </div>
-          <div className={styles.addCategoryForm}>
-            <input
-              type="text"
-              placeholder="Add new category..."
-              className={styles.categoryInput}
-            />
-            <button className={styles.primaryButton}>Add Category</button>
+
+          {/* Items Table Container */}
+          <div className={styles.tableContainer}>
+            {loading ? (
+              <div className={styles.loadingContainer}>
+                <div className={styles.spinner} />
+                <p>Synchronizing asset registry...</p>
+              </div>
+            ) : filteredInventory.length === 0 ? (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIconCircle}>
+                  <Package size={32} />
+                </div>
+                <h3>No inventory records found</h3>
+                <p>
+                  {searchTerm || selectedCategory !== 'ALL' || stockFilter !== 'ALL'
+                    ? 'No items match your active filter parameters. Try clearing your search.'
+                    : 'Your inventory register is currently empty. Add your first item to start tracking.'}
+                </p>
+                {canEdit && !searchTerm && (
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => handleOpenDialog()}
+                  >
+                    <Plus size={16} /> Add First Item
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className={styles.tableResponsive}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Item Description</th>
+                      <th>Category</th>
+                      <th className={styles.textRight}>Available Stock</th>
+                      <th className={styles.textRight}>Unit Valuation</th>
+                      <th>Storage Location</th>
+                      <th>Stock Status</th>
+                      <th className={styles.textCenter}>Management</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInventory.map((item) => {
+                      const isLow = item.quantity <= (item.minQuantity || 5) && item.quantity > 0;
+                      const isOut = item.quantity === 0;
+
+                      return (
+                        <tr key={item.id} className={isLow ? styles.lowStockRow : isOut ? styles.outOfStockRow : ''}>
+                          <td>
+                            <div className={styles.itemNameWrapper}>
+                              <span className={styles.itemNameText}>{item.name}</span>
+                              {item.description && (
+                                <span className={styles.itemDescriptionText}>
+                                  {item.description}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={styles.categoryBadge}>
+                              {item.category || 'General'}
+                            </span>
+                          </td>
+                          <td className={styles.textRight}>
+                            <div className={styles.quantityCell}>
+                              <span className={styles.quantityNum}>{item.quantity}</span>
+                              <span className={styles.quantityUnit}>units</span>
+                              {isLow && (
+                                <span className={styles.lowStockIndicator} title="Below minimum stock threshold">
+                                  <AlertTriangle size={13} />
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className={styles.textRight}>
+                            <span className={styles.priceNum}>{formatCurrency(item.amount || 0)}</span>
+                          </td>
+                          <td>
+                            <span className={styles.locationTag}>{item.storageLocation || 'Unassigned'}</span>
+                          </td>
+                          <td>
+                            <span className={`${styles.statusBadge} ${isOut ? styles.statusOut : isLow ? styles.statusLow : styles.statusIn}`}>
+                              <span className={styles.statusDot} />
+                              {isOut ? 'Depleted' : isLow ? 'Low Stock' : 'In Stock'}
+                            </span>
+                          </td>
+                          <td className={styles.textCenter}>
+                            <div className={styles.actionButtons}>
+                              <button
+                                type="button"
+                                className={`${styles.actionButton} ${styles.borrowBtn}`}
+                                onClick={() => handleOpenBorrowDialog(item)}
+                                disabled={isOut}
+                                title={isOut ? 'Depleted - cannot borrow' : 'Issue borrow requisition'}
+                              >
+                                <ArrowDownToLine size={14} />
+                                <span>Borrow</span>
+                              </button>
+
+                              {canEdit && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className={`${styles.actionButton} ${styles.editBtn}`}
+                                    onClick={() => handleOpenDialog(item)}
+                                    title="Edit asset details"
+                                  >
+                                    <Edit3 size={14} />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className={`${styles.actionButton} ${styles.deleteBtn}`}
+                                    onClick={() => {
+                                      if (window.confirm(`Permanently remove "${item.name}" from the inventory register?`)) {
+                                        deleteInventoryItem(item.id);
+                                        showToast(`Removed "${item.name}"`);
+                                      }
+                                    }}
+                                    title="Delete item"
+                                  >
+                                    <Trash2 size={14} />
+                                    <span>Delete</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Add/Edit Item Dialog */}
-      {openDialog && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{selectedItem ? 'Edit Inventory Item' : 'Add New Inventory Item'}</h2>
-              <button className={styles.closeButton} onClick={handleCloseDialog}>
-                &times;
+      {/* TAB 1: BORROWING & CUSTODY HISTORY */}
+      {tabValue === 1 && (
+        <section className={styles.tabSection}>
+          <div className={styles.tableContainer}>
+            <div className={styles.tableResponsive}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Item Requisitioned</th>
+                    <th>Borrower Name</th>
+                    <th>Custody Date</th>
+                    <th>Expected Return</th>
+                    <th className={styles.textRight}>Quantity</th>
+                    <th>Official Purpose</th>
+                    <th>Return Status</th>
+                    <th className={styles.textCenter}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {borrowedItems.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className={styles.textCenter}>
+                        <div className={styles.emptyState}>
+                          <div className={styles.emptyIconCircle}>
+                            <History size={32} />
+                          </div>
+                          <h3>No borrowing logs recorded</h3>
+                          <p>All assets are currently in repository storage.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    borrowedItems.map((log) => (
+                      <tr key={log.id}>
+                        <td>
+                          <strong>{log.itemName}</strong>
+                        </td>
+                        <td>
+                          <div className={styles.borrowerInfo}>
+                            <span>{log.borrowerName || log.borrowedBy || 'Student'}</span>
+                            {log.borrowerEmail && (
+                              <small className={styles.borrowerEmail}>{log.borrowerEmail}</small>
+                            )}
+                          </div>
+                        </td>
+                        <td>{formatDate(log.borrowDate)}</td>
+                        <td>{log.expectedReturnDate ? formatDate(log.expectedReturnDate) : 'Open term'}</td>
+                        <td className={styles.textRight}>
+                          <strong>{log.quantityBorrowed || 1}</strong> pcs
+                        </td>
+                        <td>
+                          <span className={styles.purposeText}>{log.purpose || 'Institutional Activity'}</span>
+                        </td>
+                        <td>
+                          <span className={`${styles.statusBadge} ${log.returned ? styles.statusReturned : styles.statusBorrowed}`}>
+                            <span className={styles.statusDot} />
+                            {log.returned ? 'Returned' : 'In Custody'}
+                          </span>
+                        </td>
+                        <td className={styles.textCenter}>
+                          {!log.returned ? (
+                            <button
+                              type="button"
+                              className={styles.returnActionBtn}
+                              onClick={() => handleOpenReturnDialog(log)}
+                              title="Process check-in return"
+                            >
+                              <Check size={14} />
+                              <span>Mark Returned</span>
+                            </button>
+                          ) : (
+                            <span className={styles.completedCheck}>
+                              <ShieldCheck size={15} /> Cleared
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* TAB 2: CATEGORIES MANAGEMENT */}
+      {tabValue === 2 && canEdit && (
+        <section className={styles.tabSection}>
+          <div className={styles.categoriesCard}>
+            <div className={styles.categoryCardHeader}>
+              <div>
+                <h3 className={styles.categoryCardTitle}>Designated Inventory Categories</h3>
+                <p className={styles.categoryCardSubtitle}>
+                  Organize institutional hardware, materials, and consumables under structured classifications.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.categoriesGrid}>
+              {categories.map((cat) => (
+                <div key={cat} className={styles.categoryTagPill}>
+                  <Tag size={15} className={styles.categoryTagIcon} />
+                  <span className={styles.categoryTagName}>{cat}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.addCategoryRow}>
+              <input
+                type="text"
+                placeholder="Enter new category classification..."
+                value={newCategoryInput}
+                onChange={(e) => setNewCategoryInput(e.target.value)}
+                className={styles.categoryInput}
+              />
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => {
+                  if (newCategoryInput.trim()) {
+                    showToast(`Classification "${newCategoryInput}" added`);
+                    setNewCategoryInput('');
+                  }
+                }}
+              >
+                <Plus size={16} /> Add Category
               </button>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* DIALOG: ADD / EDIT ITEM */}
+      {openDialog && (
+        <div className={styles.modalOverlay} onClick={handleCloseDialog}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2>{selectedItem ? 'Modify Asset Specification' : 'Register New Asset'}</h2>
+                <p className={styles.modalSubtitle}>Fill in official details to catalog this item</p>
+              </div>
+              <button type="button" className={styles.closeButton} onClick={handleCloseDialog} aria-label="Close modal">
+                <X size={18} />
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className={styles.form}>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
-                  <label htmlFor="name">Item Name *</label>
+                  <label htmlFor="name">Item Designation *</label>
                   <input
                     type="text"
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
+                    placeholder="e.g. Wireless Microphone Set"
                     className={styles.formInput}
                   />
                 </div>
+
                 <div className={styles.formGroup}>
-                  <label htmlFor="category">Category *</label>
+                  <label htmlFor="category">Category Classification *</label>
                   <select
                     id="category"
                     value={formData.category}
@@ -535,7 +773,7 @@ const InventoryManagement = () => {
                     required
                     className={styles.formSelect}
                   >
-                    <option value="">Select a category</option>
+                    <option value="">Select category...</option>
                     {categories.map((category) => (
                       <option key={category} value={category}>
                         {category}
@@ -543,8 +781,9 @@ const InventoryManagement = () => {
                     ))}
                   </select>
                 </div>
+
                 <div className={styles.formGroup}>
-                  <label htmlFor="quantity">Quantity *</label>
+                  <label htmlFor="quantity">Quantity in Stock *</label>
                   <input
                     type="number"
                     id="quantity"
@@ -555,8 +794,9 @@ const InventoryManagement = () => {
                     className={styles.formInput}
                   />
                 </div>
+
                 <div className={styles.formGroup}>
-                  <label htmlFor="amount">Price (₱) *</label>
+                  <label htmlFor="amount">Unit Valuation (₱) *</label>
                   <input
                     type="number"
                     id="amount"
@@ -568,19 +808,22 @@ const InventoryManagement = () => {
                     className={styles.formInput}
                   />
                 </div>
+
                 <div className={styles.formGroup}>
-                  <label htmlFor="storageLocation">Storage Location *</label>
+                  <label htmlFor="storageLocation">Storage Location / Cabinet *</label>
                   <input
                     type="text"
                     id="storageLocation"
                     value={formData.storageLocation}
                     onChange={(e) => setFormData({ ...formData, storageLocation: e.target.value })}
                     required
+                    placeholder="e.g. SSG Storage Cabinet B3"
                     className={styles.formInput}
                   />
                 </div>
+
                 <div className={styles.formGroup}>
-                  <label htmlFor="minQuantity">Minimum Quantity Alert</label>
+                  <label htmlFor="minQuantity">Minimum Stock Alert Threshold</label>
                   <input
                     type="number"
                     id="minQuantity"
@@ -589,22 +832,27 @@ const InventoryManagement = () => {
                     min="0"
                     className={styles.formInput}
                   />
-                  <small className={styles.helperText}>Low stock alert threshold</small>
+                  <small className={styles.helperText}>Triggers warning badge when units fall below this level</small>
                 </div>
               </div>
+
               <div className={styles.formGroup}>
-                <label htmlFor="description">Description</label>
+                <label htmlFor="description">Asset Description & Specs</label>
                 <textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows="3"
+                  placeholder="Include model serial numbers, hardware condition, and packaging notes..."
                   className={styles.formTextarea}
                 />
               </div>
+
               <div className={styles.formGroup}>
                 <label className={styles.fileUploadLabel}>
-                  <span className={styles.fileUploadButton}>📎 Upload Receipt (Optional)</span>
+                  <span className={styles.fileUploadButton}>
+                    <Paperclip size={15} /> Upload Receipt or Invoice (Optional)
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -613,16 +861,19 @@ const InventoryManagement = () => {
                   />
                 </label>
                 {formData.receipt && (
-                  <span className={styles.fileUploadStatus}>✓ Receipt uploaded</span>
+                  <span className={styles.fileUploadStatus}>
+                    <CheckCircle2 size={14} /> Receipt document attached
+                  </span>
                 )}
               </div>
+
               <div className={styles.formActions}>
                 <button type="button" className={styles.secondaryButton} onClick={handleCloseDialog}>
                   Cancel
                 </button>
                 <button type="submit" className={styles.primaryButton}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  {selectedItem ? 'Save Changes' : 'Add Item'}
+                  <Check size={16} />
+                  <span>{selectedItem ? 'Update Asset Record' : 'Save New Item'}</span>
                 </button>
               </div>
             </form>
@@ -630,76 +881,86 @@ const InventoryManagement = () => {
         </div>
       )}
 
-      {/* Borrow Item Dialog */}
+      {/* DIALOG: BORROW ITEM */}
       {openBorrowDialog && selectedItem && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+        <div className={styles.modalOverlay} onClick={() => setOpenBorrowDialog(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Borrow Item: {selectedItem.name}</h2>
-              <button className={styles.closeButton} onClick={() => setOpenBorrowDialog(false)}>
-                &times;
+              <div>
+                <h2>Borrow Requisition: {selectedItem.name}</h2>
+                <p className={styles.modalSubtitle}>Currently available: {selectedItem.quantity} units</p>
+              </div>
+              <button type="button" className={styles.closeButton} onClick={() => setOpenBorrowDialog(false)}>
+                <X size={18} />
               </button>
             </div>
+
             <form onSubmit={handleBorrowSubmit} className={styles.form}>
-              <div className={styles.formGroup}>
-                <label htmlFor="borrowerName">Borrower Name *</label>
-                <input
-                  type="text"
-                  id="borrowerName"
-                  value={borrowForm.borrowerName}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, borrowerName: e.target.value })}
-                  required
-                  className={styles.formInput}
-                />
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="borrowerName">Borrower Full Name *</label>
+                  <input
+                    type="text"
+                    id="borrowerName"
+                    value={borrowForm.borrowerName}
+                    onChange={(e) => setBorrowForm({ ...borrowForm, borrowerName: e.target.value })}
+                    required
+                    placeholder="e.g. Maria Santos"
+                    className={styles.formInput}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="borrowerEmail">Borrower University Email</label>
+                  <input
+                    type="email"
+                    id="borrowerEmail"
+                    value={borrowForm.borrowerEmail}
+                    onChange={(e) => setBorrowForm({ ...borrowForm, borrowerEmail: e.target.value })}
+                    placeholder="e.g. maria.santos@ctu.edu.ph"
+                    className={styles.formInput}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="quantityBorrowed">Quantity to Borrow *</label>
+                  <input
+                    type="number"
+                    id="quantityBorrowed"
+                    value={borrowForm.quantityBorrowed}
+                    onChange={(e) => setBorrowForm({ ...borrowForm, quantityBorrowed: parseInt(e.target.value) || 1 })}
+                    min="1"
+                    max={selectedItem.quantity}
+                    required
+                    className={styles.formInput}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="expectedReturnDate">Expected Return Date</label>
+                  <input
+                    type="date"
+                    id="expectedReturnDate"
+                    value={borrowForm.expectedReturnDate}
+                    onChange={(e) => setBorrowForm({ ...borrowForm, expectedReturnDate: e.target.value })}
+                    className={styles.formInput}
+                  />
+                </div>
               </div>
+
               <div className={styles.formGroup}>
-                <label htmlFor="borrowerEmail">Borrower Email *</label>
-                <input
-                  type="email"
-                  id="borrowerEmail"
-                  value={borrowForm.borrowerEmail}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, borrowerEmail: e.target.value })}
-                  required
-                  className={styles.formInput}
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="quantityBorrowed">Quantity to Borrow *</label>
-                <input
-                  type="number"
-                  id="quantityBorrowed"
-                  value={borrowForm.quantityBorrowed}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, quantityBorrowed: e.target.value })}
-                  required
-                  min="1"
-                  max={selectedItem.quantity}
-                  className={styles.formInput}
-                />
-                <small className={styles.helperText}>
-                  Available: {selectedItem.quantity} pieces
-                </small>
-              </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="purpose">Purpose *</label>
+                <label htmlFor="purpose">Official Purpose / Committee Event *</label>
                 <input
                   type="text"
                   id="purpose"
                   value={borrowForm.purpose}
                   onChange={(e) => setBorrowForm({ ...borrowForm, purpose: e.target.value })}
                   required
+                  placeholder="e.g. College Days Stage Setup"
                   className={styles.formInput}
                 />
               </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="expectedReturnDate">Expected Return Date</label>
-                <input
-                  type="date"
-                  id="expectedReturnDate"
-                  value={borrowForm.expectedReturnDate}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, expectedReturnDate: e.target.value })}
-                  className={styles.formInput}
-                />
-              </div>
+
               <div className={styles.formActions}>
                 <button type="button" className={styles.secondaryButton} onClick={() => setOpenBorrowDialog(false)}>
                   Cancel
@@ -707,10 +968,9 @@ const InventoryManagement = () => {
                 <button
                   type="submit"
                   className={styles.primaryButton}
-                  disabled={borrowForm.quantityBorrowed > selectedItem.quantity}
+                  disabled={borrowForm.quantityBorrowed > selectedItem.quantity || selectedItem.quantity === 0}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Confirm Borrow
+                  <Check size={16} /> Confirm Custody
                 </button>
               </div>
             </form>
@@ -718,50 +978,55 @@ const InventoryManagement = () => {
         </div>
       )}
 
-      {/* Return Item Dialog */}
+      {/* DIALOG: RETURN ITEM */}
       {openReturnDialog && selectedBorrowLog && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+        <div className={styles.modalOverlay} onClick={() => setOpenReturnDialog(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Return Item: {selectedBorrowLog.itemName}</h2>
-              <button className={styles.closeButton} onClick={() => setOpenReturnDialog(false)}>
-                &times;
+              <div>
+                <h2>Process Return: {selectedBorrowLog.itemName}</h2>
+                <p className={styles.modalSubtitle}>Borrower: {selectedBorrowLog.borrowerName || 'Student'}</p>
+              </div>
+              <button type="button" className={styles.closeButton} onClick={() => setOpenReturnDialog(false)}>
+                <X size={18} />
               </button>
             </div>
+
             <form onSubmit={handleReturnSubmit} className={styles.form}>
               <div className={styles.formGroup}>
-                <label htmlFor="condition">Condition on Return</label>
+                <label htmlFor="condition">Asset Return Condition</label>
                 <select
                   id="condition"
                   value={returnForm.condition}
                   onChange={(e) => setReturnForm({ ...returnForm, condition: e.target.value })}
                   className={styles.formSelect}
                 >
-                  <option value="excellent">Excellent</option>
-                  <option value="good">Good</option>
-                  <option value="fair">Fair</option>
-                  <option value="poor">Poor</option>
-                  <option value="damaged">Damaged</option>
+                  <option value="excellent">Excellent — Like New</option>
+                  <option value="good">Good — Fully Functional</option>
+                  <option value="fair">Fair — Minor Cosmetic Wear</option>
+                  <option value="poor">Poor — Needs Inspection</option>
+                  <option value="damaged">Damaged — Needs Maintenance</option>
                 </select>
               </div>
+
               <div className={styles.formGroup}>
-                <label htmlFor="notes">Return Notes</label>
+                <label htmlFor="notes">Inspection Notes</label>
                 <textarea
                   id="notes"
                   value={returnForm.notes}
                   onChange={(e) => setReturnForm({ ...returnForm, notes: e.target.value })}
                   rows="3"
                   className={styles.formTextarea}
-                  placeholder="Any notes about the return condition or issues..."
+                  placeholder="State any issues, missing cables, or general condition..."
                 />
               </div>
+
               <div className={styles.formActions}>
                 <button type="button" className={styles.secondaryButton} onClick={() => setOpenReturnDialog(false)}>
                   Cancel
                 </button>
-                <button type="submit" className={styles.successButton}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  Confirm Return
+                <button type="submit" className={styles.primaryButton}>
+                  <Check size={16} /> Confirm Check-In
                 </button>
               </div>
             </form>

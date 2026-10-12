@@ -42,9 +42,8 @@ import { RiGovernmentFill } from 'react-icons/ri';
     const navItems = [
       { to: "/", text: "Home", icon: HiHome, roles: ['public', 'admin', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest'] },
       
-      // Order Management — Place Order + Track Order are open to guests too
-      { to: "/order", text: "Place Order", icon: HiShoppingCart, roles: ['public', 'admin', 'secretary', 'representative', 'member'], permissions: ['canManageOrders'], publicAccess: true },
-      { to: "/track-order", text: "Track Order", icon: HiSearch, roles: ['public', 'admin', 'secretary', 'representative', 'member'], permissions: ['canManageOrders'], publicAccess: true },
+      // Order Management (Unified Place & Track Order) — open to guests too
+      { to: "/order", text: "Order", icon: HiShoppingCart, roles: ['public', 'admin', 'secretary', 'representative', 'member'], permissions: ['canManageOrders'], publicAccess: true },
       { to: "/commerce", text: "Commerce Hub", icon: HiShoppingBag, roles: ['admin', 'secretary', 'representative', 'member'], permissions: ['canManageOrders'] },
       
       // Admin Section

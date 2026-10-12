@@ -316,17 +316,17 @@ export const subscribeToLabels = (onData, onError) =>
  * Fetched on demand rather than stored: download tokens are short-lived, so a
  * cached URL would silently break downloads later.
  */
-export const getDocumentUrl = async (document) => {
+export const getDocumentUrl = async (document, options = {}) => {
   if (!document) return null;
 
   // MongoDB path — use the GridFS fileId stored in Firestore.
   if (document.storageType === 'mongodb' && document.mongoFileId) {
-    return fileStore.getUrl(document.mongoFileId);
+    return fileStore.getUrl(document.mongoFileId, options);
   }
 
   // Legacy path — local IndexedDB or Firebase Cloud Storage.
   if (document.storagePath) {
-    return fileStore.getUrl(document.storagePath);
+    return fileStore.getUrl(document.storagePath, options);
   }
 
   return null;
@@ -387,14 +387,13 @@ export const deleteDocument = async (documentId) => {
       await mongoStore.delete(mongoFileId);
       console.log('[deleteDocument] MongoDB file deleted successfully');
     } catch (error) {
-      // "File not found" on the backend is acceptable; anything else bubbles up.
+      // Missing file, backend unreachable, or network fetch failure should not permanently block deleting record from Firestore.
       const msg = String(error?.message || '');
-      const isNotFound = /not found|404|does not exist/i.test(msg);
-      if (isNotFound) {
-        console.warn('[deleteDocument] MongoDB file already gone — proceeding to remove Firestore record');
+      const isRecoverable = /not found|404|does not exist|failed to fetch|network|econnrefused/i.test(msg);
+      if (isRecoverable) {
+        console.warn(`[deleteDocument] MongoDB delete warning (${msg}) — proceeding to remove Firestore record`);
       } else {
-        console.error('[deleteDocument] MongoDB delete failed:', error);
-        throw new Error(`Failed to delete file from storage: ${error.message}`);
+        console.warn(`[deleteDocument] MongoDB delete error (${msg}) — proceeding with Firestore removal`);
       }
     }
   } else if (storageType === 'firebase' && storagePath) {
@@ -410,7 +409,7 @@ export const deleteDocument = async (documentId) => {
       if (isNotFound) {
         console.warn('[deleteDocument] Firebase file already gone — proceeding to remove Firestore record');
       } else {
-        throw new Error(`Failed to delete file from storage: ${error.message}`);
+        console.warn(`[deleteDocument] Firebase delete error (${msg}) — proceeding with Firestore removal`);
       }
     }
   } else if ((storageType === 'local' || !storageType) && storagePath) {

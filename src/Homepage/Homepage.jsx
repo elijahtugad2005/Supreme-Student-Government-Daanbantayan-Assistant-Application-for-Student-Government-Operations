@@ -8,6 +8,25 @@ import { useRef } from 'react';
 import { useAuth } from '../components/AuthContext/AuthContext.jsx';
 import useCurrentTerm from '../hooks/useCurrentTerm';
 import { SSG_ID, FALLBACK_TERM, getSections } from '../components/orgUtils';
+import { 
+  HiCurrencyDollar, 
+  HiFolder, 
+  HiSpeakerphone, 
+  HiCube, 
+  HiShoppingBag, 
+  HiCalendar, 
+  HiCog, 
+  HiUsers, 
+  HiTruck 
+} from 'react-icons/hi';
+import { 
+  FiShoppingBag, 
+  FiTag, 
+  FiFilter, 
+  FiCheck, 
+  FiArrowRight, 
+  FiAlertCircle 
+} from 'react-icons/fi';
 
 const OFFICER_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop';
 
@@ -28,22 +47,44 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+// ── Quote Constraints for Carousel Cards ──
+const MAX_QUOTE_WORDS = 18; // Maximum words to keep card height perfectly uniform
+const MAX_QUOTE_CHARS = 120; // Maximum character fallback
+
+const formatOfficerQuote = (quote) => {
+  if (!quote || !quote.trim()) return '“Serving the CTU-Daanbantayan student body with integrity and purpose.”';
+  const clean = quote.trim();
+  const words = clean.split(/\s+/);
+  if (words.length > MAX_QUOTE_WORDS) {
+    return `“${words.slice(0, MAX_QUOTE_WORDS).join(' ')}...”`;
+  }
+  if (clean.length > MAX_QUOTE_CHARS) {
+    return `“${clean.slice(0, MAX_QUOTE_CHARS).trim()}...”`;
+  }
+  return `“${clean}”`;
+};
+
 /* ───────────────────────────────────────────────
    OfficerCarousel — self-contained officer slider.
    Owns its slide index so several carousels can live
    on the page without fighting over shared state.
    ─────────────────────────────────────────────── */
+function getCardsPerView() {
+  if (typeof window === 'undefined') return 3;
+  if (window.innerWidth < 768) return 1;
+  if (window.innerWidth < 1024) return 2;
+  return 3;
+}
+
 function OfficerCarousel({ members }) {
   const [slide, setSlide] = useState(0);
-  const [cardsPerView, setCardsPerView] = useState(3);
+  const [cardsPerView, setCardsPerView] = useState(getCardsPerView);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) setCardsPerView(1);
-      else if (window.innerWidth < 1024) setCardsPerView(2);
-      else setCardsPerView(3);
+      setCardsPerView(getCardsPerView());
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -72,63 +113,119 @@ function OfficerCarousel({ members }) {
 
   return (
     <div className={styles.carouselWrapper}>
+      {/* Top Slider Navigation & Progress Counter */}
       {totalSlides > 1 && (
-        <>
-          <button className={`${styles.carouselArrow} ${styles.carouselArrowLeft}`} onClick={prevSlide} aria-label="Previous slide">
-            <ChevronLeftIcon />
-          </button>
-          <button className={`${styles.carouselArrow} ${styles.carouselArrowRight}`} onClick={nextSlide} aria-label="Next slide">
-            <ChevronRightIcon />
-          </button>
-        </>
+        <div className={styles.carouselControlBar}>
+          <div className={styles.carouselProgress}>
+            <span className={styles.carouselCurrentSlide}>{String(slide + 1).padStart(2, '0')}</span>
+            <span className={styles.carouselProgressDivider}>/</span>
+            <span className={styles.carouselTotalSlides}>{String(totalSlides).padStart(2, '0')}</span>
+          </div>
+          <div className={styles.carouselArrowGroup}>
+            <button 
+              className={`${styles.carouselArrow} ${styles.carouselArrowLeft}`} 
+              onClick={prevSlide} 
+              aria-label="Previous leadership slide"
+              title="Previous slide"
+            >
+              <ChevronLeftIcon />
+            </button>
+            <button 
+              className={`${styles.carouselArrow} ${styles.carouselArrowRight}`} 
+              onClick={nextSlide} 
+              aria-label="Next leadership slide"
+              title="Next slide"
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
+        </div>
       )}
 
       <div className={styles.carouselContainer} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
         <div className={styles.carouselTrack}>
           <div
             className={styles.carouselSlides}
-            style={{ transform: `translateX(-${slide * 100}%)`, transition: 'transform 0.5s ease-in-out' }}
+            style={{ transform: `translateX(-${slide * 100}%)`, transition: 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1)' }}
           >
-            {Array.from({ length: totalSlides }).map((_, slideIndex) => (
-              <div key={slideIndex} className={styles.carouselSlide}>
-                <div className={styles.officersGrid}>
-                  {members
-                    .slice(slideIndex * cardsPerView, (slideIndex + 1) * cardsPerView)
-                    .map((officer) => (
-                      <article key={officer.docId} className={styles.officerCard}>
+            {Array.from({ length: totalSlides }).map((_, slideIndex) => {
+              const slideMembers = members.slice(slideIndex * cardsPerView, (slideIndex + 1) * cardsPerView);
+
+              return (
+                <div key={slideIndex} className={styles.carouselSlide}>
+                  <div className={styles.officersGrid}>
+                    {slideMembers.map((officer) => (
+                      <article
+                        key={officer.docId}
+                        className={styles.officerCard}
+                      >
+                        {/* Status / Role Header */}
+                        <div className={styles.officerCardHeader}>
+                          <span className={styles.officerPositionBadge}>{officer.position}</span>
+                        </div>
+
+                        {/* Portrait Frame */}
                         <div className={styles.officerImageWrapper}>
                           <img
                             src={officer.image64 || OFFICER_FALLBACK_IMAGE}
                             alt={officer.name}
                             className={styles.officerImage}
                             onError={(e) => { e.target.src = OFFICER_FALLBACK_IMAGE; }}
+                            loading="lazy"
                           />
+                          <div className={styles.officerImageRing} />
                         </div>
-                        <span className={styles.officerPosition}>{officer.position}</span>
-                        <h3 className={styles.officerName}>{officer.name}</h3>
-                        {officer.description && <p className={styles.officerDescription}>{officer.description}</p>}
-                        {officer.facebookLink && (
-                          <div className={styles.socialLinks}>
-                            <a href={officer.facebookLink} className={styles.socialLink} target="_blank" rel="noreferrer" aria-label={`${officer.name} on Facebook`}><FacebookIcon /></a>
-                          </div>
-                        )}
+
+                        {/* Officer Info */}
+                        <div className={styles.officerBody}>
+                          <h3 className={styles.officerName}>{officer.name}</h3>
+                          <div className={styles.officerQuoteDivider} />
+                          <p 
+                            className={`${styles.officerDescription} ${!officer.description ? styles.officerDescriptionPlaceholder : ''}`}
+                            title={officer.description || 'Dedicated SSG Leader'}
+                          >
+                            {formatOfficerQuote(officer.description)}
+                          </p>
+                        </div>
+
+                        {/* Footer & Social Contacts */}
+                        <div className={styles.officerFooter}>
+                          {officer.facebookLink ? (
+                            <a 
+                              href={officer.facebookLink} 
+                              className={styles.socialLink} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              aria-label={`${officer.name} on Facebook`}
+                              title="Official Facebook Profile"
+                            >
+                              <FacebookIcon />
+                              <span className={styles.socialLabel}>Connect</span>
+                            </a>
+                          ) : (
+                            <span className={styles.officerBadgeMuted}>CTU SSG Leader</span>
+                          )}
+                        </div>
                       </article>
                     ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
       {totalSlides > 1 && (
-        <div className={styles.carouselDots}>
+        <div className={styles.carouselDots} role="tablist" aria-label="Slider Pagination">
           {Array.from({ length: totalSlides }).map((_, index) => (
             <button
               key={index}
+              role="tab"
+              aria-selected={slide === index}
               className={`${styles.carouselDot} ${slide === index ? styles.carouselDotActive : ''}`}
               onClick={() => setSlide(index)}
-              aria-label={`Go to slide ${index + 1}`}
+              aria-label={`Jump to leadership page ${index + 1}`}
             />
           ))}
         </div>
@@ -142,6 +239,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
   const { currentTerm } = useCurrentTerm();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [productCategoryFilter, setProductCategoryFilter] = useState('ALL');
   const [officers, setOfficers] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const navigate = useNavigate();
@@ -182,6 +280,28 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
     }, () => setLoading(false));
     return () => unsub();
   }, []);
+
+  /* ── Distinct Product Categories & Filtered List ── */
+  const productCategories = useMemo(() => {
+    const set = new Set();
+    products.forEach((p) => {
+      if (p.category && p.category.trim()) {
+        set.add(p.category.trim());
+      }
+    });
+    return Array.from(set);
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    if (productCategoryFilter === 'ALL') return products;
+    if (productCategoryFilter === 'LOW_STOCK') {
+      return products.filter((p) => (p.stockAvailable || 0) <= 10 && (p.stockAvailable || 0) > 0);
+    }
+    if (productCategoryFilter === 'IN_STOCK') {
+      return products.filter((p) => (p.stockAvailable || 0) > 0);
+    }
+    return products.filter((p) => (p.category || 'General').toLowerCase() === productCategoryFilter.toLowerCase());
+  }, [products, productCategoryFilter]);
 
   /* ── Firebase: Officers ── */
   useEffect(() => {
@@ -424,40 +544,40 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
                   switch (userRole) {
                     case 'secretary':
                       return [
-                        { icon: '💰', label: 'Finances', action: () => navigate('/finance') },
-                        { icon: '📁', label: 'Documents', action: () => navigate('/documents') },
-                        { icon: '📢', label: 'Announcements', action: () => navigate('/announcement') },
+                        { icon: <HiCurrencyDollar />, label: 'Finances', action: () => navigate('/finance') },
+                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
+                        { icon: <HiSpeakerphone />, label: 'Announcements', action: () => navigate('/announcement') },
                       ];
                     case 'representative':
                       return [
-                        { icon: '📁', label: 'Documents', action: () => navigate('/documents') },
-                        { icon: '📦', label: 'Inventory', action: () => navigate('/inventory') },
-                        { icon: '📢', label: 'Announcements', action: () => navigate('/announcement') },
+                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
+                        { icon: <HiCube />, label: 'Inventory', action: () => navigate('/inventory') },
+                        { icon: <HiSpeakerphone />, label: 'Announcements', action: () => navigate('/announcement') },
                       ];
                     case 'finance_secretary':
                       return [
-                        { icon: '🛍️', label: 'Commerce Hub', action: () => navigate('/commerce') },
-                        { icon: '📁', label: 'Documents', action: () => navigate('/documents') },
-                        { icon: '💰', label: 'Finances', action: () => navigate('/finance') },
+                        { icon: <HiShoppingBag />, label: 'Commerce Hub', action: () => navigate('/commerce') },
+                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
+                        { icon: <HiCurrencyDollar />, label: 'Finances', action: () => navigate('/finance') },
                       ];
                     case 'senator':
                       return [
-                        { icon: '📦', label: 'Inventory', action: () => navigate('/inventory') },
-                        { icon: '📁', label: 'Documents', action: () => navigate('/documents') },
-                        { icon: '📅', label: 'Events & Announcements', action: () => scrollToSection(announcementsRef) },
+                        { icon: <HiCube />, label: 'Inventory', action: () => navigate('/inventory') },
+                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
+                        { icon: <HiCalendar />, label: 'Events & Announcements', action: () => scrollToSection(announcementsRef) },
                       ];
                     case 'admin':
                       return [
-                        { icon: '⚙️', label: 'Admin Dashboard', action: () => navigate('/admin') },
-                        { icon: '💰', label: 'Finances', action: () => navigate('/finance') },
-                        { icon: '📁', label: 'User Management', action: () => navigate('/admin/users') },
+                        { icon: <HiCog />, label: 'Admin Dashboard', action: () => navigate('/admin') },
+                        { icon: <HiCurrencyDollar />, label: 'Finances', action: () => navigate('/finance') },
+                        { icon: <HiUsers />, label: 'User Management', action: () => navigate('/admin/users') },
                       ];
                     default:
                       // member, guest, or unauthenticated default
                       return [
-                        { icon: '📦', label: 'Track My Order', action: () => navigate('/track-order') },
-                        { icon: '🛍️', label: 'Product Catalogue', action: () => scrollToSection(productsRef) },
-                        { icon: '📅', label: 'Events & Announcements', action: () => scrollToSection(announcementsRef) },
+                        { icon: <HiTruck />, label: 'Track My Order', action: () => navigate('/track-order') },
+                        { icon: <HiShoppingBag />, label: 'Product Catalogue', action: () => scrollToSection(productsRef) },
+                        { icon: <HiCalendar />, label: 'Events & Announcements', action: () => scrollToSection(announcementsRef) },
                       ];
                   }
                 };
@@ -485,86 +605,219 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       {/* ══════════════════════════════════════
           PRODUCTS
       ══════════════════════════════════════ */}
-      <section ref={productsRef} className={styles.productsSection}>
+      {/* ══════════════════════════════════════
+          PRODUCTS CATALOGUE — Redesigned
+      ══════════════════════════════════════ */}
+      <section ref={productsRef} className={styles.productsSection} aria-label="Official Merchandise Catalogue">
         <header className={styles.sectionHeader}>
-          <span className={styles.sectionEyebrow}>CATALOGUE</span>
-          <h2 className={styles.sectionTitle}>Our Products</h2>
+          <span className={styles.sectionEyebrow}>OFFICIAL MERCHANDISE</span>
+          <h2 className={styles.sectionTitle}>Product Catalogue</h2>
           <p className={styles.sectionSubtitle}>
-            Official lanyards &amp; uniforms for the student body
+            Official university lanyards, uniform sets, and student body essentials
           </p>
+
+          {/* Interactive Category & Stock Filter Controls */}
+          {!loading && products.length > 0 && (
+            <div className={styles.productFilterBar} role="tablist" aria-label="Filter products">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={productCategoryFilter === 'ALL'}
+                className={`${styles.productFilterBtn} ${productCategoryFilter === 'ALL' ? styles.productFilterBtnActive : ''}`}
+                onClick={() => setProductCategoryFilter('ALL')}
+              >
+                All Items <span className={styles.productFilterCount}>{products.length}</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={productCategoryFilter === 'IN_STOCK'}
+                className={`${styles.productFilterBtn} ${productCategoryFilter === 'IN_STOCK' ? styles.productFilterBtnActive : ''}`}
+                onClick={() => setProductCategoryFilter('IN_STOCK')}
+              >
+                In Stock <span className={styles.productFilterCount}>{products.filter(p => (p.stockAvailable || 0) > 0).length}</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={productCategoryFilter === 'LOW_STOCK'}
+                className={`${styles.productFilterBtn} ${productCategoryFilter === 'LOW_STOCK' ? styles.productFilterBtnActive : ''}`}
+                onClick={() => setProductCategoryFilter('LOW_STOCK')}
+              >
+                Low Stock <span className={styles.productFilterCount}>{products.filter(p => (p.stockAvailable || 0) <= 10 && (p.stockAvailable || 0) > 0).length}</span>
+              </button>
+
+              {productCategories.map((cat) => {
+                const count = products.filter(p => (p.category || '').toLowerCase() === cat.toLowerCase()).length;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    role="tab"
+                    aria-selected={productCategoryFilter.toLowerCase() === cat.toLowerCase()}
+                    className={`${styles.productFilterBtn} ${productCategoryFilter.toLowerCase() === cat.toLowerCase() ? styles.productFilterBtnActive : ''}`}
+                    onClick={() => setProductCategoryFilter(cat)}
+                  >
+                    {cat} <span className={styles.productFilterCount}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </header>
 
         {loading ? (
           <div className={styles.skeletonGrid}>
-            {[1, 2, 3].map((n) => (
+            {[1, 2, 3, 4].map((n) => (
               <div key={n} className={styles.skeletonCard}>
                 <div className={styles.skeletonImage} />
                 <div className={styles.skeletonBody}>
-                  <div className={styles.skeletonLine} style={{ width: '40%' }} />
-                  <div className={styles.skeletonLine} style={{ width: '80%' }} />
-                  <div className={styles.skeletonLine} style={{ width: '60%' }} />
-                  <div className={styles.skeletonLine} style={{ width: '100%' }} />
+                  <div className={styles.skeletonLine} style={{ width: '30%' }} />
+                  <div className={styles.skeletonLine} style={{ width: '85%' }} />
+                  <div className={styles.skeletonLine} style={{ width: '65%' }} />
+                  <div className={styles.skeletonLine} style={{ width: '100%', marginTop: 'auto' }} />
                 </div>
               </div>
             ))}
           </div>
         ) : products.length === 0 ? (
-          <p className={styles.stateText}>No products available at the moment. Check back soon!</p>
+          <div className={styles.emptyProductsState}>
+            <FiShoppingBag className={styles.emptyProductsIcon} />
+            <h3 className={styles.emptyProductsTitle}>Catalogue Currently Empty</h3>
+            <p className={styles.emptyProductsText}>
+              No student merchandise items are currently listed. Please check back soon or consult the SSG Supply Office.
+            </p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className={styles.emptyProductsState}>
+            <FiFilter className={styles.emptyProductsIcon} />
+            <h3 className={styles.emptyProductsTitle}>No Matching Items</h3>
+            <p className={styles.emptyProductsText}>
+              No items found matching the selected filter. Try selecting "All Items" to see the complete catalogue.
+            </p>
+            <button
+              type="button"
+              className={styles.resetFilterBtn}
+              onClick={() => setProductCategoryFilter('ALL')}
+            >
+              Show All Products
+            </button>
+          </div>
         ) : (
           <div className={styles.productsGrid}>
-            {products.map((product) => (
-              <article key={product.productId} className={styles.productCard}>
-                <div className={styles.productImageWrapper}>
-                  <img
-                    src={product.imageUrl || 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=600&h=600&fit=crop'}
-                    alt={product.productName}
-                    className={styles.productImage}
-                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=600&h=600&fit=crop'; }}
-                  />
-                  {product.stockAvailable <= 10 && product.stockAvailable > 0 && (
-                    <span className={styles.badgeLow}>Low Stock</span>
-                  )}
-                  {product.stockAvailable === 0 && (
-                    <span className={styles.badgeOut}>Out of Stock</span>
-                  )}
-                </div>
+            {filteredProducts.map((product) => {
+              const inStock = (product.stockAvailable || 0) > 0;
+              const isLowStock = inStock && product.stockAvailable <= 10;
+              const isOutOfStock = !inStock;
 
-                <div className={styles.productInfo}>
-                  <span className={styles.productCategoryLabel}>MERCHANDISE</span>
-                  <h3 className={styles.productName}>{product.productName}</h3>
-                  {product.description && (
-                    <p className={styles.productDescription}>{product.description}</p>
-                  )}
+              return (
+                <article key={product.productId} className={styles.productCard}>
+                  {/* Image Display Surface */}
+                  <div className={styles.productImageWrapper}>
+                    <img
+                      src={product.imageBase64 || product.imageUrl || 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=600&h=600&fit=crop'}
+                      alt={product.productName}
+                      className={styles.productImage}
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=600&h=600&fit=crop'; }}
+                      loading="lazy"
+                    />
 
-                  <div className={styles.productMeta}>
-                    <span className={styles.price}>₱{product.price?.toFixed(2)}</span>
-                    <span className={styles.stock}>{product.stockAvailable || 0} in stock</span>
+                    {/* Status Pill Badges */}
+                    <div className={styles.productBadgeContainer}>
+                      {isLowStock && (
+                        <span className={styles.badgeLow}>
+                          <FiAlertCircle className={styles.badgeIcon} /> Low Stock ({product.stockAvailable})
+                        </span>
+                      )}
+                      {isOutOfStock && (
+                        <span className={styles.badgeOut}>
+                          Out of Stock
+                        </span>
+                      )}
+                      {inStock && !isLowStock && (
+                        <span className={styles.badgeAvailable}>
+                          Available
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {product.sizeOptions?.length > 0 && (
-                    <div className={styles.tagRow}>
-                      <span className={styles.tagRowLabel}>Sizes</span>
-                      {product.sizeOptions.map((s, i) => <span key={i} className={styles.tag}>{s}</span>)}
+                  {/* Card Content & Specifications */}
+                  <div className={styles.productInfo}>
+                    <div className={styles.productMetaHeader}>
+                      <span className={styles.productCategoryLabel}>
+                        {product.category || 'MERCHANDISE'}
+                      </span>
+                      <span className={`${styles.stockIndicator} ${isOutOfStock ? styles.stockOut : isLowStock ? styles.stockLow : styles.stockGood}`}>
+                        <span className={styles.stockDot} />
+                        {product.stockAvailable || 0} left
+                      </span>
                     </div>
-                  )}
-                  {product.colorVariations?.length > 0 && (
-                    <div className={styles.tagRow}>
-                      <span className={styles.tagRowLabel}>Colors</span>
-                      {product.colorVariations.map((c, i) => <span key={i} className={styles.tag}>{c}</span>)}
-                    </div>
-                  )}
 
-                  <button
-                    onClick={() => handleOrderNow(product)}
-                    disabled={product.stockAvailable === 0}
-                    className={`${styles.orderButton} ${product.stockAvailable === 0 ? styles.orderButtonDisabled : ''}`}
-                  >
-                    <ShoppingBagIcon />
-                    <span>{product.stockAvailable === 0 ? 'Out of Stock' : 'Order Now'}</span>
-                  </button>
-                </div>
-              </article>
-            ))}
+                    <h3 className={styles.productName} title={product.productName}>
+                      {product.productName}
+                    </h3>
+
+                    {product.description ? (
+                      <p className={styles.productDescription} title={product.description}>
+                        {product.description}
+                      </p>
+                    ) : (
+                      <p className={`${styles.productDescription} ${styles.productDescriptionPlaceholder}`}>
+                        Official student government merchandise certified for CTU campus operations.
+                      </p>
+                    )}
+
+                    {/* Technical Variants Specification */}
+                    <div className={styles.productVariantsBlock}>
+                      {product.sizeOptions?.length > 0 && (
+                        <div className={styles.tagRow}>
+                          <span className={styles.tagRowLabel}>SIZES</span>
+                          <div className={styles.tagList}>
+                            {product.sizeOptions.map((s, i) => (
+                              <span key={i} className={styles.tag}>{s}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {product.colorVariations?.length > 0 && (
+                        <div className={styles.tagRow}>
+                          <span className={styles.tagRowLabel}>COLORS</span>
+                          <div className={styles.tagList}>
+                            {product.colorVariations.map((c, i) => (
+                              <span key={i} className={styles.tag}>{c}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Pricing & Action Surface */}
+                    <div className={styles.productCardFooter}>
+                      <div className={styles.priceContainer}>
+                        <span className={styles.priceCurrency}>₱</span>
+                        <span className={styles.priceValue}>{product.price?.toFixed(2) || '0.00'}</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOrderNow(product)}
+                        disabled={isOutOfStock}
+                        className={`${styles.orderButton} ${isOutOfStock ? styles.orderButtonDisabled : ''}`}
+                        aria-label={`Order ${product.productName}`}
+                      >
+                        <FiShoppingBag className={styles.orderButtonIcon} />
+                        <span>{isOutOfStock ? 'Depleted' : 'Order Now'}</span>
+                        {!isOutOfStock && <FiArrowRight className={styles.orderArrowIcon} />}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

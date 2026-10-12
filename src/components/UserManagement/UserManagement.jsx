@@ -20,6 +20,29 @@ import {
   ROLE_PERMISSIONS
 } from '../../utils/permissions.js';
 import { syncClaimsForUser } from '../../services/roleClaims.js';
+import { 
+  ShieldCheck, 
+  Users, 
+  UserCheck, 
+  Search, 
+  Download, 
+  RefreshCw, 
+  AlertTriangle, 
+  Edit3, 
+  UserX, 
+  X,
+  Save,
+  Key,
+  Shield,
+  Layers,
+  Sparkles,
+  SlidersHorizontal,
+  ChevronDown,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Briefcase
+} from 'lucide-react';
 import styles from './UserManagement.module.css';
 
 function UserManagement() {
@@ -340,38 +363,47 @@ function UserManagement() {
   if (!isAdmin) {
     return (
       <div className={styles.accessDenied}>
-        <div className={styles.accessDeniedIcon}>👑</div>
-        <h3>Administrator Access Required</h3>
-        <p>You need administrator privileges to access the User Management dashboard.</p>
+        <div className={styles.accessDeniedIcon}><ShieldCheck size={48} /></div>
+        <h3>Administrator Clearance Required</h3>
+        <p>You need verified administrative privileges to access the User Credentials & Role Management Console.</p>
       </div>
     );
   }
   
   return (
     <div className={styles.container}>
+      {/* Top Header */}
       <header className={styles.header}>
-        <h1 className={styles.title}>User Management</h1>
-        <p className={styles.subtitle}>
-          Manage user roles, permissions, and access levels across the system.
-        </p>
+        <div className={styles.headerLeft}>
+          <div className={styles.eyebrowBadge}>
+            <Shield size={13} />
+            <span>Identity & Access Management (IAM)</span>
+          </div>
+          <h1 className={styles.title}>User Management & RBAC</h1>
+          <p className={styles.subtitle}>
+            Control administrative roles, granular permission overrides, and security access states across the SSG network.
+          </p>
+        </div>
       </header>
       
       {/* Statistics Overview */}
       {statistics && (
         <div className={styles.statistics}>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>👥</div>
+            <div className={styles.statIcon}><Users size={22} /></div>
             <div className={styles.statContent}>
               <div className={styles.statNumber}>{statistics.totalUsers}</div>
-              <div className={styles.statLabel}>Total Users</div>
+              <div className={styles.statLabel}>Total Registered</div>
             </div>
           </div>
           
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>✅</div>
+            <div className={`${styles.statIcon} ${styles.statIconActive}`}>
+              <UserCheck size={22} />
+            </div>
             <div className={styles.statContent}>
               <div className={styles.statNumber}>{statistics.activeUsers}</div>
-              <div className={styles.statLabel}>Active Users</div>
+              <div className={styles.statLabel}>Active Officers & Members</div>
             </div>
           </div>
           
@@ -392,51 +424,57 @@ function UserManagement() {
         </div>
       )}
       
-      {/* Controls */}
+      {/* Controls Bar */}
       <div className={styles.controls}>
         <div className={styles.searchContainer}>
+          <Search size={18} className={styles.searchIcon} />
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Search by full name, email, or user ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
         </div>
         
         <div className={styles.filterContainer}>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className={styles.filterSelect}
-          >
-            <option value="all">All Roles</option>
-            {availableRoles.map(role => (
-              <option key={role.id} value={role.id}>{role.name}</option>
-            ))}
-          </select>
+          <div className={styles.selectWrapper}>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className={styles.filterSelect}
+            >
+              <option value="all">All Roles</option>
+              {availableRoles.map(role => (
+                <option key={role.id} value={role.id}>{role.name}</option>
+              ))}
+            </select>
+          </div>
           
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className={styles.filterSelect}
-          >
-            <option value="active">Active Only</option>
-            <option value="all">All Statuses</option>
-            <option value="inactive">Inactive Only</option>
-          </select>
+          <div className={styles.selectWrapper}>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={styles.filterSelect}
+            >
+              <option value="active">Active Accounts Only</option>
+              <option value="all">All Account Statuses</option>
+              <option value="inactive">Inactive / Suspended</option>
+            </select>
+          </div>
           
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className={styles.filterSelect}
-          >
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-            <option value={100}>100 per page</option>
-          </select>
+          <div className={styles.selectWrapper}>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className={styles.filterSelect}
+            >
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+            </select>
+          </div>
         </div>
         
         <div className={styles.actionButtons}>
@@ -444,32 +482,37 @@ function UserManagement() {
             onClick={handleExportUsers}
             className={styles.exportButton}
             disabled={filteredUsers.length === 0}
+            title="Export CSV Roster"
           >
-            📥 Export
+            <Download size={16} />
+            Export CSV
           </button>
           
           <button
             onClick={fetchUsers}
             className={styles.refreshButton}
             disabled={loading}
+            title="Refresh User Data"
           >
-            {loading ? '🔄 Refreshing...' : '🔄 Refresh'}
+            <RefreshCw size={16} className={loading ? styles.spinIcon : ''} />
+            {loading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
       </div>
       
-      {/* Error Display */}
+      {/* Error Alert */}
       {error && (
         <div className={styles.errorBox}>
-          ⚠️ {error}
+          <AlertTriangle size={18} />
+          <span>{error}</span>
         </div>
       )}
       
-      {/* Loading State */}
+      {/* Loading Skeleton / State */}
       {loading && (
         <div className={styles.loadingState}>
           <div className={styles.spinner}></div>
-          <p>Loading users...</p>
+          <p>Synchronizing IAM Directory & Permissions...</p>
         </div>
       )}
       
@@ -477,12 +520,12 @@ function UserManagement() {
       {!loading && filteredUsers.length > 0 && (
         <div className={styles.usersTable}>
           <div className={styles.tableHeader}>
-            <div className={styles.headerCell}>User</div>
-            <div className={styles.headerCell}>Role</div>
+            <div className={styles.headerCell}>Identity</div>
+            <div className={styles.headerCell}>Designation & Permissions</div>
             <div className={styles.headerCell}>Department</div>
-            <div className={styles.headerCell}>Status</div>
-            <div className={styles.headerCell}>Last Login</div>
-            <div className={styles.headerCell}>Actions</div>
+            <div className={styles.headerCell}>Access State</div>
+            <div className={styles.headerCell}>Last Session</div>
+            <div className={`${styles.headerCell} ${styles.headerCellActions}`}>Actions</div>
           </div>
           
           <div className={styles.tableBody}>
@@ -500,11 +543,11 @@ function UserManagement() {
                   <div className={styles.userInfo}>
                     <div className={styles.userName}>{user.name}</div>
                     <div className={styles.userEmail}>{user.email}</div>
-                    <div className={styles.userId}>ID: {user.id.substring(0, 8)}...</div>
+                    <div className={styles.userId}>UID: {user.id.substring(0, 10)}...</div>
                   </div>
                 </div>
                 
-                {/* Role */}
+                {/* Role & Overrides */}
                 <div className={styles.roleCell}>
                   <span 
                     className={styles.roleBadge}
@@ -517,26 +560,34 @@ function UserManagement() {
                   </div>
                   {user.permissionOverrides && Object.keys(user.permissionOverrides).length > 0 && (
                     <div className={styles.overrideBadge}>
-                      +{Object.values(user.permissionOverrides).filter(Boolean).length} individual
+                      <Key size={12} />
+                      <span>{Object.values(user.permissionOverrides).filter(Boolean).length} Overrides</span>
                     </div>
                   )}
                 </div>
                 
                 {/* Department */}
                 <div className={styles.departmentCell}>
-                  {user.department || 'Not specified'}
+                  <span className={styles.deptText}>
+                    {user.department || 'General Administration'}
+                  </span>
                 </div>
                 
                 {/* Status */}
                 <div className={styles.statusCell}>
                   <span className={`${styles.statusBadge} ${user.isActive ? styles.statusActive : styles.statusInactive}`}>
-                    {user.isActive ? '✅ Active' : '❌ Inactive'}
+                    {user.isActive ? (
+                      <><CheckCircle2 size={14} /> Active</>
+                    ) : (
+                      <><XCircle size={14} /> Deactivated</>
+                    )}
                   </span>
                 </div>
                 
                 {/* Last Login */}
                 <div className={styles.lastLoginCell}>
-                  {formatDate(user.lastLoginAt)}
+                  <Clock size={13} className={styles.cellIcon} />
+                  <span>{formatDate(user.lastLoginAt)}</span>
                 </div>
                 
                 {/* Actions */}
@@ -545,9 +596,10 @@ function UserManagement() {
                     onClick={() => handleEditUser(user)}
                     disabled={!canEditUser(user)}
                     className={styles.editButton}
-                    title={canEditUser(user) ? "Edit user" : "Cannot edit yourself"}
+                    title={canEditUser(user) ? "Configure User Access" : "Cannot edit yourself"}
                   >
-                    ✏️ Edit
+                    <Edit3 size={15} />
+                    Edit
                   </button>
                   
                   <button
@@ -556,7 +608,11 @@ function UserManagement() {
                     disabled={!canEditUser(user)}
                     title={canEditUser(user) ? (user.isActive ? "Deactivate user" : "Activate user") : "Cannot modify yourself"}
                   >
-                    {user.isActive ? '❌ Deactivate' : '✅ Activate'}
+                    {user.isActive ? (
+                      <><UserX size={15} /> Suspend</>
+                    ) : (
+                      <><UserCheck size={15} /> Activate</>
+                    )}
                   </button>
                 </div>
               </div>
@@ -568,12 +624,12 @@ function UserManagement() {
       {/* Empty State */}
       {!loading && filteredUsers.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>👥</div>
+          <div className={styles.emptyIcon}><Users size={40} /></div>
           <h3>No Users Found</h3>
           <p>
             {users.length === 0 
-              ? 'No users have been registered yet.'
-              : 'No users match your search criteria. Try adjusting your filters.'}
+              ? 'No users have registered or synced to this directory.'
+              : 'No officers or users matched your query. Try broadening your search or role filter.'}
           </p>
         </div>
       )}
@@ -583,26 +639,30 @@ function UserManagement() {
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
-              <h3>Edit User: {selectedUser.name}</h3>
+              <div className={styles.modalHeaderTitleGroup}>
+                <Shield size={20} className={styles.modalHeaderIcon} />
+                <div>
+                  <h3>Configure Access: {selectedUser.name}</h3>
+                  <p className={styles.modalHeaderSub}>Manage system-wide permissions and departmental assignments</p>
+                </div>
+              </div>
               <button 
                 onClick={() => setShowEditModal(false)}
                 className={styles.modalClose}
+                title="Close"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
             
             <div className={styles.modalBody}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Role</label>
+                <label className={styles.formLabel}>Assigned System Role</label>
                 <select
                   value={editForm.role}
                   onChange={(e) => {
                     const nextRole = e.target.value;
                     setEditForm({ ...editForm, role: nextRole });
-                    // Ticks are relative to a role. Rebuild them from the new
-                    // role's defaults, then re-apply this user's deliberate
-                    // overrides so a role change never silently discards them.
                     const base = ROLE_PERMISSIONS[nextRole]?.permissions || {};
                     const next = new Set(Object.keys(base).filter((key) => base[key]));
                     Object.entries(selectedUser?.permissionOverrides || {}).forEach(([key, granted]) => {
@@ -615,7 +675,7 @@ function UserManagement() {
                 >
                   {availableRoles.map(role => (
                     <option key={role.id} value={role.id}>
-                      {role.name} - {role.description}
+                      {role.name} — {role.description}
                     </option>
                   ))}
                 </select>
@@ -624,19 +684,21 @@ function UserManagement() {
               {/* ============ PER-USER ACCESS ============ */}
               <div className={styles.permissionEditor}>
                 <div className={styles.permissionHeader}>
-                  <label className={styles.formLabel}>Individual Access</label>
+                  <div className={styles.permHeaderLeft}>
+                    <Key size={16} />
+                    <label className={styles.formLabel}>Granular Permission Overrides</label>
+                  </div>
                   <button
                     type="button"
                     onClick={handleResetOverrides}
                     className={styles.resetPermissionsButton}
                   >
-                    Reset to {getRoleName(editForm.role)} default
+                    Reset to {getRoleName(editForm.role)} defaults
                   </button>
                 </div>
                 
                 <p className={styles.permissionHelp}>
-                  Tick or untick to give this person access on top of — or instead of — their
-                  role. Only the differences from {getRoleName(editForm.role)} are saved.
+                  Toggle individual switches to grant or revoke specific capabilities independent of the base role. Differences are explicitly highlighted.
                 </p>
                 
                 {PERMISSION_CATALOG.map(group => (
@@ -661,7 +723,7 @@ function UserManagement() {
                               {item.label}
                               {isOverride && (
                                 <span className={styles.overrideTag}>
-                                  {isGranted ? 'granted' : 'revoked'}
+                                  {isGranted ? 'granted override' : 'revoked override'}
                                 </span>
                               )}
                             </span>
@@ -675,30 +737,32 @@ function UserManagement() {
                 
                 {overrideChanges() && (
                   <div className={styles.permissionSummary}>
-                    Saves as individual access for{' '}
-                    <strong>{selectedUser.name}</strong>.
+                    <Sparkles size={14} />
+                    <span>
+                      Pending individual overrides will be saved for <strong>{selectedUser.name}</strong>.
+                    </span>
                   </div>
                 )}
               </div>
               
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Department</label>
+                <label className={styles.formLabel}>Department / Bureau</label>
                 <input
                   type="text"
                   value={editForm.department}
                   onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
                   className={styles.formInput}
-                  placeholder="Enter department (optional)"
+                  placeholder="e.g., Executive Committee, Finance Bureau, Student Welfare"
                 />
               </div>
               
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Admin Notes</label>
+                <label className={styles.formLabel}>Administrative Audit Notes</label>
                 <textarea
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                   className={styles.formTextarea}
-                  placeholder="Add notes about this user..."
+                  placeholder="Record rationale for role adjustments or custom clearance grants..."
                   rows={3}
                 />
               </div>
@@ -710,7 +774,7 @@ function UserManagement() {
                     checked={editForm.isActive}
                     onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
                   />
-                  <span>Account is active</span>
+                  <span>User account is active & permitted to authenticate</span>
                 </label>
               </div>
               
@@ -725,7 +789,8 @@ function UserManagement() {
                   onClick={handleUpdateRole}
                   className={styles.saveButton}
                 >
-                  💾 Save Changes
+                  <Save size={16} />
+                  Save Changes
                 </button>
               </div>
             </div>
@@ -738,31 +803,39 @@ function UserManagement() {
         <div className={styles.modalOverlay}>
           <div className={styles.confirmModal}>
             <div className={styles.modalHeader}>
-              <h3>Confirm Action</h3>
+              <div className={styles.modalHeaderTitleGroup}>
+                <AlertTriangle size={20} style={{ color: actionToConfirm === 'deactivate' ? '#ef4444' : '#10b981' }} />
+                <h3>Confirm Security Action</h3>
+              </div>
               <button 
                 onClick={() => setShowConfirmModal(false)}
                 className={styles.modalClose}
+                title="Close"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
             
             <div className={styles.modalBody}>
               <div className={styles.confirmIcon}>
-                {actionToConfirm === 'deactivate' ? '⚠️' : '✅'}
+                {actionToConfirm === 'deactivate' ? (
+                  <UserX size={52} style={{ color: '#ef4444' }} />
+                ) : (
+                  <UserCheck size={52} style={{ color: '#10b981' }} />
+                )}
               </div>
               
               <p className={styles.confirmMessage}>
                 {actionToConfirm === 'deactivate'
-                  ? `Are you sure you want to deactivate ${selectedUser.name}? They will lose access to the system.`
-                  : `Are you sure you want to activate ${selectedUser.name}? They will regain access to the system.`
+                  ? `Are you sure you want to suspend access for ${selectedUser.name}? Their credentials will be deactivated immediately.`
+                  : `Are you sure you want to reactivate access for ${selectedUser.name}? Their institutional system access will be restored.`
                 }
               </p>
               
               <div className={styles.confirmDetails}>
-                <div><strong>User:</strong> {selectedUser.name}</div>
-                <div><strong>Email:</strong> {selectedUser.email}</div>
-                <div><strong>Current Status:</strong> {selectedUser.isActive ? 'Active' : 'Inactive'}</div>
+                <div><strong>Officer / User:</strong> {selectedUser.name}</div>
+                <div><strong>Institutional Email:</strong> {selectedUser.email}</div>
+                <div><strong>Current Account State:</strong> {selectedUser.isActive ? 'Active' : 'Inactive'}</div>
               </div>
               
               <div className={styles.modalActions}>
@@ -776,7 +849,11 @@ function UserManagement() {
                   onClick={handleToggleUserStatus}
                   className={actionToConfirm === 'deactivate' ? styles.deactivateConfirmButton : styles.activateConfirmButton}
                 >
-                  {actionToConfirm === 'deactivate' ? '❌ Confirm Deactivation' : '✅ Confirm Activation'}
+                  {actionToConfirm === 'deactivate' ? (
+                    <><UserX size={16} /> Confirm Deactivation</>
+                  ) : (
+                    <><UserCheck size={16} /> Confirm Activation</>
+                  )}
                 </button>
               </div>
             </div>

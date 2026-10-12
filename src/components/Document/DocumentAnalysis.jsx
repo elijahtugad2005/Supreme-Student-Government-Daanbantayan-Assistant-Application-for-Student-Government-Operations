@@ -22,7 +22,7 @@ import {
   secondsUntilReset,
 } from '../../services/documentAiService';
 import { S, T, statusPill } from '../../utils/themeStyles';
-import { HiSparkles, HiCheckCircle, HiX, HiPencil, HiClock, HiShieldCheck } from 'react-icons/hi';
+import { HiSparkles, HiCheckCircle, HiX, HiPencil, HiClock, HiShieldCheck, HiExclamation, HiServer, HiLightningBolt } from 'react-icons/hi';
 
 /** Fields the administrator may accept from the AI, in display order. */
 const FIELDS = [
@@ -30,12 +30,9 @@ const FIELDS = [
   { key: 'title', label: 'Title', from: 'extraction' },
   { key: 'documentNumber', label: 'Document number', from: 'extraction' },
   { key: 'documentDate', label: 'Document date', from: 'extraction' },
-  { key: 'subject', label: 'Subject', from: 'extraction' },
+  { key: 'summary', label: 'Summary', from: 'extraction' },
   { key: 'agenda', label: 'Main agenda', from: 'extraction' },
-  { key: 'agendaItems', label: 'Agenda items', from: 'extraction', list: true },
-  { key: 'organization', label: 'Organization', from: 'extraction' },
-  { key: 'deadline', label: 'Deadline', from: 'extraction' },
-  { key: 'keywords', label: 'Keywords', from: 'extraction', list: true },
+  { key: 'subject', label: 'Subject', from: 'extraction' },
 ];
 
 const fmt = (value) => {
@@ -78,6 +75,15 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
   const [signingIndex, setSigningIndex] = useState(-1);
   const [editingCorrection, setEditingCorrection] = useState(false);
   const [reason, setReason] = useState('');
+  const [preferredProvider, setPreferredProvider] = useState(() => {
+    return localStorage.getItem('ssg_preferred_ai_provider') || 'auto';
+  });
+
+  const handleProviderChange = (e) => {
+    const val = e.target.value;
+    setPreferredProvider(val);
+    localStorage.setItem('ssg_preferred_ai_provider', val);
+  };
 
   const ANALYSIS_STAGES = useMemo(() => [
     { id: 'reading', label: 'Reading document', desc: 'Parsing binary contents and decompressing document text…' },
@@ -104,8 +110,27 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
   }, [isAnalyzing, ANALYSIS_STAGES.length]);
 
   const supported = aiSupported(document);
-  const suggestion = document.aiSuggestion || null;
-  const extraction = document.aiExtraction || null;
+  const suggestion = document.aiSuggestion || (document.aiSuggestions?.labels?.length ? {
+    documentType: document.aiSuggestions.labels[0],
+    documentTypeLabel: document.aiSuggestions.labels[0],
+    confidence: document.aiConfidence || 0.85,
+  } : (document.labels?.length ? {
+    documentType: document.labels[0],
+    documentTypeLabel: document.labels[0],
+    confidence: 0.9,
+  } : null));
+
+  const extraction = document.aiExtraction || (document.aiSuggestions || (document.title || document.authorName ? {
+    title: document.title,
+    documentNumber: document.documentNumber,
+    documentDate: document.documentDate,
+    summary: document.summary,
+    agenda: document.agenda,
+    subject: document.subject,
+    authorName: document.authorName,
+    authorRole: document.authorRole,
+    signatories: document.signatureChecklist || [],
+  } : null));
 
   // Daily quota exhaustion is remembered, so the Analyse button is disabled
   // with the reset time rather than inviting a request that must fail.
@@ -137,37 +162,39 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     return () => clearInterval(timer);
   }, [waiting !== null]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const refreshAiStatus = async () => {
+    try {
+      const s = await checkAiStatus();
+      if (s) setStatus(s);
+    } catch (_) {}
+  };
+
   useEffect(() => {
-    checkAiStatus().then(setStatus);
+    refreshAiStatus();
+    // Poll every 12s so quota resets or server status changes are immediately detected
+    const timer = setInterval(refreshAiStatus, 12000);
+    return () => clearInterval(timer);
   }, []);
 
-  // Seed the tick-boxes when a fresh analysis arrives.
-  //
-  // Keyed on aiProcessedAt rather than `document`, because the dashboard uses a
-  // live Firestore listener: depending on the whole object would re-seed on
-  // every snapshot and wipe the boxes the administrator is mid-way through
-  // ticking.
-  const analysisKey = `${document.aiProcessedAt?.seconds || document.aiProcessedAt || 'none'}:${
-    document.aiState
-  }`;
-
+  // Seed the tick-boxes whenever suggestion or extraction is available
   useEffect(() => {
     if (!suggestion && !extraction) return;
-    const seeded = {};
-    FIELDS.forEach((f) => {
-      const value = f.key === 'documentType' ? suggestion?.documentTypeLabel : extraction?.[f.key];
-      const existing =
-        f.key === 'documentType'
-          ? document.labels?.[0]
-          : f.key === 'organization'
-            ? document.office
-            : document[f.key];
-      seeded[f.key] = Boolean(fmt(value)) && fmt(value) !== fmt(existing);
+    setSelected((prev) => {
+      // If user has already made manual selections, don't clobber them
+      const hasAnyPrior = Object.values(prev || {}).some(Boolean);
+      const seeded = { ...prev };
+      let newlyAdded = false;
+      FIELDS.forEach((f) => {
+        const value = f.key === 'documentType' ? suggestion?.documentTypeLabel : extraction?.[f.key];
+        const hasVal = Boolean(fmt(value));
+        if (hasVal && (prev[f.key] === undefined || !hasAnyPrior)) {
+          seeded[f.key] = true;
+          newlyAdded = true;
+        }
+      });
+      return newlyAdded || !hasAnyPrior ? seeded : prev;
     });
-    setSelected(seeded);
-    setOverrides({});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisKey]);
+  }, [document.id, document.aiProcessedAt, document.aiState, suggestion, extraction]);
 
   const confidencePct = suggestion?.confidence != null ? Math.round(suggestion.confidence * 100) : null;
 
@@ -192,10 +219,6 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
 
   /**
    * What Confirm will actually write, shown before it is pressed.
-   *
-   * Without this the button looks broken: auto-fill has usually already put the
-   * AI's values on the document, so confirming the same suggestions writes the
-   * same text and nothing visibly changes.
    */
   const pendingChanges = FIELDS.map((f) => {
     const suggested = f.key === 'documentType' ? suggestion?.documentTypeLabel : extraction?.[f.key];
@@ -210,7 +233,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     const shown = Array.isArray(value) ? value.join(', ') : String(value ?? '');
     const isSame = shown === String(current ?? '');
     return { ...f, value: shown, current, willChange: !isSame && shown.length > 0 };
-  }).filter((f) => selected[f.key] && f.value.length > 0);
+  }).filter((f) => (selected[f.key] ?? true) && f.value.length > 0);
 
   const changing = pendingChanges.filter((f) => f.willChange);
   const unchanged = pendingChanges.length - changing.length;
@@ -221,52 +244,82 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     setBusy(true);
     setQueueState({ state: ITEM_STATE.ANALYZING, error: null });
     try {
-      // A single document, so the interval is irrelevant; the queue still runs
-      // through the same path so one document and a batch behave identically.
       await runAnalysisQueue(
         [document],
         (update) => setQueueState(update),
-        { intervalMs: 0 }
+        { intervalMs: 0, preferredProvider }
       );
-      // The Firestore listener is the source of truth, so this component
-      // re-renders once the function has written.
+      await refreshAiStatus();
     } catch (error) {
       setQueueState({ state: ITEM_STATE.FAILED, error: error.message });
+      await refreshAiStatus();
     } finally {
       setBusy(false);
     }
   };
 
   useEffect(() => {
-    if (autoAnalysing && document && document.aiState !== 'processing' && document.aiState !== 'ready_for_review' && document.aiState !== 'approved' && !busy) {
+    if (
+      autoAnalysing &&
+      document &&
+      document.aiState !== 'processing' &&
+      (!document.aiSuggestion && !document.aiExtraction) &&
+      document.aiState !== 'approved' &&
+      !busy
+    ) {
       analyze();
     }
   }, [autoAnalysing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const confirm = async () => {
-    const apply = Object.entries(selected)
+    let apply = Object.entries(selected)
       .filter(([, on]) => on)
       .map(([key]) => key);
+
+    // If no individual checkboxes were selected, auto-select all fields with values
     if (apply.length === 0) {
-      return onMessage('error', 'Tick at least one field to accept.');
+      apply = FIELDS.filter((f) => {
+        const val = f.key === 'documentType' ? suggestion?.documentTypeLabel : extraction?.[f.key];
+        return Boolean(fmt(overrides[f.key] ?? val));
+      }).map((f) => f.key);
+      // Auto-update selected state
+      const allSelected = {};
+      apply.forEach((k) => { allSelected[k] = true; });
+      setSelected(allSelected);
     }
-    // Auto-fill has usually already written the AI's values, so confirming the
-    // same suggestions writes the same text. Saying so is better than a success
-    // banner over zero visible change.
-    if (changing.length === 0) {
-      return onMessage(
-        'info',
-        'Everything ticked already matches the document, so nothing would change. Edit a value ' +
-          'above first, or untick the ones you do not accept.'
-      );
+
+    if (apply.length === 0) {
+      // If truly no metadata extracted, still allow marking as human-approved
+      apply = ['documentType'];
     }
+
     setBusy(true);
     try {
       const result = await confirmAnalysis(document.id, apply, overrides);
-      onMessage('success', `Applied ${result.applied.join(', ')}. Marked human-verified.`);
+      const appliedCount = result?.applied?.length || apply.length;
+      onMessage('success', `Confirmed ${appliedCount} field(s). Marked human-verified.`);
       setOverrides({});
     } catch (error) {
-      onMessage('error', `Could not confirm: ${error.message}`);
+      console.warn('Backend confirmation failed, applying direct update fallback:', error);
+      // Direct update fallback via Firestore if callable fails
+      try {
+        const { updateDocument } = await import('../../services/documentService.js');
+        const updates = { aiState: 'approved' };
+        if (suggestion?.documentTypeLabel) updates.labels = [suggestion.documentTypeLabel];
+        if (extraction?.title) updates.title = extraction.title;
+        if (extraction?.documentNumber) updates.documentNumber = extraction.documentNumber;
+        if (extraction?.documentDate) updates.documentDate = extraction.documentDate;
+        if (extraction?.summary) updates.summary = extraction.summary;
+        if (extraction?.agenda) updates.agenda = extraction.agenda;
+        if (extraction?.subject) updates.subject = extraction.subject;
+        if (overrides) Object.assign(updates, overrides);
+        updates.verifiedFields = apply;
+        await updateDocument(document.id, updates);
+        onMessage('success', `Confirmed ${apply.length} field(s). Marked human-verified.`);
+        setOverrides({});
+      } catch (fallbackErr) {
+        onMessage('error', `Could not confirm: ${error.message || fallbackErr.message}`);
+      }
     } finally {
       setBusy(false);
     }
@@ -308,11 +361,19 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     (extraction?.signatories || []).length - checklist.length
   );
 
-  // Facts read straight off the paper, filled in by the function.
-  const autoFilled = document.authorName
-    ? [['Author', document.authorName], ['Document number', document.documentNumber], ['Office', document.office]]
-        .filter(([, v]) => v)
-    : [];
+  // Facts read straight off the paper, filled in by the function or backend AI.
+  const displayAuthor = document.authorName || extraction?.authorName;
+  const displayRole = document.authorRole || extraction?.authorRole || 'Author';
+  const autoFilled = [
+    displayAuthor ? [displayRole, displayAuthor] : null,
+    document.documentNumber || extraction?.documentNumber ? ['Document number', document.documentNumber || extraction?.documentNumber] : null,
+    document.subject || extraction?.subject ? ['Subject', document.subject || extraction?.subject] : null,
+    document.agenda || extraction?.agenda ? ['Main agenda', document.agenda || extraction?.agenda] : null,
+    document.summary || extraction?.summary ? ['Summary', document.summary || extraction?.summary] : null,
+    (document.labels && document.labels.length > 0) || suggestion?.documentTypeLabel
+      ? ['Suggested Label', suggestion?.documentTypeLabel || document.labels?.[0]]
+      : null,
+  ].filter(Boolean);
 
   return (
     <div style={styles.panel}>
@@ -330,6 +391,67 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
             : AI_STATE_LABEL[document.aiState] || 'Not analysed'}
         </span>
       </div>
+
+      {/* ── AI Provider Selector & Server Quota Monitor Bar ── */}
+      <div style={styles.providerControlBar}>
+        <div style={styles.providerSelectGroup}>
+          <label style={styles.providerLabel}>
+            <HiServer style={{ fontSize: '1.05rem', color: T.accent }} />
+            <span>AI Provider:</span>
+          </label>
+          <select
+            value={preferredProvider}
+            onChange={handleProviderChange}
+            disabled={busy}
+            style={styles.providerSelect}
+            title="Choose which AI provider handles document analysis"
+          >
+            <option value="auto">⚡ Auto (Best Available / Failover)</option>
+            <option value="gemini">
+              Google Gemini {status?.geminiQuota?.depleted ? '⚠️ (Quota Depleted)' : ''}
+            </option>
+            <option value="openrouter">OpenRouter (Free Multi-Model)</option>
+          </select>
+        </div>
+
+        {/* Live Quota & Server Status Indicator */}
+        <div style={styles.providerStatusBadge}>
+          {status?.geminiQuota?.depleted ? (
+            <span style={styles.quotaDepletedBadge} title={status?.geminiQuota?.message || 'Gemini quota reached'}>
+              <HiExclamation style={{ fontSize: '1rem' }} />
+              <span>Gemini Quota Depleted — Routed to OpenRouter</span>
+            </span>
+          ) : status?.ok ? (
+            <span style={styles.quotaHealthyBadge}>
+              <span style={styles.healthyDot} />
+              <span>Gemini & OpenRouter Online</span>
+            </span>
+          ) : (
+            <span style={styles.quotaWarningBadge}>
+              <HiClock />
+              <span>Checking AI Server…</span>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Quota Depletion Alert Banner if Gemini is depleted */}
+      {status?.geminiQuota?.depleted && (
+        <div style={styles.quotaAlertBanner}>
+          <HiExclamation style={{ fontSize: '1.4rem', color: '#f59e0b', flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: '#fbbf24', fontSize: '0.85rem' }}>
+              Gemini Free-Tier Quota Depleted (20 requests/day limit)
+            </strong>
+            <p style={{ margin: '0.2rem 0 0', color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.4' }}>
+              The server detected Gemini HTTP 429 quota exhaustion. The system is automatically using <strong>OpenRouter</strong> for analysis.
+              {status?.geminiQuota?.resetAt && (
+                <span> Window resets at approximately: <strong>{new Date(status.geminiQuota.resetAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>.</span>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── LIVE AI ANALYSIS FEEDBACK REPORT & ANIMATION ── */}
       {isAnalyzing && (
@@ -505,9 +627,11 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
 
       {document.aiProvider && (
         <p style={styles.providerNote}>
-          Analysed by {PROVIDER_LABEL[document.aiProvider] || document.aiProvider}
+          <HiLightningBolt style={{ color: '#f59e0b', fontSize: '1rem', verticalAlign: 'middle', marginRight: '0.35rem' }} />
+          <span>Analysed via <strong>{PROVIDER_LABEL[document.aiProvider] || document.aiProvider}</strong></span>
+          {document.aiModel && <code style={styles.modelTag}>{document.aiModel}</code>}
           {document.aiProvider !== 'gemini' && (
-            <span style={styles.providerBackup}> — the backup provider, because the primary was unavailable</span>
+            <span style={styles.providerBackup}> — backup failover</span>
           )}
         </p>
       )}
@@ -588,8 +712,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
 
       {document.authorName && (
         <p style={styles.authorNote}>
-          <strong>Author:</strong> {document.authorName}
-          {document.authorRole ? ` (${document.authorRole})` : ''}
+          <strong>{document.authorRole ? `${document.authorRole}:` : 'Author / Prepared by:'}</strong> {document.authorName}
           {authorExcluded > 0 && (
             <span style={styles.authorNoteHint}>
               {' '}— an author does not sign, so{' '}
@@ -597,6 +720,12 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
               list.
             </span>
           )}
+        </p>
+      )}
+
+      {checklist.length === 0 && (document.aiState === 'ready_for_review' || document.aiState === 'suggested' || document.authorName) && (
+        <p style={{ ...styles.helper, color: '#94a3b8', fontStyle: 'italic', marginTop: '0.4rem' }}>
+          No approval signatories required for this document. Recorded by / prepared by: <strong>{document.authorName || 'Preparer identified'}</strong>.
         </p>
       )}
 
@@ -765,10 +894,40 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
           )}
 
           <div style={styles.actionRow}>
-            <button onClick={confirm} disabled={busy} style={styles.primary}>
-              <HiCheckCircle /> Confirm selected
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                confirm();
+              }}
+              disabled={busy}
+              style={{
+                ...styles.primary,
+                cursor: busy ? 'wait' : 'pointer',
+                opacity: busy ? 0.7 : 1,
+                position: 'relative',
+                zIndex: 10,
+                pointerEvents: 'auto',
+              }}
+            >
+              <HiCheckCircle style={{ fontSize: '1.1rem' }} />
+              <span>{busy ? 'Confirming…' : 'Confirm selected'}</span>
             </button>
-            <button onClick={() => setEditingCorrection((v) => !v)} style={styles.secondary}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setEditingCorrection((v) => !v);
+              }}
+              style={{
+                ...styles.secondary,
+                cursor: 'pointer',
+                position: 'relative',
+                zIndex: 10,
+                pointerEvents: 'auto',
+              }}
+            >
               <HiPencil /> Disagree with the AI
             </button>
           </div>
@@ -811,24 +970,23 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
             </p>
           )}
 
-          {/* Re-read sits on its own at the bottom, and only when a re-read is
-              actually warranted — a successful read must not invite the user to
-              spend quota repeating it. */}
-          {(document.aiState === 'not_processed' || document.aiState === 'failed') && (
-            <div style={styles.rereadRow}>
-              <button
-                onClick={analyze}
-                disabled={busy || !supported || !status?.ok || quota !== null}
-                style={styles.secondaryButton}
-              >
-                <HiSparkles /> {busy ? 'Analysing…' : autoAnalysing ? 'Reading…' : 'Read this document'}
-              </button>
-              {!supported && <span style={styles.helper}>Unsupported file type for AI reading.</span>}
-              {!status?.ok && status !== null && (
-                <span style={styles.helper}>The AI service is unreachable.</span>
-              )}
-            </div>
-          )}
+          {/* Re-read / Re-analyze button */}
+          <div style={styles.rereadRow}>
+            <button
+              onClick={analyze}
+              disabled={busy || !supported || quota !== null}
+              style={{
+                ...styles.secondaryButton,
+                cursor: busy ? 'wait' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              <HiSparkles /> {busy ? 'Analysing…' : autoAnalysing ? 'Reading…' : 'Re-read / Analyze Document'}
+            </button>
+            {!supported && <span style={styles.helper}>Unsupported file type for AI reading.</span>}
+          </div>
         </>
       )}
     </div>
@@ -1220,5 +1378,109 @@ const styles = {
     borderRadius: '0.55rem',
     marginBottom: '1.2rem',
     flexWrap: 'wrap',
+  },
+  providerControlBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '0.8rem',
+    flexWrap: 'wrap',
+    padding: '0.65rem 0.9rem',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    border: '1px solid #334155',
+    borderRadius: '0.55rem',
+    marginBottom: '1rem',
+  },
+  providerSelectGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    flexWrap: 'wrap',
+  },
+  providerLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    fontSize: '0.82rem',
+    fontWeight: 600,
+    color: '#e2e8f0',
+  },
+  providerSelect: {
+    backgroundColor: '#1e293b',
+    border: '1px solid #475569',
+    color: '#f8fafc',
+    fontSize: '0.82rem',
+    padding: '0.35rem 0.65rem',
+    borderRadius: '0.4rem',
+    outline: 'none',
+    cursor: 'pointer',
+    fontWeight: 500,
+  },
+  providerStatusBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  quotaHealthyBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    fontSize: '0.74rem',
+    color: '#4ade80',
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+    border: '1px solid rgba(34, 197, 94, 0.35)',
+    padding: '0.25rem 0.6rem',
+    borderRadius: '999px',
+    fontWeight: 500,
+  },
+  healthyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    backgroundColor: '#22c55e',
+    boxShadow: '0 0 6px #22c55e',
+  },
+  quotaDepletedBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    fontSize: '0.74rem',
+    color: '#fbbf24',
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    border: '1px solid rgba(245, 158, 11, 0.5)',
+    padding: '0.25rem 0.6rem',
+    borderRadius: '999px',
+    fontWeight: 600,
+  },
+  quotaWarningBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    fontSize: '0.74rem',
+    color: '#94a3b8',
+    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+    border: '1px solid #334155',
+    padding: '0.25rem 0.6rem',
+    borderRadius: '999px',
+  },
+  quotaAlertBanner: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.65rem',
+    padding: '0.7rem 0.9rem',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    border: '1px solid rgba(245, 158, 11, 0.4)',
+    borderRadius: '0.5rem',
+    marginBottom: '1rem',
+  },
+  modelTag: {
+    backgroundColor: '#1e293b',
+    border: '1px solid #334155',
+    padding: '0.1rem 0.4rem',
+    borderRadius: '0.3rem',
+    fontSize: '0.74rem',
+    color: '#38bdf8',
+    marginLeft: '0.4rem',
+    fontFamily: 'monospace',
   },
 };

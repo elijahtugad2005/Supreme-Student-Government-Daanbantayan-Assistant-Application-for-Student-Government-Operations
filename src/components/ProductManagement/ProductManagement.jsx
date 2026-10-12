@@ -717,6 +717,7 @@ function ProductManagement() {
         description: productData.description,
         price: parseFloat(productData.price),
         supplier: productData.supplier,
+        imageUrl: productData.imageBase64 || '/products/default.jpg',
         imageBase64: productData.imageBase64 || '/products/default.jpg',
         updatedAt: new Date().toISOString(),
       };

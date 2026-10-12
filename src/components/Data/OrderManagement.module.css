@@ -2837,3 +2837,89 @@
 :global(.theme-light) .mobileToolsItemDanger {
   color: #ef4444;
 }
+
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) - ORDER MANAGEMENT
+   ========================================================================== */
+:global(.theme-light) .container {
+  background-color: #F4F4F0 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .header,
+:global(.theme-light) .topBar,
+:global(.theme-light) .omTabNav {
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .kpiCard,
+:global(.theme-light) .tableCard,
+:global(.theme-light) .filterCard,
+:global(.theme-light) .statCard {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .omTabBtn {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .omTabBtnActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .tableWrapper {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  background: #FFFFFF !important;
+}
+
+:global(.theme-light) .table th {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .table td {
+  border-bottom: 1px solid #E5E5E5 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .searchInput,
+:global(.theme-light) .filterSelect,
+:global(.theme-light) .statusSelect {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .actionBtn {
+  background: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .actionBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+

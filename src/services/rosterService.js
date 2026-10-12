@@ -70,6 +70,10 @@ export async function submitRoster(payload) {
     yearLevel,
     mayorName: payload.mayorName || 'No Mayor Assigned',
     mayorUid: payload.mayorUid || null,
+    // The signed-in account that owns this roster. Only this account (and
+    // officers) may edit it — enforced by firestore.rules via mayorUid.
+    mayorEmail: payload.mayorEmail || null,
+    mayorAccountLabel: buildMayorAccountLabel(payload.mayorName, payload.section),
     status: ROSTER_STATUS.PENDING,
     isCurrent: false,
     version: null, // assigned at verification time
@@ -92,7 +96,39 @@ export async function submitRoster(payload) {
   // a permission error after their roster was already accepted. The registry is
   // written when an officer verifies, which is also when a section starts
   // counting as official.
+  // Tag the submitting account as this section's Mayor. Users may edit their
+  // own profile (just not role/permissions), so this never needs an officer.
+  // Best effort: the roster is already saved, a profile hiccup must not undo it.
+  if (payload.mayorUid) {
+    try {
+      await setDoc(
+        doc(db, 'users', payload.mayorUid),
+        {
+          mayorOf: {
+            section: payload.section,
+            sectionKey: key,
+            mayorName: payload.mayorName || '',
+            accountLabel: buildMayorAccountLabel(payload.mayorName, payload.section),
+            rosterId: rosterRef.id,
+            linkedAt: new Date().toISOString(),
+          },
+        },
+        { merge: true }
+      );
+    } catch (error) {
+      console.warn('Could not tag account as Mayor:', error);
+    }
+  }
+
   return rosterRef.id;
+}
+
+/** "Juan Dela Cruz — BSIT - 1A": the Mayor name + Section shown on the account. */
+export function buildMayorAccountLabel(mayorName, section) {
+  const name = String(mayorName || '').trim();
+  const sec = String(section || '').trim();
+  if (name && sec) return `${name} — ${sec}`;
+  return sec ? `Mayor — ${sec}` : name;
 }
 
 /** Officers-only. Verifies a roster and versions it. */
@@ -367,7 +403,7 @@ export async function listRostersOwnedBy(mayorUid) {
     );
     return snapshot.docs
       .map((d) => ({ rosterId: d.id, ...d.data() }))
-      .sort(byTime('submittedAt'));
+      .sort((a, b) => byTime(a, b, 'submittedAt'));
   } catch (error) {
     throw rethrowWithSpec('versions', error);
   }

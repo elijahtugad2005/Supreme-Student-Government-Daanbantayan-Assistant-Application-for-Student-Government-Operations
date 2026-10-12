@@ -14,6 +14,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
 import { GEMINI_LIMITS, recordUsage } from '../utils/aiCapacity';
 
+const FUNCTIONS_REGION = 'us-central1';
 const BACKEND_URL = import.meta.env.VITE_MONGODB_BACKEND_URL || 'http://localhost:3000';
 
 const callBackendAi = async (name, data) => {
@@ -42,6 +43,22 @@ const callBackendAi = async (name, data) => {
 
 const callable = (name) => {
   return async (data) => {
+    // If backend URL is configured or in MongoDB/Express mode, call backend directly or fallback gracefully
+    const useBackendFirst = import.meta.env.VITE_FILE_STORE === 'mongodb' || !import.meta.env.VITE_USE_FUNCTIONS;
+    if (useBackendFirst) {
+      try {
+        return await callBackendAi(name, data);
+      } catch (beErr) {
+        console.warn(`[AI] Express Backend API "${name}" failed (${beErr.message}), trying Cloud Function...`);
+        try {
+          const fns = getFunctions(getApp(), FUNCTIONS_REGION);
+          return await httpsCallable(fns, name)(data);
+        } catch {
+          throw beErr;
+        }
+      }
+    }
+
     try {
       const fns = getFunctions(getApp(), FUNCTIONS_REGION);
       return await httpsCallable(fns, name)(data);
@@ -234,18 +251,53 @@ export const checkAiStatus = async () => {
   }
 };
 
-export const analyzeOne = async (documentId) => {
-  // Refuse before spending a request on a known-blocked day.
-  if (secondsUntilReset() !== null) {
-    const err = new Error("Gemini's daily allowance is used up. Try again after the reset.");
+export const analyzeOne = async (documentId, options = {}) => {
+  const provider = options.preferredProvider || options.provider || 'auto';
+
+  // Only block if explicitly targeting Gemini and quota is blocked
+  if (provider === 'gemini' && secondsUntilReset() !== null) {
+    const err = new Error("Gemini's daily allowance is used up. Try again after the reset or switch provider to OpenRouter.");
     err.quotaBlocked = true;
     throw err;
   }
   try {
-    const { data } = await callable('analyzeDocument')({ documentId });
+    let inline = null;
+    try {
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase/firebaseConfig.js');
+      const snap = await getDoc(doc(db, 'documents', documentId));
+      if (snap.exists()) {
+        const d = snap.data();
+        if ((d.storageType === 'local' || !d.storageType) && d.storagePath) {
+          const { localStore } = await import('./fileStore/localStore.js');
+          const blob = await localStore.get(d.storagePath);
+          if (blob && blob.size <= MAX_INLINE_BYTES) {
+            const base64 = await fileToBase64(blob);
+            if (base64) {
+              inline = {
+                base64,
+                mimeType: blob.type || d.mimeType || 'application/pdf',
+                name: d.originalFileName || d.title || 'document.pdf',
+              };
+            }
+          }
+        }
+      }
+    } catch (readErr) {
+      console.warn('[analyzeOne] Could not preload local file binary:', readErr);
+    }
+
+    const { data } = await callable('analyzeDocument')({
+      documentId,
+      provider,
+      preferredProvider: provider,
+      ...(inline ? { fileContent: inline } : {}),
+    });
     return data;
   } catch (error) {
-    captureQuotaError(error);
+    if (provider !== 'openrouter') {
+      captureQuotaError(error);
+    }
     throw error;
   }
 };
@@ -321,10 +373,11 @@ export const runAnalysisQueue = async (documents, onUpdate, options = {}) => {
 
     onUpdate({ id: document.id, state: ITEM_STATE.ANALYZING });
     try {
-      const result = await analyzeOne(document.id);
-      // Counted only on success, so a quota failure does not consume the
-      // document from the day's allowance in the local estimate.
-      recordUsage(1, GEMINI_LIMITS.requestsPerDocument);
+      const result = await analyzeOne(document.id, options);
+      // Counted only on success and when using Gemini
+      if (options.preferredProvider !== 'openrouter') {
+        recordUsage(1, GEMINI_LIMITS.requestsPerDocument);
+      }
       onUpdate({ id: document.id, state: ITEM_STATE.DONE, result });
     } catch (error) {
       onUpdate({ id: document.id, state: ITEM_STATE.FAILED, error: error.message });

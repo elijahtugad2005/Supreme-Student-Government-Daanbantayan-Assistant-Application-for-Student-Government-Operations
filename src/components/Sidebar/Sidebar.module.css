@@ -629,3 +629,223 @@
     font-size: 0.8rem;
   }
 }
+
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY)
+   ========================================================================== */
+:global(.theme-light) .container {
+  background-color: #F4F4F0 !important;
+  border-right: 2px solid #0A0A0A !important;
+  box-shadow: 4px 0px 0px #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .sidebarHeader {
+  background-color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .logo {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .logoText {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  letter-spacing: -0.02em !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .userInfo {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .userAvatar {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  border: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .userName {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .userRole {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Nav links: Swiss monospaced rigid tabs */
+:global(.theme-light) .navLink {
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+  border: 2px solid transparent !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.02em !important;
+  transition: all 0.15s ease !important;
+}
+
+:global(.theme-light) .navLink:hover {
+  background-color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  color: #0A0A0A !important;
+  transform: translateX(4px) !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+/* Active Nav Link: Solid black inversion with #E61919 hazard red */
+:global(.theme-light) .active {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .active .navIcon,
+:global(.theme-light) .active svg {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .active:hover {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  transform: none !important;
+}
+
+/* Button section footer */
+:global(.theme-light) .buttonSection {
+  background-color: #F4F4F0 !important;
+  border-top: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .settingsButton {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  background-color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .settingsButton:hover {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .settingsButton:hover .navIcon {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .logoutButton {
+  background-color: #FFFFFF !important;
+  color: #E61919 !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .logoutButton:hover {
+  background-color: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  transform: none !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .loginButton {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .loginButton:hover {
+  background-color: #E61919 !important;
+  border-color: #0A0A0A !important;
+}
+
+/* Theme Modal */
+:global(.theme-light) .themeModal {
+  background-color: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 8px 8px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .themeModalHeader {
+  background-color: #F4F4F0 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .themeModalTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .themeModalClose {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  background: #FFFFFF !important;
+}
+
+:global(.theme-light) .themeOption {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  background-color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .themeOption:hover {
+  background-color: #F4F4F0 !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .themeOptionActive {
+  background-color: #0A0A0A !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .themeOptionActive .themeOptionName,
+:global(.theme-light) .themeOptionActive .themeOptionDesc {
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .themeOptionCheck {
+  background-color: #E61919 !important;
+  border-radius: 0px !important;
+  border: 1px solid #FFFFFF !important;
+}

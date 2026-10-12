@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSG Office Operations Root-Cause Analysis · Fishbone Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #0f172a;
+      --color-paper-2: #1e293b;
+      --color-ink:     #f8fafc;
+      --color-muted:   #94a3b8;
+      --color-soft:    #64748b;
+      --color-accent:  #f97316;
+      --color-accent-tint: rgba(249, 115, 22, 0.12);
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem;
+    }
+
+    .frame {
+      max-width: 1440px;
+      width: 100%;
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 2.5vw + 1rem, 2.75rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--color-muted);
+      margin-bottom: 2rem;
+      max-width: 900px;
+      line-height: 1.5;
+    }
+
+    .diagram-container {
+      background: var(--color-paper-2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    svg {
+      width: 100%;
+      min-width: 1280px;
+      display: block;
+      height: auto;
+    }
+
+    /* Manuscript interpretation styling */
+    .narrative-card {
+      background: var(--color-paper-2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 2.25rem;
+      margin-bottom: 2rem;
+      line-height: 1.7;
+    }
+
+    .narrative-card h2 {
+      font-family: var(--font-serif);
+      font-size: 1.75rem;
+      color: var(--color-ink);
+      margin-bottom: 1.25rem;
+      font-weight: 400;
+    }
+
+    .narrative-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-accent);
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .narrative-card p {
+      color: var(--color-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .narrative-card ul {
+      list-style-type: disc;
+      padding-left: 1.5rem;
+      color: var(--color-muted);
+      font-size: 0.92rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .narrative-card li {
+      margin-bottom: 0.5rem;
+    }
+
+    .narrative-card strong {
+      color: var(--color-ink);
+    }
+
+    .grid-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+
+    .metric-badge {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+    }
+
+    .metric-badge .title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric-badge .val {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-ink);
+      margin: 0.25rem 0;
+    }
+
+    .metric-badge .desc {
+      font-size: 0.8rem;
+      color: var(--color-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Chapter 2 · Requirements Specifications &amp; Root-Cause Analysis</p>
+    <h1>Ishikawa Fishbone Diagram: Operational Inefficiencies in SSG Operations</h1>
+    <p class="subtitle">
+      Comprehensive cause-and-effect mapping for the Supreme Student Government (SSG) Office at Cebu Technological University – Daanbantayan Campus, identifying systemic root causes leading to administrative service bottlenecks.
+    </p>
+
+    <!-- Interactive / Scalable SVG Container -->
+    <div class="diagram-container">
+      <svg viewBox="-40 0 1520 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ssg-fishbone-title ssg-fishbone-desc">
+        <title id="ssg-fishbone-title">Root-Cause Fishbone Diagram · SSG Office Operations Inefficiencies</title>
+        <desc id="ssg-fishbone-desc">Cause-and-effect Ishikawa diagram illustrating how People, Processes, Technology, Documents, and Communication converge to produce delayed student services and administrative disorganization.</desc>
+        
+        <defs>
+          <marker id="fishbone-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f8fafc"/>
+          </marker>
+        </defs>
+
+        <!-- Canvas Background -->
+        <rect x="-40" y="0" width="1520" height="640" fill="#1e293b"/>
+
+        <!-- ==========================================
+             CENTRAL SPINE (Ink 1.4px)
+             ========================================== -->
+        <line x1="120" y1="320" x2="1180" y2="320" stroke="#f8fafc" stroke-width="1.6" marker-end="url(#fishbone-arrow)"/>
+
+        <!-- ==========================================
+             5 MAIN BONES (60-Degree Fixed Orthogonal Angles)
+             Bone 1: Documents (Top-Right, k=1)
+             Bone 2: Technology (Bottom-Right Root-Cause, k=2)
+             Bone 3: Processes (Top-Center, k=3)
+             Bone 4: Communication (Bottom-Center, k=4)
+             Bone 5: People (Top-Left, k=5)
+             ========================================== -->
+        
+        <!-- Bone 1: DOCUMENTS (Above) -->
+        <line x1="880" y1="320" x2="784" y2="152" stroke="#94a3b8" stroke-width="1.4"/>
+        
+        <!-- Bone 2: TECHNOLOGY (Below - Confirmed Anchor Cause) -->
+        <line x1="720" y1="320" x2="624" y2="488" stroke="#f97316" stroke-width="2"/>
+        
+        <!-- Bone 3: PROCESSES (Above) -->
+        <line x1="560" y1="320" x2="464" y2="152" stroke="#94a3b8" stroke-width="1.4"/>
+        
+        <!-- Bone 4: COMMUNICATION (Below) -->
+        <line x1="400" y1="320" x2="304" y2="488" stroke="#94a3b8" stroke-width="1.4"/>
+        
+        <!-- Bone 5: PEOPLE (Above) -->
+        <line x1="240" y1="320" x2="144" y2="152" stroke="#94a3b8" stroke-width="1.4"/>
+
+        <!-- ==========================================
+             SUB-CAUSE TICKS AND LABELS
+             ========================================== -->
+
+        <!-- 1. DOCUMENTS SUB-CAUSES (k=1: attach=880) -->
+        <!-- Tick 1: m=2 (848, 264) -->
+        <line x1="848" y1="264" x2="816" y2="264" stroke="#64748b" stroke-width="1"/>
+        <text x="812" y="260" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Physical logbooks &amp; unorganized Drive folders</text>
+        
+        <!-- Tick 2: m=3 (832, 236) -->
+        <line x1="832" y1="236" x2="800" y2="236" stroke="#64748b" stroke-width="1"/>
+        <text x="796" y="232" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">High duplication rate (~10 errors / 100 entries)</text>
+        
+        <!-- Tick 3: m=4 (816, 208) -->
+        <line x1="816" y1="208" x2="784" y2="208" stroke="#64748b" stroke-width="1"/>
+        <text x="780" y="204" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Slow document retrieval (5–10 min per record)</text>
+
+        <!-- 2. TECHNOLOGY SUB-CAUSES (k=2: attach=720 - Focal Root Cause) -->
+        <!-- Tick 1: m=2 (688, 376) -->
+        <line x1="688" y1="376" x2="656" y2="376" stroke="#f97316" stroke-width="1.2"/>
+        <text x="652" y="388" fill="#fdba74" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Total absence of centralized digital database</text>
+        
+        <!-- Tick 2: m=3 (672, 404) -->
+        <line x1="672" y1="404" x2="640" y2="404" stroke="#f97316" stroke-width="1.2"/>
+        <text x="636" y="416" fill="#fdba74" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Fragmented mix of disconnected digital tools</text>
+        
+        <!-- Tick 3: m=4 (656, 432) -->
+        <line x1="656" y1="432" x2="624" y2="432" stroke="#f97316" stroke-width="1.2"/>
+        <text x="620" y="444" fill="#fdba74" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Zero automated validation or role-based access</text>
+
+        <!-- 3. PROCESSES SUB-CAUSES (k=3: attach=560) -->
+        <!-- Tick 1: m=2 (528, 264) -->
+        <line x1="528" y1="264" x2="496" y2="264" stroke="#64748b" stroke-width="1"/>
+        <text x="492" y="260" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Multi-day manual workflows (2–3 days / simple task)</text>
+        
+        <!-- Tick 2: m=3 (512, 236) -->
+        <line x1="512" y1="236" x2="480" y2="236" stroke="#64748b" stroke-width="1"/>
+        <text x="476" y="232" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Slow folder &amp; physical transit tracking</text>
+        
+        <!-- Tick 3: m=4 (496, 208) -->
+        <line x1="496" y1="208" x2="464" y2="208" stroke="#64748b" stroke-width="1"/>
+        <text x="460" y="204" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Tedious manual financial reconciliation &amp; audit delays</text>
+
+        <!-- 4. COMMUNICATION SUB-CAUSES (k=4: attach=400) -->
+        <!-- Tick 1: m=2 (368, 376) -->
+        <line x1="368" y1="376" x2="336" y2="376" stroke="#64748b" stroke-width="1"/>
+        <text x="332" y="388" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Ineffective announcement dissemination</text>
+        
+        <!-- Tick 2: m=3 (352, 404) -->
+        <line x1="352" y1="404" x2="320" y2="404" stroke="#64748b" stroke-width="1"/>
+        <text x="316" y="416" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Uncoordinated personal Messenger group chats</text>
+        
+        <!-- Tick 3: m=4 (336, 432) -->
+        <line x1="336" y1="432" x2="304" y2="432" stroke="#64748b" stroke-width="1"/>
+        <text x="300" y="444" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Information silos leaving faculty &amp; advisers uninformed</text>
+
+        <!-- 5. PEOPLE SUB-CAUSES (k=5: attach=240) -->
+        <!-- Tick 1: m=2 (208, 264) -->
+        <line x1="208" y1="264" x2="176" y2="264" stroke="#64748b" stroke-width="1"/>
+        <text x="172" y="260" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Unclear role boundaries among student officers</text>
+        
+        <!-- Tick 2: m=3 (192, 236) -->
+        <line x1="192" y1="236" x2="160" y2="236" stroke="#64748b" stroke-width="1"/>
+        <text x="156" y="232" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Lack of formal training in standardized records</text>
+        
+        <!-- Tick 3: m=4 (176, 208) -->
+        <line x1="176" y1="208" x2="144" y2="208" stroke="#64748b" stroke-width="1"/>
+        <text x="140" y="204" fill="#cbd5e1" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="end">Inertia &amp; resistance to digital workflow adoption</text>
+
+        <!-- ==========================================
+             CATEGORY TAG BOXES
+             ========================================== -->
+        <!-- 1. DOCUMENTS Tag -->
+        <rect x="714" y="122" width="140" height="30" rx="4" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+        <text x="784" y="142" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle" letter-spacing="0.05em">DOCUMENTS</text>
+
+        <!-- 2. TECHNOLOGY Tag (Accent) -->
+        <rect x="544" y="490" width="160" height="30" rx="4" fill="rgba(249, 115, 22, 0.15)" stroke="#f97316" stroke-width="1.2"/>
+        <text x="624" y="510" fill="#f97316" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle" letter-spacing="0.05em">TECHNOLOGY ★</text>
+
+        <!-- 3. PROCESSES Tag -->
+        <rect x="394" y="122" width="140" height="30" rx="4" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+        <text x="464" y="142" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle" letter-spacing="0.05em">PROCESSES</text>
+
+        <!-- 4. COMMUNICATION Tag -->
+        <rect x="224" y="490" width="160" height="30" rx="4" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+        <text x="304" y="510" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle" letter-spacing="0.05em">COMMUNICATION</text>
+
+        <!-- 5. PEOPLE Tag -->
+        <rect x="74" y="122" width="140" height="30" rx="4" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+        <text x="144" y="142" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle" letter-spacing="0.05em">PEOPLE</text>
+
+        <!-- ==========================================
+             EFFECT HEAD (Problem Statement Box)
+             ========================================== -->
+        <g id="effect-head">
+          <rect x="1180" y="252" width="290" height="136" rx="8" fill="#0f172a"/>
+          <rect x="1180" y="252" width="290" height="136" rx="8" fill="rgba(249, 115, 22, 0.08)" stroke="#f97316" stroke-width="1.6"/>
+          
+          <rect x="1192" y="264" width="70" height="16" rx="3" fill="transparent" stroke="rgba(249, 115, 22, 0.5)" stroke-width="0.8"/>
+          <text x="1227" y="276" fill="#f97316" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PROBLEM HEAD</text>
+          
+          <text x="1325" y="306" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Delayed Student Services,</text>
+          <text x="1325" y="326" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Poor Communication Transparency,</text>
+          <text x="1325" y="346" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">&amp; Disorganized Records</text>
+          <text x="1325" y="372" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">(Fragmented Manual Operations)</text>
+        </g>
+
+        <!-- ==========================================
+             EDITORIAL BOTTOM LEGEND
+             ========================================== -->
+        <line x1="20" y1="590" x2="1460" y2="590" stroke="rgba(255, 255, 255, 0.08)" stroke-width="0.8"/>
+        <text x="20" y="612" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+        <line x1="90" y1="608" x2="114" y2="608" stroke="#94a3b8" stroke-width="1.4"/>
+        <text x="122" y="612" fill="#cbd5e1" font-size="9.5" font-family="'Geist', sans-serif">Category Spine (Major Bone)</text>
+
+        <line x1="350" y1="608" x2="374" y2="608" stroke="#f97316" stroke-width="2"/>
+        <text x="382" y="612" fill="#fdba74" font-size="9.5" font-family="'Geist', sans-serif">Confirmed Primary Root Cause (Technology)</text>
+
+        <line x1="690" y1="608" x2="714" y2="608" stroke="#64748b" stroke-width="1"/>
+        <text x="722" y="612" fill="#cbd5e1" font-size="9.5" font-family="'Geist', sans-serif">Contributing Root Cause (Sub-Cause Tick)</text>
+
+        <rect x="1020" y="602" width="16" height="12" rx="2" fill="rgba(249, 115, 22, 0.1)" stroke="#f97316" stroke-width="1"/>
+        <text x="1046" y="612" fill="#fdba74" font-size="9.5" font-family="'Geist', sans-serif">Central Problem Effect Box</text>
+      </svg>
+    </div>
+
+    <!-- ==========================================
+         ACADEMIC NARRATIVE INTERPRETATION
+         ========================================== -->
+    <section class="narrative-card">
+      <h2>Chapter 2 / Requirements Specifications: Narrative Interpretation</h2>
+      <p>
+        The Ishikawa (Cause-and-Effect) Fishbone Diagram visualizes the multi-factorial operational bottlenecks observed within the Supreme Student Government (SSG) Office at Cebu Technological University – Daanbantayan Campus. Rather than isolated errors, administrative service delays stem from systemic failures across five interconnected dimensions: <strong>People</strong>, <strong>Processes</strong>, <strong>Technology</strong>, <strong>Documents</strong>, and <strong>Communication</strong>.
+      </p>
+
+      <div class="grid-summary">
+        <div class="metric-badge">
+          <div class="title">Record Retrieval Delay</div>
+          <div class="val">5 – 10 Mins</div>
+          <div class="desc">Per student inquiry from physical logbooks or disorganized drives</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">Data Error &amp; Duplication</div>
+          <div class="val">~10 / 100 Entries</div>
+          <div class="desc">Manual spreadsheet &amp; death aid collection reconciliations</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">Turnaround Latency</div>
+          <div class="val">2 – 3 Days</div>
+          <div class="desc">Simple approvals or inquiries stalled by paper transit tracking</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">Communication Reach</div>
+          <div class="val">Fragmented</div>
+          <div class="desc">Uncoordinated Messenger groups leaving faculty &amp; officers isolated</div>
+        </div>
+      </div>
+
+      <h3>1. Dimension-by-Dimension Root-Cause Breakdown</h3>
+      <ul>
+        <li>
+          <strong>Technology (Primary Anchor Cause):</strong> The overarching vulnerability is the complete absence of a unified system of record. Officers currently rely on an uncoordinated patchwork of tools (Facebook Messenger, local Excel files, unindexed Google Drive folders), resulting in zero automated input validation, no audit trail, and no centralized access control.
+        </li>
+        <li>
+          <strong>Documents:</strong> Fragmented storage across paper binders and disjointed personal drives produces severe retrieval latencies (5 to 10 minutes per record) and an error rate of approximately 10 duplicates/discrepancies per 100 entries.
+        </li>
+        <li>
+          <strong>Processes:</strong> Operations follow sequential physical routing where approvals depend on physical signatures. Simple inquiries and financial liquidations stretch into 2- to 3-day delays because audit status cannot be tracked in real time.
+        </li>
+        <li>
+          <strong>People:</strong> High annual officer turnover without standardized training leads to inconsistent document naming, duplicate record entries, and resistance to shifting away from informal habits.
+        </li>
+        <li>
+          <strong>Communication:</strong> Crucial campus updates and announcements are lost within personal group chats, leaving campus advisers and department governors uninformed regarding fiscal and operational decisions.
+        </li>
+      </ul>
+
+      <h3>2. Architectural Justification: The Proposed Solution</h3>
+      <p>
+        These identified root causes directly validate the architectural mandate for the <strong>SSG Office Assistant Application</strong>:
+      </p>
+      <ul>
+        <li>
+          <strong>Centralized Cloud Architecture (React SPA + Firebase/Firestore + MongoDB GridFS):</strong> Replaces fragmented spreadsheets with transactional ACID/NoSQL collections and binary GridFS stores, collapsing document retrieval times from 10 minutes to sub-second indexed queries.
+        </li>
+        <li>
+          <strong>Role-Based Access Control (RBAC):</strong> Directly addresses the "People" and "Technology" deficiencies by implementing strict permission boundaries (Admin, Finance Secretary, Secretary, Senator, Representative), eliminating unauthorized access and self-approval loopholes.
+        </li>
+        <li>
+          <strong>Automated Broadcast Pipeline (Telegram Bot Webhooks + Live Notification Feeds):</strong> Resolves the "Communication" bottleneck by replacing informal Messenger threads with tamper-resistant, verifiable official broadcasts accompanied by read receipts (inline acknowledgment callbacks).
+        </li>
+        <li>
+          <strong>Immutable Audit Trail &amp; Financial Ledger:</strong> Eliminates the 2- to 3-day turnaround by automating Death Aid remittance matching, order status tracking, and Google Sheets bidirectional audit synchronizations.
+        </li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

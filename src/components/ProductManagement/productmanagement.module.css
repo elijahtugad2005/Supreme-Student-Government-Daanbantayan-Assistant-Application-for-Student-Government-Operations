@@ -1987,3 +1987,116 @@
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) - PRODUCT MANAGEMENT
+   ========================================================================== */
+:global(.theme-light) .pmContainer,
+:global(.theme-light) .container {
+  background-color: #F4F4F0 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .pmHeader,
+:global(.theme-light) .dashboardCardHeader,
+:global(.theme-light) .formPanelHeader {
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .pmTitle,
+:global(.theme-light) .dashboardCardTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+:global(.theme-light) .kpiCard,
+:global(.theme-light) .dashboardCard,
+:global(.theme-light) .formPanel,
+:global(.theme-light) .productCard,
+:global(.theme-light) .tableCard {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .kpiValue {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .kpiLabel {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .pmTabBtn {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .pmTabBtn:hover:not(.pmTabBtnActive) {
+  background-color: #F4F4F0 !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .pmTabBtnActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .primaryBtn,
+:global(.theme-light) .saveBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .primaryBtn:hover,
+:global(.theme-light) .saveBtn:hover {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .searchInput,
+:global(.theme-light) .filterSelect,
+:global(.theme-light) .formInput,
+:global(.theme-light) .formSelect,
+:global(.theme-light) .formTextarea {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .dataTable th {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .dataTable td {
+  border-bottom: 1px solid #E5E5E5 !important;
+  color: #0A0A0A !important;
+}
+

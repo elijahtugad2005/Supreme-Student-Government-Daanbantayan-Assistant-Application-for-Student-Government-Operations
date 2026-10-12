@@ -550,3 +550,164 @@
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) - MEMBER MANAGEMENT
+   ========================================================================== */
+:global(.theme-light) .container {
+  background-color: #F4F4F0 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .topHeader {
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .mainTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+:global(.theme-light) .subTitle {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .searchInput {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .searchInput:focus {
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .termSelect {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .addMemberBtn,
+:global(.theme-light) .createOrgBtn,
+:global(.theme-light) .newTermBtn,
+:global(.theme-light) .setCurrentBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .addMemberBtn:hover,
+:global(.theme-light) .createOrgBtn:hover,
+:global(.theme-light) .newTermBtn:hover,
+:global(.theme-light) .setCurrentBtn:hover {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  transform: translateY(-1px) !important;
+}
+
+:global(.theme-light) .orgTabsContainer {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .orgTab {
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  border: 2px solid transparent !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .orgTab:hover:not(.activeOrgTab) {
+  background: #F4F4F0 !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .activeOrgTab {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: none !important;
+}
+
+:global(.theme-light) .modal {
+  background: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 8px 8px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .modalHeader {
+  background: #F4F4F0 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .modalHeader h3 {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalFooter {
+  background: #F4F4F0 !important;
+  border-top: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .formInput,
+:global(.theme-light) .formTextarea,
+:global(.theme-light) .formSelect,
+:global(.theme-light) .platformSelect {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .cancelBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .submitBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .submitBtn:hover {
+  background: #E61919 !important;
+}

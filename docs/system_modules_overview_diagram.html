@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Modules Overview Diagram · System Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --color-paper:        #060b18;
+      --color-paper-card:   #0a1428;
+      --color-paper-sub:    #0f1d38;
+      --color-ink:          #f1f5f9;
+      --color-muted:        #94a3b8;
+      --color-soft:         #64748b;
+      --color-border:       rgba(59, 130, 246, 0.18);
+      
+      /* Tier Themes */
+      --color-client:       #38bdf8; /* Sky / React Client */
+      --color-modules:      #818cf8; /* Indigo / Functional UI Modules */
+      --color-backend:      #10b981; /* Emerald / Firebase & Express */
+      --color-storage:      #f59e0b; /* Amber / MongoDB GridFS */
+      --color-ai:           #ec4899; /* Pink / Gemini AI Pipeline */
+
+      --font-sans:          'Inter', system-ui, sans-serif;
+      --font-serif:         'Instrument Serif', Georgia, serif;
+      --font-mono:          'Geist Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem;
+    }
+
+    .frame {
+      max-width: 1480px;
+      width: 100%;
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-client);
+      margin-bottom: 0.4rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 3vw + 1rem, 3.2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.96rem;
+      color: var(--color-muted);
+      margin-bottom: 2rem;
+      max-width: 1080px;
+      line-height: 1.55;
+    }
+
+    .diagram-container {
+      background: var(--color-paper-card);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 2rem;
+      overflow-x: auto;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    svg {
+      width: 100%;
+      min-width: 1360px;
+      display: block;
+      height: auto;
+    }
+
+    /* Manuscript Narrative Documentation */
+    .narrative-card {
+      background: var(--color-paper-card);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      line-height: 1.7;
+    }
+
+    .narrative-card h2 {
+      font-family: var(--font-serif);
+      font-size: 1.85rem;
+      color: var(--color-ink);
+      margin-bottom: 1.25rem;
+      font-weight: 400;
+    }
+
+    .narrative-card h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #38bdf8;
+      margin-top: 1.75rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .narrative-card p {
+      color: var(--color-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .narrative-card ul {
+      list-style-type: disc;
+      padding-left: 1.5rem;
+      color: var(--color-muted);
+      font-size: 0.93rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .narrative-card li {
+      margin-bottom: 0.5rem;
+    }
+
+    .narrative-card strong {
+      color: var(--color-ink);
+    }
+
+    .grid-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .metric-badge {
+      background: rgba(6, 11, 24, 0.8);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 10px;
+      padding: 1.2rem 1.4rem;
+    }
+
+    .metric-badge .title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .metric-badge .val {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin: 0.3rem 0;
+    }
+
+    .metric-badge .desc {
+      font-size: 0.82rem;
+      color: var(--color-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Chapter 2 · System Architecture &amp; Modular Topology</p>
+    <h1>System Modules Overview &amp; Architecture Diagram</h1>
+    <p class="subtitle">
+      A comprehensive multi-tier architectural breakdown of the SSG Office Assistant App, mapping how the React + Vite Single Page Application (SPA) frontend interfaces with the hybrid serverless Firebase backend, MongoDB Atlas GridFS storage engine, and AI parsing pipelines across strict Role-Based Access Control (RBAC) boundaries.
+    </p>
+
+    <!-- Vector System Modules Architecture Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 1440 980" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="modules-arch-title modules-arch-desc">
+        <title id="modules-arch-title">System Modules Overview Diagram · Multi-Tier Architecture</title>
+        <desc id="modules-arch-desc">Diagram mapping Client Presentation Tier, 6 Core Functional Modules, and Data &amp; Persistence Services including Firebase Auth, Firestore, MongoDB GridFS, and AI Pipelines.</desc>
+
+        <defs>
+          <marker id="arrow-sky" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#38bdf8"/>
+          </marker>
+          <marker id="arrow-indigo" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#818cf8"/>
+          </marker>
+          <marker id="arrow-emerald" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+          </marker>
+          <marker id="arrow-amber" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
+          </marker>
+          <marker id="arrow-pink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ec4899"/>
+          </marker>
+        </defs>
+
+        <!-- Base Canvas -->
+        <rect x="0" y="0" width="1440" height="980" fill="#060b18"/>
+
+        <!-- ==========================================================
+             LAYER 1: CLIENT TIER (PRESENTATION & ROUTING LAYER)
+             y=30..190 (Height: 160px)
+             ========================================================== -->
+        <rect x="30" y="30" width="1380" height="150" rx="12" fill="#0a1428" stroke="rgba(56, 189, 248, 0.35)" stroke-width="1.2"/>
+        <rect x="50" y="44" width="225" height="20" rx="4" fill="rgba(56, 189, 248, 0.2)" stroke="#38bdf8" stroke-width="0.8"/>
+        <text x="162" y="58" fill="#38bdf8" font-size="8.5" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">
+          LAYER 1 · CLIENT PRESENTATION &amp; ROUTING
+        </text>
+
+        <text x="50" y="88" fill="#ffffff" font-size="16" font-weight="700" font-family="'Inter', sans-serif">
+          React 18 + Vite SPA · React Router DOM v6 · ProtectedRoute Component Wrapper
+        </text>
+        <text x="50" y="106" fill="#94a3b8" font-size="9.5" font-family="'Geist Mono', monospace">
+          Zero-Trust Client Ingress with Cryptographic JWT Custom Claims &amp; In-Memory Permission Overrides
+        </text>
+
+        <!-- 8 Role Badges inside Layer 1 -->
+        <g id="role-chips" transform="translate(50, 122)">
+          <!-- Role 1: General Students -->
+          <rect x="0" y="0" width="135" height="24" rx="4" fill="#0f1d38" stroke="#334155" stroke-width="1"/>
+          <text x="67" y="16" fill="#cbd5e1" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">1. General Students</text>
+
+          <!-- Role 2: Creative Team -->
+          <rect x="145" y="0" width="125" height="24" rx="4" fill="#0f1d38" stroke="#334155" stroke-width="1"/>
+          <text x="207" y="16" fill="#cbd5e1" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">2. Creative Team</text>
+
+          <!-- Role 3: House Reps -->
+          <rect x="280" y="0" width="165" height="24" rx="4" fill="#0f1d38" stroke="#334155" stroke-width="1"/>
+          <text x="362" y="16" fill="#cbd5e1" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">3. House Representatives</text>
+
+          <!-- Role 4: Governors -->
+          <rect x="455" y="0" width="105" height="24" rx="4" fill="#0f1d38" stroke="#334155" stroke-width="1"/>
+          <text x="507" y="16" fill="#cbd5e1" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">4. Governors</text>
+
+          <!-- Role 5: Legislative -->
+          <rect x="570" y="0" width="145" height="24" rx="4" fill="#0f1d38" stroke="#334155" stroke-width="1"/>
+          <text x="642" y="16" fill="#cbd5e1" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">5. Legislative Branch</text>
+
+          <!-- Role 6: President -->
+          <rect x="725" y="0" width="105" height="24" rx="4" fill="#0f1d38" stroke="#334155" stroke-width="1"/>
+          <text x="777" y="16" fill="#cbd5e1" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">6. President</text>
+
+          <!-- Role 7: Budget Sector -->
+          <rect x="840" y="0" width="125" height="24" rx="4" fill="#0f1d38" stroke="#334155" stroke-width="1"/>
+          <text x="902" y="16" fill="#cbd5e1" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">7. Budget Sector</text>
+
+          <!-- Role 8: Sys Admin -->
+          <rect x="975" y="0" width="160" height="24" rx="4" fill="rgba(56, 189, 248, 0.2)" stroke="#38bdf8" stroke-width="1"/>
+          <text x="1055" y="16" fill="#38bdf8" font-size="8.5" font-weight="700" font-family="'Inter', sans-serif" text-anchor="middle">8. System Administrators ★</text>
+        </g>
+
+        <!-- ==========================================================
+             LAYER 2: CORE FUNCTIONAL MODULES (UI & DASHBOARDS)
+             y=220..560 (Height: 340px)
+             6 Columns across the grid (Width: 215px each)
+             ========================================================== -->
+        <rect x="30" y="210" width="1380" height="360" rx="12" fill="#0a1428" stroke="rgba(129, 140, 248, 0.35)" stroke-width="1.2"/>
+        <rect x="50" y="226" width="220" height="20" rx="4" fill="rgba(129, 140, 248, 0.2)" stroke="#818cf8" stroke-width="0.8"/>
+        <text x="160" y="240" fill="#a5b4fc" font-size="8.5" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">
+          LAYER 2 · CORE FUNCTIONAL MODULES
+        </text>
+        <text x="50" y="270" fill="#ffffff" font-size="16" font-weight="700" font-family="'Inter', sans-serif">
+          Modular Business Logic, Component State &amp; Domain Controllers
+        </text>
+
+        <!-- 6 Functional Module Cards -->
+        <!-- Module 1: User & Identity -->
+        <g transform="translate(50, 290)">
+          <rect x="0" y="0" width="210" height="255" rx="8" fill="#0f1d38" stroke="#818cf8" stroke-width="1"/>
+          <rect x="10" y="10" width="45" height="15" rx="3" fill="rgba(129, 140, 248, 0.25)" stroke="#818cf8" stroke-width="0.6"/>
+          <text x="32" y="21" fill="#c7d2fe" font-size="7" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">MOD 1</text>
+          
+          <text x="10" y="44" fill="#ffffff" font-size="12" font-weight="600" font-family="'Inter', sans-serif">User &amp; Identity</text>
+          <text x="10" y="58" fill="#818cf8" font-size="8.5" font-family="'Geist Mono', monospace">UserManagement.jsx</text>
+          
+          <line x1="10" y1="68" x2="200" y2="68" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="10" y="86" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Google OAuth Popups</text>
+          <text x="10" y="104" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• JWT custom claim sync</text>
+          <text x="10" y="122" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Role demotion shields</text>
+          <text x="10" y="140" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Granular permission tags</text>
+          <text x="10" y="158" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Account deactivation</text>
+          <text x="10" y="176" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• User login audit logs</text>
+          
+          <rect x="10" y="222" width="190" height="22" rx="4" fill="#060b18" stroke="#334155" stroke-width="0.8"/>
+          <text x="105" y="236" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">users/{uid} · syncClaims</text>
+        </g>
+
+        <!-- Module 2: Member Management -->
+        <g transform="translate(275, 290)">
+          <rect x="0" y="0" width="210" height="255" rx="8" fill="#0f1d38" stroke="#818cf8" stroke-width="1"/>
+          <rect x="10" y="10" width="45" height="15" rx="3" fill="rgba(129, 140, 248, 0.25)" stroke="#818cf8" stroke-width="0.6"/>
+          <text x="32" y="21" fill="#c7d2fe" font-size="7" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">MOD 2</text>
+          
+          <text x="10" y="44" fill="#ffffff" font-size="12" font-weight="600" font-family="'Inter', sans-serif">Member Management</text>
+          <text x="10" y="58" fill="#818cf8" font-size="8.5" font-family="'Geist Mono', monospace">Memberlist.jsx / ClassUpload</text>
+          
+          <line x1="10" y1="68" x2="200" y2="68" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="10" y="86" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• PapaParse CSV/XLSX intake</text>
+          <text x="10" y="104" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Department roster filter</text>
+          <text x="10" y="122" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Mayor class certification</text>
+          <text x="10" y="140" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• 7 Org department views</text>
+          <text x="10" y="158" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Student directory queries</text>
+          <text x="10" y="176" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Class enrollment checks</text>
+          
+          <rect x="10" y="222" width="190" height="22" rx="4" fill="#060b18" stroke="#334155" stroke-width="0.8"/>
+          <text x="105" y="236" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">classRosters/{id} · PapaParse</text>
+        </g>
+
+        <!-- Module 3: Product & Orders -->
+        <g transform="translate(500, 290)">
+          <rect x="0" y="0" width="210" height="255" rx="8" fill="#0f1d38" stroke="#818cf8" stroke-width="1"/>
+          <rect x="10" y="10" width="45" height="15" rx="3" fill="rgba(129, 140, 248, 0.25)" stroke="#818cf8" stroke-width="0.6"/>
+          <text x="32" y="21" fill="#c7d2fe" font-size="7" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">MOD 3</text>
+          
+          <text x="10" y="44" fill="#ffffff" font-size="12" font-weight="600" font-family="'Inter', sans-serif">Product &amp; Commerce</text>
+          <text x="10" y="58" fill="#818cf8" font-size="8.5" font-family="'Geist Mono', monospace">ProductManagement / Order</text>
+          
+          <line x1="10" y1="68" x2="200" y2="68" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="10" y="86" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Lanyard &amp; uniform catalog</text>
+          <text x="10" y="104" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Stock decrementing engine</text>
+          <text x="10" y="122" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Online checkout &amp; orders</text>
+          <text x="10" y="140" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Live tracking by ID/email</text>
+          <text x="10" y="158" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Equipment borrow tracking</text>
+          <text x="10" y="176" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Return condition logging</text>
+          
+          <rect x="10" y="222" width="190" height="22" rx="4" fill="#060b18" stroke="#334155" stroke-width="0.8"/>
+          <text x="105" y="236" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">products · orders · inventory</text>
+        </g>
+
+        <!-- Module 4: Fiscal & Financial -->
+        <g transform="translate(725, 290)">
+          <rect x="0" y="0" width="210" height="255" rx="8" fill="#0f1d38" stroke="#818cf8" stroke-width="1"/>
+          <rect x="10" y="10" width="45" height="15" rx="3" fill="rgba(129, 140, 248, 0.25)" stroke="#818cf8" stroke-width="0.6"/>
+          <text x="32" y="21" fill="#c7d2fe" font-size="7" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">MOD 4</text>
+          
+          <text x="10" y="44" fill="#ffffff" font-size="12" font-weight="600" font-family="'Inter', sans-serif">Fiscal &amp; Financial</text>
+          <text x="10" y="58" fill="#818cf8" font-size="8.5" font-family="'Geist Mono', monospace">FinanceProvider / DeathAid</text>
+          
+          <line x1="10" y1="68" x2="200" y2="68" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="10" y="86" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Income &amp; expense ledgers</text>
+          <text x="10" y="104" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Death Aid remittances</text>
+          <text x="10" y="122" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Digital receipt attachments</text>
+          <text x="10" y="140" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Automated liquidation PDF</text>
+          <text x="10" y="158" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• BudgetAnalytics charts</text>
+          <text x="10" y="176" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Sheets audit reconciliation</text>
+          
+          <rect x="10" y="222" width="190" height="22" rx="4" fill="#060b18" stroke="#334155" stroke-width="0.8"/>
+          <text x="105" y="236" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">finances · deathAidRemittances</text>
+        </g>
+
+        <!-- Module 5: Document Repository -->
+        <g transform="translate(950, 290)">
+          <rect x="0" y="0" width="210" height="255" rx="8" fill="#0f1d38" stroke="#818cf8" stroke-width="1"/>
+          <rect x="10" y="10" width="45" height="15" rx="3" fill="rgba(129, 140, 248, 0.25)" stroke="#818cf8" stroke-width="0.6"/>
+          <text x="32" y="21" fill="#c7d2fe" font-size="7" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">MOD 5</text>
+          
+          <text x="10" y="44" fill="#ffffff" font-size="12" font-weight="600" font-family="'Inter', sans-serif">Document Repository</text>
+          <text x="10" y="58" fill="#818cf8" font-size="8.5" font-family="'Geist Mono', monospace">DocumentDashboard.jsx</text>
+          
+          <line x1="10" y1="68" x2="200" y2="68" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="10" y="86" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Legislative resolutions</text>
+          <text x="10" y="104" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Executive orders &amp; memos</text>
+          <text x="10" y="122" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Metadata tagging &amp; author</text>
+          <text x="10" y="140" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Committee classification</text>
+          <text x="10" y="158" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Term-based folder scoping</text>
+          <text x="10" y="176" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• In-browser PDF viewers</text>
+          
+          <rect x="10" y="222" width="190" height="22" rx="4" fill="#060b18" stroke="#334155" stroke-width="0.8"/>
+          <text x="105" y="236" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">documents · mongoFileId</text>
+        </g>
+
+        <!-- Module 6: Communication Gateway -->
+        <g transform="translate(1175, 290)">
+          <rect x="0" y="0" width="215" height="255" rx="8" fill="#0f1d38" stroke="#818cf8" stroke-width="1"/>
+          <rect x="10" y="10" width="45" height="15" rx="3" fill="rgba(129, 140, 248, 0.25)" stroke="#818cf8" stroke-width="0.6"/>
+          <text x="32" y="21" fill="#c7d2fe" font-size="7" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">MOD 6</text>
+          
+          <text x="10" y="44" fill="#ffffff" font-size="12" font-weight="600" font-family="'Inter', sans-serif">Communications Gateway</text>
+          <text x="10" y="58" fill="#818cf8" font-size="8.5" font-family="'Geist Mono', monospace">Announcement.jsx / Calendar</text>
+          
+          <line x1="10" y1="68" x2="200" y2="68" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="10" y="86" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Rich broadcast feeds</text>
+          <text x="10" y="104" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Calendar widget reminders</text>
+          <text x="10" y="122" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Telegram Bot API dispatch</text>
+          <text x="10" y="140" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Webhook challenge handlers</text>
+          <text x="10" y="158" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Read-receipt acknowledgments</text>
+          <text x="10" y="176" fill="#cbd5e1" font-size="8.8" font-family="'Inter', sans-serif">• Emergency alert triggers</text>
+          
+          <rect x="10" y="222" width="195" height="22" rx="4" fill="#060b18" stroke="#334155" stroke-width="0.8"/>
+          <text x="107" y="236" fill="#94a3b8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">announcements · /webhook</text>
+        </g>
+
+        <!-- ==========================================================
+             LAYER 3: BACKEND & CLOUD INFRASTRUCTURE (PERSISTENCE LAYER)
+             y=600..920 (Height: 320px)
+             Three Core Systems: Firebase, MongoDB GridFS, AI Pipeline
+             ========================================================== -->
+        <rect x="30" y="590" width="1380" height="340" rx="12" fill="#0a1428" stroke="rgba(16, 185, 129, 0.35)" stroke-width="1.2"/>
+        <rect x="50" y="606" width="265" height="20" rx="4" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="0.8"/>
+        <text x="182" y="620" fill="#6ee7b7" font-size="8.5" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">
+          LAYER 3 · BACKEND &amp; CLOUD PERSISTENCE
+        </text>
+        <text x="50" y="650" fill="#ffffff" font-size="16" font-weight="700" font-family="'Inter', sans-serif">
+          Hybrid Serverless Engine: Real-time NoSQL, Dedicated Binary GridFS &amp; AI Document Parsing
+        </text>
+
+        <!-- Subsystem 1: Firebase Auth & Cloud Firestore -->
+        <g transform="translate(50, 670)">
+          <rect x="0" y="0" width="410" height="230" rx="8" fill="#0f1d38" stroke="#10b981" stroke-width="1.2"/>
+          <rect x="15" y="12" width="140" height="18" rx="3" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="0.8"/>
+          <text x="85" y="24" fill="#6ee7b7" font-size="8" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">REAL-TIME DATA LAYER</text>
+          
+          <text x="15" y="50" fill="#ffffff" font-size="14" font-weight="600" font-family="'Inter', sans-serif">Firebase Auth &amp; Firestore</text>
+          <text x="15" y="68" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">Project: ssg-prototype · Real-time Listeners</text>
+          
+          <line x1="15" y1="78" x2="395" y2="78" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="15" y="100" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Cryptographic JWT identity minting &amp; session tokens</text>
+          <text x="15" y="120" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Firestore Security Rules enforcing role boundaries</text>
+          <text x="15" y="140" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Real-time onSnapshot reactive state updates</text>
+          <text x="15" y="160" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Relational metadata indexes for fast queries</text>
+          <text x="15" y="180" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Google Sheets bidirectional audit synchronizer</text>
+
+          <rect x="15" y="196" width="380" height="22" rx="4" fill="#060b18" stroke="#10b981" stroke-width="0.8"/>
+          <text x="205" y="210" fill="#10b981" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Collections: users, orgs, rosters, products, finances</text>
+        </g>
+
+        <!-- Subsystem 2: MongoDB Atlas GridFS Engine -->
+        <g transform="translate(485, 670)">
+          <rect x="0" y="0" width="450" height="230" rx="8" fill="#0f1d38" stroke="#f59e0b" stroke-width="1.2"/>
+          <rect x="15" y="12" width="135" height="18" rx="3" fill="rgba(245, 158, 11, 0.2)" stroke="#f59e0b" stroke-width="0.8"/>
+          <text x="82" y="24" fill="#fcd34d" font-size="8" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">BINARY STREAM ENGINE</text>
+          
+          <text x="15" y="50" fill="#ffffff" font-size="14" font-weight="600" font-family="'Inter', sans-serif">MongoDB Atlas GridFS</text>
+          <text x="15" y="68" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">Database: ssg_documents · Bucket: documents.files</text>
+          
+          <line x1="15" y1="78" x2="435" y2="78" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="15" y="100" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Bypasses Firebase Spark plan 1GB storage limits completely</text>
+          <text x="15" y="120" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Chunks large resolutions &amp; receipts into 255KB binary blocks</text>
+          <text x="15" y="140" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Zero local disk leaks with direct memory pipeline streams</text>
+          <text x="15" y="160" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Express REST Gateway: GET /api/documents/stream/:id</text>
+          <text x="15" y="180" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Immutable SHA-256 binary checksums for audit safety</text>
+
+          <rect x="15" y="196" width="420" height="22" rx="4" fill="#060b18" stroke="#f59e0b" stroke-width="0.8"/>
+          <text x="225" y="210" fill="#f59e0b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Collections: documents.files · documents.chunks (GridFS)</text>
+        </g>
+
+        <!-- Subsystem 3: AI Document Parsing Pipeline -->
+        <g transform="translate(960, 670)">
+          <rect x="0" y="0" width="430" height="230" rx="8" fill="#0f1d38" stroke="#ec4899" stroke-width="1.2"/>
+          <rect x="15" y="12" width="130" height="18" rx="3" fill="rgba(236, 72, 153, 0.2)" stroke="#ec4899" stroke-width="0.8"/>
+          <text x="80" y="24" fill="#f472b6" font-size="8" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="middle">AI PARSING PIPELINE</text>
+          
+          <text x="15" y="50" fill="#ffffff" font-size="14" font-weight="600" font-family="'Inter', sans-serif">Google Gemini &amp; OpenRouter</text>
+          <text x="15" y="68" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">Route: /api/ai/parse · Client Queue Pacing</text>
+          
+          <line x1="15" y1="78" x2="415" y2="78" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+          <text x="15" y="100" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Multi-tier failover chain: Gemini 1.5/2.5 Pro → OpenRouter</text>
+          <text x="15" y="120" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Automatically extracts document author, title, &amp; resolution #</text>
+          <text x="15" y="140" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Classifies committee tags (Ways &amp; Means, Student Rights)</text>
+          <text x="15" y="160" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• Client queue pacing: 15 req/min strict quota throttle</text>
+          <text x="15" y="180" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif">• In-memory OCR streaming directly from GridFS buffers</text>
+
+          <rect x="15" y="196" width="400" height="22" rx="4" fill="#060b18" stroke="#ec4899" stroke-width="0.8"/>
+          <text x="215" y="210" fill="#ec4899" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Failover: Google Gemini 1.5 Flash ➔ OpenRouter API</text>
+        </g>
+
+        <!-- Vertical Tier Connectors (Flowlines) -->
+        <!-- Layer 1 -> Layer 2 -->
+        <path d="M 155 180 L 155 210" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrow-sky)"/>
+        <path d="M 380 180 L 380 210" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrow-sky)"/>
+        <path d="M 605 180 L 605 210" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrow-sky)"/>
+        <path d="M 830 180 L 830 210" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrow-sky)"/>
+        <path d="M 1055 180 L 1055 210" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrow-sky)"/>
+        <path d="M 1280 180 L 1280 210" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrow-sky)"/>
+
+        <!-- Layer 2 -> Layer 3 -->
+        <!-- Mod 1, 2, 6 -> Firebase -->
+        <path d="M 155 570 L 155 670" stroke="#10b981" stroke-width="1.8" marker-end="url(#arrow-emerald)"/>
+        <!-- Mod 3, 4 -> Firebase & GridFS -->
+        <path d="M 605 570 L 605 620 Q 605 630 630 630 L 710 630 Q 720 630 720 640 L 720 670" stroke="#f59e0b" stroke-width="1.8" marker-end="url(#arrow-amber)"/>
+        <!-- Mod 5 (Docs) -> GridFS & AI -->
+        <path d="M 1055 570 L 1055 620 Q 1055 630 1080 630 L 1175 630 Q 1185 630 1185 640 L 1185 670" stroke="#ec4899" stroke-width="1.8" marker-end="url(#arrow-pink)"/>
+
+        <!-- Flowline labels -->
+        <rect x="135" y="187" width="40" height="14" rx="2" fill="#060b18" stroke="#38bdf8" stroke-width="0.6"/>
+        <text x="155" y="197" fill="#38bdf8" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">RBAC</text>
+
+        <rect x="585" y="187" width="40" height="14" rx="2" fill="#060b18" stroke="#38bdf8" stroke-width="0.6"/>
+        <text x="605" y="197" fill="#38bdf8" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">RBAC</text>
+
+        <rect x="1035" y="187" width="40" height="14" rx="2" fill="#060b18" stroke="#38bdf8" stroke-width="0.6"/>
+        <text x="1055" y="197" fill="#38bdf8" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">RBAC</text>
+
+        <rect x="130" y="612" width="50" height="14" rx="2" fill="#060b18" stroke="#10b981" stroke-width="0.6"/>
+        <text x="155" y="622" fill="#10b981" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">NoSQL</text>
+
+        <rect x="695" y="642" width="50" height="14" rx="2" fill="#060b18" stroke="#f59e0b" stroke-width="0.6"/>
+        <text x="720" y="652" fill="#f59e0b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">GRIDFS</text>
+
+        <rect x="1160" y="642" width="50" height="14" rx="2" fill="#060b18" stroke="#ec4899" stroke-width="0.6"/>
+        <text x="1185" y="652" fill="#ec4899" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">AI PARSE</text>
+      </svg>
+    </div>
+
+    <!-- ==========================================================
+         ACADEMIC RESEARCH NARRATIVE (Chapter 2 Manuscript)
+         ========================================================== -->
+    <section class="narrative-card">
+      <h2>Chapter 2 / System Architecture: System Modules &amp; Multi-Tier Topology</h2>
+      <p>
+        The software architecture of the <strong>SSG Office Assistant Application</strong> at Cebu Technological University – Daanbantayan Campus is structured as a decoupled, multi-tier system engineered around the foundational principles of <strong>Separation of Concerns (SoC)</strong>, <strong>High Availability (HA)</strong>, and <strong>Zero-Trust Client-Side Routing</strong>.
+      </p>
+
+      <div class="grid-summary">
+        <div class="metric-badge">
+          <div class="title">Client-Side Architecture</div>
+          <div class="val">React 18 + Vite SPA</div>
+          <div class="desc">Deterministic routing governed by ProtectedRoute across 8 distinct user roles</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">Functional Partitioning</div>
+          <div class="val">6 Core Modules</div>
+          <div class="desc">Autonomous components for Identity, Rosters, Commerce, Finances, Docs, and Broadcasts</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">Binary Storage Layer</div>
+          <div class="val">MongoDB Atlas GridFS</div>
+          <div class="desc">Chunked 255KB streaming bucket (ssg_documents) bypassing cloud storage quotas</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">AI Ingestion Pipeline</div>
+          <div class="val">Gemini Failover Chain</div>
+          <div class="desc">Automated OCR metadata extraction with 15 req/min client-side queue throttling</div>
+        </div>
+      </div>
+
+      <h3>1. Tier 1: Client Presentation &amp; Role-Based Ingress Layer</h3>
+      <p>
+        The presentation tier is constructed using <strong>React 18</strong>, <strong>Vite</strong>, and <strong>React Router DOM v6</strong>. Rather than allowing unrestricted client-side component loading, all sensitive administrative portals are wrapped inside a unified <code>ProtectedRoute</code> gate.
+      </p>
+      <ul>
+        <li>
+          <strong>Role-Based Access Control (RBAC):</strong> The client enforces privileges across eight standardized institutional roles: <em>(1) General Students, (2) Creative Team, (3) House Representatives, (4) Governors, (5) Legislative Branch, (6) President, (7) Budget Sector, and (8) System Administrators</em>.
+        </li>
+        <li>
+          <strong>Cryptographic Token Validation:</strong> Every routing request evaluates the user’s Firebase ID Token, extracting cryptographically signed Custom Claims and in-memory permission overrides without exposing underlying API keys.
+        </li>
+      </ul>
+
+      <h3>2. Tier 2: Core Functional UI Modules</h3>
+      <p>
+        The application is partitioned into six decoupled functional modules, each encapsulating discrete domain logic:
+      </p>
+      <ul>
+        <li>
+          <strong>Module 1 · User &amp; Identity Management:</strong> Controls user registration, administrative role promotion/demotion, self-demotion shields, and account activation flags.
+        </li>
+        <li>
+          <strong>Module 2 · Member Management:</strong> Orchestrates bulk student roster uploads via <code>PapaParse</code> (CSV/XLSX), class Mayor verifications, and department-based directory filtering across all 7 recognized campus organizations.
+        </li>
+        <li>
+          <strong>Module 3 · Product, Commerce Hub &amp; Order Management:</strong> Manages SSG official uniforms and merchandise inventories with automatic stock decrementing, public order tracking by order ID/email, and equipment borrowing checkouts.
+        </li>
+        <li>
+          <strong>Module 4 · Financial Tracking &amp; Fiscal Management:</strong> Maintains immutable double-entry style income and expense ledgers, Death Aid remittances, digital receipt attachments, and automated liquidation PDF report generation.
+        </li>
+        <li>
+          <strong>Module 5 · Document Management Repository:</strong> Archives legislative resolutions, executive memos, and committee policies tagged by author, term, and committee with in-browser binary streaming.
+        </li>
+        <li>
+          <strong>Module 6 · Communications Gateway:</strong> Formats rich broadcast announcements, synchronizes the academic calendar widget, and routes automated webhook notifications to the Telegram Bot API.
+        </li>
+      </ul>
+
+      <h3>3. Tier 3: Hybrid Cloud Persistence &amp; AI Parsing Infrastructure</h3>
+      <p>
+        To balance low-latency transactions with massive binary document archiving, the backend employs a hybrid persistence model:
+      </p>
+      <ul>
+        <li>
+          <strong>Firebase Auth &amp; Cloud Firestore:</strong> Acts as the real-time NoSQL state synchronization engine for transactional collections (<code>users</code>, <code>classRosters</code>, <code>products</code>, <code>orders</code>, <code>finances</code>), supported by Firestore Security Rules.
+        </li>
+        <li>
+          <strong>MongoDB Atlas GridFS Engine:</strong> Operates on an independent database (<code>ssg_documents</code>) and bucket (<code>documents.files</code> / <code>documents.chunks</code>) accessed through a Node.js Express REST proxy. By chunking large resolution PDFs and receipts into 255KB binary blocks, the system completely bypasses cloud storage plan limitations with zero memory leaks.
+        </li>
+        <li>
+          <strong>AI Document Parsing Pipeline:</strong> Connects directly to GridFS memory buffers. Utilizing a failover chain from Google Gemini 1.5/2.5 Pro to OpenRouter, the pipeline parses document text, extracts authors and resolution numbers, and assigns committee tags under a strict 15 req/min client-side rate limit.
+        </li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

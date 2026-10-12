@@ -16,6 +16,7 @@ import WorkinProgress from './components/WorkinProgress/WorkinProgress.jsx';
 import Homepage from './Homepage/Homepage.jsx';
 import Order from './components/Order/order.jsx';
 import TrackOrder from './components/TrackOrder/TrackOrder.jsx';
+import OrderHub from './components/OrderHub/OrderHub.jsx';
 import CommerceHub from './components/CommerceHub/CommerceHub.jsx';
 import Announcement from './components/Announcement.jsx';
 import ClassUpload from './components/ClassUpload.jsx';
@@ -81,7 +82,7 @@ function App() {
           </DashboardLayout>
         } />
 
-        {/* 1.1 ORDER PLACEMENT */}
+        {/* 1.1 ORDER MANAGEMENT (UNIFIED PLACE & TRACK ORDER) */}
         <Route path="/order" element={
           <ProtectedRoute
             allowGuest
@@ -91,7 +92,7 @@ function App() {
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
-                  message="You need order management permissions to place orders."
+                  message="You need order management permissions to access orders."
                   requiredPermissions={['canManageOrders']}
                   showUserInfo={true}
                 />
@@ -99,12 +100,12 @@ function App() {
             }
           >
             <DashboardLayout>
-              <Order />
+              <OrderHub />
             </DashboardLayout>
           </ProtectedRoute>
         } />
 
-        {/* 1.2 ORDER TRACKING */}
+        {/* 1.2 ORDER TRACKING (DEEP-LINK COMPATIBILITY -> ORDER HUB) */}
         <Route path="/track-order" element={
           <ProtectedRoute
             allowGuest
@@ -122,7 +123,7 @@ function App() {
             }
           >
             <DashboardLayout>
-              <TrackOrder />
+              <OrderHub />
             </DashboardLayout>
           </ProtectedRoute>
         } />

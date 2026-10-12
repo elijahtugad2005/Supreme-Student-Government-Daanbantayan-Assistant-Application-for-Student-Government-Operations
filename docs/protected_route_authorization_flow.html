@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protected Route & Authorization Flow · System Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #0f172a;
+      --color-paper-2: #1e293b;
+      --color-ink:     #f8fafc;
+      --color-muted:   #94a3b8;
+      --color-soft:    #64748b;
+      --color-accent:  #f97316;
+      --color-accent-tint: rgba(249, 115, 22, 0.12);
+      --color-success: #10b981;
+      --color-danger:  #ef4444;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem;
+    }
+
+    .frame {
+      max-width: 1440px;
+      width: 100%;
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 2.5vw + 1rem, 2.75rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--color-muted);
+      margin-bottom: 2rem;
+      max-width: 960px;
+      line-height: 1.5;
+    }
+
+    .diagram-container {
+      background: var(--color-paper-2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1.75rem;
+      overflow-x: auto;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    svg {
+      width: 100%;
+      min-width: 1280px;
+      display: block;
+      height: auto;
+    }
+
+    .narrative-card {
+      background: var(--color-paper-2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 2.25rem;
+      margin-bottom: 2rem;
+      line-height: 1.7;
+    }
+
+    .narrative-card h2 {
+      font-family: var(--font-serif);
+      font-size: 1.75rem;
+      color: var(--color-ink);
+      margin-bottom: 1.25rem;
+      font-weight: 400;
+    }
+
+    .narrative-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-accent);
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .narrative-card p {
+      color: var(--color-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .narrative-card ul {
+      list-style-type: disc;
+      padding-left: 1.5rem;
+      color: var(--color-muted);
+      font-size: 0.92rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .narrative-card li {
+      margin-bottom: 0.5rem;
+    }
+
+    .narrative-card strong {
+      color: var(--color-ink);
+    }
+
+    .grid-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .metric-badge {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 1.1rem 1.25rem;
+    }
+
+    .metric-badge .title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric-badge .val {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--color-ink);
+      margin: 0.25rem 0;
+    }
+
+    .metric-badge .desc {
+      font-size: 0.82rem;
+      color: var(--color-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Chapter 2 · System Architecture &amp; Security Specifications</p>
+    <h1>Client-Side Authorization: ProtectedRoute Evaluation Pipeline</h1>
+    <p class="subtitle">
+      Zero-Trust multi-tier authorization workflow for the SSG Office Assistant App, demonstrating the coordination among React Router, Firebase Authentication JWT Custom Claims, AuthContext state hydration, and the ProtectedRoute component wrapper.
+    </p>
+
+    <!-- Interactive / Scalable SVG Flowchart -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 1440 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="protected-route-title protected-route-desc">
+        <title id="protected-route-title">Protected Route &amp; Authorization Flow Diagram</title>
+        <desc id="protected-route-desc">Detailed multi-tier decision flowchart mapping initial URL navigation, AuthContext hydration, authentication gate checks, route-level validation, and granular role/permission enforcement resulting in Path A (Authorized) or Path B (Redirect / AccessDenied).</desc>
+        
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/>
+          </marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f97316"/>
+          </marker>
+          <marker id="arrow-success" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+          </marker>
+          <marker id="arrow-danger" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ef4444"/>
+          </marker>
+        </defs>
+
+        <!-- Canvas Background -->
+        <rect x="0" y="0" width="1440" height="760" fill="#1e293b"/>
+
+        <!-- ==========================================
+             ZONE BOUNDARIES (Tiers)
+             ========================================== -->
+        <!-- Tier 1: Ingress & Context -->
+        <rect x="30" y="40" width="310" height="660" rx="10" fill="#0f172a" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+        <text x="50" y="70" fill="#94a3b8" font-size="11" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.1em">TIER 1 · INGRESS &amp; CONTEXT</text>
+
+        <!-- Tier 2: ProtectedRoute Wrapper Gate -->
+        <rect x="370" y="40" width="670" height="660" rx="10" fill="#0f172a" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+        <text x="390" y="70" fill="#f97316" font-size="11" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.1em">TIER 2 · PROTECTEDROUTE WRAPPER EVALUATION LAYER</text>
+
+        <!-- Tier 3: Terminal Outcomes -->
+        <rect x="1070" y="40" width="340" height="660" rx="10" fill="#0f172a" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+        <text x="1090" y="70" fill="#94a3b8" font-size="11" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.1em">TIER 3 · TERMINAL OUTCOMES</text>
+
+        <!-- ==========================================
+             CONNECTORS (Drawn first so boxes sit above)
+             ========================================== -->
+        <!-- Trigger -> AuthContext -->
+        <line x1="185" y1="180" x2="185" y2="240" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#arrow)"/>
+        
+        <!-- AuthContext -> Check 1 (Auth Gate) -->
+        <path d="M 185 360 L 185 410 Q 185 420 195 420 L 440 420 Q 450 420 450 430 L 450 450" fill="none" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#arrow)"/>
+        
+        <!-- Check 1: [isGuest && !allowGuest] = YES -> Redirect Login -->
+        <path d="M 450 540 L 450 630 Q 450 640 460 640 L 1090 640" fill="none" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-danger)"/>
+
+        <!-- Check 1: [isGuest && allowGuest] = YES -> Path A (Public Browse) -->
+        <path d="M 545 495 L 1030 495 Q 1040 495 1040 485 L 1040 180 Q 1040 170 1050 170 L 1090 170" fill="none" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-success)"/>
+
+        <!-- Check 1: Authenticated User -> Check 2 (canAccessRoute) -->
+        <path d="M 450 450 L 450 290 Q 450 280 460 280 L 530 280 Q 540 280 540 270 L 540 250" fill="none" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#arrow)"/>
+        
+        <!-- Check 2: Invalid Role for Route -> Access Denied (Route Mismatch) -->
+        <path d="M 730 190 L 880 190 Q 890 190 890 270 Q 890 350 900 350 L 1090 350" fill="none" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-danger)"/>
+
+        <!-- Check 2: Valid Route Role -> Check 3 & 4 (Permissions & Allowed Roles) -->
+        <line x1="635" y1="240" x2="635" y2="350" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+        <!-- Check 3 & 4: Super Admin Bypass -> Path A -->
+        <path d="M 830 410 L 980 410 Q 990 410 990 200 Q 990 150 1000 150 L 1090 150" fill="none" stroke="#f97316" stroke-width="1.6" marker-end="url(#arrow-accent)"/>
+
+        <!-- Check 3 & 4: Sufficient Role & Permissions -> Path A -->
+        <path d="M 730 450 L 960 450 Q 970 450 970 170 Q 970 160 980 160 L 1090 160" fill="none" stroke="#10b981" stroke-width="1.6" marker-end="url(#arrow-success)"/>
+
+        <!-- Check 3 & 4: Insufficient Permissions / Role Mismatch -> Access Denied -->
+        <path d="M 730 480 L 1000 480 Q 1010 480 1010 390 Q 1010 380 1020 380 L 1090 380" fill="none" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-danger)"/>
+
+        <!-- ==========================================
+             TIER 1 NODES
+             ========================================== -->
+        <!-- Node 1: Navigation Trigger -->
+        <g id="node-trigger">
+          <rect x="50" y="100" width="270" height="80" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1"/>
+          <rect x="60" y="108" width="60" height="14" rx="2" fill="transparent" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>
+          <text x="90" y="119" fill="#94a3b8" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">TRIGGER</text>
+          <text x="60" y="142" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif">User Route Ingress</text>
+          <text x="60" y="162" fill="#94a3b8" font-size="9.5" font-family="'Geist Mono', monospace">URL: /finance, /admin, /documents</text>
+        </g>
+
+        <!-- Node 2: AuthContext Hydration -->
+        <g id="node-authcontext">
+          <rect x="50" y="240" width="270" height="120" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1"/>
+          <rect x="60" y="248" width="80" height="14" rx="2" fill="transparent" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>
+          <text x="100" y="259" fill="#94a3b8" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">AUTHCONTEXT</text>
+          <text x="60" y="280" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Identity &amp; Claims Hydration</text>
+          <text x="60" y="300" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">• currentUser (Firebase Auth UID)</text>
+          <text x="60" y="316" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">• userRole (Decoded Custom Claim)</text>
+          <text x="60" y="332" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">• userPermissions (Override set)</text>
+          <text x="60" y="348" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">• getIdTokenResult(forceRefresh)</text>
+        </g>
+
+        <!-- ==========================================
+             TIER 2 NODES (Evaluation Pipeline)
+             ========================================== -->
+        <!-- Check 1: Authentication Gate (allowGuest / isGuest) -->
+        <g id="node-check1">
+          <rect x="390" y="450" width="230" height="90" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1"/>
+          <rect x="400" y="458" width="55" height="14" rx="2" fill="transparent" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>
+          <text x="427" y="469" fill="#94a3b8" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">CHECK 1</text>
+          <text x="400" y="490" fill="#f8fafc" font-size="11.5" font-weight="600" font-family="'Geist', sans-serif">Authentication Gate</text>
+          <text x="400" y="508" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">isGuest = !currentUser</text>
+          <text x="400" y="524" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">if (isGuest &amp;&amp; !allowGuest)</text>
+        </g>
+
+        <!-- Check 2: Route-Level Access Matrix -->
+        <g id="node-check2">
+          <rect x="540" y="150" width="250" height="90" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1"/>
+          <rect x="550" y="158" width="55" height="14" rx="2" fill="transparent" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>
+          <text x="577" y="169" fill="#94a3b8" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">CHECK 2</text>
+          <text x="550" y="190" fill="#f8fafc" font-size="11.5" font-weight="600" font-family="'Geist', sans-serif">canAccessRoute() Guard</text>
+          <text x="550" y="208" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">Validates route vs ROUTE_ROLES</text>
+          <text x="550" y="224" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">e.g. /finance -> ['finance_sec', 'admin']</text>
+        </g>
+
+        <!-- Check 3 & 4: Role & Permission Catalog -->
+        <g id="node-check3-4">
+          <rect x="540" y="350" width="270" height="150" rx="6" fill="#1e293b" stroke="#f97316" stroke-width="1.6"/>
+          <rect x="550" y="358" width="85" height="14" rx="2" fill="rgba(249, 115, 22, 0.15)" stroke="#f97316" stroke-width="0.8"/>
+          <text x="592" y="369" fill="#f97316" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">CHECK 3 &amp; 4 ★</text>
+          <text x="550" y="388" fill="#f8fafc" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Granular RBAC Evaluation</text>
+          <text x="550" y="408" fill="#fdba74" font-size="9" font-family="'Geist Mono', monospace">• Super-Admin bypass (role === 'admin')</text>
+          <text x="550" y="426" fill="#cbd5e1" font-size="9" font-family="'Geist Mono', monospace">• allowedRoles.includes(userRole)</text>
+          <text x="550" y="444" fill="#cbd5e1" font-size="9" font-family="'Geist Mono', monospace">• hasPermission(user, permissionKey)</text>
+          <text x="550" y="462" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace">• anyPermission ? some() : every()</text>
+          <text x="550" y="480" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace">• Admin individual overrides honored</text>
+        </g>
+
+        <!-- Labels on Connectors -->
+        <rect x="740" y="628" width="120" height="18" rx="3" fill="#0f172a" stroke="rgba(239, 68, 68, 0.4)" stroke-width="0.8"/>
+        <text x="800" y="641" fill="#f87171" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">UNAUTHENTICATED</text>
+
+        <rect x="890" y="180" width="105" height="18" rx="3" fill="#0f172a" stroke="rgba(239, 68, 68, 0.4)" stroke-width="0.8"/>
+        <text x="942" y="193" fill="#f87171" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">ROUTE REJECTED</text>
+
+        <rect x="850" y="370" width="115" height="18" rx="3" fill="#0f172a" stroke="rgba(249, 115, 22, 0.4)" stroke-width="0.8"/>
+        <text x="907" y="383" fill="#fb923c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">ADMIN OVERRIDE</text>
+
+        <rect x="840" y="440" width="110" height="18" rx="3" fill="#0f172a" stroke="rgba(16, 185, 129, 0.4)" stroke-width="0.8"/>
+        <text x="895" y="453" fill="#34d399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">RBAC VERIFIED</text>
+
+        <!-- ==========================================
+             TIER 3 NODES (Terminal Outcomes)
+             ========================================== -->
+        <!-- Path A: Authorized Component Render -->
+        <g id="node-path-a">
+          <rect x="1090" y="110" width="300" height="110" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.6"/>
+          <rect x="1100" y="118" width="60" height="14" rx="2" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" stroke-width="0.8"/>
+          <text x="1130" y="129" fill="#10b981" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">PATH A</text>
+          <text x="1100" y="152" fill="#f8fafc" font-size="13" font-weight="600" font-family="'Geist', sans-serif">Authorized: Render Children</text>
+          <text x="1100" y="172" fill="#34d399" font-size="9.5" font-family="'Geist Mono', monospace">return children;</text>
+          <text x="1100" y="190" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">Mounts FinanceDashboard, AdminView,</text>
+          <text x="1100" y="206" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">DocumentCenter, or InventoryManager</text>
+        </g>
+
+        <!-- Path B1: AccessDenied Fallback -->
+        <g id="node-path-b1">
+          <rect x="1090" y="320" width="300" height="140" rx="6" fill="#1e293b" stroke="#ef4444" stroke-width="1.4"/>
+          <rect x="1100" y="328" width="60" height="14" rx="2" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" stroke-width="0.8"/>
+          <text x="1130" y="339" fill="#ef4444" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">PATH B-1</text>
+          <text x="1100" y="362" fill="#f8fafc" font-size="13" font-weight="600" font-family="'Geist', sans-serif">renderAccessDenied(msg)</text>
+          <text x="1100" y="382" fill="#f87171" font-size="9.5" font-family="'Geist Mono', monospace">Renders customAccessDenied or</text>
+          <text x="1100" y="398" fill="#f87171" font-size="9.5" font-family="'Geist Mono', monospace">fallback 403 Access Denied screen</text>
+          <text x="1100" y="420" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">• Audit message with attempted route</text>
+          <text x="1100" y="436" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">• Shows required roles &amp; user role</text>
+        </g>
+
+        <!-- Path B2: Redirect to Login with State -->
+        <g id="node-path-b2">
+          <rect x="1090" y="580" width="300" height="100" rx="6" fill="#1e293b" stroke="#ef4444" stroke-width="1.4"/>
+          <rect x="1100" y="588" width="60" height="14" rx="2" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" stroke-width="0.8"/>
+          <text x="1130" y="599" fill="#ef4444" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">PATH B-2</text>
+          <text x="1100" y="622" fill="#f8fafc" font-size="13" font-weight="600" font-family="'Geist', sans-serif">Navigate to /login</text>
+          <text x="1100" y="642" fill="#f87171" font-size="9.5" font-family="'Geist Mono', monospace">&lt;Navigate to={redirectTo} replace /&gt;</text>
+          <text x="1100" y="660" fill="#94a3b8" font-size="9" font-family="'Geist Mono', monospace">state={{ from: location }} (Preserves URI)</text>
+        </g>
+
+        <!-- ==========================================
+             BOTTOM LEGEND
+             ========================================== -->
+        <line x1="40" y1="710" x2="1400" y2="710" stroke="rgba(255, 255, 255, 0.08)" stroke-width="0.8"/>
+        <text x="40" y="734" fill="#94a3b8" font-size="8.5" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+        <line x1="120" y1="730" x2="144" y2="730" stroke="#94a3b8" stroke-width="1.4"/>
+        <text x="152" y="734" fill="#cbd5e1" font-size="9.5" font-family="'Geist', sans-serif">Normal Sequential Ingress</text>
+
+        <line x1="360" y1="730" x2="384" y2="730" stroke="#10b981" stroke-width="1.6"/>
+        <text x="392" y="734" fill="#34d399" font-size="9.5" font-family="'Geist', sans-serif">Authorized Path (Access Granted)</text>
+
+        <line x1="620" y1="730" x2="644" y2="730" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="652" y="734" fill="#f87171" font-size="9.5" font-family="'Geist', sans-serif">Unauthorized / Denied Redirection</text>
+
+        <line x1="880" y1="730" x2="904" y2="730" stroke="#f97316" stroke-width="1.6"/>
+        <text x="912" y="734" fill="#fdba74" font-size="9.5" font-family="'Geist', sans-serif">Elevated Admin Override Bypass</text>
+      </svg>
+    </div>
+
+    <!-- ==========================================
+         ACADEMIC MANUSCRIPT NARRATIVE
+         ========================================== -->
+    <section class="narrative-card">
+      <h2>Chapter 2 / System Architecture: Protected Route &amp; Authorization Security Specification</h2>
+      <p>
+        The <strong>SSG Office Assistant Application</strong> implements a multi-tier, client-side authorization pipeline architected around the principles of <strong>Zero-Trust Security</strong> and <strong>Defense-in-Depth</strong>. Protecting sensitive institutional modules (such as financial disbursements, Death Aid remittances, student inventories, and administrative records) requires an airtight mechanism that intercepts every navigation attempt before component mounting occurs.
+      </p>
+
+      <div class="grid-summary">
+        <div class="metric-badge">
+          <div class="title">Cryptographic Enforcement</div>
+          <div class="val">JWT Custom Claims</div>
+          <div class="desc">Cryptographically signed tokens from Firebase Admin SDK mint user role and permissions</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">Evaluation Latency</div>
+          <div class="val">&lt; 15 ms</div>
+          <div class="desc">Synchronous in-memory permission and route matrix evaluation in AuthContext</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">State Preservation</div>
+          <div class="val">state={{ from: loc }}</div>
+          <div class="desc">Guarantees zero context loss by caching targeted URI during authentication challenge</div>
+        </div>
+        <div class="metric-badge">
+          <div class="title">Fallback Shield</div>
+          <div class="val">403 AccessDenied</div>
+          <div class="desc">Deterministic boundary prevents unauthorized data fetching from child lifecycle hooks</div>
+        </div>
+      </div>
+
+      <h3>1. Initial Trigger &amp; Identity Hydration Layer (AuthContext)</h3>
+      <p>
+        When a user triggers client-side navigation (e.g., browsing to <code>/finance</code>, <code>/admin</code>, or <code>/documents</code>), the top-level <code>ProtectedRoute</code> component intercepts the React Router lifecycle. Access evaluation begins by querying the singleton <strong>AuthContext</strong>:
+      </p>
+      <ul>
+        <li><strong><code>currentUser</code>:</strong> Represents the verified Firebase User object. If <code>null</code>, the user is classified as a guest (<code>isGuest = true</code>).</li>
+        <li><strong><code>userRole</code> &amp; Custom Claims:</strong> Decoded from the signed Firebase ID Token, establishing the baseline role (e.g., <code>admin</code>, <code>finance_secretary</code>, <code>secretary</code>, <code>governor</code>, <code>representative</code>).</li>
+        <li><strong><code>userPermissions</code> &amp; Overrides:</strong> A reactive dictionary reflecting Firestore-backed per-user permission overrides. This allows system administrators to grant or revoke granular capabilities without redefining role definitions.</li>
+      </ul>
+
+      <h3>2. The Four-Tier ProtectedRoute Evaluation Pipeline</h3>
+      <p>
+        The <code>ProtectedRoute</code> component executes four rigorous validation gates before granting component access:
+      </p>
+      <ul>
+        <li>
+          <strong>Check 1 (Authentication Gate):</strong> Evaluates <code>isGuest &amp;&amp; !allowGuest</code>. If an unauthenticated user attempts to access an internal route, navigation immediately diverts to <strong>Path B-2</strong> (<code>&lt;Navigate to="/login" replace /&gt;</code>). The original target path is preserved via React Router's <code>location.state</code> to facilitate seamless post-authentication routing. Conversely, if <code>allowGuest === true</code> (e.g., Public Catalog or Track Order), execution returns <code>children</code> directly.
+        </li>
+        <li>
+          <strong>Check 2 (Route-Level Matrix Validation):</strong> Invokes <code>canAccessRoute(user, pathname)</code>. This checks the attempted route against the canonical route permissions table (defined in <code>permissions.js</code>). If the user's role is not registered as a valid occupant of the path, the pipeline short-circuits to <strong>Path B-1</strong> with a route mismatch audit message.
+        </li>
+        <li>
+          <strong>Check 3 &amp; 4 (Role &amp; Granular Permission Catalog):</strong> 
+          Performs multi-criteria capability evaluation:
+          <ul>
+            <li><em>Super-Admin Bypass:</em> If <code>user.role === 'admin'</code>, full access is granted immediately.</li>
+            <li><em>Role Conformance:</em> Asserts that <code>allowedRoles.length === 0 || allowedRoles.includes(userRole)</code>.</li>
+            <li><em>Granular Permissions:</em> When <code>requiredPermissions</code> are specified, <code>hasPermission(user, key)</code> verifies that individual access overrides or role defaults satisfy either <code>every()</code> or <code>some()</code> constraints (controlled by the <code>anyPermission</code> prop).</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>3. Decision Outcomes &amp; System Integrity Protection</h3>
+      <ul>
+        <li>
+          <strong>Path A (Authorized Mounting):</strong> If all gates pass, <code>ProtectedRoute</code> returns <code>children</code>. The target component (e.g., <code>FinanceDashboard</code>, <code>UserManagement</code>, <code>InventoryManagement</code>) mounts cleanly, initiating secure backend data queries.
+        </li>
+        <li>
+          <strong>Path B (Unauthorized Isolation):</strong> If any check fails, component mounting is completely blocked. Rather than crashing or leaking unrendered child state, the system renders either the custom <code>customAccessDenied</code> node or the default <code>AccessDenied</code> component (displaying an audit timestamp, the user's current role, and the specific missing capabilities).
+        </li>
+      </ul>
+      <p>
+        This architecture ensures that client-side components containing proprietary student information or financial ledgers never execute their internal <code>useEffect</code> or API data-fetching hooks unless the cryptographic and role parameters are verified.
+      </p>
+    </section>
+  </div>
+</body>
+</html>

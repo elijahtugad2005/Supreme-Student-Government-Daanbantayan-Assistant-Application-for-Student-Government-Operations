@@ -14,12 +14,12 @@ import {
 import {
   buildRoster,
   columnLabel,
-  detectColumns,
-  findHeaderRow,
+  detectSheetLayout,
 } from '../utils/rosterParser';
 import {
   ROSTER_STATUS,
   amendRosterForTransfers,
+  buildMayorAccountLabel,
   listPendingSubmissions,
   listRosterVersions,
   listRostersOwnedBy,
@@ -85,7 +85,11 @@ function ClassUpload() {
   // ========================================
   // SHEET PARSING
   // ========================================
-  const [sheet, setSheet] = useState(null); // { fileName, rows }
+  const [sheet, setSheet] = useState(null); // { fileName, rows, headerRowIndex }
+  // Manual mode: no spreadsheet, the member types or pastes the names.
+  const [manualMode, setManualMode] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [detectNote, setDetectNote] = useState('');
   const [headers, setHeaders] = useState([]);
   const [mapping, setMapping] = useState({ nameIndex: -1, sectionIndex: -1 });
   const [draft, setDraft] = useState([]);
@@ -120,8 +124,7 @@ function ClassUpload() {
    * the column mapping changes — never in response to editing the Section field,
    * because that would silently discard the Mayor's corrections.
    */
-  const applyParse = useCallback((rows, nameIndex, sectionIndex) => {
-    const headerRowIndex = findHeaderRow(rows);
+  const applyParse = useCallback((rows, headerRowIndex, nameIndex, sectionIndex) => {
     const result = buildRoster(rows, {
       headerRowIndex,
       nameIndex,
@@ -151,7 +154,7 @@ function ClassUpload() {
   const analysis = useMemo(() => {
     if (!sheet?.rows) return null;
     return buildRoster(sheet.rows, {
-      headerRowIndex: findHeaderRow(sheet.rows),
+      headerRowIndex: sheet.headerRowIndex,
       nameIndex: mapping.nameIndex,
       sectionIndex: mapping.sectionIndex,
       websiteSection: meta.section,
@@ -185,13 +188,54 @@ function ClassUpload() {
         return;
       }
 
-      setSheet({ fileName: file.name, rows });
-      const headerRowIndex = findHeaderRow(rows);
-      const { nameIndex, sectionIndex } = detectColumns(rows[headerRowIndex] || []);
-      applyParse(rows, nameIndex, sectionIndex);
+      // Header first; if no column is titled like a name, scan the cells for
+      // a name pattern instead. Never throws — worst case the member picks the
+      // column by hand from the dropdown.
+      let layout;
+      try {
+        layout = detectSheetLayout(rows);
+      } catch (detectError) {
+        console.warn('Roster layout detection failed:', detectError);
+        layout = { headerRowIndex: 0, nameIndex: -1, sectionIndex: -1, byContent: false };
+      }
+
+      setManualMode(false);
+      setSheet({ fileName: file.name, rows, headerRowIndex: layout.headerRowIndex });
+      setDetectNote(
+        layout.byContent
+          ? `No "Name" heading found, so the names were found by pattern in column ${columnLabel(layout.nameIndex, '').split(' ')[0]}. Check the list below.`
+          : ''
+      );
+      applyParse(rows, layout.headerRowIndex, layout.nameIndex, layout.sectionIndex);
     } catch (error) {
       setParseError(`Could not read that file: ${error.message}`);
     }
+  };
+
+  /** No spreadsheet: start an empty list the member fills in by hand. */
+  const startManual = () => {
+    setSheet(null);
+    setHeaders([]);
+    setMapping({ nameIndex: -1, sectionIndex: -1 });
+    setDetectNote('');
+    setParseError('');
+    setManualMode(true);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setDraft((prev) => (prev.length > 0 ? prev : [{ rowNumber: 0, name: '', section: '', suspicious: false }]));
+  };
+
+  /** Paste one name per line (e.g. copied from Word/Messenger) into the list. */
+  const addPastedNames = () => {
+    const names = pasteText
+      .split(/\r?\n/)
+      .map((n) => n.replace(/^\s*\d+[.)-]?\s*/, '').trim()) // drop "1. " numbering
+      .filter(Boolean);
+    if (names.length === 0) return;
+    setDraft((prev) => [
+      ...prev.filter((s) => s.name.trim()),
+      ...names.map((name) => ({ rowNumber: 0, name, section: '', suspicious: false })),
+    ]);
+    setPasteText('');
   };
 
   const handleFile = (e) => {
@@ -208,7 +252,8 @@ function ClassUpload() {
 
   const changeMapping = (key, value) => {
     if (!sheet) return;
-    applyParse(sheet.rows, key === 'nameIndex' ? value : mapping.nameIndex, key === 'sectionIndex' ? value : mapping.sectionIndex);
+    setDetectNote('');
+    applyParse(sheet.rows, sheet.headerRowIndex, key === 'nameIndex' ? value : mapping.nameIndex, key === 'sectionIndex' ? value : mapping.sectionIndex);
   };
 
   // ========================================
@@ -251,6 +296,9 @@ function ClassUpload() {
     setMapping({ nameIndex: -1, sectionIndex: -1 });
     setDraft([]);
     setParseError('');
+    setManualMode(false);
+    setPasteText('');
+    setDetectNote('');
     if (!keepBanner) setBanner(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -259,7 +307,9 @@ function ClassUpload() {
     if (!meta.collegeId) return setParseError('Please choose a College.');
     if (!meta.program) return setParseError('Please choose a Program.');
     if (!meta.section.trim()) return setParseError('Please enter a Section.');
-    if (draft.length === 0) return setParseError('Please upload a file with the student list.');
+    if (draft.length === 0) {
+      return setParseError('Please upload a file, or choose "Type the list instead" to add students by hand.');
+    }
 
     const blank = draft.findIndex((s) => !s.name.trim());
     if (blank !== -1) {
@@ -276,9 +326,10 @@ function ClassUpload() {
         mayorName: meta.mayorName.trim(),
         yearLevel: yearLevel ? Number(yearLevel) : null,
         mayorUid: currentUser?.uid || null,
+        mayorEmail: currentUser?.email || null,
         students: draft.map((s) => ({ name: s.name.trim(), section: meta.section.trim(), rowNumber: s.rowNumber })),
         source: {
-          fileName: sheet?.fileName || '',
+          fileName: sheet?.fileName || (manualMode ? 'Manual entry' : ''),
           nameColumn: headers[mapping.nameIndex] || null,
           sectionColumn: mapping.sectionIndex >= 0 ? headers[mapping.sectionIndex] || null : null,
           ignoredColumns: analysis?.ignored || [],
@@ -289,6 +340,9 @@ function ClassUpload() {
         type: 'success',
         message:
           `Roster for ${meta.section.trim()} submitted with ${draft.length} student(s). ` +
+          (currentUser
+            ? `This account is now linked as "${buildMayorAccountLabel(meta.mayorName, meta.section)}". `
+            : '') +
           'An SSG Officer will verify it before it becomes the official list.',
       });
       resetForm(true);
@@ -499,6 +553,37 @@ function ClassUpload() {
               <p style={styles.helperText}>Filled in from the section name — change it if wrong.</p>
             </div>
           </div>
+
+          {/* MAYOR ACCOUNT INDICATOR */}
+          {currentUser ? (
+            <div style={styles.issueBox}>
+              <strong>🎖️ Mayor account</strong>
+              <p style={styles.helperText}>
+                The account you are signed in with — <strong>{currentUser.email || currentUser.displayName}</strong> —
+                will be registered as the Mayor of{' '}
+                <strong>{meta.section.trim() || 'your section'}</strong>
+                {college ? ` (${college.label}${meta.program ? ` · ${meta.program}` : ''})` : ''}.
+              </p>
+              <p style={styles.helperText}>
+                Account label:{' '}
+                <strong>
+                  {buildMayorAccountLabel(meta.mayorName, meta.section) || 'Enter Mayor\'s Name and Section'}
+                </strong>
+              </p>
+              <p style={styles.helperText}>
+                Only this account (and SSG officers) can view and edit this roster. Make sure the Mayor
+                is the one signed in.
+              </p>
+            </div>
+          ) : (
+            <div style={styles.issueBox}>
+              <strong>⚠️ Not signed in</strong>
+              <p style={styles.helperText}>
+                You can still submit, but no account will own this roster — you won't be able to view or
+                edit it later. Sign in with Google as the Mayor first.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -530,6 +615,36 @@ function ClassUpload() {
           </p>
         </div>
 
+        <div style={styles.buttonGroup}>
+          <button type="button" onClick={startManual} style={styles.secondaryButton}>
+            ✍️ No file? Type the list instead
+          </button>
+        </div>
+
+        {manualMode && (
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Paste names (one per line)</label>
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              style={styles.textarea}
+              rows={5}
+              placeholder={'Dela Cruz, Juan\nSantos, Maria\n...'}
+            />
+            <div style={styles.buttonGroup}>
+              <button type="button" onClick={addPastedNames} disabled={!pasteText.trim()} style={styles.secondaryButton}>
+                Add pasted names
+              </button>
+            </div>
+            <p style={styles.helperText}>
+              Or type each student in the table below. The section is the one you entered above.
+              It is sent for officer verification before it can be used for Death Aid.
+            </p>
+          </div>
+        )}
+
+        {detectNote && <div style={styles.issueBox}>{detectNote}</div>}
+
         {parseError && (
           <div style={styles.errorBox}>
             <strong>Error:</strong> {parseError}
@@ -546,6 +661,7 @@ function ClassUpload() {
                 onChange={(e) => changeMapping('nameIndex', Number(e.target.value))}
                 style={styles.select}
               >
+                <option value={-1} disabled>Choose the column with names</option>
                 {headers.map((h, i) => (
                   <option key={i} value={i}>
                     {columnLabel(i, h)}

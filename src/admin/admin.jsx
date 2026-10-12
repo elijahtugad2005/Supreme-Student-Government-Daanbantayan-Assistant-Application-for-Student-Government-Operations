@@ -5,6 +5,7 @@ import MemberDashboard from '../components/MemberDashboard';
 import ProductManagement from '../components/ProductManagement/ProductManagement';
 import Data from '../components/Data/OrderManagement.jsx';
 import UserManagement from '../components/UserManagement/UserManagement.jsx';
+import { HiCube, HiShoppingCart, HiUsers, HiShieldCheck } from 'react-icons/hi';
 
 function Admin() {
     const [activeTab, setActiveTab] = useState('products');
@@ -23,21 +24,21 @@ function Admin() {
                     className={`${styles.tabButton} ${activeTab === 'products' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('products')}
                 >
-                    <span className={styles.tabIcon}>📦</span>
+                    <span className={styles.tabIcon}><HiCube /></span>
                     <span className={styles.tabLabel}>Product Management</span>
                 </button>
                 <button
                     className={`${styles.tabButton} ${activeTab === 'orders' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('orders')}
                 >
-                    <span className={styles.tabIcon}>🛒</span>
+                    <span className={styles.tabIcon}><HiShoppingCart /></span>
                     <span className={styles.tabLabel}>Order Management</span>
                 </button>
                 <button
                     className={`${styles.tabButton} ${activeTab === 'members' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('members')}
                 >
-                    <span className={styles.tabIcon}>👥</span>
+                    <span className={styles.tabIcon}><HiUsers /></span>
                     <span className={styles.tabLabel}>Member Management</span>
                 </button>
                 
@@ -45,7 +46,7 @@ function Admin() {
                     className={`${styles.tabButton} ${activeTab === 'users' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('users')}
                 >
-                    <span className={styles.tabIcon}>👑</span>
+                    <span className={styles.tabIcon}><HiShieldCheck /></span>
                     <span className={styles.tabLabel}>User Management</span>
                 </button>
             </div>

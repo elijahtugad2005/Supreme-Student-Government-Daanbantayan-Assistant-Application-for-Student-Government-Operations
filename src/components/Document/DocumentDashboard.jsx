@@ -6,13 +6,14 @@
 // first, and building it on the plain record means Gemini processing in Phase 2
 // enriches documents that already exist rather than becoming a prerequisite for
 // having any.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import {
   ACCEPT_ATTRIBUTE,
   DOC_STATUS,
   DOC_STATUS_LABELS,
   MAX_FILE_BYTES,
+  canPreviewInline,
   formatBytes,
   formatDate,
 } from '../../utils/documentLabels';
@@ -46,6 +47,8 @@ import {
   HiPencil,
   HiChevronDown,
   HiSparkles,
+  HiRefresh,
+  HiExclamationCircle,
 } from 'react-icons/hi';
 
 const STATUS_TONE = {
@@ -59,9 +62,7 @@ const emptyForm = () => ({
   documentNumber: '',
   status: DOC_STATUS.PENDING,
   documentDate: new Date().toISOString().slice(0, 10),
-  office: '',
   labels: [],
-  keywords: '',
 });
 
 function DocumentDashboard() {
@@ -90,6 +91,11 @@ function DocumentDashboard() {
   const [openId, setOpenId] = useState('');
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewError, setPreviewError] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const previewCache = useRef(new Map());
+  const previewAbortRef = useRef(null);
   const [editing, setEditing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
@@ -176,10 +182,6 @@ function DocumentDashboard() {
         file,
         metadata: {
           ...form,
-          keywords: form.keywords
-            .split(',')
-            .map((k) => k.trim())
-            .filter(Boolean),
         },
         actor,
         onProgress: setProgress,
@@ -220,27 +222,103 @@ function DocumentDashboard() {
   };
 
   // ── Preview ──
-  const togglePreview = async (document) => {
+  const loadPreview = useCallback(async (doc, force = false) => {
+    if (!doc) return;
+
+    // Fast session cache hit (<500ms requirement)
+    if (!force && previewCache.current.has(doc.id)) {
+      const cached = previewCache.current.get(doc.id);
+      setPreviewUrl(cached);
+      setPreviewError('');
+      setPreviewLoading(false);
+      setIframeLoaded(true);
+      return;
+    }
+
+    if (force) {
+      previewCache.current.delete(doc.id);
+      setPreviewUrl(null);
+    }
+
+    const fileName = doc.originalFileName || doc.title || '';
+    const mime = doc.mimeType || '';
+    if (!canPreviewInline(fileName) && !canPreviewInline(mime)) {
+      setPreviewLoading(false);
+      setIframeLoaded(false);
+      setPreviewUrl(null);
+      setPreviewError(
+        `This file (${fileName.split('.').pop()?.toUpperCase() || 'document'}) cannot be viewed in browser iframe. Use the Download button to view in desktop apps.`
+      );
+      return;
+    }
+
+    setPreviewLoading(true);
+    setIframeLoaded(false);
+    setPreviewError('');
+    setPreviewProgress(45);
+
+    if (previewAbortRef.current) {
+      previewAbortRef.current.aborted = true;
+    }
+    const currentReq = { aborted: false };
+    previewAbortRef.current = currentReq;
+
+    // Safety timeout guard (6s max)
+    const timeoutTimer = setTimeout(() => {
+      if (!currentReq.aborted) {
+        setPreviewLoading(false);
+        // Automatically make iframe visible if URL exists
+        setIframeLoaded(true);
+      }
+    }, 6000);
+
+    try {
+      const url = await getDocumentUrl(doc, { disposition: 'inline' });
+      if (currentReq.aborted) return;
+
+      clearTimeout(timeoutTimer);
+      setPreviewProgress(100);
+
+      if (!url) {
+        throw new Error('No preview file available for this document.');
+      }
+
+      previewCache.current.set(doc.id, url);
+      setPreviewUrl(url);
+
+      // Fast auto-reveal: browser PDF plugins often don't trigger iframe.onLoad reliably,
+      // so unblock the viewer immediately after a short 250ms render tick.
+      setTimeout(() => {
+        if (!currentReq.aborted) {
+          setIframeLoaded(true);
+          setPreviewLoading(false);
+        }
+      }, 250);
+    } catch (error) {
+      if (currentReq.aborted) return;
+      clearTimeout(timeoutTimer);
+      setPreviewLoading(false);
+      setPreviewError(error.message || 'Failed to load preview.');
+    }
+  }, []);
+
+  const togglePreview = (document) => {
     if (openId === document.id) {
       setOpenId('');
       setPreviewUrl(null);
       setPreviewError('');
+      setPreviewLoading(false);
+      setIframeLoaded(false);
       return;
     }
     setOpenId(document.id);
     setEditing(null);
-    setPreviewUrl(null);
-    setPreviewError('');
-    try {
-      setPreviewUrl(await getDocumentUrl(document));
-    } catch (error) {
-      setPreviewError(error.message);
-    }
+    loadPreview(document);
   };
 
   const download = async (document) => {
     try {
-      const url = await getDocumentUrl(document);
+      const url = await getDocumentUrl(document, { disposition: 'attachment' });
       if (!url) throw new Error('No file is attached to this document.');
       const link = window.document.createElement('a');
       link.href = url;
@@ -296,6 +374,12 @@ function DocumentDashboard() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @keyframes docPreviewSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
       <header style={styles.header}>
         <HiDocumentText style={styles.headerIcon} />
         <div>
@@ -382,32 +466,6 @@ function DocumentDashboard() {
                 </option>
               ))}
             </select>
-          </Field>
-
-          <Field label="Office">
-            <input
-              style={styles.input}
-              value={form.office}
-              onChange={(e) => setForm({ ...form, office: e.target.value })}
-              placeholder="e.g., Secretariat"
-              list="document-offices"
-              disabled={busy}
-            />
-            <datalist id="document-offices">
-              {offices.map((o) => (
-                <option key={o} value={o} />
-              ))}
-            </datalist>
-          </Field>
-
-          <Field label="Keywords">
-            <input
-              style={styles.input}
-              value={form.keywords}
-              onChange={(e) => setForm({ ...form, keywords: e.target.value })}
-              placeholder="comma, separated"
-              disabled={busy}
-            />
           </Field>
         </div>
 
@@ -563,6 +621,13 @@ function DocumentDashboard() {
                     {document.originalFileName} · {formatBytes(document.fileSize)} ·{' '}
                     {formatDate(document.documentDate)} · {document.createdByName}
                   </span>
+                  {(document.subject || document.agenda || document.summary) && (
+                    <p style={{ margin: '0.35rem 0 0.15rem', fontSize: '0.8rem', color: T.textMuted, lineHeight: 1.4 }}>
+                      {document.subject && <span><strong>Subject:</strong> {document.subject} · </span>}
+                      {document.agenda && <span><strong>Agenda:</strong> {document.agenda} · </span>}
+                      {document.summary && <span><strong>Summary:</strong> {document.summary.length > 180 ? `${document.summary.slice(0, 180)}…` : document.summary}</span>}
+                    </p>
+                  )}
                   <div style={styles.chipRow}>
                     <span style={statusPill(STATUS_TONE[document.status] || 'neutral')}>
                       {DOC_STATUS_LABELS[document.status] || document.status}
@@ -591,8 +656,20 @@ function DocumentDashboard() {
                     onClick={() => {
                       const nextOpen = openId === document.id ? '' : document.id;
                       setOpenId(nextOpen);
-                      if (nextOpen && document.aiState !== 'ready_for_review' && document.aiState !== 'approved') {
-                        setAutoAnalyseId(document.id);
+                      if (nextOpen) {
+                        loadPreview(document);
+                        if (
+                          document.aiState !== 'processing' &&
+                          (!document.aiSuggestion && !document.aiExtraction) &&
+                          document.aiState !== 'approved'
+                        ) {
+                          setAutoAnalyseId(document.id);
+                        }
+                      } else {
+                        setPreviewUrl(null);
+                        setPreviewError('');
+                        setPreviewLoading(false);
+                        setIframeLoaded(false);
                       }
                     }}
                     style={{
@@ -649,6 +726,9 @@ function DocumentDashboard() {
                     onClick={() => {
                       setEditing(isEditing ? null : { ...document });
                       setOpenId(document.id);
+                      if (!isEditing) {
+                        loadPreview(document);
+                      }
                     }}
                   >
                     <HiPencil />
@@ -763,11 +843,95 @@ function DocumentDashboard() {
                       </div>
                     </>
                   ) : previewError ? (
-                    <p style={styles.errorText}>{previewError}</p>
-                  ) : previewUrl ? (
-                    <iframe title={document.title} src={previewUrl} style={styles.frame} />
+                    <div style={styles.previewErrorBox}>
+                      <HiExclamationCircle style={{ fontSize: '1.4rem', color: T.error, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <p style={{ margin: 0, fontWeight: 600, color: T.error, fontSize: '0.88rem' }}>{previewError}</p>
+                        <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: T.textSoft }}>
+                          You can retry loading the preview or download the original file directly.
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => loadPreview(document, true)}
+                          style={styles.retryBtn}
+                        >
+                          <HiRefresh /> Retry
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => download(document)}
+                          style={styles.secondary}
+                        >
+                          <HiDownload /> Download
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <p style={styles.helper}>Loading preview…</p>
+                    <div style={styles.previewContainer}>
+                      {(previewLoading || (!iframeLoaded && previewUrl)) && (
+                        <div style={styles.previewLoadingOverlay}>
+                          <div style={styles.spinner} />
+                          <div style={{ textAlign: 'center' }}>
+                            <p style={styles.previewLoadingText}>
+                              {previewLoading
+                                ? `Loading document preview… ${previewProgress}%`
+                                : 'Rendering document viewer…'}
+                            </p>
+                            <span style={styles.previewLoadingSubtext}>
+                              Streaming from document storage
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {previewUrl ? (
+                        (/\.(png|jpe?g|webp|gif)$/i.test(document.originalFileName || '') || (document.mimeType && document.mimeType.startsWith('image/'))) ? (
+                          <div style={{ width: '100%', maxHeight: '70vh', overflow: 'auto', display: 'flex', justifyContent: 'center', backgroundColor: T.bgTertiary, borderRadius: '0.6rem', border: `1px solid ${T.borderSoft}`, padding: '1rem' }}>
+                            <img
+                              src={previewUrl}
+                              alt={document.title || 'Document preview'}
+                              style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain', borderRadius: '4px' }}
+                              onLoad={() => {
+                                setIframeLoaded(true);
+                                setPreviewLoading(false);
+                              }}
+                              onError={() => {
+                                setPreviewError('Failed to display preview image. Try downloading.');
+                                setPreviewLoading(false);
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <iframe
+                            title={document.title}
+                            src={previewUrl}
+                            style={{
+                              ...styles.frame,
+                              opacity: iframeLoaded ? 1 : 0,
+                              transition: 'opacity 0.15s ease-in-out',
+                            }}
+                            onLoad={() => {
+                              setIframeLoaded(true);
+                              setPreviewLoading(false);
+                            }}
+                          />
+                        )
+                      ) : (
+                        !previewLoading && (
+                          <div style={styles.previewPlaceholder}>
+                            <p style={styles.helper}>No preview available.</p>
+                            <button
+                              type="button"
+                              onClick={() => loadPreview(document, true)}
+                              style={styles.retryBtn}
+                            >
+                              <HiEye /> Load Preview
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -1057,6 +1221,83 @@ const styles = {
     border: `1px solid ${T.borderSoft}`,
     borderRadius: '0.6rem',
     backgroundColor: T.bgTertiary,
+  },
+  previewContainer: {
+    position: 'relative',
+    width: '100%',
+    minHeight: '260px',
+    marginTop: '0.8rem',
+  },
+  previewLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    minHeight: '260px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.85rem',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    backdropFilter: 'blur(4px)',
+    borderRadius: '0.6rem',
+    border: `1px solid ${T.borderSoft}`,
+    zIndex: 2,
+  },
+  spinner: {
+    width: '36px',
+    height: '36px',
+    border: '3px solid rgba(255, 255, 255, 0.15)',
+    borderTop: `3px solid ${T.accent}`,
+    borderRadius: '50%',
+    animation: 'docPreviewSpin 0.8s linear infinite',
+  },
+  previewLoadingText: {
+    margin: 0,
+    color: T.text,
+    fontSize: '0.88rem',
+    fontWeight: 600,
+  },
+  previewLoadingSubtext: {
+    color: T.textMuted,
+    fontSize: '0.74rem',
+  },
+  previewPlaceholder: {
+    minHeight: '160px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.6rem',
+    backgroundColor: T.bgTertiary,
+    borderRadius: '0.6rem',
+    border: `1px solid ${T.borderSoft}`,
+  },
+  previewErrorBox: {
+    marginTop: '0.8rem',
+    padding: '0.9rem 1.1rem',
+    borderRadius: '0.6rem',
+    backgroundColor: T.errorLight,
+    border: `1px solid ${T.error}`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.9rem',
+    flexWrap: 'wrap',
+  },
+  retryBtn: {
+    padding: '0.42rem 0.8rem',
+    backgroundColor: T.accent,
+    color: T.textOnAccent,
+    border: 'none',
+    borderRadius: '6px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    fontSize: '0.8rem',
   },
 
   empty: {

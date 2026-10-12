@@ -1,50 +1,325 @@
+/* ==========================================================================
+   FINANCIAL CONTROL CENTER - DESIGN SYSTEM & TAB NAVIGATION
+   Supports Sleek Dark Cyberpunk/Fintech & Light Swiss Industrial Brutalism
+   ========================================================================== */
 
 .financeDashboardContainer {
-    padding: 1.5rem 0;
-    /* You might adjust max-width here if you want it wider than the contentWrapper allows */
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem 3.5rem;
+  box-sizing: border-box;
+  animation: fadeInContainer 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes fadeInContainer {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   DASHBOARD HEADER
+   -------------------------------------------------------------------------- */
 .dashboardHeader {
-    margin-bottom: 2rem;
-    padding: 0 2.5rem; /* Add padding to align with other components' content */
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(247, 147, 26, 0.1);
+  border: 1px solid rgba(247, 147, 26, 0.25);
+  color: #f7931a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.viewOnlyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .mainTitle {
-    font-size: 4.2rem;
-    font-weight: 200;
-    font-family: 'Bebas Neue';
-    color: rgb(247, 91, 7);
-    margin: 0;
-    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  font-size: 2.8rem;
+  font-weight: 800;
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
-    font-size: 1.5rem;
-    color: #ffffff;
-    margin: 5px 0 0 0;
+  font-size: 1.05rem;
+  color: #94a3b8;
+  margin: 0;
+  max-width: 780px;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
-/* Sections for separation */
-.analyticsSection {
-    margin-bottom: 2rem;
+/* --------------------------------------------------------------------------
+   TAB NAVIGATION (DASHBOARD-STYLE SEGMENTED CONTROLS)
+   -------------------------------------------------------------------------- */
+.tabNavigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-
-.formSection{
-    margin-bottom: 2rem;
-
+.tabNavigation::-webkit-scrollbar {
+  display: none;
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    .mainTitle {
-        background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .subtitle {
-        color: var(--color-text-muted);
-    }
+.tabButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.4rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.tabButton:hover:not(.tabActive) {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tabButton:focus-visible {
+  outline: 2px solid #f7931a;
+  outline-offset: 2px;
+}
+
+.tabIcon {
+  color: inherit;
+  transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.tabButton:hover .tabIcon {
+  transform: translateY(-1px);
+}
+
+.tabLabel {
+  letter-spacing: -0.01em;
+}
+
+/* Active Tab State */
+.tabActive {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(247, 147, 26, 0.22) 0%, rgba(234, 88, 12, 0.16) 100%);
+  border: 1px solid rgba(247, 147, 26, 0.45);
+  box-shadow: 0 4px 16px rgba(247, 147, 26, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.tabActive .tabIcon {
+  color: #f7931a;
+}
+
+/* --------------------------------------------------------------------------
+   TAB CONTENT AREA
+   -------------------------------------------------------------------------- */
+.tabContentArea {
+  width: 100%;
+}
+
+.tabPane {
+  animation: tabPaneFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tabPaneFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES
+   -------------------------------------------------------------------------- */
+:global(.theme-light) .financeDashboardContainer {
+  background: transparent;
+}
+
+:global(.theme-light) .dashboardHeader {
+  border-bottom: 2px solid #0a0a0a;
+  padding-bottom: 1.5rem;
+}
+
+:global(.theme-light) .eyebrowBadge {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .viewOnlyBadge {
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 0px;
+  border: 2px solid #991b1b;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .mainTitle {
+  font-family: 'Archivo Black', 'Impact', 'Inter', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #0a0a0a;
+  letter-spacing: -0.03em;
+}
+
+:global(.theme-light) .subtitle {
+  color: #404040;
+  font-weight: 500;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+:global(.theme-light) .tabNavigation {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  gap: 0.25rem;
+  padding: 0.35rem;
+}
+
+:global(.theme-light) .tabButton {
+  border-radius: 0px;
+  color: #0a0a0a;
+  border: 2px solid transparent;
+  font-family: 'JetBrains Mono', 'Inter', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+:global(.theme-light) .tabButton:hover:not(.tabActive) {
+  background: #f4f4f0;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .tabActive {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  box-shadow: none;
+}
+
+:global(.theme-light) .tabActive .tabIcon {
+  color: #e61919;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .financeDashboardContainer {
+    padding: 1.25rem 1.25rem 2.5rem;
+  }
+
+  .mainTitle {
+    font-size: 2.2rem;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+  }
+
+  .tabNavigation {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .tabButton {
+    padding: 0.75rem 1.1rem;
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .financeDashboardContainer {
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .mainTitle {
+    font-size: 1.85rem;
+  }
+
+  .tabButton {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.82rem;
+    gap: 0.45rem;
+  }
+
+  .tabLabel {
+    display: inline;
+  }
 }

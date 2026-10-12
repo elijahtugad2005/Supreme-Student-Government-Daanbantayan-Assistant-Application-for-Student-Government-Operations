@@ -145,11 +145,97 @@ export function isSuspiciousName(value) {
 const canonicalName = (value) => String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 /**
+ * True when a cell *looks like* a person's name, judged by its content alone.
+ * Accepts "Juan Dela Cruz", "DELA CRUZ, Juan P.", "Ma. Santos-Reyes", "Ñino O'Neil".
+ * Rejects numbers, IDs, emails, dates, single words and long sentences.
+ */
+export function looksLikePersonName(value) {
+  const v = String(value ?? '').trim();
+  if (v.length < 4 || v.length > 60) return false;
+  if (/\d/.test(v) || /@/.test(v)) return false;
+  if (!/^[\p{L}][\p{L}\s.,'’-]*$/u.test(v)) return false;
+  const words = v.replace(/[.,]/g, ' ').split(/\s+/).filter(Boolean);
+  if (words.length < 2 || words.length > 6) return false;
+  // Header-ish words are not names
+  const h = normalizeHeader(v);
+  if (isNameHeader(h) || isSectionHeader(h)) return false;
+  return true;
+}
+
+/**
+ * Fallback when no header names the column: score every column by how many of
+ * its cells look like a person's name and pick the best one.
+ *
+ * Also decides whether the sheet has a header at all. If the "header" row's
+ * cell in the winning column itself looks like a name, the sheet has no header
+ * and `headerRowIndex` comes back as -1 so that first student is not lost.
+ *
+ * @returns {{ nameIndex: number, headerRowIndex: number }}
+ */
+export function detectNameColumnByContent(rows, headerRowIndex = 0) {
+  try {
+    const start = Math.max(0, headerRowIndex + 1);
+    const sample = rows.slice(start, start + 200);
+    const width = rows.reduce((max, r) => Math.max(max, (r || []).length), 0);
+
+    let best = { index: -1, ratio: 0 };
+    for (let col = 0; col < width; col += 1) {
+      let filled = 0;
+      let hits = 0;
+      sample.forEach((row) => {
+        const cell = row?.[col];
+        if (isBlank(cell)) return;
+        filled += 1;
+        if (looksLikePersonName(cell)) hits += 1;
+      });
+      if (filled === 0) continue;
+      const ratio = hits / filled;
+      // Need a clear majority and at least two real hits
+      if (hits >= 2 && ratio >= 0.6 && ratio > best.ratio) best = { index: col, ratio };
+    }
+
+    if (best.index < 0) return { nameIndex: -1, headerRowIndex };
+
+    const headerCell = rows[headerRowIndex]?.[best.index];
+    const headerless = looksLikePersonName(headerCell);
+    return { nameIndex: best.index, headerRowIndex: headerless ? -1 : headerRowIndex };
+  } catch (error) {
+    console.warn('Name column content scan failed:', error);
+    return { nameIndex: -1, headerRowIndex };
+  }
+}
+
+/**
+ * Header row + Name/Section columns in one call. Tries the header first, then
+ * falls back to scanning cell contents for a name pattern.
+ */
+export function detectSheetLayout(rows) {
+  let headerRowIndex = 0;
+  try {
+    headerRowIndex = findHeaderRow(rows);
+    const cols = detectColumns(rows[headerRowIndex] || []);
+    if (cols.nameIndex >= 0) return { headerRowIndex, ...cols, byContent: false };
+
+    const found = detectNameColumnByContent(rows, headerRowIndex);
+    return {
+      headerRowIndex: found.headerRowIndex,
+      nameIndex: found.nameIndex,
+      sectionIndex: found.headerRowIndex < 0 ? -1 : cols.sectionIndex,
+      byContent: found.nameIndex >= 0,
+    };
+  } catch (error) {
+    console.warn('Header detection failed, scanning contents instead:', error);
+    const found = detectNameColumnByContent(rows, -1);
+    return { headerRowIndex: found.nameIndex >= 0 ? -1 : headerRowIndex, nameIndex: found.nameIndex, sectionIndex: -1, byContent: found.nameIndex >= 0 };
+  }
+}
+
+/**
  * Build the roster from the sheet.
  *
  * @param {Array<Array<any>>} rows        Sheet as array-of-arrays
  * @param {Object} options
- * @param {number} options.headerRowIndex Row holding the headings
+ * @param {number} options.headerRowIndex Row holding the headings (-1 = no header row)
  * @param {number} options.nameIndex      Column holding student names
  * @param {number} options.sectionIndex   Column holding section, or -1
  * @param {string} options.websiteSection Section chosen in the website form
@@ -157,8 +243,11 @@ const canonicalName = (value) => String(value ?? '').toLowerCase().replace(/\s+/
  */
 export function buildRoster(rows, options) {
   const { headerRowIndex = 0, nameIndex = -1, sectionIndex = -1, websiteSection = '' } = options || {};
-  const headerRow = rows[headerRowIndex] || [];
-  const headers = headerRow.map((h) => String(h ?? '').trim());
+  const width = rows.reduce((max, r) => Math.max(max, (r || []).length), 0);
+  const headerRow = headerRowIndex >= 0 ? rows[headerRowIndex] || [] : [];
+  const headers = Array.from({ length: Math.max(width, headerRow.length) }, (_, i) =>
+    String(headerRow[i] ?? '').trim()
+  );
 
   const dataRows = rows.slice(headerRowIndex + 1);
   const students = [];
