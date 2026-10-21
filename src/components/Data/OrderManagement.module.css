@@ -2850,16 +2850,9 @@
 :global(.theme-light) .topBar,
 :global(.theme-light) .omTabNav {
   border-bottom: 2px solid #0A0A0A !important;
-}
-
-:global(.theme-light) .kpiCard,
-:global(.theme-light) .tableCard,
-:global(.theme-light) .filterCard,
-:global(.theme-light) .statCard {
-  background-color: #FFFFFF !important;
-  border: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
-  box-shadow: 4px 4px 0px #0A0A0A !important;
+  background-color: #EAE8E3 !important;
+  padding: 0.75rem 1rem !important;
+  gap: 0.5rem !important;
 }
 
 :global(.theme-light) .omTabBtn {
@@ -2870,7 +2863,15 @@
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
+  font-size: 0.82rem !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
+  transition: all 0.15s ease !important;
+}
+
+:global(.theme-light) .omTabBtn:hover:not(.omTabBtnActive) {
+  background-color: #F4F4F0 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
 }
 
 :global(.theme-light) .omTabBtnActive {
@@ -2880,23 +2881,86 @@
   box-shadow: 3px 3px 0px #E61919 !important;
 }
 
-:global(.theme-light) .tableWrapper {
+:global(.theme-light) .omTabBadge {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .omTabBtnActive .omTabBadge {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+}
+
+/* ── KPI Dashboard Cards ── */
+:global(.theme-light) .kpiCard,
+:global(.theme-light) .tableCard,
+:global(.theme-light) .filterCard,
+:global(.theme-light) .statCard {
+  background-color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   border-radius: 0px !important;
   box-shadow: 4px 4px 0px #0A0A0A !important;
-  background: #FFFFFF !important;
 }
 
-:global(.theme-light) .table th {
-  background: #0A0A0A !important;
-  color: #FFFFFF !important;
-  border-bottom: 2px solid #0A0A0A !important;
-  font-family: 'JetBrains Mono', monospace !important;
+:global(.theme-light) .kpiCard:hover {
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
 }
 
-:global(.theme-light) .table td {
-  border-bottom: 1px solid #E5E5E5 !important;
+:global(.theme-light) .kpiCardHeader {
+  border-bottom: 1px solid #0A0A0A !important;
+  padding-bottom: 0.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+:global(.theme-light) .kpiCardLabel {
   color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+}
+
+:global(.theme-light) .kpiCardIcon {
+  color: #0A0A0A !important;
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  padding: 0.25rem !important;
+}
+
+:global(.theme-light) .kpiCardValue {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 900 !important;
+  font-size: 1.85rem !important;
+}
+
+:global(.theme-light) .kpiCardSub {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Toolbar & Action Filters ── */
+:global(.theme-light) .productsToolbar {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  padding: 0.85rem !important;
+}
+
+:global(.theme-light) .searchWrapper {
+  border-radius: 0px !important;
 }
 
 :global(.theme-light) .searchInput,
@@ -2908,18 +2972,387 @@
   color: #0A0A0A !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
 }
 
-:global(.theme-light) .actionBtn {
+:global(.theme-light) .searchInput:focus,
+:global(.theme-light) .filterSelect:focus,
+:global(.theme-light) .statusSelect:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .syncToolbarBtn {
   background: #FFFFFF !important;
-  border: 1.5px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  font-size: 0.78rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  transition: all 0.15s ease !important;
+}
+
+:global(.theme-light) .syncToolbarBtn:hover:not(:disabled) {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .selectionInfo {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Table Styles ── */
+:global(.theme-light) .tableWrapper {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  background: #FFFFFF !important;
+}
+
+:global(.theme-light) .orderTable {
+  border-collapse: collapse !important;
+}
+
+:global(.theme-light) .orderTable th,
+:global(.theme-light) .table th {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-light) .orderTable td,
+:global(.theme-light) .table td {
+  border-bottom: 1px solid #EAE8E3 !important;
+  color: #0A0A0A !important;
+  font-size: 0.82rem !important;
+}
+
+:global(.theme-light) .orderTable tbody tr:hover {
+  background: #F4F4F0 !important;
+}
+
+:global(.theme-light) .orderIdCell {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .customerName {
+  color: #0A0A0A !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .customerEmail {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+}
+
+:global(.theme-light) .productName {
+  color: #0A0A0A !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .productVariant {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.7rem !important;
+}
+
+:global(.theme-light) .quantityCell span {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .priceCell {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .statusBadge {
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  border: 1px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .claimBadgeClaimed {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .claimBadgeUnclaimed {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .paymentBadge {
+  background: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
   border-radius: 0px !important;
   color: #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
 }
 
-:global(.theme-light) .actionBtn:hover {
+:global(.theme-light) .dateCell {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  color: #4A4A4A !important;
+}
+
+/* ── Table Action Buttons ── */
+:global(.theme-light) .claimBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .claimBtn:hover {
   background: #0A0A0A !important;
   color: #FFFFFF !important;
 }
+
+:global(.theme-light) .tableEditBtn,
+:global(.theme-light) .actionBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .tableEditBtn:hover,
+:global(.theme-light) .actionBtn:hover {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+/* ── Pagination ── */
+:global(.theme-light) .pagination {
+  border-top: 2px solid #0A0A0A !important;
+  padding-top: 1rem !important;
+}
+
+:global(.theme-light) .paginationInfo {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #555555 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .paginationBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .paginationBtn:hover:not(:disabled) {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .paginationPage {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+}
+
+/* ── Mobile Order Cards ── */
+:global(.theme-light) .mobileOrdersView {
+  background: transparent !important;
+}
+
+:global(.theme-light) .mobileHeader {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  padding: 0.75rem 1rem !important;
+}
+
+:global(.theme-light) .mobileHeaderTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .mobileOrderCount {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .mobileIconBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .mobileOrderCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  margin-bottom: 0.85rem !important;
+}
+
+:global(.theme-light) .mobileOrderCardHeader {
+  border-bottom: 1px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .mobileOrderCardId {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 900 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .mobileDetailsSection {
+  border-top: 1px solid #EAE8E3 !important;
+}
+
+:global(.theme-light) .mobileDetailsSectionTitle {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+}
+
+:global(.theme-light) .mobileDetailLabel {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #555555 !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .mobileDetailValue {
+  color: #0A0A0A !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .mobileDetailPrice {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 900 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .mobileActionBtn {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .mobileActionBtnGreen {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .mobileActionBtnBlue {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .mobileActionBtnRed {
+  background: #FFFFFF !important;
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .mobileActionBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+/* ── Bulk Delete / Confirm Modals ── */
+:global(.theme-light) .modalContent {
+  background-color: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .modalContent h3 {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalButtonCancel {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalButtonConfirm {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
 

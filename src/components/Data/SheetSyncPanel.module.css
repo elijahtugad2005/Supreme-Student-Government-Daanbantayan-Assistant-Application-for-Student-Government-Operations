@@ -1012,3 +1012,635 @@
   background: #1d4ed8;
 }
 
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) - SHEET & EXCEL SYNC
+   Strict adherence to /industrial-brutalist-ui directives:
+   - Newsprint Substrate: #F4F4F0 / #EAE8E3
+   - Carbon Ink Foreground: #0A0A0A
+   - Hazard Red: #E61919 (monochrome print accent)
+   - 0px border-radius strictly enforced across all elements
+   - 2px/3px solid #0A0A0A structural mechanical borders
+   - Hard offset box-shadows (3px 3px 0px #0A0A0A, 5px 5px 0px #0A0A0A)
+   - Macro typography & Technical Monospace (JetBrains Mono)
+   ========================================================================== */
+
+:global(.theme-light) .container {
+  background-color: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .container *,
+:global(.theme-light) .container *::before,
+:global(.theme-light) .container *::after {
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .header {
+  border-bottom: 2px solid #0A0A0A !important;
+  padding-bottom: 1.25rem !important;
+}
+
+:global(.theme-light) .title {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  font-size: 1.6rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+:global(.theme-light) .sparkleIcon {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .subtitle {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Mode Tabs ── */
+:global(.theme-light) .modeTabs {
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  padding: 0.5rem !important;
+  gap: 0.5rem !important;
+}
+
+:global(.theme-light) .modeTab {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.15s ease !important;
+}
+
+:global(.theme-light) .modeTab:hover:not(.modeTabActive) {
+  background: #F4F4F0 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .modeTabActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .modeTabActive svg {
+  color: #E61919 !important;
+}
+
+/* ── Labels & Type Selectors ── */
+:global(.theme-light) .label {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .typeBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .typeBtn:hover:not(.typeBtnActive) {
+  background: #F4F4F0 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .typeBtnActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+/* ── Dropzone Blueprint Surface ── */
+:global(.theme-light) .dropzone {
+  background-color: #F4F4F0 !important;
+  border: 2px dashed #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .dropzone:hover,
+:global(.theme-light) .dropzoneActive {
+  background-color: #EAE8E3 !important;
+  border-color: #E61919 !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .dropzoneHasFile {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .dropzoneIconWrapper {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .dropzoneTitle {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .browseLink {
+  color: #E61919 !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .dropzoneHint {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .selectedFileName {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .selectedFileSize {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ── URL Inputs ── */
+:global(.theme-light) .urlInput {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.85rem !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .urlInput:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .fetchBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .fetchBtn:hover:not(:disabled) {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+/* ── Algorithm Cards Grid ── */
+:global(.theme-light) .algoCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .algoCardMatched {
+  border-left-width: 5px !important;
+  border-left-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .algoCardMissing {
+  border-left-width: 5px !important;
+  border-left-color: #E61919 !important;
+}
+
+:global(.theme-light) .algoFieldLabel {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .algoBadgeSuccess {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.65rem !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .algoBadgeMissing {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.65rem !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .matchedColName {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 600 !important;
+}
+
+:global(.theme-light) .unmatchedColName {
+  color: #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .toggleAdjusterBtn {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .toggleAdjusterBtn:hover {
+  color: #E61919 !important;
+  text-decoration: none !important;
+}
+
+/* ── Mapping Adjuster Box ── */
+:global(.theme-light) .adjusterContainer {
+  background-color: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .adjusterHeader {
+  border-bottom: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .adjusterFieldCol {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .adjusterFieldPath {
+  color: #555555 !important;
+}
+
+:global(.theme-light) .columnSelect {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+/* ── Preview Summary Stats ── */
+:global(.theme-light) .previewSummary {
+  gap: 0.75rem !important;
+}
+
+:global(.theme-light) .previewStat {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .previewStatValue {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 900 !important;
+}
+
+:global(.theme-light) .previewStatLabel {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .autoIdBadge {
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ── Sample Telemetry Table ── */
+:global(.theme-light) .sampleTableWrapper {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  background: #FFFFFF !important;
+}
+
+:global(.theme-light) .sampleTable th {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .sampleTable td {
+  border-bottom: 1px solid #EAE8E3 !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .codeCell {
+  color: #0A0A0A !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .highlightName {
+  color: #0A0A0A !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .highlightEmail {
+  color: #4A4A4A !important;
+}
+
+/* ── Step-by-Step Rigorous Progress ── */
+:global(.theme-light) .stepProgressContainer,
+:global(.theme-light) .progressSection {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .stepPending {
+  background-color: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .stepActive {
+  background: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .stepCompleted {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .stepPending .stepNumber {
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .stepActive .stepNumber {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .stepCompleted .stepNumber {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .stepName {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .stepDetails {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .stepConnector {
+  background: #0A0A0A !important;
+  width: 2px !important;
+}
+
+:global(.theme-light) .stepConnectorCompleted {
+  background: #0A0A0A !important;
+}
+
+:global(.theme-light) .progressBar {
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  height: 10px !important;
+}
+
+:global(.theme-light) .progressFill {
+  background: #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .progressPercent,
+:global(.theme-light) .progressStage {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .progressSubstage,
+:global(.theme-light) .progressRows {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ── Primary Action Buttons ── */
+:global(.theme-light) .previewBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+:global(.theme-light) .previewBtn:hover:not(:disabled) {
+  background: #F4F4F0 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .syncBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  transition: all 0.15s ease !important;
+}
+
+:global(.theme-light) .syncBtn:hover:not(:disabled) {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  transform: translate(1px, 1px) !important;
+}
+
+:global(.theme-light) .resetFileBtn {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .resetFileBtn:hover:not(:disabled) {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+/* ── Results Banner ── */
+:global(.theme-light) .resultBanner {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .resultSuccess {
+  background: #FFFFFF !important;
+  border-left-width: 6px !important;
+  border-left-color: #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .resultWarning {
+  background: #FFFFFF !important;
+  border-left-width: 6px !important;
+  border-left-color: #E61919 !important;
+  color: #0A0A0A !important;
+}
+
+/* ── Logs Terminal ── */
+:global(.theme-light) .logsContainer {
+  background-color: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .logInfo .logMessage {
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .logSuccess .logMessage {
+  color: #0A0A0A !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .logWarning .logMessage,
+:global(.theme-light) .logError .logMessage {
+  color: #E61919 !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .clearLogsBtn {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Light Mode Modal ── */
+:global(.theme-light) .modalContent {
+  background-color: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 8px 8px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .modalHeader h4 {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalBody {
+  color: #333333 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .modalStatsRow {
+  background-color: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .modalCancelBtn {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalOkBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalOkBtn:hover {
+  background: #E61919 !important;
+}
+
+

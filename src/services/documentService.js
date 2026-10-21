@@ -29,7 +29,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
-import { fileStore } from './fileStore';
+import { fileStore, mongoStore, firebaseStore, localStore } from './fileStore';
 import {
   ACCEPTED_FORMATS,
   DOC_STATUS,
@@ -361,104 +361,68 @@ export const getDocument = async (documentId) => {
  * Missing-file errors are treated as non-fatal: if the binary is already gone
  * we still clean up the Firestore record rather than leaving a dangling entry.
  */
-export const deleteDocument = async (documentId) => {
-  const ref = doc(db, DOCUMENTS, documentId);
-  const snapshot = await getDoc(ref);
-  if (!snapshot.exists()) return;
+export const deleteDocument = async (documentOrId) => {
+  let docId = typeof documentOrId === 'string' ? documentOrId : documentOrId?.id;
+  let data = typeof documentOrId === 'object' && documentOrId !== null ? documentOrId : null;
 
-  const data = snapshot.data();
+  const ref = doc(db, DOCUMENTS, docId);
+
+  // If full document data wasn't passed, fetch it once
+  if (!data) {
+    const snapshot = await getDoc(ref);
+    if (!snapshot.exists()) return;
+    data = snapshot.data();
+  }
+
   const { storageType, mongoFileId, storagePath } = data;
 
-  console.log('[deleteDocument] Document data:', {
-    documentId,
-    storageType,
-    mongoFileId,
-    storagePath,
-    hasMongoFileId: !!mongoFileId,
-    hasStoragePath: !!storagePath,
-  });
-
-  // ── Pick the right store based on where the file was originally saved ──
-  if (storageType === 'mongodb' && mongoFileId) {
-    // File lives in MongoDB GridFS — delete via backend API
-    console.log('[deleteDocument] Attempting MongoDB GridFS delete:', mongoFileId);
+  // 1. Task for binary file removal
+  const deleteBinaryPromise = (async () => {
     try {
-      const { mongoStore } = await import('./fileStore/index.js');
-      await mongoStore.delete(mongoFileId);
-      console.log('[deleteDocument] MongoDB file deleted successfully');
-    } catch (error) {
-      // Missing file, backend unreachable, or network fetch failure should not permanently block deleting record from Firestore.
-      const msg = String(error?.message || '');
-      const isRecoverable = /not found|404|does not exist|failed to fetch|network|econnrefused/i.test(msg);
-      if (isRecoverable) {
-        console.warn(`[deleteDocument] MongoDB delete warning (${msg}) — proceeding to remove Firestore record`);
-      } else {
-        console.warn(`[deleteDocument] MongoDB delete error (${msg}) — proceeding with Firestore removal`);
+      if (storageType === 'mongodb' && mongoFileId) {
+        await mongoStore.delete(mongoFileId);
+      } else if (storageType === 'firebase' && storagePath) {
+        await firebaseStore.delete(storagePath);
+      } else if ((storageType === 'local' || !storageType) && storagePath) {
+        await localStore.delete(storagePath);
       }
-    }
-  } else if (storageType === 'firebase' && storagePath) {
-    // File lives in Firebase Cloud Storage
-    console.log('[deleteDocument] Attempting Firebase Storage delete:', storagePath);
-    try {
-      const { firebaseStore } = await import('./fileStore/index.js');
-      await firebaseStore.delete(storagePath);
-      console.log('[deleteDocument] Firebase file deleted successfully');
     } catch (error) {
-      const msg = String(error?.message || '');
-      const isNotFound = /not found|object-not-found|404/i.test(msg);
-      if (isNotFound) {
-        console.warn('[deleteDocument] Firebase file already gone — proceeding to remove Firestore record');
-      } else {
-        console.warn(`[deleteDocument] Firebase delete error (${msg}) — proceeding with Firestore removal`);
-      }
+      // Missing binary or backend network error should never block removing the Firestore record
+      console.warn('[deleteDocument] Binary file delete warning (proceeding with record removal):', error.message);
     }
-  } else if ((storageType === 'local' || !storageType) && storagePath) {
-    // File lives in IndexedDB on this device — delete from localStore directly.
-    // This handles the RESO-002 / MOM-6th case: they were uploaded before the
-    // store was switched to MongoDB, so we must use localStore, NOT mongoStore.
-    console.log('[deleteDocument] Attempting local (IndexedDB) delete:', storagePath);
-    try {
-      const { localStore } = await import('./fileStore/index.js');
-      await localStore.delete(storagePath);
-      console.log('[deleteDocument] Local file deleted successfully');
-    } catch (error) {
-      // Local files may simply be gone if site data was cleared. Allow the
-      // Firestore record to be cleaned up regardless.
-      console.warn('[deleteDocument] Local file delete failed (may already be gone):', error.message);
-    }
-  } else {
-    // No recognised file reference — just clean up the metadata.
-    console.warn('[deleteDocument] No file reference found — removing Firestore record only');
-  }
+  })();
 
-  // Remove the Firestore record last so the UI can always retry if this step fails.
-  console.log('[deleteDocument] Deleting Firestore record');
-  try {
-    await deleteDoc(ref);
-    console.log('[deleteDocument] Document and record deleted successfully');
-  } catch (firestoreError) {
-    console.warn('[deleteDocument] Client deleteDoc failed, trying backend admin endpoint:', firestoreError.message);
-    const backendUrl = import.meta.env.VITE_MONGODB_BACKEND_URL || 'http://localhost:3000';
+  // 2. Task for Firestore record removal
+  const deleteRecordPromise = (async () => {
     try {
-      const { auth } = await import('../firebase/firebaseConfig.js');
-      const token = await auth.currentUser?.getIdToken?.();
-      if (token) {
-        const resp = await fetch(`${backendUrl}/api/documents/firestore/${documentId}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!resp.ok) {
-          const errData = await resp.json().catch(() => ({}));
-          throw new Error(errData.message || `Backend deletion failed: ${resp.statusText}`);
+      await deleteDoc(ref);
+    } catch (firestoreError) {
+      console.warn('[deleteDocument] Client deleteDoc failed, trying backend admin endpoint:', firestoreError.message);
+      const backendUrl = import.meta.env.VITE_MONGODB_BACKEND_URL || 'http://localhost:3000';
+      try {
+        const { auth } = await import('../firebase/firebaseConfig.js');
+        const token = await auth.currentUser?.getIdToken?.();
+        if (token) {
+          const resp = await fetch(`${backendUrl}/api/documents/firestore/${docId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            throw new Error(errData.message || `Backend deletion failed: ${resp.statusText}`);
+          }
+          return;
         }
-        console.log('[deleteDocument] Deleted via backend admin endpoint successfully');
-        return;
+      } catch (backendError) {
+        console.error('[deleteDocument] Backend fallback also failed:', backendError.message);
       }
-    } catch (backendError) {
-      console.error('[deleteDocument] Backend fallback also failed:', backendError.message);
+      throw firestoreError;
     }
-    throw firestoreError;
-  }
+  })();
+
+  // Run binary and record cleanup concurrently
+  await Promise.all([deleteBinaryPromise, deleteRecordPromise]);
+  console.log('[deleteDocument] Document and record deleted successfully');
 };
 
 /**

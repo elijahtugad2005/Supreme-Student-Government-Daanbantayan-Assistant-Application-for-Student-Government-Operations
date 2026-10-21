@@ -32,10 +32,19 @@ export const canSubmitDeathAidFor = (role) => isSignedInRole(role);
  */
 export const DEATH_AID_MANAGER_ROLES = [
   'admin',
+  'president',
+  'vice_president',
   'secretary',
+  'executive_secretary',
+  'press_secretary',
+  'linkages_secretary',
+  'deputy_secretary',
   'finance_secretary',
+  'auditor',
+  'budget_officer',
   'governor',
   'representative',
+  'senator',
 ];
 
 export const canManageDeathAid = (user) =>
@@ -47,10 +56,6 @@ export const canViewOwnDeathAid = (user) => !!user?.role;
 
 /**
  * Collection status lifecycle.
- *
- * DRAFT is deliberately client-side only: persisting it would litter the
- * database with half-finished rows that no one ever submits. A submission is
- * therefore always created directly as FOR_VERIFICATION.
  */
 export const DEATH_AID_COLLECTION_STATUS = {
   FOR_VERIFICATION: 'for_verification',
@@ -64,17 +69,6 @@ export const DEATH_AID_REMITTANCE_STATUS = {
   RESOLVED: 'resolved',
 };
 
-/**
- * Why a student is on record as owing.
- *
- * The COUNT is always authoritative — a debt never needs an explanation to be
- * recorded. This only describes what the officer knows for follow-up, because
- * "who didn't pay" has several ordinary answers: they're named, nobody asked,
- * they were absent, or they left after class and never got to hand it in.
- *
- * ANONYMOUS exists so an unexplained debt is still allowed to be recorded
- * rather than blocking the officer until they track someone down.
- */
 export const DEATH_AID_DEBT_TYPES = {
   NAMED: 'named',
   ANONYMOUS: 'anonymous',
@@ -98,9 +92,14 @@ export const DEATH_AID_STATUS_LABELS = {
 export const isSignedInRole = (role) => !!role;
 
 export const ROLE_PERMISSIONS = {
+  // ========================================================
+  // EXECUTIVE LEADERSHIP (HIGHER ACCESS / GENERAL ACCESS)
+  // ========================================================
   admin: {
-    name: 'Administrator',
-    description: 'Full system access with all privileges',
+    name: 'Administrator (President)',
+    category: 'Executive Council',
+    accessTier: 'Higher Access',
+    description: 'General Access: Edit, update, and delete all operations in the Sidebar',
     permissions: {
       canManageProducts: true,
       canManageOrders: true,
@@ -119,65 +118,189 @@ export const ROLE_PERMISSIONS = {
     }
   },
 
-  // Mayors submit rosters but never see the student lists back. Governors are
-  // the office that oversees them, so they can browse verified rosters.
-  governor: {
-    name: 'Governor',
-    description: 'Oversees a college — can view verified rosters and submit their own',
-    permissions: {
-      canManageProducts: false,
-      canManageOrders: false,
-      canManageUsers: false,
-      canViewAnalytics: true,
-      canViewFinance: false,
-      canEditFinance: false,
-      canExportData: true,
-      canSendNotifications: false,
-      canConfigureSystem: false,
-      canDeleteData: false,
-      canManageCreatives: false,
-      canSubmitRoster: true,
-      canViewRosters: true,
-      canManageRosters: false
-    }
-  },
-
-  secretary: {
-    name: 'Secretary',
-    description: 'Office management — can view Finance but not edit it',
+  president: {
+    name: 'President',
+    category: 'Executive Council',
+    accessTier: 'Higher Access',
+    description: 'General Access: Edit, update, and delete all operations across the system',
     permissions: {
       canManageProducts: true,
       canManageOrders: true,
-      canManageUsers: false,
+      canManageUsers: true,
       canViewAnalytics: true,
-      canViewFinance: true,     // view-only
-      canEditFinance: false,    // cannot edit
+      canViewFinance: true,
+      canEditFinance: true,
       canExportData: true,
       canSendNotifications: true,
-      canConfigureSystem: false,
-      canDeleteData: false,
-      canManageCreatives: false,
+      canConfigureSystem: true,
+      canDeleteData: true,
+      canManageCreatives: true,
       canSubmitRoster: true,
-      // A Secretary verifies rosters, so they must be able to read them.
       canViewRosters: true,
       canManageRosters: true
     }
   },
 
-  finance_secretary: {
-    name: 'Finance Secretary',
-    description: 'Full access to the Finance section only',
+  vice_president: {
+    name: 'Vice President',
+    category: 'Executive Council',
+    accessTier: 'Higher Access',
+    description: 'Higher Access to Documents, Inventory, Finance, Audit Trail, and Commerce Hub',
     permissions: {
-      canManageProducts: false,
-      canManageOrders: false,
+      canManageProducts: true,  // Inventory (Add, Edit, Delete)
+      canManageOrders: true,    // Commerce Hub (Orders full access)
+      canManageUsers: false,    // President/Admin only
+      canViewAnalytics: true,
+      canViewFinance: true,     // Finance full
+      canEditFinance: true,
+      canExportData: true,      // Documents
+      canSendNotifications: true,
+      canConfigureSystem: false,
+      canDeleteData: true,      // Higher Access delete privilege
+      canManageCreatives: true,
+      canSubmitRoster: true,
+      canViewRosters: true,
+      canManageRosters: true
+    }
+  },
+
+  // ========================================================
+  // SECRETARIAT (HIGHER ACCESS TO DOCS, INVENTORY, SECTIONS)
+  // ========================================================
+  secretary: {
+    name: 'Secretary (General)',
+    category: 'Secretariat',
+    accessTier: 'Higher Access',
+    description: 'Higher Access to Documents, Inventory, and Sections & Contributions',
+    permissions: {
+      canManageProducts: true,
+      canManageOrders: true,
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: true,     // view-only finance
+      canEditFinance: false,
+      canExportData: true,
+      canSendNotifications: true,
+      canConfigureSystem: false,
+      canDeleteData: true,
+      canManageCreatives: false,
+      canSubmitRoster: true,
+      canViewRosters: true,
+      canManageRosters: true
+    }
+  },
+
+  executive_secretary: {
+    name: 'Executive Secretary',
+    category: 'Secretariat',
+    accessTier: 'Higher Access',
+    description: 'Higher Access: Documents, Inventory, Sections & Contributions (Full CRUD)',
+    permissions: {
+      canManageProducts: true,
+      canManageOrders: true,
       canManageUsers: false,
       canViewAnalytics: true,
       canViewFinance: true,
-      canEditFinance: true,     // can edit finance
+      canEditFinance: false,
       canExportData: true,
+      canSendNotifications: true,
+      canConfigureSystem: false,
+      canDeleteData: true,
+      canManageCreatives: false,
+      canSubmitRoster: true,
+      canViewRosters: true,
+      canManageRosters: true
+    }
+  },
+
+  press_secretary: {
+    name: 'Press Secretary',
+    category: 'Secretariat',
+    accessTier: 'Higher Access',
+    description: 'Higher Access: Documents, Inventory, Sections & Contributions, Announcements',
+    permissions: {
+      canManageProducts: true,
+      canManageOrders: false,
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: false,
+      canEditFinance: false,
+      canExportData: true,
+      canSendNotifications: true,
+      canConfigureSystem: false,
+      canDeleteData: true,
+      canManageCreatives: true,
+      canSubmitRoster: true,
+      canViewRosters: true,
+      canManageRosters: true
+    }
+  },
+
+  linkages_secretary: {
+    name: 'Secretary on Linkages',
+    category: 'Secretariat',
+    accessTier: 'Higher Access',
+    description: 'Higher Access: Documents, Inventory, Sections & Contributions (External liaison)',
+    permissions: {
+      canManageProducts: true,
+      canManageOrders: false,
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: false,
+      canEditFinance: false,
+      canExportData: true,
+      canSendNotifications: true,
+      canConfigureSystem: false,
+      canDeleteData: true,
+      canManageCreatives: false,
+      canSubmitRoster: true,
+      canViewRosters: true,
+      canManageRosters: true
+    }
+  },
+
+  deputy_secretary: {
+    name: 'Deputy Secretary',
+    category: 'Secretariat',
+    accessTier: 'Higher Access',
+    description: 'Higher Access: Documents, Inventory, Sections & Contributions (Full operations)',
+    permissions: {
+      canManageProducts: true,
+      canManageOrders: false,
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: false,
+      canEditFinance: false,
+      canExportData: true,
+      canSendNotifications: true,
+      canConfigureSystem: false,
+      canDeleteData: true,
+      canManageCreatives: false,
+      canSubmitRoster: true,
+      canViewRosters: true,
+      canManageRosters: true
+    }
+  },
+
+  // ========================================================
+  // FINANCE & AUDIT (HIGHER ACCESS TO FINANCE, INVENTORY, DOCS, COMMERCE, AUDIT)
+  // ========================================================
+  finance_secretary: {
+    name: 'Finance Secretary',
+    category: 'Treasury & Audit',
+    accessTier: 'Higher Access',
+    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and Audit Trail',
+    permissions: {
+      canManageProducts: true,  // Inventory (Higher Access)
+      canManageOrders: true,    // Commerce Hub (Higher Access)
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: true,     // Finance (Higher Access)
+      canEditFinance: true,     // Edit Finance
+      canExportData: true,      // Documents (Higher Access)
       canSendNotifications: false,
       canConfigureSystem: false,
-      canDeleteData: false,
+      canDeleteData: true,      // Higher Access delete privilege
       canManageCreatives: false,
       canSubmitRoster: true,
       canViewRosters: false,
@@ -185,51 +308,155 @@ export const ROLE_PERMISSIONS = {
     }
   },
 
+  auditor: {
+    name: 'Auditor',
+    category: 'Treasury & Audit',
+    accessTier: 'Higher Access',
+    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and Audit Trail',
+    permissions: {
+      canManageProducts: true,
+      canManageOrders: true,
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: true,
+      canEditFinance: true,
+      canExportData: true,
+      canSendNotifications: false,
+      canConfigureSystem: false,
+      canDeleteData: true,
+      canManageCreatives: false,
+      canSubmitRoster: true,
+      canViewRosters: false,
+      canManageRosters: false
+    }
+  },
+
+  budget_officer: {
+    name: 'Budget Officer',
+    category: 'Treasury & Audit',
+    accessTier: 'Higher Access',
+    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and Audit Trail',
+    permissions: {
+      canManageProducts: true,
+      canManageOrders: true,
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: true,
+      canEditFinance: true,
+      canExportData: true,
+      canSendNotifications: false,
+      canConfigureSystem: false,
+      canDeleteData: true,
+      canManageCreatives: false,
+      canSubmitRoster: true,
+      canViewRosters: false,
+      canManageRosters: false
+    }
+  },
+
+  // ========================================================
+  // LEGISLATIVE BODY (MEDIUM ACCESS: ADD & UPDATE, NO DELETE)
+  // ========================================================
   senator: {
     name: 'Senator',
-    description: 'Access to Inventory, Documents, and Creatives — no Finance',
+    category: 'Legislative Body',
+    accessTier: 'Medium Access',
+    description: 'Medium Access: Documents, Inventory, Sections, Announcements, Commerce (Cannot delete)',
     permissions: {
-      canManageProducts: true,  // Inventory
-      canManageOrders: false,
+      canManageProducts: true,  // Inventory (Add, Update, Borrow)
+      canManageOrders: true,    // Commerce Hub (Handle orders)
       canManageUsers: false,
       canViewAnalytics: false,
       canViewFinance: false,
       canEditFinance: false,
       canExportData: true,      // Documents
-      canSendNotifications: false,
+      canSendNotifications: true, // Announcements
       canConfigureSystem: false,
-      canDeleteData: false,
-      canManageCreatives: true,  // Creatives
+      canDeleteData: false,     // CANNOT DELETE
+      canManageCreatives: true,
       canSubmitRoster: true,
-      canViewRosters: false,
+      canViewRosters: true,
       canManageRosters: false
     }
   },
 
   representative: {
     name: 'Representative',
-    description: 'Department representative with limited access',
+    category: 'Legislative Body',
+    accessTier: 'Medium Access',
+    description: 'Medium Access: Documents, Inventory, Sections, Announcements, Commerce (Cannot delete)',
+    permissions: {
+      canManageProducts: true,  // Inventory (Add, Update, Borrow)
+      canManageOrders: true,    // Commerce Hub (Handle orders)
+      canManageUsers: false,
+      canViewAnalytics: false,
+      canViewFinance: false,
+      canEditFinance: false,
+      canExportData: true,      // Documents
+      canSendNotifications: true, // Announcements
+      canConfigureSystem: false,
+      canDeleteData: false,     // CANNOT DELETE
+      canManageCreatives: false,
+      canSubmitRoster: true,
+      canViewRosters: true,
+      canManageRosters: false
+    }
+  },
+
+  // ========================================================
+  // CREATIVE DEPARTMENT (ANNOUNCEMENTS ONLY)
+  // ========================================================
+  creatives: {
+    name: 'Creative Department',
+    category: 'Creative Unit',
+    accessTier: 'Specialized Access',
+    description: 'Announcements only: Manage institutional broadcasts and creative assets',
     permissions: {
       canManageProducts: false,
-      canManageOrders: true,
+      canManageOrders: false,
       canManageUsers: false,
       canViewAnalytics: false,
       canViewFinance: false,
       canEditFinance: false,
       canExportData: false,
+      canSendNotifications: true, // Announcements
+      canConfigureSystem: false,
+      canDeleteData: false,
+      canManageCreatives: true,   // Creatives
+      canSubmitRoster: false,
+      canViewRosters: false,
+      canManageRosters: false
+    }
+  },
+
+  governor: {
+    name: 'Governor',
+    category: 'Collegiate Leadership',
+    accessTier: 'Medium Access',
+    description: 'Oversees college rosters, contributions, and localized initiatives',
+    permissions: {
+      canManageProducts: false,
+      canManageOrders: false,
+      canManageUsers: false,
+      canViewAnalytics: true,
+      canViewFinance: false,
+      canEditFinance: false,
+      canExportData: true,
       canSendNotifications: false,
       canConfigureSystem: false,
       canDeleteData: false,
       canManageCreatives: false,
       canSubmitRoster: true,
-      canViewRosters: false,
+      canViewRosters: true,
       canManageRosters: false
     }
   },
 
   member: {
     name: 'Member',
-    description: 'Basic member access (default for Google Sign-In)',
+    category: 'General Student Body',
+    accessTier: 'Low Access',
+    description: 'Basic student member access: View and order requisitions',
     permissions: {
       canManageProducts: false,
       canManageOrders: false,
@@ -250,7 +477,9 @@ export const ROLE_PERMISSIONS = {
 
   guest: {
     name: 'Guest',
-    description: 'Restricted access (default for email sign-up)',
+    category: 'General Student Body',
+    accessTier: 'Low Access',
+    description: 'Restricted access: Public browsing and class roster submission',
     permissions: {
       canManageProducts: false,
       canManageOrders: false,
@@ -263,8 +492,6 @@ export const ROLE_PERMISSIONS = {
       canConfigureSystem: false,
       canDeleteData: false,
       canManageCreatives: false,
-      // Mayors have no login of their own — a Guest submits their roster for
-      // an officer to verify. This grants submission only, never verification.
       canSubmitRoster: true,
       canViewRosters: false,
       canManageRosters: false
@@ -457,6 +684,8 @@ export const getAllRoles = () => {
   return Object.entries(ROLE_PERMISSIONS).map(([id, data]) => ({
     id,
     name: data.name,
+    category: data.category || 'General',
+    accessTier: data.accessTier || 'General Access',
     description: data.description
   }));
 };
@@ -498,50 +727,54 @@ const ROUTE_PERMISSION_GRANTS = {
  */
 export const canAccessRoute = (user, routeName) => {
   const routePermissions = {
-    // Admin routes
-    '/admin': ['admin'],
-    '/admin/users': ['admin'],
-    '/admin/analytics': ['admin', 'secretary'],
-    '/admin/settings': ['admin'],
+    // Admin routes (President & Admin full operations)
+    '/admin': ['admin', 'president'],
+    '/admin/users': ['admin', 'president'],
+    '/admin/analytics': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
+    '/admin/settings': ['admin', 'president'],
+    '/admin/audit': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer'],
 
-    // Management routes
-    '/products': ['admin', 'secretary'],
-    '/products/manage': ['admin', 'secretary'],
-    '/orders': ['admin', 'secretary', 'representative'],
-    '/orders/manage': ['admin', 'secretary'],
+    // Management routes (Commerce Hub)
+    '/products': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative'],
+    '/products/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
+    '/orders': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
+    '/orders/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+    '/commerce': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
 
-    // Finance — Secretary can view, Finance Secretary can edit
-    '/finance': ['admin', 'secretary', 'finance_secretary'],
+    // Finance — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
+    '/finance': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer', 'secretary', 'executive_secretary'],
 
-    // Inventory — Senator can access
-    '/inventory': ['admin', 'secretary', 'representative', 'senator'],
+    // Inventory — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
+    '/inventory': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
 
-    // Roster registry — Mayors reach this as Guests, since they have no login.
-    // Submission only; the roster browser is gated separately on canViewRosters.
-    '/reports': ['public', 'admin', 'secretary', 'governor', 'finance_secretary', 'senator', 'representative', 'member', 'guest'],
+    // Sections & Contributions / Roster registry — All roles, public access enabled
+    '/sections-contributions': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
+    '/reports': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
 
-    // Documents — Senator can access
-    '/documents': ['admin', 'secretary', 'representative', 'senator'],
+    // Documents — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
+    '/documents': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+
+    // Announcements — President, VP, Press Secretary, Senator, Representative, Creatives
+    '/announcement': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'senator', 'representative', 'creatives'],
 
     // Member routes
-    '/profile': ['admin', 'secretary', 'finance_secretary', 'senator', 'representative', 'member'],
-    '/orders/history': ['admin', 'secretary', 'representative', 'member'],
+    '/profile': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member'],
+    '/orders/history': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'representative', 'senator', 'member'],
 
     // Public routes
-    '/': ['admin', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest'],
-    '/login': ['admin', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest'],
-    '/about': ['admin', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest']
+    '/': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+    '/login': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+    '/about': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']
   };
 
   const allowedRoles = routePermissions[routeName] ||
-    ['admin', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest'];
+    ['admin', 'president', 'vice_president', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest'];
 
   if (!user?.role) return false;
 
   const grants = ROUTE_PERMISSION_GRANTS[routeName];
 
-  // An explicit revocation from an Admin outranks the static role list — a
-  // Finance Secretary denied canViewFinance must actually lose /finance.
+  // An explicit revocation from an Admin outranks the static role list
   if (
     grants &&
     user.permissionOverrides &&
@@ -552,8 +785,7 @@ export const canAccessRoute = (user, routeName) => {
 
   if (allowedRoles.includes(user.role)) return true;
 
-  // A per-user grant is a deliberate assignment from an Admin, so it opens the
-  // route even when the static role list would not.
+  // A per-user grant opens the route even when the static role list would not
   return !!grants && grants.some((permission) => hasPermission(user, permission));
 };
 
@@ -582,92 +814,124 @@ export const filterNavigationByRole = (user, navItems) => {
  * @returns {boolean} True if user can perform the action
  */
 export const canPerformAction = (user, action, resourceType, resource = null) => {
-  // Admin can do everything
-  if (user?.role === 'admin') return true;
+  // President & Admin have full general access (Create, Read, Update, Delete across all operations)
+  if (user?.role === 'admin' || user?.role === 'president') return true;
 
-  // Roster registry — every role may submit; only Governors, the Secretary and
-  // Admin may read student lists; only the Secretary and Admin may verify.
-  // A Mayor (Guest) can never read a roster back or alter a verified one.
-  const ROSTER_ROLES = [
-    'public',
-    'admin',
-    'secretary',
-    'governor',
-    'finance_secretary',
-    'senator',
-    'representative',
-    'member',
-    'guest',
-  ];
-  if (ROSTER_ROLES.includes(user?.role)) {
+  const role = user?.role;
+  const canDeleteGlobally = hasPermission(user, 'canDeleteData');
+
+  // Vice President (Higher Access: Documents, Inventory, Finance, Audit Trail, Commerce Hub)
+  if (role === 'vice_president') {
+    switch (resourceType) {
+      case 'document':
+      case 'inventory':
+      case 'product':
+      case 'finance':
+      case 'order':
+      case 'audit':
+        return true; // Full Add, Update, Delete
+      case 'user':
+        return action === 'read';
+      default:
+        return false;
+    }
+  }
+
+  // Secretariat (Higher Access: Documents, Inventory, Sections & Contributions)
+  const SECRETARY_ROLES = ['secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary'];
+  if (SECRETARY_ROLES.includes(role)) {
+    switch (resourceType) {
+      case 'document':
+      case 'inventory':
+      case 'product':
+      case 'section':
+      case 'roster':
+        return true; // Full Add, Update, Delete
+      case 'announcement':
+        return true;
+      case 'finance':
+        return action === 'read'; // View-only finance
+      case 'order':
+        return action === 'create' || action === 'read' || action === 'update';
+      default:
+        return false;
+    }
+  }
+
+  // Finance & Audit (Higher Access: Finance, Inventory, Documents, Commerce Hub, Audit Trail)
+  const FINANCE_ROLES = ['finance_secretary', 'auditor', 'budget_officer'];
+  if (FINANCE_ROLES.includes(role)) {
+    switch (resourceType) {
+      case 'finance':
+      case 'inventory':
+      case 'product':
+      case 'document':
+      case 'order':
+      case 'audit':
+        return true; // Full Add, Update, Delete
+      case 'section':
+      case 'roster':
+        return action === 'create' || action === 'read';
+      default:
+        return false;
+    }
+  }
+
+  // Legislative Body: Senators & Representatives (Medium Access: Add, Update, Edit — CANNOT DELETE)
+  if (role === 'senator' || role === 'representative') {
+    if (action === 'delete' && !canDeleteGlobally) {
+      return false; // Strictly cannot delete
+    }
+    switch (resourceType) {
+      case 'document':
+      case 'inventory':
+      case 'product':
+      case 'section':
+      case 'roster':
+      case 'order':
+      case 'announcement':
+      case 'creative':
+        return action === 'create' || action === 'read' || action === 'update';
+      default:
+        return false;
+    }
+  }
+
+  // Creative Department (Announcements only)
+  if (role === 'creatives') {
+    switch (resourceType) {
+      case 'announcement':
+      case 'creative':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  // Collegiate Leadership: Governor
+  if (role === 'governor') {
     switch (resourceType) {
       case 'roster':
-        // Delegated to hasPermission so a per-user grant or revocation is
-        // honoured. Listing roles here would silently ignore the whole feature.
-        if (action === 'create') return true;
-        if (action === 'read') return hasPermission(user, 'canViewRosters');
-        if (action === 'verify' || action === 'requestCorrection') {
-          return hasPermission(user, 'canManageRosters');
-        }
-        if (action === 'update' || action === 'delete') {
-          return hasPermission(user, 'canManageRosters');
-        }
+      case 'section':
+        return action === 'create' || action === 'read';
+      default:
         return false;
-      default: return false;
     }
   }
 
-  // Finance Secretary — full Finance access only
-  if (user?.role === 'finance_secretary') {
+  // General Student Body: Member
+  if (role === 'member') {
     switch (resourceType) {
-      case 'finance': return true; // create, read, update, delete
-      default: return false;
-    }
-  }
-
-  // Secretary — view Finance, manage products/orders
-  if (user?.role === 'secretary') {
-    switch (resourceType) {
-      case 'product': return action === 'create' || action === 'read' || action === 'update';
-      case 'order':   return action === 'create' || action === 'read' || action === 'update';
-      case 'finance': return action === 'read'; // view-only
-      case 'user':    return action === 'read';
-      default: return false;
-    }
-  }
-
-  // Senator — Inventory (products) + Documents (export) + Creatives
-  if (user?.role === 'senator') {
-    switch (resourceType) {
-      case 'product':   return action === 'read' || action === 'create' || action === 'update';
-      case 'document':  return action === 'read' || action === 'create';
-      case 'creative':  return action === 'read' || action === 'create' || action === 'update';
-      default: return false;
-    }
-  }
-
-  // Representative
-  if (user?.role === 'representative') {
-    switch (resourceType) {
-      case 'product': return action === 'read';
+      case 'product':
+      case 'inventory':
+        return action === 'read';
       case 'order':
-        return action === 'create' ||
-               (action === 'read' && resource?.userId === user.uid);
-      default: return false;
+        return action === 'create' || (action === 'read' && resource?.userId === user.uid);
+      default:
+        return false;
     }
   }
 
-  // Member
-  if (user?.role === 'member') {
-    switch (resourceType) {
-      case 'product': return action === 'read';
-      case 'order':
-        return action === 'create' ||
-               (action === 'read' && resource?.userId === user.uid);
-      default: return false;
-    }
-  }
-
-  // Guest — no permissions
+  // Guest
   return false;
 };

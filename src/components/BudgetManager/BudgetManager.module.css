@@ -11,21 +11,42 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.titleBadge {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.titleRow {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
 .titleIcon {
-  font-size: 2rem;
+  font-size: 2.2rem;
   color: #3b82f6;
+  flex-shrink: 0;
 }
 
 .title h2 {
@@ -35,11 +56,93 @@
   margin: 0;
 }
 
+.headerSubtitle {
+  color: #64748b;
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.exportBtn {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.exportBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- KPI Summary Metric Bar (Quality of Life) --- */
+.kpiBar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .kpiBar {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.kpiCard {
+  background: var(--color-bg-secondary, #1e293b);
+  border: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kpiLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpiValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-primary, #ffffff);
+}
+
+.kpiNegative {
+  color: #ef4444;
+}
+
 /* --- Filters Bar --- */
 .filtersBar {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -256,12 +359,10 @@
 .budgetCard {
   background: white;
   border: 1px solid var(--color-border-primary);
-  border-radius: 16px;
-  padding: 1.25rem;
-  display: grid;
-  grid-template-columns: 2fr 1.5fr 1fr 1fr 0.5fr;
-  align-items: center;
-  gap: 1rem;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
@@ -270,6 +371,165 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.06);
   border-color: #cbd5e1;
+}
+
+.budgetCardExpanded {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12);
+}
+
+.cardHeaderRow {
+  padding: 1.25rem;
+  display: grid;
+  grid-template-columns: 2fr 1.3fr 1.4fr 1.1fr auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .cardHeaderRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+  }
+}
+
+@media (max-width: 580px) {
+  .cardHeaderRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.amountCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.disbursedSubtext {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+.categoryBadge {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.committeeLabel {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.statusCol {
+  display: flex;
+  align-items: center;
+}
+
+/* Card Bottom Micro-Meter */
+.cardMeterTrack {
+  height: 3px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.cardMeterFill {
+  height: 100%;
+  transition: width 0.35s ease;
+}
+
+/* Details Drawer (Quality of Life) */
+.detailsDrawer {
+  background: rgba(248, 250, 252, 0.75);
+  border-top: 1px dashed var(--color-border-primary);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.drawerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .drawerGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.drawerItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.drawerLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.drawerValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.negativeValue {
+  color: #ef4444;
+}
+
+.receiptLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #3b82f6;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.receiptLink:hover {
+  text-decoration: underline;
+}
+
+.drawerMuted {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.drawerDescriptionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding-top: 0.65rem;
+}
+
+.drawerDescriptionText {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.expandBtn {
+  color: var(--color-text-secondary);
+}
+
+.expandBtn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border-color: #3b82f6;
 }
 
 /* Card Content Styles */
@@ -678,3 +938,240 @@
     background: #475569;
   }
 }
+
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST DESIGN SYSTEM - LIGHT MODE OVERRIDES
+   Targeting :global(.theme-light) for BudgetManager
+   ========================================================================== */
+
+:global(.theme-light) .container {
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .title h2 {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  font-size: 2.2rem;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .searchInput {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .searchInput:focus {
+  outline: none;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .filterSelect {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .sortBtn {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .sortBtn:hover {
+  background: #eae8e3;
+}
+
+:global(.theme-light) .sortBtn.active {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-color: #0a0a0a;
+  box-shadow: 2px 2px 0px #e61919;
+}
+
+:global(.theme-light) .budgetCard {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+:global(.theme-light) .budgetCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #0a0a0a;
+  background: #ffffff;
+}
+
+:global(.theme-light) .eventName {
+  font-family: 'Archivo Black', sans-serif !important;
+  font-size: 1.15rem;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .resolution {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+:global(.theme-light) .cardMeta,
+:global(.theme-light) .amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .actionBtn {
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  transition: all 0.1s ease;
+}
+
+:global(.theme-light) .editBtn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 3px 3px 0px #0a0a0a;
+}
+
+:global(.theme-light) .deleteBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #0a0a0a;
+}
+
+:global(.theme-light) .confirmModal {
+  background: #ffffff;
+  border: 3px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 8px 8px 0px #0a0a0a;
+}
+
+:global(.theme-light) .confirmHeader h3 {
+  font-family: 'Archivo Black', sans-serif !important;
+  font-size: 1.3rem;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .cancelBtn {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .titleBadge {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 1px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .exportBtn {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .exportBtn:hover:not(:disabled) {
+  background: #e61919;
+  border-color: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .kpiCard {
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+}
+
+:global(.theme-light) .kpiLabel {
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+}
+
+:global(.theme-light) .kpiValue {
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+}
+
+:global(.theme-light) .cardMeterTrack {
+  background: #eae8e3;
+  border-top: 1px solid #0a0a0a;
+  height: 4px;
+}
+
+:global(.theme-light) .cardMeterFill {
+  border-radius: 0px;
+}
+
+:global(.theme-light) .detailsDrawer {
+  background: #f4f4f0;
+  border-top: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .drawerLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .drawerValue {
+  font-family: 'JetBrains Mono', monospace;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .categoryBadge {
+  color: #0a0a0a;
+  font-weight: 800;
+}
+
+:global(.theme-light) .committeeLabel {
+  font-family: 'JetBrains Mono', monospace;
+  color: #475569;
+}
+
+:global(.theme-light) .disbursedSubtext {
+  color: #475569;
+}
+
+:global(.theme-light) .statusBadge {
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}

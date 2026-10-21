@@ -33,6 +33,9 @@ import { storageWarning } from '../../services/fileStore';
 import { analyzeDocumentContent } from '../../services/documentAiService';
 import AiStatusBadge from './AiStatusBadge.jsx';
 import DocumentAnalysis from './DocumentAnalysis.jsx';
+import DocumentDetailModal from './DocumentDetailModal.jsx';
+import DocumentPreviewModal from './DocumentPreviewModal.jsx';
+import stylesModule from './DocumentDashboard.module.css';
 import {
   HiDocumentText,
   HiUpload,
@@ -85,7 +88,12 @@ function DocumentDashboard() {
   const [fileError, setFileError] = useState('');
   const [progress, setProgress] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [uploadStepState, setUploadStepState] = useState(''); // 'reading' | 'uploading' | 'analyzing'
   const [autoAnalyseId, setAutoAnalyseId] = useState('');
+
+  // ── Feedback progress animations for file actions ──
+  const [downloadingDocId, setDownloadingDocId] = useState(null);
+  const [deletingDocId, setDeletingDocId] = useState(null);
 
   // ── Detail / preview ──
   const [openId, setOpenId] = useState('');
@@ -97,6 +105,9 @@ function DocumentDashboard() {
   const previewCache = useRef(new Map());
   const previewAbortRef = useRef(null);
   const [editing, setEditing] = useState(null);
+  const [modalDoc, setModalDoc] = useState(null);
+  const [modalSaving, setModalSaving] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const say = useCallback((type, message) => setBanner({ type, message }), []);
@@ -176,8 +187,13 @@ function DocumentDashboard() {
     if (!form.title.trim()) return setFileError('Enter a title.');
 
     setBusy(true);
-    setProgress(0);
+    setUploadStepState('reading');
+    setProgress(15);
     try {
+      // Stage: reading file binary & validating buffer
+      await new Promise((r) => setTimeout(r, 350));
+      setUploadStepState('uploading');
+
       const id = await uploadDocument({
         file,
         metadata: {
@@ -186,19 +202,15 @@ function DocumentDashboard() {
         actor,
         onProgress: setProgress,
       });
-      say('success', `“${form.title}” uploaded. Reading the document…`);
+
+      setUploadStepState('analyzing');
+      say('success', `“${form.title}” uploaded. Reading and evaluating document content…`);
       setFile(null);
       setForm(emptyForm());
       setProgress(null);
       setOpenId(id);
       setAutoAnalyseId(id);
 
-      // Analysis runs automatically — no button to press. The document is
-      // already filed at this point, so a failure degrades to "not analysed"
-      // rather than losing the upload.
-      //
-      // The file travels with the request. In local storage mode the bytes are
-      // in IndexedDB, so the function cannot fetch them from Storage.
       const uploadedFile = file;
       analyzeDocumentContent(id, uploadedFile)
         .then((result) => {
@@ -213,9 +225,13 @@ function DocumentDashboard() {
         .catch((error) => {
           say('error', `Uploaded, but reading failed: ${error.message}`);
         })
-        .finally(() => setAutoAnalyseId(''));
+        .finally(() => {
+          setAutoAnalyseId('');
+          setUploadStepState('');
+        });
     } catch (error) {
       say('error', error.message);
+      setUploadStepState('');
     } finally {
       setBusy(false);
     }
@@ -302,21 +318,21 @@ function DocumentDashboard() {
     }
   }, []);
 
-  const togglePreview = (document) => {
-    if (openId === document.id) {
-      setOpenId('');
-      setPreviewUrl(null);
-      setPreviewError('');
-      setPreviewLoading(false);
-      setIframeLoaded(false);
-      return;
-    }
-    setOpenId(document.id);
-    setEditing(null);
+  const openPreviewModal = (document) => {
+    setPreviewDoc(document);
     loadPreview(document);
   };
 
+  const closePreviewModal = () => {
+    setPreviewDoc(null);
+    setPreviewUrl(null);
+    setPreviewError('');
+    setPreviewLoading(false);
+    setIframeLoaded(false);
+  };
+
   const download = async (document) => {
+    setDownloadingDocId(document.id);
     try {
       const url = await getDocumentUrl(document, { disposition: 'attachment' });
       if (!url) throw new Error('No file is attached to this document.');
@@ -325,8 +341,11 @@ function DocumentDashboard() {
       link.download = document.originalFileName || 'document';
       link.rel = 'noopener';
       link.click();
+      say('success', `Downloading “${document.originalFileName || document.title}”…`);
     } catch (error) {
       say('error', `Download failed: ${error.message}`);
+    } finally {
+      setTimeout(() => setDownloadingDocId(null), 800);
     }
   };
 
@@ -355,36 +374,66 @@ function DocumentDashboard() {
     }
   };
 
+  const handleSaveModalDoc = async (patch) => {
+    if (!modalDoc) return;
+    setModalSaving(true);
+    try {
+      await updateDocument(
+        modalDoc.id,
+        {
+          title: patch.title.trim(),
+          documentNumber: patch.documentNumber || '',
+          labels: patch.labels || [],
+          description: patch.description || '',
+          subject: patch.description || '',
+        },
+        actor
+      );
+      say('success', `“${patch.title}” metadata saved.`);
+      setModalDoc(null);
+    } catch (error) {
+      say('error', `Could not update document: ${error.message}`);
+    } finally {
+      setModalSaving(false);
+    }
+  };
+
   const remove = async (document) => {
     setBusy(true);
-    try {
-      await deleteDocument(document.id);
-      say('success', `“${document.title}” deleted.`);
-      setConfirmDelete(null);
+    setDeletingDocId(document.id);
+    setConfirmDelete(null);
+    if (openId === document.id) {
       setOpenId('');
       setPreviewUrl(null);
+    }
+
+    // Optimistic UI update: remove from list immediately
+    const prevDocs = documents;
+    setDocuments((current) => current.filter((d) => d.id !== document.id));
+
+    try {
+      // Pass the full document object so deleteDocument doesn't need to re-fetch getDoc()
+      await deleteDocument(document);
+      say('success', `“${document.title}” deleted.`);
     } catch (error) {
+      // Rollback on failure
+      setDocuments(prevDocs);
       say('error', error.message);
     } finally {
       setBusy(false);
+      setDeletingDocId(null);
     }
   };
 
   const hasFilters = term || statusFilter || labelFilter.length > 0;
 
   return (
-    <div style={styles.page}>
-      <style>{`
-        @keyframes docPreviewSpin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-      <header style={styles.header}>
-        <HiDocumentText style={styles.headerIcon} />
+    <div className={stylesModule.container} style={styles.page}>
+      <header className={stylesModule.headerWrap} style={styles.header}>
+        <HiDocumentText className={stylesModule.headerIcon} style={styles.headerIcon} />
         <div>
-          <h1 style={styles.title}>Document Repository</h1>
-          <p style={styles.subtitle}>
+          <h1 className={stylesModule.headerTitle} style={styles.title}>Document Repository</h1>
+          <p className={stylesModule.headerSubtitle} style={styles.subtitle}>
             Upload, organise and retrieve administrative documents. AI analysis is added in the
             next phase — everything filed now becomes AI-processable.
           </p>
@@ -394,15 +443,20 @@ function DocumentDashboard() {
       <AiStatusBadge />
 
       {storageWarning && (
-        <div style={styles.storageNotice}>
+        <div className={stylesModule.storageNotice} style={styles.storageNotice}>
           <strong>Local storage mode.</strong> {storageWarning}
         </div>
       )}
 
       {banner && (
-        <div style={styles.banner(banner.type)}>
-          {banner.message}
-          <button onClick={() => setBanner(null)} style={styles.bannerClose}>
+        <div
+          className={`${stylesModule.alertBanner} ${
+            banner.type === 'error' ? stylesModule.alertBannerError : stylesModule.alertBannerSuccess
+          }`}
+          style={styles.banner(banner.type)}
+        >
+          <span>{banner.message}</span>
+          <button onClick={() => setBanner(null)} className={stylesModule.bannerCloseBtn} style={styles.bannerClose}>
             <HiX />
           </button>
         </div>
@@ -416,14 +470,15 @@ function DocumentDashboard() {
       </div>
 
       {/* ── Upload ── */}
-      <section style={styles.card}>
-        <h2 style={styles.sectionTitle}>
+      <section className={stylesModule.brutalistCard} style={styles.card}>
+        <h2 className={stylesModule.cardSectionTitle} style={styles.sectionTitle}>
           <HiUpload /> Upload a document
         </h2>
 
         <div style={styles.formGrid}>
           <Field label="Title *">
             <input
+              className={stylesModule.brutalistInput}
               style={styles.input}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -435,6 +490,7 @@ function DocumentDashboard() {
 
           <Field label="Document number">
             <input
+              className={stylesModule.brutalistInput}
               style={styles.input}
               value={form.documentNumber}
               onChange={(e) => setForm({ ...form, documentNumber: e.target.value })}
@@ -446,6 +502,7 @@ function DocumentDashboard() {
           <Field label="Document date">
             <input
               type="date"
+              className={stylesModule.brutalistInput}
               style={styles.input}
               value={form.documentDate}
               onChange={(e) => setForm({ ...form, documentDate: e.target.value })}
@@ -455,6 +512,7 @@ function DocumentDashboard() {
 
           <Field label="Status">
             <select
+              className={stylesModule.brutalistInput}
               style={styles.input}
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
@@ -470,7 +528,7 @@ function DocumentDashboard() {
         </div>
 
         <div style={styles.labelRow}>
-          <span style={styles.label}>Labels</span>
+          <span className={stylesModule.brutalistFieldLabel} style={styles.label}>Labels</span>
           <div style={styles.chipRow}>
             {activeLabels.map((l) => (
               <button
@@ -478,6 +536,9 @@ function DocumentDashboard() {
                 type="button"
                 title={l.description}
                 onClick={() => toggleFormLabel(l.id)}
+                className={`${stylesModule.brutalistChip} ${
+                  form.labels.includes(l.id) ? stylesModule.brutalistChipActive : ''
+                }`}
                 style={{
                   ...styles.chip,
                   ...(form.labels.includes(l.id) ? styles.chipActive : {}),
@@ -491,10 +552,10 @@ function DocumentDashboard() {
         </div>
 
         {/* Step 1: Choose file (always visible) */}
-        <div style={styles.uploadStep}>
+        <div className={stylesModule.uploadStepBox} style={styles.uploadStep}>
           <div style={styles.stepHeader}>
-            <span style={styles.stepNumber}>1</span>
-            <span style={styles.stepTitle}>Choose a file</span>
+            <span className={stylesModule.stepBadge} style={styles.stepNumber}>1</span>
+            <span className={stylesModule.stepHeadline} style={styles.stepTitle}>Choose a file</span>
           </div>
           <div style={styles.dropRow}>
             <input
@@ -513,28 +574,64 @@ function DocumentDashboard() {
 
         {/* Step 2: Upload (only when file selected) */}
         {file && (
-          <div style={styles.uploadStep}>
+          <div className={stylesModule.uploadStepBox} style={styles.uploadStep}>
             <div style={styles.stepHeader}>
-              <span style={styles.stepNumber}>2</span>
-              <span style={styles.stepTitle}>Confirm and upload</span>
+              <span className={stylesModule.stepBadge} style={styles.stepNumber}>2</span>
+              <span className={stylesModule.stepHeadline} style={styles.stepTitle}>Confirm and upload</span>
             </div>
-            <div style={styles.selectedFile}>
+            <div className={stylesModule.selectedFileFrame} style={styles.selectedFile}>
               <div style={styles.fileInfo}>
                 <strong>{file.name}</strong>
                 <span style={styles.fileSize}>{formatBytes(file.size)}</span>
               </div>
-              <button onClick={submitUpload} disabled={busy} style={styles.primary}>
-                {busy ? 'Uploading…' : 'Upload document'}
-              </button>
-              {progress !== null && <span style={styles.progressNote}>{progress}%</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={submitUpload}
+                  disabled={busy}
+                  className={stylesModule.btnPrimary}
+                  style={styles.primary}
+                >
+                  {busy ? (
+                    <>
+                      <span className={stylesModule.spinningCircleWhite} />
+                      <span>
+                        {uploadStepState === 'reading'
+                          ? 'Reading file buffer…'
+                          : uploadStepState === 'uploading'
+                          ? 'Uploading bytes…'
+                          : uploadStepState === 'analyzing'
+                          ? 'Evaluating content…'
+                          : 'Processing…'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <HiUpload /> Upload document
+                    </>
+                  )}
+                </button>
+                {busy && (
+                  <div className={stylesModule.progressIndicator}>
+                    <span className={stylesModule.spinningCircle} />
+                    <span>
+                      {uploadStepState === 'reading'
+                        ? 'PHASE 1: INGESTION'
+                        : uploadStepState === 'uploading'
+                        ? `PHASE 2: STREAMING ${progress || 0}%`
+                        : 'PHASE 3: AI SCANNING'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {progress !== null && !busy && <span style={styles.progressNote}>{progress}%</span>}
             </div>
           </div>
         )}
       </section>
 
       {/* ── Filters ── */}
-      <section style={styles.card}>
-        <h2 style={styles.sectionTitle}>
+      <section className={stylesModule.brutalistCard} style={styles.card}>
+        <h2 className={stylesModule.cardSectionTitle} style={styles.sectionTitle}>
           <HiFolderOpen /> Archive ({visible.length} of {documents.length})
         </h2>
 
@@ -542,6 +639,7 @@ function DocumentDashboard() {
           <div style={styles.searchWrap}>
             <HiSearch style={styles.searchIcon} />
             <input
+              className={stylesModule.brutalistInput}
               style={{ ...styles.input, paddingLeft: '2.2rem' }}
               value={term}
               onChange={(e) => setTerm(e.target.value)}
@@ -550,6 +648,7 @@ function DocumentDashboard() {
           </div>
 
           <select
+            className={stylesModule.brutalistInput}
             style={{ ...styles.input, width: 'auto' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -569,6 +668,7 @@ function DocumentDashboard() {
                 setStatusFilter('');
                 setLabelFilter([]);
               }}
+              className={stylesModule.btnSecondary}
               style={styles.secondary}
             >
               <HiX /> Clear
@@ -587,6 +687,9 @@ function DocumentDashboard() {
                   prev.includes(l.id) ? prev.filter((x) => x !== l.id) : [...prev, l.id]
                 )
               }
+              className={`${stylesModule.brutalistChip} ${
+                labelFilter.includes(l.id) ? stylesModule.brutalistChipActive : ''
+              }`}
               style={{
                 ...styles.chip,
                 ...(labelFilter.includes(l.id) ? styles.chipActive : {}),
@@ -597,6 +700,7 @@ function DocumentDashboard() {
           ))}
         </div>
       </section>
+
 
       {/* ── List ── */}
       {booting ? (
@@ -612,17 +716,44 @@ function DocumentDashboard() {
           const isLocked = false;
 
           return (
-            <div key={document.id} style={styles.row}>
+            <div key={document.id} className={stylesModule.docRow} style={styles.row}>
               <div style={styles.rowHeader}>
                 <div style={styles.rowMain}>
-                  <strong style={styles.rowTitle}>{document.title}</strong>
-                  <span style={styles.rowMeta}>
-                    {document.documentNumber && <span>{document.documentNumber} · </span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <strong
+                      className={stylesModule.docRowTitle}
+                      style={{ ...styles.rowTitle, cursor: 'pointer' }}
+                      onClick={() => setModalDoc(document)}
+                      title="Click to view details & edit metadata"
+                    >
+                      {document.title}
+                    </strong>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontFamily: 'monospace',
+                        color: T.accent,
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        border: '1px solid rgba(99, 102, 241, 0.25)',
+                      }}
+                      title="Auto-generated Document ID"
+                    >
+                      {document.documentNumber || `DOC-${(document.documentDate ? document.documentDate.replace(/-/g, '') : 'REF')}-${document.id.slice(0, 6).toUpperCase()}`}
+                    </span>
+                  </div>
+                  <span className={stylesModule.docRowMeta} style={styles.rowMeta}>
                     {document.originalFileName} · {formatBytes(document.fileSize)} ·{' '}
                     {formatDate(document.documentDate)} · {document.createdByName}
                   </span>
                   {(document.subject || document.agenda || document.summary) && (
-                    <p style={{ margin: '0.35rem 0 0.15rem', fontSize: '0.8rem', color: T.textMuted, lineHeight: 1.4 }}>
+                    <p
+                      style={{ margin: '0.35rem 0 0.15rem', fontSize: '0.8rem', color: T.textMuted, lineHeight: 1.4, cursor: 'pointer' }}
+                      onClick={() => setModalDoc(document)}
+                      title="Click to view full summary & details in modal"
+                    >
                       {document.subject && <span><strong>Subject:</strong> {document.subject} · </span>}
                       {document.agenda && <span><strong>Agenda:</strong> {document.agenda} · </span>}
                       {document.summary && <span><strong>Summary:</strong> {document.summary.length > 180 ? `${document.summary.slice(0, 180)}…` : document.summary}</span>}
@@ -633,7 +764,7 @@ function DocumentDashboard() {
                       {DOC_STATUS_LABELS[document.status] || document.status}
                     </span>
                     {(document.labels || []).map((slug) => (
-                      <span key={slug} style={styles.miniChip}>
+                      <span key={slug} className={stylesModule.miniChip} style={styles.miniChip}>
                         <HiTag />{' '}
                         {activeLabels.find((l) => l.id === slug)?.name || slug}
                       </span>
@@ -645,7 +776,7 @@ function DocumentDashboard() {
                   <button
                     type="button"
                     title={
-                      document.aiState === 'processing'
+                      document.aiState === 'processing' || autoAnalyseId === document.id
                         ? 'Analysing document with AI…'
                         : document.aiState === 'ready_for_review'
                         ? 'View AI analysis and suggestions'
@@ -672,6 +803,11 @@ function DocumentDashboard() {
                         setIframeLoaded(false);
                       }
                     }}
+                    className={`${stylesModule.actionBtn} ${
+                      document.aiState === 'processing' || autoAnalyseId === document.id
+                        ? stylesModule.aiTriggerBtnActive
+                        : stylesModule.aiTriggerBtn
+                    }`}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -703,9 +839,13 @@ function DocumentDashboard() {
                       transition: 'all 0.15s ease-in-out',
                     }}
                   >
-                    <HiSparkles style={{ fontSize: '0.95rem' }} />
+                    {document.aiState === 'processing' || autoAnalyseId === document.id ? (
+                      <span className={stylesModule.spinningCircle} />
+                    ) : (
+                      <HiSparkles style={{ fontSize: '0.95rem' }} />
+                    )}
                     <span>
-                      {document.aiState === 'processing'
+                      {document.aiState === 'processing' || autoAnalyseId === document.id
                         ? 'Analysing…'
                         : document.aiState === 'ready_for_review'
                         ? 'Review AI'
@@ -715,21 +855,23 @@ function DocumentDashboard() {
                     </span>
                   </button>
 
-                  <IconBtn title="Preview" onClick={() => togglePreview(document)}>
-                    <HiEye />
+                  <IconBtn title="Preview document" onClick={() => openPreviewModal(document)}>
+                    {previewDoc?.id === document.id && previewLoading ? (
+                      <span className={stylesModule.spinningCircle} />
+                    ) : (
+                      <HiEye />
+                    )}
                   </IconBtn>
                   <IconBtn title="Download" onClick={() => download(document)}>
-                    <HiDownload />
+                    {downloadingDocId === document.id ? (
+                      <span className={stylesModule.spinningCircle} />
+                    ) : (
+                      <HiDownload />
+                    )}
                   </IconBtn>
                   <IconBtn
-                    title="Edit metadata"
-                    onClick={() => {
-                      setEditing(isEditing ? null : { ...document });
-                      setOpenId(document.id);
-                      if (!isEditing) {
-                        loadPreview(document);
-                      }
-                    }}
+                    title="View details & edit"
+                    onClick={() => setModalDoc(document)}
                   >
                     <HiPencil />
                   </IconBtn>
@@ -738,7 +880,11 @@ function DocumentDashboard() {
                     danger
                     onClick={() => setConfirmDelete(confirmDelete === document.id ? null : document.id)}
                   >
-                    <HiTrash />
+                    {deletingDocId === document.id ? (
+                      <span className={stylesModule.spinningCircle} />
+                    ) : (
+                      <HiTrash />
+                    )}
                   </IconBtn>
                 </div>
               </div>
@@ -748,10 +894,21 @@ function DocumentDashboard() {
                   <p style={styles.confirmText}>
                     Delete “{document.title}” and its original file? This cannot be undone.
                   </p>
-                  <button onClick={() => remove(document)} disabled={busy} style={styles.danger}>
-                    Yes, delete
+                  <button
+                    onClick={() => remove(document)}
+                    disabled={busy}
+                    className={stylesModule.btnDanger}
+                    style={styles.danger}
+                  >
+                    {deletingDocId === document.id ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span className={stylesModule.spinningCircleWhite} /> Deleting…
+                      </span>
+                    ) : (
+                      'Yes, delete'
+                    )}
                   </button>
-                  <button onClick={() => setConfirmDelete(null)} style={styles.secondary}>
+                  <button onClick={() => setConfirmDelete(null)} className={stylesModule.btnSecondary} style={styles.secondary}>
                     Keep it
                   </button>
                 </div>
@@ -767,178 +924,43 @@ function DocumentDashboard() {
                     onMessage={say}
                     autoAnalysing={autoAnalyseId === document.id}
                   />
-                  {isEditing ? (
-                    <>
-                      <div style={styles.formGrid}>
-                        <Field label="Title">
-                          <input
-                            style={styles.input}
-                            value={editing.title}
-                            onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                          />
-                        </Field>
-                        <Field label="Document number">
-                          <input
-                            style={styles.input}
-                            value={editing.documentNumber || ''}
-                            onChange={(e) => setEditing({ ...editing, documentNumber: e.target.value })}
-                          />
-                        </Field>
-                        <Field label="Date">
-                          <input
-                            type="date"
-                            style={styles.input}
-                            value={editing.documentDate || ''}
-                            onChange={(e) => setEditing({ ...editing, documentDate: e.target.value })}
-                          />
-                        </Field>
-                        <Field label="Status" hint={isLocked ? 'Approval is determined by the signature checklist.' : undefined}>
-                          <select
-                            style={styles.input}
-                            value={editing.status}
-                            onChange={(e) => setEditing({ ...editing, status: e.target.value })}
-                          >
-                            {Object.entries(DOC_STATUS_LABELS).map(([value, label]) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                      </div>
-
-                      <div style={styles.labelRow}>
-                        <span style={styles.label}>Labels</span>
-                        <div style={styles.chipRow}>
-                          {activeLabels.map((l) => (
-                            <button
-                              key={l.id}
-                              type="button"
-                              onClick={() =>
-                                setEditing((prev) => ({
-                                  ...prev,
-                                  labels: prev.labels.includes(l.id)
-                                    ? prev.labels.filter((x) => x !== l.id)
-                                    : [...prev.labels, l.id],
-                                }))
-                              }
-                              style={{
-                                ...styles.chip,
-                                ...((editing.labels || []).includes(l.id) ? styles.chipActive : {}),
-                              }}
-                            >
-                              {l.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div style={styles.actionRow}>
-                        <button onClick={saveEdit} disabled={busy} style={styles.primary}>
-                          <HiCheckCircle /> Save changes
-                        </button>
-                        <button onClick={() => setEditing(null)} style={styles.secondary}>
-                          Cancel
-                        </button>
-                      </div>
-                    </>
-                  ) : previewError ? (
-                    <div style={styles.previewErrorBox}>
-                      <HiExclamationCircle style={{ fontSize: '1.4rem', color: T.error, flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <p style={{ margin: 0, fontWeight: 600, color: T.error, fontSize: '0.88rem' }}>{previewError}</p>
-                        <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: T.textSoft }}>
-                          You can retry loading the preview or download the original file directly.
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          type="button"
-                          onClick={() => loadPreview(document, true)}
-                          style={styles.retryBtn}
-                        >
-                          <HiRefresh /> Retry
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => download(document)}
-                          style={styles.secondary}
-                        >
-                          <HiDownload /> Download
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={styles.previewContainer}>
-                      {(previewLoading || (!iframeLoaded && previewUrl)) && (
-                        <div style={styles.previewLoadingOverlay}>
-                          <div style={styles.spinner} />
-                          <div style={{ textAlign: 'center' }}>
-                            <p style={styles.previewLoadingText}>
-                              {previewLoading
-                                ? `Loading document preview… ${previewProgress}%`
-                                : 'Rendering document viewer…'}
-                            </p>
-                            <span style={styles.previewLoadingSubtext}>
-                              Streaming from document storage
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {previewUrl ? (
-                        (/\.(png|jpe?g|webp|gif)$/i.test(document.originalFileName || '') || (document.mimeType && document.mimeType.startsWith('image/'))) ? (
-                          <div style={{ width: '100%', maxHeight: '70vh', overflow: 'auto', display: 'flex', justifyContent: 'center', backgroundColor: T.bgTertiary, borderRadius: '0.6rem', border: `1px solid ${T.borderSoft}`, padding: '1rem' }}>
-                            <img
-                              src={previewUrl}
-                              alt={document.title || 'Document preview'}
-                              style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain', borderRadius: '4px' }}
-                              onLoad={() => {
-                                setIframeLoaded(true);
-                                setPreviewLoading(false);
-                              }}
-                              onError={() => {
-                                setPreviewError('Failed to display preview image. Try downloading.');
-                                setPreviewLoading(false);
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <iframe
-                            title={document.title}
-                            src={previewUrl}
-                            style={{
-                              ...styles.frame,
-                              opacity: iframeLoaded ? 1 : 0,
-                              transition: 'opacity 0.15s ease-in-out',
-                            }}
-                            onLoad={() => {
-                              setIframeLoaded(true);
-                              setPreviewLoading(false);
-                            }}
-                          />
-                        )
-                      ) : (
-                        !previewLoading && (
-                          <div style={styles.previewPlaceholder}>
-                            <p style={styles.helper}>No preview available.</p>
-                            <button
-                              type="button"
-                              onClick={() => loadPreview(document, true)}
-                              style={styles.retryBtn}
-                            >
-                              <HiEye /> Load Preview
-                            </button>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           );
         })
       )}
+
+      {/* Modal Dialog for Summary & Edit Section */}
+      <DocumentDetailModal
+        isOpen={Boolean(modalDoc)}
+        document={modalDoc}
+        labels={labels}
+        onClose={() => setModalDoc(null)}
+        onSave={handleSaveModalDoc}
+        saving={modalSaving}
+        onSay={say}
+        onOpenPreview={openPreviewModal}
+      />
+
+      {/* Modal Dialog for Document Preview */}
+      <DocumentPreviewModal
+        isOpen={Boolean(previewDoc)}
+        document={previewDoc}
+        previewUrl={previewUrl}
+        previewLoading={previewLoading}
+        previewError={previewError}
+        previewProgress={previewProgress}
+        iframeLoaded={iframeLoaded}
+        onClose={closePreviewModal}
+        onRetry={(doc) => loadPreview(doc, true)}
+        onDownload={download}
+        onIframeLoad={(loaded, errorMsg) => {
+          setIframeLoaded(loaded);
+          setPreviewLoading(false);
+          if (errorMsg) setPreviewError(errorMsg);
+        }}
+      />
     </div>
   );
 }

@@ -657,7 +657,7 @@ function UserManagement() {
             
             <div className={styles.modalBody}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Assigned System Role</label>
+                <label className={styles.formLabel}>Assigned System Role Preset</label>
                 <select
                   value={editForm.role}
                   onChange={(e) => {
@@ -673,10 +673,22 @@ function UserManagement() {
                   }}
                   className={styles.formSelect}
                 >
-                  {availableRoles.map(role => (
-                    <option key={role.id} value={role.id}>
-                      {role.name} — {role.description}
-                    </option>
+                  {/* Group roles by Department / Category */}
+                  {Object.entries(
+                    availableRoles.reduce((acc, role) => {
+                      const cat = role.category || 'Other Roles';
+                      if (!acc[cat]) acc[cat] = [];
+                      acc[cat].push(role);
+                      return acc;
+                    }, {})
+                  ).map(([category, roles]) => (
+                    <optgroup key={category} label={`── ${category.toUpperCase()} ──`}>
+                      {roles.map(role => (
+                        <option key={role.id} value={role.id}>
+                          {role.name} [{role.accessTier}] — {role.description}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

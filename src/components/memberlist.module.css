@@ -1211,3 +1211,373 @@
 .memberCard {
   position: relative;
 }
+
+/* =========================================================
+   SWISS INDUSTRIAL BRUTALIST OVERRIDES – LIGHT THEME
+   Directives:
+   - Substrate: #F4F4F0 / #EAE8E3 / #FFFFFF
+   - Border: 2px / 3px solid #0A0A0A (0px radius)
+   - Ink: #0A0A0A, Monospace technical typography
+   - Accent: #E61919 (Aviation/Hazard Red) exclusively
+   - Shadows: Hard offset 2px 2px / 3px 3px / 4px 4px #0A0A0A
+   ========================================================= */
+
+:global(.theme-light) .ssgTitleWrapper {
+  background: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+  backdrop-filter: none !important;
+}
+
+:global(.theme-light) .ssgTitleWrapper::before {
+  height: 4px !important;
+  background: #E61919 !important;
+  opacity: 1 !important;
+}
+
+:global(.theme-light) .ssgMainTitle {
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  font-size: 2.1rem !important;
+  letter-spacing: -0.02em !important;
+  color: #0A0A0A !important;
+  background: none !important;
+  -webkit-text-fill-color: #0A0A0A !important;
+  text-shadow: none !important;
+}
+
+:global(.theme-light) .ssgTerm {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+  letter-spacing: 0.08em !important;
+}
+
+:global(.theme-light) .branchSection {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .advisoryBranch,
+:global(.theme-light) .executiveBranch,
+:global(.theme-light) .legislativeBranch,
+:global(.theme-light) .cabinetBranch,
+:global(.theme-light) .creativesBranch,
+:global(.theme-light) .generalBranch {
+  border-top: 4px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .sectionHeader {
+  background: #EAE8E3 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .branchIconWrapper {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .branchTitle {
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  font-size: 1.05rem !important;
+  letter-spacing: 0.04em !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .branchSubtitle {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #555555 !important;
+  font-size: 0.75rem !important;
+  font-style: normal !important;
+}
+
+:global(.theme-light) .branchTag {
+  background: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .memberLimitIndicator {
+  background: #0A0A0A !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .addSectionBtn,
+:global(.theme-light) .addSubSectionBtn {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+:global(.theme-light) .addSectionBtn:hover:not(:disabled),
+:global(.theme-light) .addSubSectionBtn:hover:not(:disabled) {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  transform: translate(1px, 1px) !important;
+}
+
+:global(.theme-light) .addSectionBtn:disabled,
+:global(.theme-light) .addBtnDisabled {
+  background: #EAE8E3 !important;
+  border-color: #999999 !important;
+  color: #777777 !important;
+  box-shadow: none !important;
+}
+
+:global(.theme-light) .treeConnectingLines .verticalStem,
+:global(.theme-light) .treeConnectingLines .horizontalBar {
+  background: #0A0A0A !important;
+}
+
+:global(.theme-light) .subSectionBox {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  background: #F4F4F0 !important;
+}
+
+:global(.theme-light) .subSectionHeader {
+  border-bottom: 2px solid #0A0A0A !important;
+  background: #EAE8E3 !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .subHeaderTitle h3 {
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  color: #0A0A0A !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) .countBadge {
+  background: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .collapseToggle {
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .memberCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+:global(.theme-light) .memberCard::before {
+  height: 4px !important;
+  background: #0A0A0A !important;
+  opacity: 1 !important;
+}
+
+:global(.theme-light) .memberCard:hover {
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 5px 5px 0px #0A0A0A !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .card_executiveLeader {
+  border: 3px solid #0A0A0A !important;
+  box-shadow: 5px 5px 0px #E61919 !important;
+  background: #FFFFFF !important;
+}
+
+:global(.theme-light) .card_executiveLeader::before {
+  background: #E61919 !important;
+  height: 5px !important;
+}
+
+:global(.theme-light) .card_advisory::before,
+:global(.theme-light) .card_legislativeSpeaker::before,
+:global(.theme-light) .card_legislativeOfficer::before,
+:global(.theme-light) .card_representative::before,
+:global(.theme-light) .card_cabinet::before,
+:global(.theme-light) .card_creatives::before,
+:global(.theme-light) .card_general::before {
+  background: #0A0A0A !important;
+  opacity: 1 !important;
+}
+
+:global(.theme-light) .memberAvatar {
+  border-radius: 0px !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .avatarPlaceholder {
+  border-radius: 0px !important;
+  border: 2px solid #0A0A0A !important;
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .positionBadge {
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .card_executiveLeader .positionBadge {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #E61919 !important;
+}
+
+:global(.theme-light) .memberName {
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 900 !important;
+  color: #0A0A0A !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.01em !important;
+}
+
+:global(.theme-light) .memberIdRow {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #555555 !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .editBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .editBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .deleteBtn {
+  background: #FFFFFF !important;
+  color: #E61919 !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .deleteBtn:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .emptySlotNotice,
+:global(.theme-light) .emptyBranchNotice {
+  border: 2px dashed #0A0A0A !important;
+  background: #EAE8E3 !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+}
+
+:global(.theme-light) .modalOverlay {
+  background: rgba(10, 10, 10, 0.75) !important;
+  backdrop-filter: none !important;
+}
+
+:global(.theme-light) .modalContent {
+  background: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 8px 8px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .modalHeader {
+  background: #EAE8E3 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .modalHeader h3 {
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  color: #0A0A0A !important;
+  letter-spacing: 0.02em !important;
+}
+
+:global(.theme-light) .closeButton {
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  background: #FFFFFF !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .closeButton:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .formGroup label {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .formGroup input,
+:global(.theme-light) .formGroup select,
+:global(.theme-light) .formGroup textarea {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.85rem !important;
+}
+
+:global(.theme-light) .formGroup input:focus,
+:global(.theme-light) .formGroup select:focus,
+:global(.theme-light) .formGroup textarea:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}

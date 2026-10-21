@@ -447,6 +447,168 @@
   .placeholderSubtext { font-size: 0.72rem; }
 }
 
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) - COMMERCE HUB
+   Strict adherence to /industrial-brutalist-ui directives:
+   - Newsprint Substrate: #F4F4F0 / #EAE8E3
+   - Carbon Ink Foreground: #0A0A0A
+   - Aviation/Hazard Red: #E61919 (sole accent)
+   - 0px border-radius strictly enforced
+   - 2px/3px solid #0A0A0A mechanical borders
+   - Hard offset box-shadows (3px 3px 0px #0A0A0A, 5px 5px 0px #0A0A0A)
+   - Macro typography (Archivo Black/Impact) & Micro Monospace (JetBrains Mono)
+   ========================================================================== */
+
+:global(.theme-light) .wrapper {
+  background-color: #F4F4F0 !important;
+  color: #0A0A0A !important;
+  background-image: 
+    linear-gradient(to right, rgba(10, 10, 10, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10, 10, 10, 0.05) 1px, transparent 1px) !important;
+  background-size: 36px 36px !important;
+}
+
+:global(.theme-light) .container {
+  background-color: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .container *,
+:global(.theme-light) .container *::before,
+:global(.theme-light) .container *::after {
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .topBar {
+  background: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .eyebrow {
+  color: #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .title {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  font-size: 2.2rem !important;
+  letter-spacing: -0.03em !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .subtitle {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .hubBadge {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+:global(.theme-light) .tabNavigation {
+  background: #EAE8E3 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  gap: 0.5rem !important;
+  padding: 0.75rem 1.5rem 0.75rem !important;
+}
+
+:global(.theme-light) .tabButton {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.04em !important;
+  transition: all 0.15s ease !important;
+}
+
+:global(.theme-light) .tabButton:hover:not(.tabButtonActive) {
+  background: #F4F4F0 !important;
+  color: #0A0A0A !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .tabButtonActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  transform: none !important;
+}
+
+:global(.theme-light) .tabButtonActive svg {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .tabBadge {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .tabButtonActive .tabBadge {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+}
+
+:global(.theme-light) .tabContent {
+  background: transparent !important;
+}
+
+:global(.theme-light) .analyticsPlaceholder {
+  background: #FFFFFF !important;
+  border: 2px dashed #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .placeholderIcon {
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .placeholderTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+:global(.theme-light) .placeholderText,
+:global(.theme-light) .placeholderSubtext {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
 /* =====================================================
    PRINT STYLES
    ===================================================== */
@@ -456,3 +618,4 @@
   .container { background: white; box-shadow: none; }
   .tabContent { padding: 0; }
 }
+

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
+import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './BudgetAnalytics.module.css';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -13,13 +14,21 @@ import {
   HiCurrencyDollar,
   HiTrendingUp,
   HiChartBar,
-  HiCheckCircle
+  HiCheckCircle,
+  HiX,
+  HiClipboardCopy,
+  HiCheck,
+  HiEye
 } from 'react-icons/hi';
 
 const BudgetAnalytics = () => {
   const { budgets, statistics, loading, fetchBudgets } = useFinance();
+  const { theme, isLight } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCommittee, setFilterCommittee] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [copiedId, setCopiedId] = useState(null);
+  const [activeChartTab, setActiveChartTab] = useState('both'); // 'both' | 'category' | 'committee'
 
   // --- Data Processing for Charts ---
   
@@ -57,11 +66,13 @@ const BudgetAnalytics = () => {
   const filteredBudgets = useMemo(() => {
     return budgets.filter(budget => {
       const matchesSearch = budget.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            budget.resolution?.toLowerCase().includes(searchTerm.toLowerCase());
+                            budget.resolution?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            budget.category?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCommittee = filterCommittee === 'All' || budget.committee === filterCommittee;
-      return matchesSearch && matchesCommittee;
+      const matchesStatus = filterStatus === 'All' || budget.status === filterStatus;
+      return matchesSearch && matchesCommittee && matchesStatus;
     });
-  }, [budgets, searchTerm, filterCommittee]);
+  }, [budgets, searchTerm, filterCommittee, filterStatus]);
 
   // --- Helpers ---
   const formatCurrency = (val) => `₱${(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -74,6 +85,13 @@ const BudgetAnalytics = () => {
       case 'Almost Spent': return styles.statusYellow;
       default: return styles.statusGray;
     }
+  };
+
+  const copyBudgetDetails = (budget) => {
+    const text = `Project: ${budget.eventName} (${budget.resolution || 'N/A'})\nCommittee: ${budget.committee}\nAllocated: ${formatCurrency(budget.allocated)}\nSpent: ${formatCurrency(budget.spent)}\nRemaining: ${formatCurrency(budget.remaining)}\nStatus: ${budget.status}`;
+    navigator.clipboard.writeText(text);
+    setCopiedId(budget.id);
+    setTimeout(() => setCopiedId(null), 1500);
   };
 
   const exportToCSV = () => {
@@ -97,9 +115,14 @@ const BudgetAnalytics = () => {
     link.download = `Budget_Report_${new Date().toLocaleDateString()}.csv`;
     link.click();
   };
-
-  // Chart Colors
-  const COLORS = ['#3b82f6', '#10b981', '#E66B3D', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+  // Chart Colors (Adaptive: Light mode has Swiss Industrial high contrast; Classic Mode has rich maroon, amber, and jewel tones)
+  const COLORS = useMemo(() => {
+    if (isLight) {
+      return ['#0A0A0A', '#E61919', '#2563EB', '#16A34A', '#D97706', '#9333EA', '#0891B2'];
+    }
+    // Classic Mode (Maroon editorial / Dark palette)
+    return ['#D94F1F', '#F59E0B', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#06B6D4'];
+  }, [isLight]);
 
   if (loading) {
     return (
@@ -119,10 +142,10 @@ const BudgetAnalytics = () => {
             <HiChartBar style={{marginRight: '0.5rem', verticalAlign: 'middle'}} />
             Financial Dashboard
           </h2>
-          <p style={{color: '#ffffffff', margin: '5px 0 0 0'}}>Overview of fiscal year allocations</p>
+          <p className={styles.headerSubtitle}>Overview of fiscal year allocations, budget velocity, and expenditure</p>
         </div>
-        <div style={{display: 'flex', gap: '10px'}}>
-           <button onClick={fetchBudgets} className={styles.refreshButton}>
+        <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+          <button onClick={fetchBudgets} className={styles.refreshButton}>
             <HiRefresh size={18} /> Refresh
           </button>
           <button onClick={exportToCSV} className={styles.refreshButton}>
@@ -134,9 +157,9 @@ const BudgetAnalytics = () => {
       {/* KPI Cards */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
-          <HiCurrencyDollar style={{fontSize: '2rem', color: '#3b82f6', marginBottom: '0.5rem'}} />
+          <HiCurrencyDollar style={{fontSize: '2rem', color: isLight ? '#0a0a0a' : '#3b82f6', marginBottom: '0.5rem'}} />
           <span className={styles.statLabel}>Total Allocated</span>
-          <span className={styles.statValue} style={{color: '#3b82f6'}}>
+          <span className={styles.statValue}>
             {formatCurrency(statistics.totalAllocated)}
           </span>
           <span className={styles.statTrend}>
@@ -144,19 +167,22 @@ const BudgetAnalytics = () => {
           </span>
         </div>
         <div className={styles.statCard}>
-          <HiTrendingUp style={{fontSize: '2rem', color: '#ef4444', marginBottom: '0.5rem'}} />
+          <HiTrendingUp style={{fontSize: '2rem', color: isLight ? '#e61919' : '#ef4444', marginBottom: '0.5rem'}} />
           <span className={styles.statLabel}>Total Spent</span>
-          <span className={styles.statValue} style={{color: '#ef4444'}}>
+          <span className={styles.statValue}>
              {formatCurrency(statistics.totalSpent)}
           </span>
-          <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '4px', marginTop: '5px', overflow: 'hidden' }}>
-             <div style={{ width: `${(statistics.totalSpent / statistics.totalAllocated) * 100}%`, height: '100%', background: '#ef4444' }}></div>
+          <div className={styles.velocityProgressWrapper}>
+             <div 
+               className={styles.velocityProgressBar}
+               style={{ width: `${Math.min(100, (statistics.totalSpent / (statistics.totalAllocated || 1)) * 100)}%` }}
+             ></div>
           </div>
         </div>
         <div className={styles.statCard}>
-          <HiCheckCircle style={{fontSize: '2rem', color: '#10b981', marginBottom: '0.5rem'}} />
+          <HiCheckCircle style={{fontSize: '2rem', color: isLight ? '#166534' : '#10b981', marginBottom: '0.5rem'}} />
           <span className={styles.statLabel}>Remaining Funds</span>
-          <span className={styles.statValue} style={{color: '#10b981'}}>
+          <span className={styles.statValue}>
              {formatCurrency(statistics.totalRemaining)}
           </span>
           <span className={`${styles.statTrend} ${styles.trendGood}`}>
@@ -165,74 +191,221 @@ const BudgetAnalytics = () => {
         </div>
       </div>
 
+      {/* QoL Chart Mode Controls */}
+      <div className={styles.chartControlsBar}>
+        <div className={styles.chartControlLabel}>VISUALIZATION ENGINE:</div>
+        <div className={styles.chartToggleGroup}>
+          <button 
+            type="button"
+            className={`${styles.chartToggleBtn} ${activeChartTab === 'both' ? styles.chartToggleActive : ''}`}
+            onClick={() => setActiveChartTab('both')}
+          >
+            [01] DUAL GAUGES
+          </button>
+          <button 
+            type="button"
+            className={`${styles.chartToggleBtn} ${activeChartTab === 'category' ? styles.chartToggleActive : ''}`}
+            onClick={() => setActiveChartTab('category')}
+          >
+            [02] CATEGORY BAR
+          </button>
+          <button 
+            type="button"
+            className={`${styles.chartToggleBtn} ${activeChartTab === 'committee' ? styles.chartToggleActive : ''}`}
+            onClick={() => setActiveChartTab('committee')}
+          >
+            [03] COMMITTEE PIE
+          </button>
+        </div>
+      </div>
+
       {/* Charts Section */}
       <div className={styles.chartsGrid}>
         {/* Bar Chart */}
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Allocated vs. Spent (by Category)</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={categoryChartData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} tickFormatter={(val) => `₱${val/1000}k`} />
-              <Tooltip 
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                formatter={(value) => formatCurrency(value)}
-              />
-              <Legend />
-              <Bar dataKey="allocated" name="Allocated" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="spent" name="Spent" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {(activeChartTab === 'both' || activeChartTab === 'category') && (
+          <div className={`${styles.chartCard} ${activeChartTab === 'category' ? styles.chartCardFull : ''}`}>
+            <div className={styles.chartHeaderBlock}>
+              <h3 className={styles.chartTitle}>Allocated vs. Spent (by Category)</h3>
+              <span className={styles.chartMetaTag}>FIG 01.1 // METRIC: PHP</span>
+            </div>
+            <ResponsiveContainer width="100%" height="88%">
+              <BarChart
+                data={categoryChartData}
+                margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid 
+                  strokeDasharray={isLight ? "2 2" : "3 3"} 
+                  vertical={false} 
+                  stroke={isLight ? "#e2e8f0" : "rgba(255, 255, 255, 0.08)"} 
+                />
+                <XAxis 
+                  dataKey="name" 
+                  stroke={isLight ? "#64748b" : "#9ca3af"} 
+                  fontSize={11} 
+                  tickLine={false} 
+                />
+                <YAxis 
+                  stroke={isLight ? "#64748b" : "#9ca3af"} 
+                  fontSize={11} 
+                  tickLine={false} 
+                  tickFormatter={(val) => `₱${val/1000}k`} 
+                />
+                <Tooltip 
+                  contentStyle={isLight ? { 
+                    borderRadius: '0px', 
+                    border: '2px solid #0a0a0a', 
+                    boxShadow: '3px 3px 0px #0a0a0a',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: '12px',
+                    background: '#ffffff',
+                    color: '#0a0a0a'
+                  } : {
+                    borderRadius: '10px',
+                    border: '1px solid rgba(217, 79, 31, 0.45)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                    background: '#252525',
+                    color: '#ffffff',
+                    padding: '10px 14px'
+                  }}
+                  itemStyle={{
+                    color: isLight ? '#0a0a0a' : '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    padding: '2px 0'
+                  }}
+                  labelStyle={{
+                    color: isLight ? '#0a0a0a' : '#f5f5dc',
+                    fontWeight: 700,
+                    marginBottom: '4px',
+                    fontSize: '13px'
+                  }}
+                  formatter={(value) => formatCurrency(value)}
+                />
+                <Legend 
+                  wrapperStyle={{ 
+                    fontFamily: isLight ? 'JetBrains Mono, monospace' : 'inherit', 
+                    fontSize: '11px', 
+                    textTransform: 'uppercase' 
+                  }} 
+                />
+                <Bar 
+                  dataKey="allocated" 
+                  name="Allocated" 
+                  fill={isLight ? "#0a0a0a" : "#D94F1F"} 
+                  radius={isLight ? [0, 0, 0, 0] : [6, 6, 0, 0]} 
+                />
+                <Bar 
+                  dataKey="spent" 
+                  name="Spent" 
+                  fill={isLight ? "#e61919" : "#F59E0B"} 
+                  radius={isLight ? [0, 0, 0, 0] : [6, 6, 0, 0]} 
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Pie Chart */}
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Budget Distribution (by Committee)</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={committeePieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {committeePieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => formatCurrency(value)} />
-              <Legend verticalAlign="bottom" height={36}/>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {(activeChartTab === 'both' || activeChartTab === 'committee') && (
+          <div className={`${styles.chartCard} ${activeChartTab === 'committee' ? styles.chartCardFull : ''}`}>
+            <div className={styles.chartHeaderBlock}>
+              <h3 className={styles.chartTitle}>Budget Distribution (by Committee)</h3>
+              <span className={styles.chartMetaTag}>FIG 01.2 // SHARE: RATIO</span>
+            </div>
+            <ResponsiveContainer width="100%" height="88%">
+              <PieChart>
+                <Pie
+                  data={committeePieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={95}
+                  paddingAngle={isLight ? 4 : 5}
+                  dataKey="value"
+                  stroke={isLight ? "#0a0a0a" : "#252525"}
+                  strokeWidth={isLight ? 2 : 1}
+                >
+                  {committeePieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => formatCurrency(value)}
+                  contentStyle={isLight ? { 
+                    borderRadius: '0px', 
+                    border: '2px solid #0a0a0a', 
+                    boxShadow: '3px 3px 0px #0a0a0a',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: '12px',
+                    background: '#ffffff',
+                    color: '#0a0a0a'
+                  } : {
+                    borderRadius: '10px',
+                    border: '1px solid rgba(217, 79, 31, 0.45)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                    background: '#252525',
+                    color: '#ffffff',
+                    padding: '10px 14px'
+                  }}
+                  itemStyle={{
+                    color: isLight ? '#0a0a0a' : '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    padding: '2px 0'
+                  }}
+                  labelStyle={{
+                    color: isLight ? '#0a0a0a' : '#f5f5dc',
+                    fontWeight: 700,
+                    marginBottom: '4px',
+                    fontSize: '13px'
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36} 
+                  wrapperStyle={{ 
+                    fontFamily: isLight ? 'JetBrains Mono, monospace' : 'inherit', 
+                    fontSize: '11px', 
+                    textTransform: 'uppercase' 
+                  }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* Sheets / Data Table Section */}
       <div className={styles.sheetSection}>
         <div className={styles.sheetHeader}>
-          <h3 className={styles.chartTitle} style={{margin: 0}}>Budget Details</h3>
-          <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-            <div style={{position: 'relative'}}>
-                <HiSearch size={16} style={{position: 'absolute', left: '12px', top: '12px', color: '#94a3b8'}} />
+          <div>
+            <h3 className={styles.chartTitle} style={{margin: 0}}>Audit Registry & Ledger</h3>
+            <span className={styles.sheetSubheading}>Showing {filteredBudgets.length} of {budgets.length} entries</span>
+          </div>
+          <div className={styles.filterControls}>
+            <div className={styles.searchContainer}>
+                <HiSearch size={16} className={styles.searchIcon} />
                 <input 
                     type="text" 
-                    placeholder="Search event or resolution..." 
+                    placeholder="Filter records or resolution..." 
                     className={styles.searchBar}
-                    style={{paddingLeft: '35px'}}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                  <button 
+                    type="button"
+                    className={styles.clearSearchBtn}
+                    onClick={() => setSearchTerm('')}
+                    title="Clear search"
+                  >
+                    <HiX size={14} />
+                  </button>
+                )}
             </div>
+
             <select 
-                className={styles.searchBar} 
-                style={{width: 'auto'}}
+                className={styles.filterSelect} 
                 value={filterCommittee}
                 onChange={(e) => setFilterCommittee(e.target.value)}
             >
@@ -240,7 +413,18 @@ const BudgetAnalytics = () => {
                 <option value="General">General</option>
                 <option value="Executive Board">Executive Board</option>
                 <option value="Finance Committee">Finance Committee</option>
-                {/* Add other committees as needed */}
+            </select>
+
+            <select 
+                className={styles.filterSelect} 
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+            >
+                <option value="All">All Statuses</option>
+                <option value="On Track">On Track</option>
+                <option value="Almost Spent">Almost Spent</option>
+                <option value="Fully Spent">Fully Spent</option>
+                <option value="Over Budget">Over Budget</option>
             </select>
           </div>
         </div>
@@ -255,6 +439,7 @@ const BudgetAnalytics = () => {
                 <th>Spent</th>
                 <th>Status</th>
                 <th>Date</th>
+                <th style={{textAlign: 'center'}}>QoL Quick Action</th>
               </tr>
             </thead>
             <tbody>
@@ -262,24 +447,53 @@ const BudgetAnalytics = () => {
                 filteredBudgets.map((budget) => (
                   <tr key={budget.id}>
                     <td>
-                        <div style={{fontWeight: '600'}}>{budget.eventName}</div>
-                        <div style={{fontSize: '0.8rem', color: '#94a3b8'}}>{budget.resolution}</div>
+                        <div className={styles.projectName}>{budget.eventName}</div>
+                        <div className={styles.projectResolution}>{budget.resolution || 'RES-NONE'}</div>
                     </td>
-                    <td>{budget.committee}</td>
-                    <td style={{fontWeight: '600'}}>{formatCurrency(budget.allocated)}</td>
-                    <td style={{color: '#64748b'}}>{formatCurrency(budget.spent)}</td>
+                    <td>
+                      <span className={styles.committeeBadge}>{budget.committee}</span>
+                    </td>
+                    <td className={styles.monoSums}>{formatCurrency(budget.allocated)}</td>
+                    <td className={styles.monoSpent}>{formatCurrency(budget.spent)}</td>
                     <td>
                       <span className={`${styles.statusBadge} ${getStatusClass(budget.status)}`}>
                         {budget.status}
                       </span>
                     </td>
-                    <td>{budget.createdAt ? new Date(budget.createdAt).toLocaleDateString() : '-'}</td>
+                    <td className={styles.monoDate}>{budget.createdAt ? new Date(budget.createdAt).toLocaleDateString() : '-'}</td>
+                    <td style={{textAlign: 'center'}}>
+                      <button 
+                        type="button"
+                        className={styles.copyRowBtn}
+                        onClick={() => copyBudgetDetails(budget)}
+                        title="Copy row breakdown to clipboard"
+                      >
+                        {copiedId === budget.id ? (
+                          <>
+                            <HiCheck size={14} style={{color: '#16a34a'}} />
+                            <span style={{color: '#16a34a'}}>COPIED</span>
+                          </>
+                        ) : (
+                          <>
+                            <HiClipboardCopy size={14} />
+                            <span>COPY</span>
+                          </>
+                        )}
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{textAlign: 'center', padding: '3rem', color: '#94a3b8'}}>
-                    No budget records found.
+                  <td colSpan="7" className={styles.emptyTableTd}>
+                    <p>NO BUDGET RECORDS MATCH ACTIVE FILTERS.</p>
+                    <button 
+                      type="button" 
+                      className={styles.resetFiltersBtn}
+                      onClick={() => { setSearchTerm(''); setFilterCommittee('All'); setFilterStatus('All'); }}
+                    >
+                      RESET FILTERS
+                    </button>
                   </td>
                 </tr>
               )}

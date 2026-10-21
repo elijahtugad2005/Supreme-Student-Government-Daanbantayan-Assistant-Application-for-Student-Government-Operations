@@ -7,9 +7,9 @@
 //   - Asymmetric 2-column editorial layout: Interactive Month Matrix on left, Live Schedule Agenda on right
 //   - Complete interactive & accessible states (loading skeleton, empty states, keyboard navigation, tooltips)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../AuthContext/AuthContext';
 import { 
   FiCalendar, 
@@ -25,9 +25,15 @@ import {
   FiShield, 
   FiFilter, 
   FiArrowRight,
-  FiAlertCircle
+  FiAlertCircle,
+  FiPlus,
+  FiCheckSquare
 } from 'react-icons/fi';
 import styles from './CalendarWidget.module.css';
+import InlineQuickEventPopover from './subcomponents/InlineQuickEventPopover';
+import EventHoverCard from './subcomponents/EventHoverCard';
+import UndoSnackbar from './subcomponents/UndoSnackbar';
+import BulkActionBar from './subcomponents/BulkActionBar';
 
 const EVENT_TYPES = [
   { label: 'Academic / Class', value: 'Class', color: '#38BDF8', badgeBg: 'rgba(56, 189, 248, 0.12)', border: 'rgba(56, 189, 248, 0.35)', desc: 'Lectures, class suspensions & academic deadlines' },
@@ -37,7 +43,7 @@ const EVENT_TYPES = [
   { label: 'SSG Meeting', value: 'Meeting', color: '#FBBF24', badgeBg: 'rgba(251, 191, 36, 0.12)', border: 'rgba(251, 191, 36, 0.35)', desc: 'Legislative sessions, officer meetings & general assemblies' },
 ];
 
-function CalendarWidget() {
+function CalendarWidget({ readOnly = false }) {
   const { currentUser } = useAuth() || {};
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,12 +66,52 @@ function CalendarWidget() {
   const [isSaving, setIsSaving] = useState(false);
   const [actionMessage, setActionMessage] = useState(null);
 
-  // Officer / Admin privilege check
-  const canEditEvents = Boolean(currentUser);
+  // ── INLINE, RANGE SELECTION & BATCH EDIT STATES ──
+  const [quickPopover, setQuickPopover] = useState(null); // { isOpen, position, selectedDates, existingEvent }
+  const [hoverCard, setHoverCard] = useState(null); // { event, position, meta }
+  const [isDraggingRange, setIsDraggingRange] = useState(false);
+  const [rangeStartDay, setRangeStartDay] = useState(null);
+  const [rangeEndDay, setRangeEndDay] = useState(null);
+  const [isSelectMode, setIsSelectMode] = useState(false); // Multi-date selection mode toggle
+  const [selectedDateKeys, setSelectedDateKeys] = useState(new Set()); // Set of 'YYYY-MM-DD'
+  const [undoState, setUndoState] = useState(null); // { message, previousEvent, isCreate, isDelete }
+  const calendarGridRef = useRef(null);
+
+  // User permission check (Disabled if readOnly is true, else defaults for officers/admins/creatives)
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const canManageEvents = Boolean(
+    !readOnly &&
+    currentUser && (
+      !currentUser.role ||
+      userRole === 'admin' ||
+      userRole === 'secretary' ||
+      userRole === 'governor' ||
+      userRole === 'finance_secretary' ||
+      userRole === 'representative' ||
+      userRole === 'senator' ||
+      userRole === 'creatives' ||
+      userRole === 'officer' ||
+      userRole === 'member' ||
+      currentUser?.canManageCreatives
+    )
+  );
+  const canEditEvents = canManageEvents;
+
+  const [organizations, setOrganizations] = useState([]);
 
   // ========================================
-  // FETCH EVENTS FROM FIREBASE
+  // FETCH EVENTS & ORGANIZATIONS FROM FIREBASE
   // ========================================
+  useEffect(() => {
+    // Live listener for registered organizations from Member Management
+    const unsubOrgs = onSnapshot(collection(db, 'organizations'), (snapshot) => {
+      const orgsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOrganizations(orgsData);
+    }, (err) => console.error('Failed to load organizations:', err));
+
+    return () => unsubOrgs();
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     const unsubscribe = onSnapshot(collection(db, 'calendarEvents'), (snapshot) => {
@@ -104,14 +150,26 @@ function CalendarWidget() {
     return new Date(year, month, 1).getDay();
   };
 
+  // Perf: index filtered events by 'YYYY-MM-DD' once per data/filter change,
+  // instead of filtering the full list for every cell on every render (hover, drag...).
+  const eventsByDate = useMemo(() => {
+    const map = new Map();
+    for (const event of calendarEvents) {
+      if (filterType !== 'ALL' && event.eventType !== filterType) continue;
+      const keys = new Set(Array.isArray(event.dates) ? event.dates : []);
+      if (event.eventDate) keys.add(event.eventDate);
+      for (const key of keys) {
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(event);
+      }
+    }
+    return map;
+  }, [calendarEvents, filterType]);
+
+  const EMPTY_EVENTS = [];
   const getEventsForDate = (day) => {
     const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return calendarEvents.filter(event => {
-      const matchesDate = event.eventDate === dateStr;
-      if (!matchesDate) return false;
-      if (filterType === 'ALL') return true;
-      return event.eventType === filterType;
-    });
+    return eventsByDate.get(dateStr) || EMPTY_EVENTS;
   };
 
   const formatDate = (dateStr) => {
@@ -179,23 +237,268 @@ function CalendarWidget() {
     setSelectedDayEvents(dayEvents);
   };
 
-  // ========================================
-  // DAY CLICK
-  // ========================================
-  const handleDateClick = (day) => {
-    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const allEventsOnDay = calendarEvents.filter(e => e.eventDate === dateStr);
-    
-    setActiveDateKey(dateStr);
-    setSelectedDayEvents(allEventsOnDay);
+  // ── RANGE SELECTION & INLINE POPOVER HANDLERS ──
+  const getDateStr = (day) => {
+    return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
 
-    if (allEventsOnDay.length > 0) {
-      setShowEventModal(true);
+  const getDaysBetween = (start, end) => {
+    const minDay = Math.min(start, end);
+    const maxDay = Math.max(start, end);
+    const dates = [];
+    for (let d = minDay; d <= maxDay; d++) {
+      dates.push(getDateStr(d));
+    }
+    return dates;
+  };
+
+  // Cell Mouse Down (Starts Range Drag or Single Cell Click)
+  const handleCellMouseDown = (e, day) => {
+    if (e.button !== 0) return;
+
+    if (readOnly || !canManageEvents) {
+      const dateStr = getDateStr(day);
+      const allEventsOnDay = calendarEvents.filter(
+        ev => ev.eventDate === dateStr || (Array.isArray(ev.dates) && ev.dates.includes(dateStr))
+      );
+      setActiveDateKey(dateStr);
+      setSelectedDayEvents(allEventsOnDay);
+      if (allEventsOnDay.length > 0) {
+        setShowEventModal(true);
+      }
+      return;
+    }
+
+    if (isSelectMode) {
+      // Manual multi-selection mode: toggle this date in/out of set
+      const dateStr = getDateStr(day);
+      setSelectedDateKeys(prev => {
+        const next = new Set(prev);
+        if (next.has(dateStr)) {
+          next.delete(dateStr);
+        } else {
+          next.add(dateStr);
+        }
+        return next;
+      });
+      return;
+    }
+
+    setIsDraggingRange(true);
+    setRangeStartDay(day);
+    setRangeEndDay(day);
+    setHoverCard(null);
+  };
+
+  const handleCellMouseEnter = (day) => {
+    if (readOnly || !canManageEvents) return;
+    if (isDraggingRange && !isSelectMode) {
+      setRangeEndDay(day);
     }
   };
 
-  // ========================================
-  // EDIT EVENT HANDLERS
+  const handleCellMouseUp = (e, day) => {
+    if (readOnly || !canManageEvents) return;
+    if (isSelectMode) return;
+    if (!isDraggingRange) return;
+    setIsDraggingRange(false);
+
+    const start = rangeStartDay || day;
+    const end = day;
+    const selectedDays = getDaysBetween(start, end);
+
+    // Calculate anchor position for popover relative to calendarGrid
+    const rect = e.currentTarget.getBoundingClientRect();
+    const parentRect = calendarGridRef.current?.getBoundingClientRect() || { top: 0, left: 0 };
+    
+    const posX = Math.max(10, rect.left - parentRect.left);
+    const posY = Math.max(10, rect.bottom - parentRect.top);
+
+    const dateStr = getDateStr(day);
+    const allEventsOnDay = calendarEvents.filter(
+      ev => ev.eventDate === dateStr || (Array.isArray(ev.dates) && ev.dates.includes(dateStr))
+    );
+    setActiveDateKey(dateStr);
+    setSelectedDayEvents(allEventsOnDay);
+
+    // Open Inline Quick Popover
+    setQuickPopover({
+      isOpen: true,
+      position: { x: posX, y: posY },
+      selectedDates: selectedDays,
+      existingEvent: null,
+    });
+  };
+
+  // Direct Quick-Edit Click on Existing Mini Tag
+  const handleQuickEditEvent = (e, event) => {
+    e.stopPropagation();
+    if (readOnly || !canManageEvents) {
+      // In read-only mode, clicking an event opens the day details modal for reading
+      setActiveDateKey(event.eventDate);
+      const allEventsOnDay = calendarEvents.filter(
+        ev => ev.eventDate === event.eventDate || (Array.isArray(ev.dates) && ev.dates.includes(event.eventDate))
+      );
+      setSelectedDayEvents(allEventsOnDay);
+      setShowEventModal(true);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const parentRect = calendarGridRef.current?.getBoundingClientRect() || { top: 0, left: 0 };
+
+    setQuickPopover({
+      isOpen: true,
+      position: { x: Math.max(10, rect.left - parentRect.left), y: Math.max(10, rect.bottom - parentRect.top) },
+      selectedDates: Array.isArray(event.dates) ? event.dates : [event.eventDate],
+      existingEvent: event,
+    });
+    setHoverCard(null);
+  };
+
+  // Hover Card Triggers
+  const handleEventMouseEnter = (e, event) => {
+    if (quickPopover?.isOpen || isDraggingRange) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const parentRect = calendarGridRef.current?.getBoundingClientRect() || { top: 0, left: 0 };
+    const meta = getEventTypeMeta(event.eventType);
+
+    setHoverCard({
+      event,
+      position: {
+        x: Math.min(parentRect.width - 310, Math.max(10, rect.left - parentRect.left)),
+        y: Math.max(10, rect.top - parentRect.top - 8),
+      },
+      meta,
+    });
+  };
+
+  const handleEventMouseLeave = () => {
+    setHoverCard(null);
+  };
+
+  // Save Inline Quick Event (Create or Update)
+  const handleSaveQuickEvent = async (eventData, eventId) => {
+    try {
+      if (eventId) {
+        // Updating existing event
+        const oldEvent = calendarEvents.find(ev => ev.id === eventId);
+        const eventRef = doc(db, 'calendarEvents', eventId);
+        await updateDoc(eventRef, eventData);
+
+        setUndoState({
+          message: `Updated "${eventData.eventName}"`,
+          revertAction: async () => {
+            await updateDoc(eventRef, oldEvent);
+          }
+        });
+      } else {
+        // Creating new event
+        const docRef = await addDoc(collection(db, 'calendarEvents'), {
+          ...eventData,
+          createdBy: {
+            uid: currentUser?.uid || 'guest',
+            email: currentUser?.email || 'officer@ctu.edu.ph',
+            name: currentUser?.displayName || 'Officer',
+            role: userRole || 'officer',
+          }
+        });
+
+        setUndoState({
+          message: `Created "${eventData.eventName}"`,
+          revertAction: async () => {
+            await deleteDoc(doc(db, 'calendarEvents', docRef.id));
+          }
+        });
+      }
+
+      setQuickPopover(null);
+      setRangeStartDay(null);
+      setRangeEndDay(null);
+    } catch (err) {
+      console.error('Failed to save quick event:', err);
+      alert('Action failed. Administrative credentials required.');
+    }
+  };
+
+  // Delete Inline Quick Event
+  const handleDeleteQuickEvent = async (event) => {
+    if (!window.confirm(`Delete event "${event.eventName}"?`)) return;
+    try {
+      await deleteDoc(doc(db, 'calendarEvents', event.id));
+      setQuickPopover(null);
+
+      setUndoState({
+        message: `Deleted "${event.eventName}"`,
+        revertAction: async () => {
+          const { id, ...rest } = event;
+          await setDoc(doc(db, 'calendarEvents', id), rest);
+        }
+      });
+    } catch (err) {
+      console.error('Failed to delete quick event:', err);
+      alert('Delete failed.');
+    }
+  };
+
+  // ── BATCH SELECTION HANDLERS ──
+  const handleBatchEdit = () => {
+    if (selectedDateKeys.size === 0) return;
+    const sortedDates = Array.from(selectedDateKeys).sort();
+
+    // Center popover relative to calendar grid
+    const parentRect = calendarGridRef.current?.getBoundingClientRect() || { width: 500, height: 400 };
+    setQuickPopover({
+      isOpen: true,
+      position: { x: Math.max(20, (parentRect.width / 2) - 180), y: 80 },
+      selectedDates: sortedDates,
+      existingEvent: null,
+    });
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedDateKeys.size === 0) return;
+    const datesArr = Array.from(selectedDateKeys);
+    
+    // Find all events occurring on any of the selected dates
+    const matchingEvents = calendarEvents.filter(ev => {
+      if (datesArr.includes(ev.eventDate)) return true;
+      if (Array.isArray(ev.dates) && ev.dates.some(d => datesArr.includes(d))) return true;
+      return false;
+    });
+
+    if (matchingEvents.length === 0) {
+      alert('No scheduled events found on the selected dates.');
+      return;
+    }
+
+    if (!window.confirm(`Delete all ${matchingEvents.length} event(s) across the ${datesArr.length} selected dates?`)) {
+      return;
+    }
+
+    try {
+      // Snapshot for Undo
+      const backupList = matchingEvents.map(ev => ({ ...ev }));
+      
+      await Promise.all(matchingEvents.map(ev => deleteDoc(doc(db, 'calendarEvents', ev.id))));
+
+      setSelectedDateKeys(new Set());
+      setIsSelectMode(false);
+
+      setUndoState({
+        message: `Deleted ${matchingEvents.length} event(s) on ${datesArr.length} dates`,
+        revertAction: async () => {
+          await Promise.all(backupList.map(ev => {
+            const { id, ...data } = ev;
+            return setDoc(doc(db, 'calendarEvents', id), data);
+          }));
+        }
+      });
+    } catch (err) {
+      console.error('Batch delete failed:', err);
+      alert('Batch delete failed.');
+    }
+  };
   // ========================================
   const handleStartEdit = (event) => {
     setEditingEvent(event);
@@ -205,7 +508,12 @@ function CalendarWidget() {
       eventType: event.eventType || 'Class',
       requiresAttendance: Boolean(event.requiresAttendance),
       description: event.description || '',
+      iconType: event.iconType || (event.managingOrgLogo ? 'logo' : 'emoji'),
+      emoji: event.emoji || '📅',
+      managingOrgLogo: event.managingOrgLogo || '',
+      managingOrgTag: event.managingOrgTag || 'SSG',
     });
+    setQuickPopover(null);
     setActionMessage(null);
   };
 
@@ -231,6 +539,10 @@ function CalendarWidget() {
         eventType: editFormData.eventType,
         requiresAttendance: editFormData.requiresAttendance,
         description: editFormData.description.trim(),
+        iconType: editFormData.iconType,
+        emoji: editFormData.emoji,
+        managingOrgLogo: editFormData.managingOrgLogo,
+        managingOrgTag: editFormData.managingOrgTag,
         updatedAt: new Date().toISOString(),
       });
 
@@ -288,28 +600,47 @@ function CalendarWidget() {
       days.push(<div key={`empty-${i}`} className={styles.dayEmpty} aria-hidden="true" />);
     }
 
+    const minRange = rangeStartDay && rangeEndDay ? Math.min(rangeStartDay, rangeEndDay) : null;
+    const maxRange = rangeStartDay && rangeEndDay ? Math.max(rangeStartDay, rangeEndDay) : null;
+    const now = new Date();
+    const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+    const todayDate = now.getDate();
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const events = getEventsForDate(day);
-      const isToday = 
-        day === new Date().getDate() && 
-        selectedMonth === new Date().getMonth() && 
-        selectedYear === new Date().getFullYear();
+      const isToday = isCurrentMonth && day === todayDate;
       const isSelected = activeDateKey === dateStr;
+      const isInRange = minRange !== null && maxRange !== null && day >= minRange && day <= maxRange;
+      const isRangeAnchor = day === rangeStartDay;
+
+      const isMultiSelected = selectedDateKeys.has(dateStr);
 
       days.push(
         <div 
           key={day} 
-          className={`${styles.dayCell} ${isToday ? styles.dayToday : ''} ${isSelected ? styles.daySelected : ''} ${events.length > 0 ? styles.dayHasEvents : ''}`}
-          onClick={() => handleDateClick(day)}
+          className={`${styles.dayCell} ${isToday ? styles.dayToday : ''} ${isSelected ? styles.daySelected : ''} ${events.length > 0 ? styles.dayHasEvents : ''} ${isInRange ? styles.dayInRange : ''} ${isRangeAnchor ? styles.dayRangeAnchor : ''} ${isMultiSelected ? styles.dayMultiSelected : ''}`}
+          onMouseDown={(e) => handleCellMouseDown(e, day)}
+          onMouseEnter={() => handleCellMouseEnter(day)}
+          onMouseUp={(e) => handleCellMouseUp(e, day)}
           role="button"
           tabIndex={0}
           aria-label={`${monthNames[selectedMonth]} ${day}, ${events.length} events`}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDateClick(day); }}
+          onKeyDown={(e) => { 
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleCellMouseDown(e, day);
+              handleCellMouseUp(e, day);
+            } 
+          }}
         >
           <div className={styles.dayCellTop}>
             <span className={styles.dayNumber}>{day}</span>
-            {events.length > 0 && (
+            {isMultiSelected && (
+              <span className={styles.dayCheckPill}>
+                <FiCheckCircle style={{ color: '#38BDF8' }} />
+              </span>
+            )}
+            {!isMultiSelected && events.length > 0 && (
               <span className={styles.dayCountPill}>
                 {events.length}
               </span>
@@ -320,20 +651,33 @@ function CalendarWidget() {
             <div className={styles.dayEventList}>
               {events.slice(0, 2).map((event, idx) => {
                 const meta = getEventTypeMeta(event.eventType);
+                const eventColor = event.color || meta.color;
                 return (
                   <div 
                     key={event.id || idx}
                     className={styles.eventMiniTag}
                     style={{
-                      borderLeftColor: meta.color,
+                      borderLeftColor: eventColor,
                       backgroundColor: meta.badgeBg,
                     }}
-                    title={`${event.eventName} (${meta.label})`}
+                    onClick={(e) => handleQuickEditEvent(e, event)}
+                    onMouseEnter={(e) => handleEventMouseEnter(e, event)}
+                    onMouseLeave={handleEventMouseLeave}
+                    title={canEditEvents ? `${event.eventName} (Click to edit)` : `${event.eventName} (Click to view)`}
                   >
                     <span 
                       className={styles.eventMiniPip}
-                      style={{ backgroundColor: meta.color }}
+                      style={{ backgroundColor: eventColor }}
                     />
+                    {event.iconType === 'logo' && event.managingOrgLogo && (event.managingOrgLogo.startsWith('data:') || event.managingOrgLogo.startsWith('http')) ? (
+                      <img 
+                        src={event.managingOrgLogo} 
+                        alt="Org" 
+                        style={{ width: '14px', height: '14px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginRight: '2px' }} 
+                      />
+                    ) : (
+                      event.emoji && <span style={{ fontSize: '0.75rem', marginRight: '2px' }}>{event.emoji}</span>
+                    )}
                     <span className={styles.eventMiniName}>{event.eventName}</span>
                   </div>
                 );
@@ -352,7 +696,7 @@ function CalendarWidget() {
     return days;
   };
 
-  const upcoming = getUpcomingEvents();
+  const upcoming = useMemo(getUpcomingEvents, [calendarEvents, filterType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={styles.widgetWrapper}>
@@ -411,7 +755,40 @@ function CalendarWidget() {
       <div className={styles.layoutGrid}>
         
         {/* COLUMN A: INTERACTIVE MONTH MATRIX */}
-        <section className={styles.calendarPanel} aria-label="Monthly Calendar Matrix">
+        <section 
+          ref={calendarGridRef}
+          className={styles.calendarPanel} 
+          aria-label="Monthly Calendar Matrix"
+          style={{ position: 'relative', zIndex: 50 }}
+        >
+          {/* Quick-Add / Quick-Edit Popover */}
+          {quickPopover?.isOpen && (
+            <InlineQuickEventPopover
+              selectedDates={quickPopover.selectedDates}
+              existingEvent={quickPopover.existingEvent}
+              position={quickPopover.position}
+              canManage={canManageEvents}
+              orgList={organizations}
+              onClose={() => {
+                setQuickPopover(null);
+                setRangeStartDay(null);
+                setRangeEndDay(null);
+              }}
+              onSave={handleSaveQuickEvent}
+              onDelete={handleDeleteQuickEvent}
+              onOpenAdvanced={handleStartEdit}
+            />
+          )}
+
+          {/* Hover Card */}
+          {hoverCard && (
+            <EventHoverCard
+              event={hoverCard.event}
+              position={hoverCard.position}
+              meta={hoverCard.meta}
+            />
+          )}
+
           <div className={styles.monthToolbar}>
             <div className={styles.monthDisplay}>
               <h4 className={styles.monthHeading}>
@@ -424,6 +801,25 @@ function CalendarWidget() {
               >
                 Current Day
               </button>
+
+              {/* Multi-Date / Weekly Selection Mode Toggle */}
+              {canManageEvents && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSelectMode(prev => !prev);
+                    if (isSelectMode) {
+                      setSelectedDateKeys(new Set());
+                    }
+                  }}
+                  className={`${styles.todayButton} ${isSelectMode ? styles.selectModeActive : ''}`}
+                  style={isSelectMode ? { borderColor: '#38BDF8', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.2)' } : { borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38BDF8' }}
+                  title="Toggle multi-date selection for batch editing & weekly series"
+                >
+                  <FiCheckSquare style={{ marginRight: '5px', verticalAlign: 'middle', fontSize: '0.85rem' }} />
+                  {isSelectMode ? 'Selecting Dates...' : 'Select Dates'}
+                </button>
+              )}
             </div>
 
             <div className={styles.navControls}>
@@ -544,7 +940,18 @@ function CalendarWidget() {
                           )}
                         </div>
 
-                        <h5 className={styles.cardTitle}>{event.eventName}</h5>
+                        <h5 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {event.iconType === 'logo' && event.managingOrgLogo && (event.managingOrgLogo.startsWith('data:') || event.managingOrgLogo.startsWith('http')) ? (
+                            <img
+                              src={event.managingOrgLogo}
+                              alt="Org"
+                              style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                            />
+                          ) : (
+                            event.emoji && <span style={{ fontSize: '1rem', flexShrink: 0 }}>{event.emoji}</span>
+                          )}
+                          <span>{event.eventName}</span>
+                        </h5>
 
                         {event.description && (
                           <p className={styles.cardDesc}>{event.description}</p>
@@ -617,7 +1024,18 @@ function CalendarWidget() {
                   >
                     <div className={styles.modalItemTop}>
                       <div>
-                        <h4 className={styles.modalItemTitle}>{event.eventName}</h4>
+                        <h4 className={styles.modalItemTitle} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {event.iconType === 'logo' && event.managingOrgLogo && (event.managingOrgLogo.startsWith('data:') || event.managingOrgLogo.startsWith('http')) ? (
+                            <img
+                              src={event.managingOrgLogo}
+                              alt="Org"
+                              style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                            />
+                          ) : (
+                            event.emoji && <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{event.emoji}</span>
+                          )}
+                          <span>{event.eventName}</span>
+                        </h4>
                         <span 
                           className={styles.cardTypePill}
                           style={{ 
@@ -760,6 +1178,21 @@ function CalendarWidget() {
               </div>
 
               <div className={styles.formButtonRow}>
+                {canEditEvents && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const id = editingEvent.id;
+                      const name = editingEvent.eventName;
+                      setEditingEvent(null);
+                      await handleDeleteEvent(id, name);
+                    }}
+                    className={styles.btnDanger}
+                    disabled={isSaving}
+                  >
+                    <FiTrash2 /> Delete
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setEditingEvent(null)}
@@ -779,6 +1212,33 @@ function CalendarWidget() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ── BATCH / MULTI-DATE ACTION BAR ── */}
+      {canManageEvents && (
+        <BulkActionBar
+          selectedCount={selectedDateKeys.size}
+          selectedDates={Array.from(selectedDateKeys)}
+          canManage={canManageEvents}
+          onBatchEdit={handleBatchEdit}
+          onBatchDelete={handleBatchDelete}
+          onClearSelection={() => setSelectedDateKeys(new Set())}
+        />
+      )}
+
+      {/* ── UNDO TOAST NOTIFICATION ── */}
+      {undoState && (
+        <UndoSnackbar
+          message={undoState.message}
+          onUndo={async () => {
+            if (undoState.revertAction) {
+              await undoState.revertAction();
+            }
+            setUndoState(null);
+          }}
+          onDismiss={() => setUndoState(null)}
+          durationSeconds={8}
+        />
       )}
     </div>
   );

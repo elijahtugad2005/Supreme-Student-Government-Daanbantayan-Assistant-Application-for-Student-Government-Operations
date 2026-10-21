@@ -22,6 +22,7 @@ import {
   secondsUntilReset,
 } from '../../services/documentAiService';
 import { S, T, statusPill } from '../../utils/themeStyles';
+import stylesModule from './DocumentDashboard.module.css';
 import { HiSparkles, HiCheckCircle, HiX, HiPencil, HiClock, HiShieldCheck, HiExclamation, HiServer, HiLightningBolt } from 'react-icons/hi';
 
 /** Fields the administrator may accept from the AI, in display order. */
@@ -455,7 +456,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
 
       {/* ── LIVE AI ANALYSIS FEEDBACK REPORT & ANIMATION ── */}
       {isAnalyzing && (
-        <div style={styles.feedbackCard}>
+        <div className={stylesModule.analysisFeedbackCard} style={styles.feedbackCard}>
           <style>{`
             @keyframes pulseBorderGlow {
               0%, 100% { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 0 16px rgba(59, 130, 246, 0.15); }
@@ -473,10 +474,10 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
 
           <div style={styles.feedbackHead}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <HiSparkles style={{ fontSize: '1.4rem', color: '#60a5fa', animation: 'pulseDot 1.5s infinite ease-in-out' }} />
+              <span className={stylesModule.spinningCircle} />
               <div>
                 <strong style={{ color: '#f8fafc', fontSize: '0.96rem', letterSpacing: '0.01em' }}>
-                  AI Analysis Feedback Report
+                  AI Analysis Pipeline Report
                 </strong>
                 <span style={{ display: 'block', color: '#94a3b8', fontSize: '0.75rem' }}>
                   Live multi-stage neural document evaluation in progress…
@@ -495,20 +496,15 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
               fontSize: '0.75rem',
               fontWeight: 600,
             }}>
-              <span style={{
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                backgroundColor: '#60a5fa',
-                animation: 'pulseDot 1s infinite'
-              }} />
+              <span className={stylesModule.spinningCircle} style={{ width: 10, height: 10, borderWidth: 2 }} />
               {ANALYSIS_STAGES[activeStageIndex]?.label}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div style={styles.feedbackProgressTrack}>
+          <div className={stylesModule.analysisProgressTrack} style={styles.feedbackProgressTrack}>
             <div
+              className={stylesModule.analysisProgressFill}
               style={{
                 ...styles.feedbackProgressFill,
                 width: `${Math.min(96, Math.round(((activeStageIndex + 1) / ANALYSIS_STAGES.length) * 100))}%`,
@@ -524,6 +520,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
               return (
                 <div
                   key={st.id}
+                  className={`${stylesModule.analysisStageItem} ${isCurrent ? stylesModule.analysisStageCurrent : ''}`}
                   style={{
                     ...styles.feedbackStageItem,
                     ...(isCurrent ? styles.feedbackStageCurrent : isPast ? styles.feedbackStagePast : styles.feedbackStageFuture),
@@ -533,14 +530,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
                     {isPast ? (
                       <HiCheckCircle style={{ color: '#22c55e', fontSize: '1.15rem' }} />
                     ) : isCurrent ? (
-                      <span style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        backgroundColor: '#60a5fa',
-                        boxShadow: '0 0 10px #60a5fa',
-                        animation: 'pulseDot 1s infinite',
-                      }} />
+                      <span className={stylesModule.spinningCircle} style={{ width: 12, height: 12, borderWidth: 2 }} />
                     ) : (
                       <span style={{
                         width: 8,
@@ -578,7 +568,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
           </div>
 
           {/* Real-time Status Console Bar */}
-          <div style={styles.feedbackConsole}>
+          <div className={stylesModule.analysisConsole} style={styles.feedbackConsole}>
             <span style={{ color: '#38bdf8' }}>&gt;</span>{' '}
             <span style={{ color: '#94a3b8' }}>Pipeline Status:</span>{' '}
             <span style={{ color: '#f1f5f9', fontWeight: 600 }}>

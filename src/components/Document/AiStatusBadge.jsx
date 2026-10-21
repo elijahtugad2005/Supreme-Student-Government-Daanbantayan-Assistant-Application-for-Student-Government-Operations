@@ -18,7 +18,8 @@ import {
   onQuotaChange,
   readQuota,
   secondsUntilReset,
-} from '../../services/documentAiService';
+ } from '../../services/documentAiService';
+import stylesModule from './DocumentDashboard.module.css';
 import { HiSparkles, HiChevronDown, HiChevronUp, HiX } from 'react-icons/hi';
 
 export default function AiStatusBadge() {
@@ -58,10 +59,6 @@ export default function AiStatusBadge() {
   const waiting = secondsUntilReset(quota);
 
   const availability = resolveAvailability({
-    // The whole probe result, not a pair of booleans: "the service could not be
-    // reached" and "the service has no key" are different faults with different
-    // fixes, and flattening them to booleans makes the second one get reported
-    // when the first is true.
     probe: status,
     quota,
     waitSeconds: waiting || 0,
@@ -83,9 +80,12 @@ export default function AiStatusBadge() {
   if (dismissed) return null;
 
   return (
-    <div style={styles.wrap} role="status" aria-live="polite">
+    <div className={stylesModule.aiBadgeWrap} style={styles.wrap} role="status" aria-live="polite">
       <div style={styles.headerRow}>
-        <span style={{ ...styles.pill, backgroundColor: tone.bg, borderColor: tone.dot }}>
+        <span
+          className={stylesModule.aiBadgePill}
+          style={{ ...styles.pill, backgroundColor: tone.bg, borderColor: tone.dot }}
+        >
           <span style={{ ...styles.dot, backgroundColor: tone.dot }} />
           {availability.label}
         </span>
@@ -93,6 +93,7 @@ export default function AiStatusBadge() {
         <div style={styles.controls}>
           <button
             onClick={() => setCollapsed(!collapsed)}
+            className={stylesModule.aiBadgeIconBtn}
             style={styles.iconBtn}
             title={collapsed ? 'Show details' : 'Hide details'}
             aria-label={collapsed ? 'Show details' : 'Hide details'}
@@ -101,6 +102,7 @@ export default function AiStatusBadge() {
           </button>
           <button
             onClick={() => setDismissed(true)}
+            className={stylesModule.aiBadgeIconBtn}
             style={styles.iconBtn}
             title="Dismiss"
             aria-label="Dismiss status badge"
@@ -117,8 +119,9 @@ export default function AiStatusBadge() {
               <span style={styles.capacityLabel}>Today: {capacityLabel(usage)}</span>
               <span style={styles.capacityPct}>{percent}%</span>
             </div>
-            <div style={styles.bar}>
+            <div className={stylesModule.aiBadgeBar} style={styles.bar}>
               <div
+                className={stylesModule.aiBadgeFill}
                 style={{
                   ...styles.fill,
                   width: `${percent}%`,
@@ -126,6 +129,7 @@ export default function AiStatusBadge() {
                 }}
               />
             </div>
+
             <span style={styles.estimateNote}>
               Estimate from the free-tier limits ({'~'}15 requests/minute, 1,500/day, ~3 per
               document) and this browser's own count.

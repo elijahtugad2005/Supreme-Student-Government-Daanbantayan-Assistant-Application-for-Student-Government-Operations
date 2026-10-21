@@ -146,6 +146,38 @@
   box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.45);
 }
 
+.statCardClickable {
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+}
+
+.statCardClickable:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.statCardActive {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4), 0 12px 30px -4px rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgba(20, 25, 35, 0.9) 0%, rgba(59, 130, 246, 0.12) 100%);
+}
+
+.statCardActiveWarning {
+  border-color: rgba(245, 158, 11, 0.7);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 12px 30px -4px rgba(245, 158, 11, 0.25);
+  background: linear-gradient(135deg, rgba(20, 25, 35, 0.9) 0%, rgba(245, 158, 11, 0.18) 100%);
+}
+
+.statCardActiveInfo {
+  border-color: rgba(139, 92, 246, 0.7);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.5), 0 12px 30px -4px rgba(139, 92, 246, 0.25);
+  background: linear-gradient(135deg, rgba(20, 25, 35, 0.9) 0%, rgba(139, 92, 246, 0.15) 100%);
+}
+
 .statCardWarning {
   border-color: rgba(245, 158, 11, 0.35);
   background: linear-gradient(135deg, rgba(20, 25, 35, 0.85) 0%, rgba(245, 158, 11, 0.08) 100%);
@@ -405,17 +437,19 @@
 /* ─── TABLE CONTAINER ─── */
 .tableContainer {
   background: rgba(20, 25, 35, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
   overflow: hidden;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .tableResponsive {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .table {
@@ -427,7 +461,7 @@
 
 .table th {
   padding: 1.05rem 1.25rem;
-  background: rgba(15, 23, 42, 0.9);
+  background: #0f172a;
   color: #94a3b8;
   font-size: 0.75rem;
   font-weight: 700;
@@ -445,7 +479,10 @@
 }
 
 .table tbody tr {
-  transition: background-color 0.15s ease;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 54px;
+  contain: layout style;
+  transition: background-color 0.1s ease;
 }
 
 .table tbody tr:hover {

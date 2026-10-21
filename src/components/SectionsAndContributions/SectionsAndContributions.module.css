@@ -1,0 +1,561 @@
+/* =========================================================
+   SectionsAndContributions.module.css
+   SWISS INDUSTRIAL BRUTALIST UI - LIGHT THEME DIRECTIVES
+   Directives:
+   - Substrate: #F4F4F0 / #EAE8E3 / #FFFFFF
+   - Border: 2px / 3px solid #0A0A0A (0px radius strictly)
+   - Ink: #0A0A0A (Carbon Ink)
+   - Accent: #E61919 (Aviation/Hazard Red) exclusively
+   - Shadows: Hard offset 2px 2px / 3px 3px / 4px 4px / 6px 6px #0A0A0A
+   - Typography: 'Archivo Black', 'Impact' macro titles;
+     'JetBrains Mono', monospace for data & navigation labels
+   ========================================================= */
+
+.container {
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Animations */
+@keyframes brutalistSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes brutalistPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.15); }
+}
+
+.fadeSlideIn {
+  animation: brutalistSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: var(--color-bg-secondary, rgba(13, 21, 39, 0.8));
+  border: 1px solid var(--color-border-primary, rgba(59, 130, 246, 0.2));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.headerMain {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.headerActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--color-bg-card, rgba(13, 21, 39, 0.6));
+  border: 1px solid var(--color-border-primary, rgba(59, 130, 246, 0.25));
+  color: var(--color-text-primary, #ffffff);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.headerActionBtn:hover {
+  background: var(--color-bg-hover, rgba(59, 130, 246, 0.2));
+  border-color: var(--color-accent-primary, #3b82f6);
+  transform: translateY(-1px);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-accent-primary, #60a5fa);
+  margin-bottom: 0.4rem;
+}
+
+.title {
+  font-size: 1.9rem;
+  font-weight: 900;
+  margin: 0 0 0.4rem 0;
+  color: var(--color-text-primary, #ffffff);
+}
+
+.subtitle {
+  font-size: 0.88rem;
+  color: var(--color-text-secondary, #94a3b8);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.navBar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.4rem;
+  border-radius: 8px;
+  background: var(--color-bg-card, rgba(13, 21, 39, 0.6));
+  border: 1px solid var(--color-border-primary, rgba(59, 130, 246, 0.2));
+  color: var(--color-text-secondary, #cbd5e1);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navButton:hover {
+  background: var(--color-bg-hover, rgba(59, 130, 246, 0.15));
+  color: var(--color-text-primary, #ffffff);
+}
+
+.navButtonActive {
+  background: var(--color-accent-primary, #2563eb);
+  color: #ffffff;
+  border-color: var(--color-accent-primary, #2563eb);
+}
+
+.navIcon {
+  font-size: 1.25rem;
+}
+
+.activeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  animation: brutalistPulse 1.2s infinite ease-in-out;
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-secondary, #cbd5e1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-left: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.navButtonActive .tabBadge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.viewPanel {
+  width: 100%;
+}
+
+/* =========================================================
+   LIGHT THEME DIRECTIVES (:global(.theme-light))
+   Swiss Industrial Brutalist Substrate
+   ========================================================= */
+
+:global(.theme-light) .container * {
+  border-radius: 0px !important;
+  box-sizing: border-box !important;
+}
+
+:global(.theme-light) .header {
+  background: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+  position: relative !important;
+  padding: 1.6rem 2rem !important;
+  margin-bottom: 1.8rem !important;
+}
+
+:global(.theme-light) .header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #E61919 !important;
+}
+
+:global(.theme-light) .headerActionBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  font-size: 0.8rem !important;
+  padding: 0.65rem 1.15rem !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+}
+
+:global(.theme-light) .headerActionBtn:hover {
+  background: #EAE8E3 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .badge {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  color: #0A0A0A !important;
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  padding: 0.2rem 0.6rem !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+  margin-bottom: 0.6rem !important;
+}
+
+:global(.theme-light) .title {
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  font-size: 2.2rem !important;
+  color: #0A0A0A !important;
+  letter-spacing: -0.02em !important;
+  text-transform: uppercase !important;
+  margin: 0.2rem 0 0.5rem 0 !important;
+}
+
+:global(.theme-light) .subtitle {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.84rem !important;
+  color: #444444 !important;
+  line-height: 1.5 !important;
+}
+
+:global(.theme-light) .navBar {
+  gap: 1rem !important;
+  margin-bottom: 2rem !important;
+}
+
+:global(.theme-light) .navButton {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  font-size: 0.88rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  padding: 0.85rem 1.5rem !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+}
+
+:global(.theme-light) .navButton:hover {
+  background: #EAE8E3 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .navButtonActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #E61919 !important;
+}
+
+:global(.theme-light) .navButtonActive:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .navButtonActive .navIcon {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .activeDot {
+  background: #E61919 !important;
+  box-shadow: 0 0 6px #E61919 !important;
+}
+
+:global(.theme-light) .tabBadge {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  color: #0A0A0A !important;
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  padding: 0.15rem 0.45rem !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .navButtonActive .tabBadge {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #E61919 !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+/* =========================================================
+   LIGHT THEME DIRECTIVES FOR CLASS UPLOAD & DEATH AID
+   Override inline style tokens when .theme-light is active
+   ========================================================= */
+
+/* Cards and Substrates */
+:global(.theme-light) div[style*="background-color: var(--color-bg-card)"],
+:global(.theme-light) section[style*="background-color: var(--color-bg-card)"] {
+  background-color: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  box-shadow: 5px 5px 0px #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) div[style*="background-color: var(--color-bg-tertiary)"],
+:global(.theme-light) section[style*="background-color: var(--color-bg-tertiary)"] {
+  background-color: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+/* Headings in Roster & Death Aid */
+:global(.theme-light) h1,
+:global(.theme-light) h2,
+:global(.theme-light) h3 {
+  color: #0A0A0A !important;
+}
+
+/* Tab buttons inside ClassUpload and DeathAid */
+:global(.theme-light) button[style*="border-bottom: 3px solid"] {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  color: #0A0A0A !important;
+  margin-right: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+  padding: 0.6rem 1.1rem !important;
+}
+
+:global(.theme-light) button[style*="border-bottom-color: var(--color-accent-primary)"] {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+/* Inputs, Selects & Textareas */
+:global(.theme-light) input,
+:global(.theme-light) select,
+:global(.theme-light) textarea {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.85rem !important;
+}
+
+:global(.theme-light) input:focus,
+:global(.theme-light) select:focus,
+:global(.theme-light) textarea:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+/* Tables in Roster & Death Aid */
+:global(.theme-light) table {
+  border-collapse: collapse !important;
+  border: 2px solid #0A0A0A !important;
+  background-color: #FFFFFF !important;
+}
+
+:global(.theme-light) th {
+  background-color: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) td {
+  border-bottom: 1px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.82rem !important;
+}
+
+:global(.theme-light) tr:hover td {
+  background-color: #F4F4F0 !important;
+}
+
+/* Buttons in ClassUpload & DeathAid */
+:global(.theme-light) button[style*="background-color: var(--color-accent-primary)"] {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) button[style*="background-color: var(--color-accent-primary)"]:hover {
+  background-color: #E61919 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) button[style*="background-color: var(--color-success)"] {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) button[style*="background-color: var(--color-success)"]:hover {
+  background-color: #222222 !important;
+}
+
+:global(.theme-light) button[style*="border: 2px solid var(--color-border)"] {
+  background-color: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) button[style*="border: 2px solid var(--color-border)"]:hover {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+/* Status Pills & Badges */
+:global(.theme-light) span[style*="border-radius: 50px"] {
+  border-radius: 0px !important;
+  border: 1px solid #0A0A0A !important;
+  background-color: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+/* =========================================================
+   DEEP SWISS INDUSTRIAL BRUTALIST OVERRIDES FOR
+   CLASS UPLOAD & DEATH AID
+   ========================================================= */
+
+/* Dropzones in Class Upload */
+:global(.theme-light) div[style*="border: 2px dashed"] {
+  background-color: #F4F4F0 !important;
+  border: 2px dashed #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+/* Summary Grid Tiles in Death Aid */
+:global(.theme-light) div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] > div {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] span {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #0A0A0A !important;
+}
+
+/* Section Cards & Review Cards */
+:global(.theme-light) div[style*="margin-bottom: 1rem"][style*="border: 1px solid"],
+:global(.theme-light) div[style*="margin-bottom: 0.7rem"][style*="border: 1px solid"] {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+/* Section Card Header Buttons */
+:global(.theme-light) button[style*="cursor: pointer"][style*="text-align: left"] {
+  background-color: #EAE8E3 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) button[style*="cursor: pointer"][style*="text-align: left"]:hover {
+  background-color: #F4F4F0 !important;
+}
+
+/* Action Link Buttons */
+:global(.theme-light) button[style*="padding: 0.3rem 0.6rem"],
+:global(.theme-light) button[style*="padding: 0.35rem 0.7rem"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) button[style*="padding: 0.3rem 0.6rem"]:hover,
+:global(.theme-light) button[style*="padding: 0.35rem 0.7rem"]:hover {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+/* Notice & Warning Blocks */
+:global(.theme-light) div[style*="padding: 0.8rem"][style*="margin-bottom: 1rem"],
+:global(.theme-light) div[style*="padding: 1.5rem"][style*="border-radius: 1rem"] {
+  background-color: #FFFBEB !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+

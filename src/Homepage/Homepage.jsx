@@ -3,29 +3,29 @@ import { db } from "../firebase/firebaseConfig";
 import { collection, onSnapshot } from "firebase/firestore";
 import { useNavigate } from 'react-router-dom';
 import styles from './Homepage.module.css'; // Import CSS module
-import CalendarWidget from '../components/CalendarWidget/CalendarWidget';
 import { useRef } from 'react';
 import { useAuth } from '../components/AuthContext/AuthContext.jsx';
 import useCurrentTerm from '../hooks/useCurrentTerm';
 import { SSG_ID, FALLBACK_TERM, getSections } from '../components/orgUtils';
-import { 
-  HiCurrencyDollar, 
-  HiFolder, 
-  HiSpeakerphone, 
-  HiCube, 
-  HiShoppingBag, 
-  HiCalendar, 
-  HiCog, 
-  HiUsers, 
-  HiTruck 
+import CalendarWidget from '../components/CalendarWidget/CalendarWidget';
+import {
+  HiCurrencyDollar,
+  HiFolder,
+  HiSpeakerphone,
+  HiCube,
+  HiShoppingBag,
+  HiCalendar,
+  HiCog,
+  HiUsers,
+  HiTruck
 } from 'react-icons/hi';
-import { 
-  FiShoppingBag, 
-  FiTag, 
-  FiFilter, 
-  FiCheck, 
-  FiArrowRight, 
-  FiAlertCircle 
+import {
+  FiShoppingBag,
+  FiTag,
+  FiFilter,
+  FiCheck,
+  FiArrowRight,
+  FiAlertCircle
 } from 'react-icons/fi';
 
 const OFFICER_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop';
@@ -47,21 +47,30 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
-// ── Quote Constraints for Carousel Cards ──
-const MAX_QUOTE_WORDS = 18; // Maximum words to keep card height perfectly uniform
-const MAX_QUOTE_CHARS = 120; // Maximum character fallback
+const ShoppingBagIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <path d="M16 10a4 4 0 01-8 0" />
+  </svg>
+);
 
-const formatOfficerQuote = (quote) => {
-  if (!quote || !quote.trim()) return '“Serving the CTU-Daanbantayan student body with integrity and purpose.”';
-  const clean = quote.trim();
+// ── Bio / Statement Constraints for Carousel Cards (No Quotes, Word-Limited) ──
+const MAX_STATEMENT_WORDS = 12; // Maximum words to keep card height perfectly uniform
+const MAX_STATEMENT_CHARS = 80;  // Maximum character fallback
+
+const formatOfficerStatement = (text) => {
+  if (!text || !text.trim()) return 'Serving the CTU-Daanbantayan student body with integrity and purpose.';
+  // Strip any existing straight or curly quote marks
+  const clean = text.replace(/["“”'‘’`«»]/g, '').trim();
   const words = clean.split(/\s+/);
-  if (words.length > MAX_QUOTE_WORDS) {
-    return `“${words.slice(0, MAX_QUOTE_WORDS).join(' ')}...”`;
+  if (words.length > MAX_STATEMENT_WORDS) {
+    return `${words.slice(0, MAX_STATEMENT_WORDS).join(' ')}...`;
   }
-  if (clean.length > MAX_QUOTE_CHARS) {
-    return `“${clean.slice(0, MAX_QUOTE_CHARS).trim()}...”`;
+  if (clean.length > MAX_STATEMENT_CHARS) {
+    return `${clean.slice(0, MAX_STATEMENT_CHARS).trim()}...`;
   }
-  return `“${clean}”`;
+  return clean;
 };
 
 /* ───────────────────────────────────────────────
@@ -71,23 +80,30 @@ const formatOfficerQuote = (quote) => {
    ─────────────────────────────────────────────── */
 function getCardsPerView() {
   if (typeof window === 'undefined') return 3;
-  if (window.innerWidth < 768) return 1;
-  if (window.innerWidth < 1024) return 2;
+  if (window.innerWidth <= 768) return 1;
+  if (window.innerWidth <= 1024) return 2;
   return 3;
 }
 
-function OfficerCarousel({ members }) {
-  const [slide, setSlide] = useState(0);
+const OfficerCarousel = React.memo(function OfficerCarousel({ members }) {
   const [cardsPerView, setCardsPerView] = useState(getCardsPerView);
+  const [slide, setSlide] = useState(0);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
   useEffect(() => {
+    let ticking = false;
     const handleResize = () => {
-      setCardsPerView(getCardsPerView());
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const nextCards = getCardsPerView();
+          setCardsPerView((prev) => (prev !== nextCards ? nextCards : prev));
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    handleResize();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -122,17 +138,17 @@ function OfficerCarousel({ members }) {
             <span className={styles.carouselTotalSlides}>{String(totalSlides).padStart(2, '0')}</span>
           </div>
           <div className={styles.carouselArrowGroup}>
-            <button 
-              className={`${styles.carouselArrow} ${styles.carouselArrowLeft}`} 
-              onClick={prevSlide} 
+            <button
+              className={`${styles.carouselArrow} ${styles.carouselArrowLeft}`}
+              onClick={prevSlide}
               aria-label="Previous leadership slide"
               title="Previous slide"
             >
               <ChevronLeftIcon />
             </button>
-            <button 
-              className={`${styles.carouselArrow} ${styles.carouselArrowRight}`} 
-              onClick={nextSlide} 
+            <button
+              className={`${styles.carouselArrow} ${styles.carouselArrowRight}`}
+              onClick={nextSlide}
               aria-label="Next leadership slide"
               title="Next slide"
             >
@@ -180,22 +196,22 @@ function OfficerCarousel({ members }) {
                         <div className={styles.officerBody}>
                           <h3 className={styles.officerName}>{officer.name}</h3>
                           <div className={styles.officerQuoteDivider} />
-                          <p 
+                          <p
                             className={`${styles.officerDescription} ${!officer.description ? styles.officerDescriptionPlaceholder : ''}`}
                             title={officer.description || 'Dedicated SSG Leader'}
                           >
-                            {formatOfficerQuote(officer.description)}
+                            {formatOfficerStatement(officer.description)}
                           </p>
                         </div>
 
                         {/* Footer & Social Contacts */}
                         <div className={styles.officerFooter}>
                           {officer.facebookLink ? (
-                            <a 
-                              href={officer.facebookLink} 
-                              className={styles.socialLink} 
-                              target="_blank" 
-                              rel="noreferrer" 
+                            <a
+                              href={officer.facebookLink}
+                              className={styles.socialLink}
+                              target="_blank"
+                              rel="noreferrer"
                               aria-label={`${officer.name} on Facebook`}
                               title="Official Facebook Profile"
                             >
@@ -232,7 +248,7 @@ function OfficerCarousel({ members }) {
       )}
     </div>
   );
-}
+});
 
 function Homepage({ toggleSidebar, sidebarOpen }) {
   const { userRole, currentUser } = useAuth();
@@ -256,11 +272,16 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
 
   // Scroll-to-top visibility
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const showScrollTopRef = useRef(false);
 
-  // Refs for scrolling to sections
+  // Refs for scrolling to sections and viewport-aware pauses
   const productsRef = useRef(null);
   const announcementsRef = useRef(null);
   const calendarRef = useRef(null);
+  const heroSectionRef = useRef(null);
+  const newsSectionRef = useRef(null);
+  const [isHeroVisible, setIsHeroVisible] = useState(true);
+  const [isNewsVisible, setIsNewsVisible] = useState(true);
 
   // Hero text animation state
   const [heroTextIndex, setHeroTextIndex] = useState(0);
@@ -416,8 +437,32 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
     return () => unsub();
   }, []);
 
-  /* ── Hero Text Animation ── */
+  /* ── Viewport Observers for Hero & News to pause off-screen timers ── */
   useEffect(() => {
+    if (!window.IntersectionObserver) return;
+    const heroObserver = new IntersectionObserver(
+      ([entry]) => setIsHeroVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    const heroEl = heroSectionRef.current;
+    if (heroEl) heroObserver.observe(heroEl);
+
+    const newsObserver = new IntersectionObserver(
+      ([entry]) => setIsNewsVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    const newsEl = newsSectionRef.current;
+    if (newsEl) newsObserver.observe(newsEl);
+
+    return () => {
+      if (heroEl) heroObserver.unobserve(heroEl);
+      if (newsEl) newsObserver.unobserve(newsEl);
+    };
+  }, [newsArticles.length]);
+
+  /* ── Hero Text Animation (pauses when hero is scrolled off-screen) ── */
+  useEffect(() => {
+    if (!isHeroVisible) return;
     const currentText = heroTexts[heroTextIndex];
 
     // Start fade out 500ms before switching
@@ -435,35 +480,48 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       clearTimeout(fadeOutTimer);
       clearTimeout(switchTimer);
     };
-  }, [heroTextIndex]);
+  }, [heroTextIndex, isHeroVisible]);
 
-  /* ── Scroll-to-top visibility ── */
+  /* ── Scroll-to-top visibility (eliminated redundant state dispatches) ── */
   useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 600);
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const isScrolled = window.scrollY > 600;
+          if (showScrollTopRef.current !== isScrolled) {
+            showScrollTopRef.current = isScrolled;
+            setShowScrollTop(isScrolled);
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* ── News Slideshow: Auto-advance articles ── */
+  /* ── News Slideshow: Auto-advance articles (pauses when off-screen) ── */
   useEffect(() => {
-    if (newsArticles.length === 0) return;
+    if (newsArticles.length === 0 || !isNewsVisible) return;
     const interval = setInterval(() => {
       setNewsSlideIndex((prev) => (prev + 1) % newsArticles.length);
       setNewsImageIndex(0);
     }, 6000);
     return () => clearInterval(interval);
-  }, [newsArticles.length]);
+  }, [newsArticles.length, isNewsVisible]);
 
   /* ── News Slideshow: Auto-advance images within article ── */
   useEffect(() => {
-    if (newsArticles.length === 0) return;
+    if (newsArticles.length === 0 || !isNewsVisible) return;
     const currentArticle = newsArticles[newsSlideIndex];
     if (!currentArticle?.images || currentArticle.images.length <= 1) return;
     const interval = setInterval(() => {
       setNewsImageIndex((prev) => (prev + 1) % currentArticle.images.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, [newsSlideIndex, newsArticles]);
+  }, [newsSlideIndex, newsArticles, isNewsVisible]);
 
   /* ── Helpers ── */
   const handleOrderNow = (product) => navigate('/order', { state: { product } });
@@ -478,14 +536,6 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
   };
 
   const getCategoryLabel = (cat) => (cat || 'General').toUpperCase();
-
-  const ShoppingBagIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <path d="M16 10a4 4 0 01-8 0" />
-    </svg>
-  );
 
   /* ─────────────────────────────────────────── */
   return (
@@ -504,7 +554,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       {/* ══════════════════════════════════════
           HERO — editorial masthead
       ══════════════════════════════════════ */}
-      <section className={styles.heroSection}>
+      <section ref={heroSectionRef} className={styles.heroSection}>
         {/* Slideshow */}
         <div className={styles.slideContainer}>
           {['slide1', 'slide2', 'slide3', 'slide4', 'slide5', 'slide6'].map((s) => (
@@ -564,7 +614,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
                       return [
                         { icon: <HiCube />, label: 'Inventory', action: () => navigate('/inventory') },
                         { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
-                        { icon: <HiCalendar />, label: 'Events & Announcements', action: () => scrollToSection(announcementsRef) },
+                        { icon: <HiCalendar />, label: 'Event Calendar', action: () => scrollToSection(calendarRef) },
                       ];
                     case 'admin':
                       return [
@@ -577,7 +627,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
                       return [
                         { icon: <HiTruck />, label: 'Track My Order', action: () => navigate('/track-order') },
                         { icon: <HiShoppingBag />, label: 'Product Catalogue', action: () => scrollToSection(productsRef) },
-                        { icon: <HiCalendar />, label: 'Events & Announcements', action: () => scrollToSection(announcementsRef) },
+                        { icon: <HiCalendar />, label: 'Event Calendar', action: () => scrollToSection(calendarRef) },
                       ];
                   }
                 };
@@ -828,7 +878,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
           WHAT'S NEW — News Slideshow
       ══════════════════════════════════════ */}
       {newsArticles.length > 0 && (
-        <section className={styles.whatsNewSection}>
+        <section ref={newsSectionRef} className={styles.whatsNewSection}>
           <header className={styles.sectionHeader}>
             <span className={styles.sectionEyebrow}>WHAT'S NEW</span>
             <h2 className={styles.sectionTitle}>Latest News</h2>
@@ -993,15 +1043,19 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       <hr className={styles.sectionRule} />
 
       {/* ══════════════════════════════════════
-          CALENDAR
+          EVENT CALENDAR — Preview Widget (Read-Only)
       ══════════════════════════════════════ */}
       <section ref={calendarRef} className={styles.calendarSection}>
         <header className={styles.sectionHeader}>
-          <span className={styles.sectionEyebrow}>SCHEDULE</span>
-          <h2 className={styles.sectionTitle}>Academic Calendar</h2>
+          <span className={styles.sectionEyebrow}>ACADEMIC & ACTIVITIES CALENDAR</span>
+          <h2 className={styles.sectionTitle}>Upcoming Events & Schedules</h2>
+          <p className={styles.sectionSubtitle}>
+            Official institutional calendar, deadlines, departmental events, and student assemblies
+          </p>
         </header>
+
         <div className={styles.calendarWrapper}>
-          <CalendarWidget />
+          <CalendarWidget readOnly={true} />
         </div>
       </section>
 
@@ -1078,8 +1132,8 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
                   {org.logo64
                     ? <img src={org.logo64} alt="" className={styles.orgSwitcherLogo} />
                     : <span className={styles.orgSwitcherFallback}>
-                        {(org.name || 'O').charAt(0).toUpperCase()}
-                      </span>}
+                      {(org.name || 'O').charAt(0).toUpperCase()}
+                    </span>}
                   <span className={styles.orgSwitcherName}>{org.name || 'Organization'}</span>
                 </button>
               ))}
@@ -1126,13 +1180,10 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
           </div>
           <div className={styles.footerRight}>
             <div className={styles.footerSocialLinks}>
-              <a href="https://facebook.com" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Facebook">
+              <a href="https://facebook.com/SSGCTUDB" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Facebook">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
               </a>
-              <a href="https://twitter.com" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Twitter">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
-              </a>
-              <a href="https://instagram.com" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Instagram">
+              <a href="https://www.instagram.com/ssgctudb/" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Instagram">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
               </a>
             </div>

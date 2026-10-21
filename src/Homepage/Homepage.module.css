@@ -195,6 +195,8 @@
   background-position: center;
   opacity: 0;
   animation: imageFade 30s infinite;
+  will-change: opacity, transform;
+  transform: translateZ(0);
 }
 .slide1 { background-image: url('/CTU Cover.jpg');       animation-delay: 0s;  }
 .slide2 { background-image: url('/achievement 1.jpg');   animation-delay: 5s;  }
@@ -343,9 +345,8 @@
 
 /* Quick Access panel */
 .quickAccessSection {
-  background: var(--bg-charcoal-75);
+  background: rgba(26, 26, 26, 0.88);
   border: 1px solid var(--color-medium-gray);
-  backdrop-filter: blur(12px);
   padding: calc(var(--rhythm) * 1.5);
 }
 
@@ -571,10 +572,9 @@
 .productCard {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(30, 30, 30, 0.75) 0%, rgba(20, 20, 20, 0.9) 100%);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, #1c1c1c 0%, #141414 100%);
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -634,7 +634,6 @@
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   text-transform: uppercase;
-  backdrop-filter: blur(8px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
@@ -1294,17 +1293,16 @@
 .carouselArrow {
   width: 42px;
   height: 42px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   border-radius: 10px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  backdrop-filter: blur(8px);
 }
 
 .carouselArrow svg {
@@ -1348,9 +1346,13 @@
 
 .carouselSlide {
   min-width: 100%;
+  width: 100%;
   flex-shrink: 0;
   padding: 0 4px;
   box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
 }
 
 /* ── Officers Grid (inside carousel) ────────────────────── */
@@ -1359,7 +1361,8 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
   align-items: stretch;
-  justify-content: start;
+  justify-content: center;
+  justify-items: center;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1368,8 +1371,7 @@
 .officerCard {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(30, 30, 30, 0.6) 0%, rgba(20, 20, 20, 0.85) 100%);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, #1e1e1e 0%, #131313 100%);
   padding: 1.75rem 1.4rem;
   text-align: center;
   display: flex;
@@ -1378,7 +1380,8 @@
   height: 100%;
   width: 100%;
   min-width: 0;
-  max-width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
@@ -1603,27 +1606,7 @@
   box-shadow: 0 0 12px rgba(217, 79, 31, 0.5);
 }
 
-/* ── Responsive Behavior ─────────────────────────────────── */
-@media (max-width: 1024px) {
-  .officersGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .officersGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .officerCard {
-    padding: 1.5rem 1.25rem;
-  }
-
-  .officerImageWrapper {
-    width: 95px;
-    height: 95px;
-  }
-}
+/* ── Officers Responsive Overrides are centralized below under Section Breakpoints ── */
 
 /* ══════════════════════════════════════════════════════════
    FOOTER
@@ -1730,12 +1713,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-charcoal-90);
+  background: rgba(26, 26, 26, 0.95);
   border: 1px solid var(--color-orange);
   color: var(--color-orange);
   cursor: pointer;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   animation: fadeInUp 0.3s ease;
 }
 
@@ -1828,19 +1810,20 @@
     gap: calc(var(--rhythm) * 1.5);
   }
   .announcementsGrid { grid-template-columns: 1fr; }
-  .officersGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .officersGrid { 
+    grid-template-columns: repeat(2, minmax(0, 1fr)); 
+    justify-content: center;
+    justify-items: center;
+  }
   .skeletonGrid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 
-  /* Carousel wrapper with less padding on tablet */
+  /* Carousel wrapper on tablet */
   .carouselWrapper {
-    padding: 0 70px;
-  }
-
-  .carouselArrow {
-    width: 50px;
-    height: 50px;
+    padding: 0 1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -1851,15 +1834,18 @@
     gap: var(--rhythm);
   }
   .officersGrid { 
-    grid-template-columns: minmax(0, 1fr); 
-    gap: var(--rhythm);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
+    box-sizing: border-box;
   }
   .officerCard {
     width: 100%;
-    max-width: 380px;
+    max-width: 320px;
     margin: 0 auto;
-    padding: calc(var(--rhythm) * 1.25) var(--rhythm);
+    padding: 1.5rem 1.2rem;
+    box-sizing: border-box;
   }
   .footerInner { flex-direction: column; text-align: center; }
   .footerRight { align-items: center; }
@@ -1985,10 +1971,19 @@
     grid-template-columns: 1fr;
     gap: calc(var(--rhythm) * 1.25);
   }
-  .officersGrid { grid-template-columns: 1fr; }
+  .officersGrid { 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
   .officerCard {
-    max-width: 100%;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
     padding: 1.25rem 0.85rem;
+    box-sizing: border-box;
   }
   .announcementListThumb {
     width: 52px;

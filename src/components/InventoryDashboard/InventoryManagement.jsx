@@ -1,25 +1,24 @@
-// components/InventoryManagement/InventoryManagement.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { useInventory } from '../../components/InventoryContext/InventoryProvider';
 import { useAuth } from '../AuthContext/AuthContext';
-import { 
-  Package, 
-  AlertTriangle, 
-  Clock, 
-  Coins, 
-  Plus, 
-  Search, 
-  Filter, 
-  ArrowDownToLine, 
-  Edit3, 
-  Trash2, 
-  CheckCircle2, 
-  Check, 
-  Paperclip, 
-  X, 
-  Tag, 
-  Layers, 
-  History, 
+import {
+  Package,
+  AlertTriangle,
+  Clock,
+  Coins,
+  Plus,
+  Search,
+  Filter,
+  ArrowDownToLine,
+  Edit3,
+  Trash2,
+  CheckCircle2,
+  Check,
+  Paperclip,
+  X,
+  Tag,
+  Layers,
+  History,
   Sparkles,
   ShieldCheck,
   FileText
@@ -90,10 +89,33 @@ const InventoryManagement = () => {
     minQuantity: 5,
   });
 
-  // Role permissions
-  const canEdit = ['admin', 'secretary', 'representative'].includes(userRole);
+  // Role permissions based on access tiers
+  const HIGHER_ACCESS_ROLES = [
+    'admin',
+    'president',
+    'vice_president',
+    'secretary',
+    'executive_secretary',
+    'press_secretary',
+    'linkages_secretary',
+    'deputy_secretary',
+    'finance_secretary',
+    'auditor',
+    'budget_officer',
+  ];
 
-  const handleOpenDialog = (item = null) => {
+  const MEDIUM_ACCESS_ROLES = [
+    'senator',
+    'representative',
+  ];
+
+  // Higher + Medium access can Add, Update, Edit, and issue Borrow requisitions
+  const canEdit = HIGHER_ACCESS_ROLES.includes(userRole) || MEDIUM_ACCESS_ROLES.includes(userRole);
+
+  // Higher access only can permanently Delete items
+  const canDelete = HIGHER_ACCESS_ROLES.includes(userRole);
+
+  const handleOpenDialog = useCallback((item = null) => {
     if (item) {
       setFormData({
         name: item.name || '',
@@ -120,14 +142,14 @@ const InventoryManagement = () => {
       setSelectedItem(null);
     }
     setOpenDialog(true);
-  };
+  }, [categories]);
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
     setSelectedItem(null);
-  };
+  }, []);
 
-  const handleOpenBorrowDialog = (item) => {
+  const handleOpenBorrowDialog = useCallback((item) => {
     setSelectedItem(item);
     setBorrowForm({
       itemId: item.id,
@@ -138,16 +160,23 @@ const InventoryManagement = () => {
       expectedReturnDate: '',
     });
     setOpenBorrowDialog(true);
-  };
+  }, []);
 
-  const handleOpenReturnDialog = (log) => {
+  const handleOpenReturnDialog = useCallback((log) => {
     setSelectedBorrowLog(log);
     setReturnForm({
       notes: '',
       condition: 'good',
     });
     setOpenReturnDialog(true);
-  };
+  }, []);
+
+  const handleDeleteItem = useCallback((item) => {
+    if (window.confirm(`Permanently remove "${item.name}" from the inventory register?`)) {
+      deleteInventoryItem(item.id);
+      showToast(`Removed "${item.name}"`);
+    }
+  }, [deleteInventoryItem]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -258,16 +287,16 @@ const InventoryManagement = () => {
   // Filtered inventory items
   const filteredInventory = useMemo(() => {
     return inventory.filter(item => {
-      const matchesSearch = 
+      const matchesSearch =
         !searchTerm.trim() ||
         item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.storageLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.category?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesCategory = 
+      const matchesCategory =
         selectedCategory === 'ALL' || item.category === selectedCategory;
 
-      const matchesStock = 
+      const matchesStock =
         stockFilter === 'ALL' ||
         (stockFilter === 'LOW' && item.quantity > 0 && item.quantity <= (item.minQuantity || 5)) ||
         (stockFilter === 'OUT' && item.quantity === 0) ||
@@ -296,7 +325,7 @@ const InventoryManagement = () => {
           </div>
           <h1 className={styles.title}>Inventory Management</h1>
           <p className={styles.subtitle}>
-            Monitor university property, custody tracking, and supply replenishment telemetry for CTU Daanbantayan.
+            Monitor university property, custody tracking, and supply replenishment telemetry for SSG CTU Daanbantayan.
           </p>
         </div>
 
@@ -314,10 +343,19 @@ const InventoryManagement = () => {
         )}
       </header>
 
-      {/* Metric Cards Bento Grid */}
+      {/* Metric Cards Bento Grid (Interactive 1-Click Filters) */}
       <div className={styles.statsContainer}>
-        {/* Total Assets */}
-        <div className={styles.statCard}>
+        {/* Total Assets - Reset to All */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${styles.statCardClickable} ${tabValue === 0 && stockFilter === 'ALL' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setTabValue(0);
+            setStockFilter('ALL');
+          }}
+          aria-pressed={tabValue === 0 && stockFilter === 'ALL'}
+          title="Show all inventory assets"
+        >
           <div className={styles.statTop}>
             <span className={styles.statLabel}>Total Asset Types</span>
             <div className={`${styles.statIconBadge} ${styles.badgePrimary}`}>
@@ -325,11 +363,22 @@ const InventoryManagement = () => {
             </div>
           </div>
           <div className={styles.statValue}>{inventory.length}</div>
-          <div className={styles.statCaption}>Registered equipment & supplies</div>
-        </div>
+          <div className={styles.statCaption}>
+            {tabValue === 0 && stockFilter === 'ALL' ? '● Showing all items' : 'Click to view all items'}
+          </div>
+        </button>
 
-        {/* Low Stock Attention */}
-        <div className={`${styles.statCard} ${lowStockCount > 0 ? styles.statCardWarning : ''}`}>
+        {/* Low Stock Attention - 1-Click Low-Stock Filter */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${styles.statCardClickable} ${lowStockCount > 0 ? styles.statCardWarning : ''} ${tabValue === 0 && stockFilter === 'LOW' ? styles.statCardActiveWarning : ''}`}
+          onClick={() => {
+            setTabValue(0);
+            setStockFilter(prev => prev === 'LOW' ? 'ALL' : 'LOW');
+          }}
+          aria-pressed={tabValue === 0 && stockFilter === 'LOW'}
+          title="Toggle low stock filter"
+        >
           <div className={styles.statTop}>
             <span className={styles.statLabel}>Low Stock Alerts</span>
             <div className={`${styles.statIconBadge} ${styles.badgeWarning}`}>
@@ -338,12 +387,20 @@ const InventoryManagement = () => {
           </div>
           <div className={styles.statValue}>{lowStockCount}</div>
           <div className={styles.statCaption}>
-            {lowStockCount > 0 ? 'Items below critical safety threshold' : 'All stock levels healthy'}
+            {tabValue === 0 && stockFilter === 'LOW'
+              ? '● Filter Active (Click to reset)'
+              : lowStockCount > 0 ? 'Click to filter low stock items' : 'All stock levels healthy'}
           </div>
-        </div>
+        </button>
 
-        {/* Active Custody / Borrowings */}
-        <div className={styles.statCard}>
+        {/* Active Custody / Borrowings - Quick jump to Custody Tab */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${styles.statCardClickable} ${tabValue === 1 ? styles.statCardActiveInfo : ''}`}
+          onClick={() => setTabValue(1)}
+          aria-pressed={tabValue === 1}
+          title="Jump to Requisition & Borrowing tab"
+        >
           <div className={styles.statTop}>
             <span className={styles.statLabel}>Active Custody</span>
             <div className={`${styles.statIconBadge} ${styles.badgeInfo}`}>
@@ -351,8 +408,10 @@ const InventoryManagement = () => {
             </div>
           </div>
           <div className={styles.statValue}>{activeBorrowingsCount}</div>
-          <div className={styles.statCaption}>Equipment currently loaned out</div>
-        </div>
+          <div className={styles.statCaption}>
+            {tabValue === 1 ? '● Requisition tab active' : 'Click to inspect custody logs'}
+          </div>
+        </button>
 
         {/* Total Assessed Value */}
         <div className={styles.statCard}>
@@ -380,7 +439,7 @@ const InventoryManagement = () => {
             <Layers size={17} className={styles.tabIcon} />
             <span>Stock Inventory ({inventory.length})</span>
           </button>
-          
+
           <button
             type="button"
             className={`${styles.tab} ${tabValue === 1 ? styles.activeTab : ''}`}
@@ -418,8 +477,8 @@ const InventoryManagement = () => {
                 className={styles.searchInput}
               />
               {searchTerm && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={styles.clearSearchBtn}
                   onClick={() => setSearchTerm('')}
                   title="Clear search"
@@ -504,96 +563,18 @@ const InventoryManagement = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredInventory.map((item) => {
-                      const isLow = item.quantity <= (item.minQuantity || 5) && item.quantity > 0;
-                      const isOut = item.quantity === 0;
-
-                      return (
-                        <tr key={item.id} className={isLow ? styles.lowStockRow : isOut ? styles.outOfStockRow : ''}>
-                          <td>
-                            <div className={styles.itemNameWrapper}>
-                              <span className={styles.itemNameText}>{item.name}</span>
-                              {item.description && (
-                                <span className={styles.itemDescriptionText}>
-                                  {item.description}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td>
-                            <span className={styles.categoryBadge}>
-                              {item.category || 'General'}
-                            </span>
-                          </td>
-                          <td className={styles.textRight}>
-                            <div className={styles.quantityCell}>
-                              <span className={styles.quantityNum}>{item.quantity}</span>
-                              <span className={styles.quantityUnit}>units</span>
-                              {isLow && (
-                                <span className={styles.lowStockIndicator} title="Below minimum stock threshold">
-                                  <AlertTriangle size={13} />
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className={styles.textRight}>
-                            <span className={styles.priceNum}>{formatCurrency(item.amount || 0)}</span>
-                          </td>
-                          <td>
-                            <span className={styles.locationTag}>{item.storageLocation || 'Unassigned'}</span>
-                          </td>
-                          <td>
-                            <span className={`${styles.statusBadge} ${isOut ? styles.statusOut : isLow ? styles.statusLow : styles.statusIn}`}>
-                              <span className={styles.statusDot} />
-                              {isOut ? 'Depleted' : isLow ? 'Low Stock' : 'In Stock'}
-                            </span>
-                          </td>
-                          <td className={styles.textCenter}>
-                            <div className={styles.actionButtons}>
-                              <button
-                                type="button"
-                                className={`${styles.actionButton} ${styles.borrowBtn}`}
-                                onClick={() => handleOpenBorrowDialog(item)}
-                                disabled={isOut}
-                                title={isOut ? 'Depleted - cannot borrow' : 'Issue borrow requisition'}
-                              >
-                                <ArrowDownToLine size={14} />
-                                <span>Borrow</span>
-                              </button>
-
-                              {canEdit && (
-                                <>
-                                  <button
-                                    type="button"
-                                    className={`${styles.actionButton} ${styles.editBtn}`}
-                                    onClick={() => handleOpenDialog(item)}
-                                    title="Edit asset details"
-                                  >
-                                    <Edit3 size={14} />
-                                    <span>Edit</span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    className={`${styles.actionButton} ${styles.deleteBtn}`}
-                                    onClick={() => {
-                                      if (window.confirm(`Permanently remove "${item.name}" from the inventory register?`)) {
-                                        deleteInventoryItem(item.id);
-                                        showToast(`Removed "${item.name}"`);
-                                      }
-                                    }}
-                                    title="Delete item"
-                                  >
-                                    <Trash2 size={14} />
-                                    <span>Delete</span>
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {filteredInventory.map((item) => (
+                      <InventoryRow
+                        key={item.id}
+                        item={item}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        onBorrow={handleOpenBorrowDialog}
+                        onEdit={handleOpenDialog}
+                        onDelete={handleDeleteItem}
+                        formatCurrency={formatCurrency}
+                      />
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -635,50 +616,12 @@ const InventoryManagement = () => {
                     </tr>
                   ) : (
                     borrowedItems.map((log) => (
-                      <tr key={log.id}>
-                        <td>
-                          <strong>{log.itemName}</strong>
-                        </td>
-                        <td>
-                          <div className={styles.borrowerInfo}>
-                            <span>{log.borrowerName || log.borrowedBy || 'Student'}</span>
-                            {log.borrowerEmail && (
-                              <small className={styles.borrowerEmail}>{log.borrowerEmail}</small>
-                            )}
-                          </div>
-                        </td>
-                        <td>{formatDate(log.borrowDate)}</td>
-                        <td>{log.expectedReturnDate ? formatDate(log.expectedReturnDate) : 'Open term'}</td>
-                        <td className={styles.textRight}>
-                          <strong>{log.quantityBorrowed || 1}</strong> pcs
-                        </td>
-                        <td>
-                          <span className={styles.purposeText}>{log.purpose || 'Institutional Activity'}</span>
-                        </td>
-                        <td>
-                          <span className={`${styles.statusBadge} ${log.returned ? styles.statusReturned : styles.statusBorrowed}`}>
-                            <span className={styles.statusDot} />
-                            {log.returned ? 'Returned' : 'In Custody'}
-                          </span>
-                        </td>
-                        <td className={styles.textCenter}>
-                          {!log.returned ? (
-                            <button
-                              type="button"
-                              className={styles.returnActionBtn}
-                              onClick={() => handleOpenReturnDialog(log)}
-                              title="Process check-in return"
-                            >
-                              <Check size={14} />
-                              <span>Mark Returned</span>
-                            </button>
-                          ) : (
-                            <span className={styles.completedCheck}>
-                              <ShieldCheck size={15} /> Cleared
-                            </span>
-                          )}
-                        </td>
-                      </tr>
+                      <BorrowLogRow
+                        key={log.id}
+                        log={log}
+                        onReturn={handleOpenReturnDialog}
+                        formatDate={formatDate}
+                      />
                     ))
                   )}
                 </tbody>
@@ -1036,5 +979,157 @@ const InventoryManagement = () => {
     </div>
   );
 };
+
+// ==========================================
+// MEMOIZED HIGH-PERFORMANCE TABLE ROW COMPONENTS
+// Eliminates re-rendering 100+ DOM nodes on scroll/keystrokes
+// ==========================================
+
+const InventoryRow = memo(function InventoryRow({
+  item,
+  canEdit,
+  canDelete,
+  onBorrow,
+  onEdit,
+  onDelete,
+  formatCurrency,
+}) {
+  const isLow = item.quantity <= (item.minQuantity || 5) && item.quantity > 0;
+  const isOut = item.quantity === 0;
+
+  return (
+    <tr className={isLow ? styles.lowStockRow : isOut ? styles.outOfStockRow : ''}>
+      <td>
+        <div className={styles.itemNameWrapper}>
+          <span className={styles.itemNameText}>{item.name}</span>
+          {item.description && (
+            <span className={styles.itemDescriptionText}>
+              {item.description}
+            </span>
+          )}
+        </div>
+      </td>
+      <td>
+        <span className={styles.categoryBadge}>
+          {item.category || 'General'}
+        </span>
+      </td>
+      <td className={styles.textRight}>
+        <div className={styles.quantityCell}>
+          <span className={styles.quantityNum}>{item.quantity}</span>
+          <span className={styles.quantityUnit}>units</span>
+          {isLow && (
+            <span className={styles.lowStockIndicator} title="Below minimum stock threshold">
+              <AlertTriangle size={13} />
+            </span>
+          )}
+        </div>
+      </td>
+      <td className={styles.textRight}>
+        <span className={styles.priceNum}>{formatCurrency(item.amount || 0)}</span>
+      </td>
+      <td>
+        <span className={styles.locationTag}>{item.storageLocation || 'Unassigned'}</span>
+      </td>
+      <td>
+        <span className={`${styles.statusBadge} ${isOut ? styles.statusOut : isLow ? styles.statusLow : styles.statusIn}`}>
+          <span className={styles.statusDot} />
+          {isOut ? 'Depleted' : isLow ? 'Low Stock' : 'In Stock'}
+        </span>
+      </td>
+      <td className={styles.textCenter}>
+        <div className={styles.actionButtons}>
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.borrowBtn}`}
+            onClick={() => onBorrow(item)}
+            disabled={isOut}
+            title={isOut ? 'Depleted - cannot borrow' : 'Issue borrow requisition'}
+          >
+            <ArrowDownToLine size={14} />
+            <span>Borrow</span>
+          </button>
+
+          {canEdit && (
+            <button
+              type="button"
+              className={`${styles.actionButton} ${styles.editBtn}`}
+              onClick={() => onEdit(item)}
+              title="Edit asset details"
+            >
+              <Edit3 size={14} />
+              <span>Edit</span>
+            </button>
+          )}
+
+          {canDelete && (
+            <button
+              type="button"
+              className={`${styles.actionButton} ${styles.deleteBtn}`}
+              onClick={() => onDelete(item)}
+              title="Delete item (Higher Access only)"
+            >
+              <Trash2 size={14} />
+              <span>Delete</span>
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+});
+
+const BorrowLogRow = memo(function BorrowLogRow({
+  log,
+  onReturn,
+  formatDate,
+}) {
+  return (
+    <tr>
+      <td>
+        <strong>{log.itemName}</strong>
+      </td>
+      <td>
+        <div className={styles.borrowerInfo}>
+          <span>{log.borrowerName || log.borrowedBy || 'Student'}</span>
+          {log.borrowerEmail && (
+            <small className={styles.borrowerEmail}>{log.borrowerEmail}</small>
+          )}
+        </div>
+      </td>
+      <td>{formatDate(log.borrowDate)}</td>
+      <td>{log.expectedReturnDate ? formatDate(log.expectedReturnDate) : 'Open term'}</td>
+      <td className={styles.textRight}>
+        <strong>{log.quantityBorrowed || 1}</strong> pcs
+      </td>
+      <td>
+        <span className={styles.purposeText}>{log.purpose || 'Institutional Activity'}</span>
+      </td>
+      <td>
+        <span className={`${styles.statusBadge} ${log.returned ? styles.statusReturned : styles.statusBorrowed}`}>
+          <span className={styles.statusDot} />
+          {log.returned ? 'Returned' : 'In Custody'}
+        </span>
+      </td>
+      <td className={styles.textCenter}>
+        {!log.returned ? (
+          <button
+            type="button"
+            className={styles.returnActionBtn}
+            onClick={() => onReturn(log)}
+            title="Process check-in return"
+          >
+            <Check size={14} />
+            <span>Mark Returned</span>
+          </button>
+        ) : (
+          <span className={styles.completedCheck}>
+            <ShieldCheck size={15} /> Cleared
+          </span>
+        )}
+      </td>
+    </tr>
+  );
+});
 
 export default InventoryManagement;

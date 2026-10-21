@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
-import {useFinance} from '../FinanceContext/FinanceProvider.jsx';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import financeAuditService from '../../services/financeAuditService.js';
 import styles from './BudgetForm.module.css';
@@ -17,12 +16,32 @@ import {
   HiSave,
   HiX,
   HiExclamationCircle,
-  HiCheckCircle
+  HiCheckCircle,
+  HiSparkles,
+  HiPlus,
+  HiTrash,
+  HiInformationCircle,
+  HiRefresh
 } from 'react-icons/hi';
+
+const QUICK_PRESETS = [
+  { label: '₱5,000', value: 5000 },
+  { label: '₱10,000', value: 10000 },
+  { label: '₱25,000', value: 25000 },
+  { label: '₱50,000', value: 50000 },
+  { label: '₱100,000', value: 100000 },
+];
+
+const RESOLUTION_TEMPLATES = [
+  'General Student Assembly Assembly Res.',
+  'Executive Council Resolution No.',
+  'Special Project Appropriations Res.',
+  'Emergency Contingency Release Res.'
+];
 
 const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
   const { userName, userRole, currentUser } = useAuth();
-  const { addBudget, updateBudget } = useFinance();
+  const { addBudget, updateBudget, funds, statistics } = useFinance();
   
   // Form state
   const [formData, setFormData] = useState({
@@ -33,15 +52,23 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
     committee: 'General',
     resolution: '',
     description: '',
-    receiptUrl: '', // Changed from receipt to receiptUrl
+    receiptUrl: '',
     fiscalYear: new Date().getFullYear(),
     startDate: '',
     endDate: '',
   });
 
+  // Itemized line-items sub-calculator for planning allocations
+  const [showItemizer, setShowItemizer] = useState(false);
+  const [breakdownItems, setBreakdownItems] = useState([
+    { description: 'Venue / Materials', cost: '' },
+    { description: 'Refreshments / Logistics', cost: '' }
+  ]);
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const [categories] = useState([
     'Event', 
     'Project', 
@@ -67,18 +94,23 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
     'Secretariat'
   ]);
 
+  // Overall treasury context: total unallocated / free treasury funds
+  const totalTreasuryFunds = funds?.totalFunds || funds?.annualBudget || 0;
+  const currentTotalAllocated = statistics?.totalAllocated || 0;
+  const unallocatedTreasury = Math.max(0, totalTreasuryFunds - currentTotalAllocated);
+
   // Prefill form if editing
   useEffect(() => {
     if (editingBudget) {
       setFormData({
         eventName: editingBudget.eventName || '',
-        allocatedAmount: editingBudget.allocated || 0,
+        allocatedAmount: editingBudget.allocated || '',
         spentAmount: editingBudget.spent || 0,
         category: editingBudget.category || 'Event',
         committee: editingBudget.committee || 'General',
         resolution: editingBudget.resolution || '',
         description: editingBudget.description || '',
-        receiptUrl: editingBudget.receiptUrl || '', // Updated field name
+        receiptUrl: editingBudget.receiptUrl || '',
         fiscalYear: editingBudget.fiscalYear || new Date().getFullYear(),
         startDate: editingBudget.startDate || '',
         endDate: editingBudget.endDate || '',
@@ -105,6 +137,60 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
     if (spent > (allocated * 0.9)) return 'Almost Spent';
     if (spent > (allocated * 0.5)) return 'In Progress';
     return 'On Track';
+  };
+
+  // Sum of sub-calculator items
+  const breakdownSum = useMemo(() => {
+    return breakdownItems.reduce((acc, curr) => {
+      const val = parseFloat(curr.cost) || 0;
+      return acc + val;
+    }, 0);
+  }, [breakdownItems]);
+
+  // Apply breakdown sum to allocated amount
+  const applyBreakdownSum = () => {
+    if (breakdownSum > 0) {
+      setFormData(prev => ({
+        ...prev,
+        allocatedAmount: breakdownSum.toFixed(2)
+      }));
+      if (errors.allocatedAmount) {
+        setErrors(prev => ({ ...prev, allocatedAmount: '' }));
+      }
+    }
+  };
+
+  const handleAddBreakdownItem = () => {
+    setBreakdownItems(prev => [...prev, { description: '', cost: '' }]);
+  };
+
+  const handleRemoveBreakdownItem = (index) => {
+    setBreakdownItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleBreakdownChange = (index, field, val) => {
+    setBreakdownItems(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: val };
+      return copy;
+    });
+  };
+
+  // Quick preset button click
+  const handlePresetClick = (amount) => {
+    setFormData(prev => ({ ...prev, allocatedAmount: amount }));
+    if (errors.allocatedAmount) {
+      setErrors(prev => ({ ...prev, allocatedAmount: '' }));
+    }
+  };
+
+  // Auto-fill template resolution
+  const handleResolutionTemplate = (prefix) => {
+    const year = formData.fiscalYear || new Date().getFullYear();
+    setFormData(prev => ({
+      ...prev,
+      resolution: `${prefix} ${year}-${String(Math.floor(Math.random() * 900) + 100)}`
+    }));
   };
 
   // Validate form
@@ -165,7 +251,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
   };
 
   // Handle form submission
-   const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -202,7 +288,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
       let result;
       if (editingBudget) {
         // Log budget update audit
-        await financeAuditService.logBudgetUpdate(currentUser.uid, editingBudget.id, {
+        await financeAuditService.logBudgetUpdate(currentUser?.uid || 'guest', editingBudget.id, {
           id: editingBudget.id,
           title: editingBudget.eventName,
           amount: editingBudget.allocated,
@@ -225,7 +311,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         result = await addBudget(budgetData);
 
         // Log budget creation audit
-        await financeAuditService.logBudgetCreation(currentUser.uid, {
+        await financeAuditService.logBudgetCreation(currentUser?.uid || 'guest', {
           id: result,
           title: budgetData.eventName,
           amount: budgetData.allocated,
@@ -250,16 +336,19 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           startDate: '',
           endDate: '',
         });
+        setBreakdownItems([
+          { description: 'Venue / Materials', cost: '' },
+          { description: 'Refreshments / Logistics', cost: '' }
+        ]);
       }
 
-      // Show success modal instead of alert
+      // Show success modal
       setShowSuccessModal(true);
       
-      // Auto-close modal and call success callback after 2 seconds
       setTimeout(() => {
         setShowSuccessModal(false);
         onSuccess(result);
-      }, 2000);
+      }, 1800);
 
     } catch (error) {
       console.error('Error saving budget:', error);
@@ -280,28 +369,33 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
     return Math.min((spent / allocated) * 100, 100);
   };
 
-  // Get status color
+  // Status color pill
   const getStatusColor = () => {
     const status = determineStatus();
     switch(status) {
-      case 'Over Budget': return '#e74c3c';
-      case 'Fully Spent': return '#27ae60';
-      case 'Almost Spent': return '#f39c12';
-      case 'In Progress': return '#3498db';
-      case 'On Track': return '#2ecc71';
-      default: return '#95a5a6';
+      case 'Over Budget': return '#e61919';
+      case 'Fully Spent': return '#16a34a';
+      case 'Almost Spent': return '#f59e0b';
+      case 'In Progress': return '#2563eb';
+      case 'On Track': return '#059669';
+      default: return '#64748b';
     }
   };
 
+  const requestedAmount = parseFloat(formData.allocatedAmount) || 0;
+  const isExceedingTreasury = totalTreasuryFunds > 0 && requestedAmount > unallocatedTreasury && !editingBudget;
+
   return (
     <div className={styles.container}>
+      {/* Header */}
       <div className={styles.header}>
+        <div className={styles.headerBadge}>FINANCIAL ALLOCATION CONTROL</div>
         <h2 className={styles.title}>
           <HiCurrencyDollar className={styles.titleIcon} />
           {editingBudget ? 'Edit Budget Allocation' : 'New Budget Allocation'}
         </h2>
         <p className={styles.subtitle}>
-          {editingBudget ? 'Update budget details for ' + editingBudget.eventName : 'Allocate budget for events, projects, or committees'}
+          {editingBudget ? 'Update budget allocation details for ' + editingBudget.eventName : 'Allocate institutional appropriations for events, projects, or student operations'}
         </p>
       </div>
 
@@ -314,28 +408,46 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           </div>
         )}
 
-        {/* Quick Stats Preview */}
+        {/* Treasury Health & Context Bar (Quality of Life) */}
+        {totalTreasuryFunds > 0 && (
+          <div className={styles.treasuryContextBanner}>
+            <div className={styles.treasuryInfo}>
+              <HiInformationCircle className={styles.treasuryIcon} />
+              <div>
+                <span className={styles.treasuryLabel}>Unallocated Campus Treasury:</span>
+                <span className={styles.treasuryValue}>₱{unallocatedTreasury.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+            {isExceedingTreasury && (
+              <span className={styles.treasuryWarning}>
+                ⚠️ Exceeds unallocated balance by ₱{(requestedAmount - unallocatedTreasury).toLocaleString()}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Real-time Dynamic Metrics Card */}
         <div className={styles.previewCard}>
           <div className={styles.previewItem}>
-            <span className={styles.previewLabel}>Allocated</span>
+            <span className={styles.previewLabel}>Allocated Capital</span>
             <span className={styles.previewValue}>
-              ₱{(parseFloat(formData.allocatedAmount) || 0).toLocaleString()}
+              ₱{(parseFloat(formData.allocatedAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div className={styles.previewItem}>
-            <span className={styles.previewLabel}>Spent</span>
+            <span className={styles.previewLabel}>Recorded Spent</span>
             <span className={styles.previewValue}>
-              ₱{(parseFloat(formData.spentAmount) || 0).toLocaleString()}
+              ₱{(parseFloat(formData.spentAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div className={styles.previewItem}>
-            <span className={styles.previewLabel}>Remaining</span>
+            <span className={styles.previewLabel}>Remaining Balance</span>
             <span className={`${styles.previewValue} ${calculateRemaining() < 0 ? styles.negativeValue : ''}`}>
-              ₱{calculateRemaining().toLocaleString()}
+              ₱{calculateRemaining().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div className={styles.previewItem}>
-            <span className={styles.previewLabel}>Status</span>
+            <span className={styles.previewLabel}>Trajectory Status</span>
             <span 
               className={styles.previewStatus}
               style={{ backgroundColor: getStatusColor() }}
@@ -345,11 +457,11 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Real-Time Utilization Progress Bar */}
         <div className={styles.progressSection}>
           <div className={styles.progressHeader}>
-            <span>Budget Utilization</span>
-            <span>{calculateProgress().toFixed(1)}%</span>
+            <span className={styles.progressTitle}>Budget Utilization Meter</span>
+            <span className={styles.progressPct}>{calculateProgress().toFixed(1)}%</span>
           </div>
           <div className={styles.progressBar}>
             <div 
@@ -358,17 +470,17 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
                 width: `${calculateProgress()}%`,
                 backgroundColor: getStatusColor()
               }}
-            ></div>
+            />
           </div>
         </div>
 
-        {/* Form Grid */}
+        {/* Form Inputs Grid */}
         <div className={styles.formGrid}>
           {/* Event/Project Name */}
           <div className={styles.formGroup}>
             <label htmlFor="eventName" className={styles.label}>
               <HiClipboardList className={styles.labelIcon} />
-              Event/Project Name *
+              Event / Project Title *
             </label>
             <input
               type="text"
@@ -377,18 +489,48 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
               value={formData.eventName}
               onChange={handleInputChange}
               className={`${styles.input} ${errors.eventName ? styles.inputError : ''}`}
-              placeholder="Enter event or project name"
+              placeholder="e.g., Intramurals 2026, Leadership Summit"
               required
             />
             {errors.eventName && <span className={styles.error}>{errors.eventName}</span>}
           </div>
 
-          {/* Allocated Amount */}
+          {/* Category */}
           <div className={styles.formGroup}>
-            <label htmlFor="allocatedAmount" className={styles.label}>
-              <HiCash className={styles.labelIcon} />
-              Allocated Amount (₱) *
+            <label htmlFor="category" className={styles.label}>
+              <HiTag className={styles.labelIcon} />
+              Appropriation Category
             </label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              className={styles.select}
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Allocated Amount with Quick Preset Badges */}
+          <div className={styles.formGroup}>
+            <div className={styles.labelRow}>
+              <label htmlFor="allocatedAmount" className={styles.label}>
+                <HiCash className={styles.labelIcon} />
+                Allocated Amount (₱) *
+              </label>
+              <button
+                type="button"
+                className={styles.toolToggleBtn}
+                onClick={() => setShowItemizer(!showItemizer)}
+                title="Toggle itemized budget calculator"
+              >
+                <HiSparkles /> {showItemizer ? 'Hide Itemizer' : 'Itemize Costs'}
+              </button>
+            </div>
+
             <div className={styles.currencyInput}>
               <span className={styles.currencySymbol}>₱</span>
               <input
@@ -405,13 +547,30 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
               />
             </div>
             {errors.allocatedAmount && <span className={styles.error}>{errors.allocatedAmount}</span>}
+
+            {/* Quick Preset Buttons (QoL Feature) */}
+            <div className={styles.presetsRow}>
+              <span className={styles.presetsLabel}>Quick Presets:</span>
+              <div className={styles.presetButtons}>
+                {QUICK_PRESETS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`${styles.presetBtn} ${parseFloat(formData.allocatedAmount) === p.value ? styles.presetBtnActive : ''}`}
+                    onClick={() => handlePresetClick(p.value)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Spent Amount */}
           <div className={styles.formGroup}>
             <label htmlFor="spentAmount" className={styles.label}>
               <HiCreditCard className={styles.labelIcon} />
-              Spent Amount (₱)
+              Initial Spent / Disbursed Amount (₱)
             </label>
             <div className={styles.currencyInput}>
               <span className={styles.currencySymbol}>₱</span>
@@ -422,7 +581,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
                 value={formData.spentAmount}
                 onChange={handleInputChange}
                 className={`${styles.input} ${errors.spentAmount ? styles.inputError : ''}`}
-                placeholder="0.00"
+                placeholder="0.00 (leave 0 if fresh allocation)"
                 min="0"
                 step="0.01"
               />
@@ -431,30 +590,11 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
             {errors.overspend && <span className={styles.error}>{errors.overspend}</span>}
           </div>
 
-          {/* Category */}
-          <div className={styles.formGroup}>
-            <label htmlFor="category" className={styles.label}>
-              <HiTag className={styles.labelIcon} />
-              Category
-            </label>
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleInputChange}
-              className={styles.select}
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Committee */}
           <div className={styles.formGroup}>
             <label htmlFor="committee" className={styles.label}>
               <HiUserGroup className={styles.labelIcon} />
-              Committee
+              Sponsoring Committee / Division
             </label>
             <select
               id="committee"
@@ -473,7 +613,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           <div className={styles.formGroup}>
             <label htmlFor="fiscalYear" className={styles.label}>
               <HiCalendar className={styles.labelIcon} />
-              Fiscal Year
+              Fiscal Fiscal Year
             </label>
             <select
               id="fiscalYear"
@@ -489,11 +629,76 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           </div>
         </div>
 
-        {/* Date Range */}
+        {/* Itemized Line-Items Calculator Drawer (Quality of Life) */}
+        {showItemizer && (
+          <div className={styles.itemizerDrawer}>
+            <div className={styles.itemizerHeader}>
+              <div>
+                <h4 className={styles.itemizerTitle}>Cost Breakdown Planner</h4>
+                <p className={styles.itemizerSubtitle}>Itemize estimated expenses to automatically compute total allocation.</p>
+              </div>
+              <div className={styles.itemizerSumBlock}>
+                <span className={styles.itemizerSumLabel}>Total Computed:</span>
+                <span className={styles.itemizerSumValue}>₱{breakdownSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <button
+                  type="button"
+                  className={styles.applyBreakdownBtn}
+                  onClick={applyBreakdownSum}
+                  disabled={breakdownSum === 0}
+                >
+                  <HiCheckCircle /> Apply To Allocation
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.itemizerList}>
+              {breakdownItems.map((item, idx) => (
+                <div key={idx} className={styles.itemizerRow}>
+                  <input
+                    type="text"
+                    placeholder="Expense item (e.g. sound system, food packs)"
+                    value={item.description}
+                    onChange={(e) => handleBreakdownChange(idx, 'description', e.target.value)}
+                    className={styles.itemizerInputDesc}
+                  />
+                  <div className={styles.itemizerCurrencyWrap}>
+                    <span>₱</span>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={item.cost}
+                      onChange={(e) => handleBreakdownChange(idx, 'cost', e.target.value)}
+                      className={styles.itemizerInputCost}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveBreakdownItem(idx)}
+                    className={styles.itemizerRemoveBtn}
+                    title="Remove item"
+                    disabled={breakdownItems.length === 1}
+                  >
+                    <HiTrash />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddBreakdownItem}
+              className={styles.itemizerAddBtn}
+            >
+              <HiPlus /> Add Expense Line
+            </button>
+          </div>
+        )}
+
+        {/* Date Range Fields */}
         <div className={styles.dateGrid}>
           <div className={styles.formGroup}>
             <label htmlFor="startDate" className={styles.label}>
-              Start Date (Optional)
+              Execution Start Date (Optional)
             </label>
             <input
               type="date"
@@ -506,7 +711,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="endDate" className={styles.label}>
-              End Date (Optional)
+              Target Completion Date (Optional)
             </label>
             <input
               type="date"
@@ -520,12 +725,14 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         </div>
         {errors.dates && <span className={styles.error}>{errors.dates}</span>}
 
-        {/* Resolution Number */}
+        {/* Resolution Number with Quick Template Generator */}
         <div className={styles.formGroup}>
-          <label htmlFor="resolution" className={styles.label}>
-            <HiDocumentText className={styles.labelIcon} />
-            Resolution Number/Name
-          </label>
+          <div className={styles.labelRow}>
+            <label htmlFor="resolution" className={styles.label}>
+              <HiDocumentText className={styles.labelIcon} />
+              Resolution Number / Legislative Reference
+            </label>
+          </div>
           <input
             type="text"
             id="resolution"
@@ -533,15 +740,29 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
             value={formData.resolution}
             onChange={handleInputChange}
             className={styles.input}
-            placeholder="e.g., Resolution No. 2024-001"
+            placeholder="e.g., SSG Res. No. 2026-042"
           />
+          {/* Quick Resolution Templates (QoL) */}
+          <div className={styles.templatePills}>
+            <span className={styles.templatePillsLabel}>Insert Template:</span>
+            {RESOLUTION_TEMPLATES.map((tmpl, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={styles.templatePillBtn}
+                onClick={() => handleResolutionTemplate(tmpl)}
+              >
+                + {tmpl.split(' ')[0]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Description */}
+        {/* Description / Scope */}
         <div className={styles.formGroup}>
           <label htmlFor="description" className={styles.label}>
             <HiDocumentText className={styles.labelIcon} />
-            Description
+            Budget Justification & Objective
           </label>
           <textarea
             id="description"
@@ -549,16 +770,16 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
             value={formData.description}
             onChange={handleInputChange}
             className={styles.textarea}
-            placeholder="Brief description of the event/project..."
+            placeholder="Outline the operational objectives, beneficiaries, and budget justification..."
             rows="3"
           />
         </div>
 
-        {/* Receipt URL */}
+        {/* Receipt / Documentation Link */}
         <div className={styles.formGroup}>
           <label htmlFor="receiptUrl" className={styles.label}>
             <HiLink className={styles.labelIcon} />
-            Receipt/Document URL
+            Verification Document / Cloud Drive Link
           </label>
           <input
             type="url"
@@ -567,27 +788,27 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
             value={formData.receiptUrl}
             onChange={handleInputChange}
             className={`${styles.input} ${errors.receiptUrl ? styles.inputError : ''}`}
-            placeholder="https://drive.google.com/file/d/... or any receipt URL"
+            placeholder="https://drive.google.com/file/d/... or document reference URL"
           />
           <small className={styles.helperText}>
-            Optional: Paste a link to the receipt (Google Drive, Dropbox, etc.)
+            Attach cloud folder, scanned canvass sheets, approved resolution PDF, or receipts for transparency.
           </small>
           {errors.receiptUrl && <span className={styles.error}>{errors.receiptUrl}</span>}
         </div>
 
-        {/* Form Actions */}
+        {/* Action Controls */}
         <div className={styles.formActions}>
           <button
             type="button"
             className={styles.secondaryButton}
             onClick={() => {
-              if (window.confirm('Are you sure you want to cancel? Unsaved changes will be lost.')) {
+              if (window.confirm('Are you sure you want to discard unsaved budget allocation changes?')) {
                 onSuccess(null);
               }
             }}
             disabled={loading}
           >
-            Cancel
+            Cancel / Back
           </button>
           <button
             type="submit"
@@ -597,12 +818,12 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
             {loading ? (
               <>
                 <span className={styles.spinner}></span>
-                {editingBudget ? 'Updating...' : 'Saving...'}
+                {editingBudget ? 'Updating Allocation...' : 'Recording Allocation...'}
               </>
             ) : (
               <>
                 <HiSave className={styles.buttonIcon} />
-                {editingBudget ? 'Update Budget' : 'Save Budget Allocation'}
+                {editingBudget ? 'Save Allocation Changes' : 'Confirm & Commit Allocation'}
               </>
             )}
           </button>
@@ -614,8 +835,8 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         <div className={styles.successModalOverlay}>
           <div className={styles.successModal}>
             <HiCheckCircle className={styles.successIcon} />
-            <h3>{editingBudget ? 'Budget Updated!' : 'Budget Created!'}</h3>
-            <p>Your changes have been saved successfully.</p>
+            <h3>{editingBudget ? 'Allocation Updated!' : 'Allocation Committed!'}</h3>
+            <p>The institutional ledger and audit records have been registered successfully.</p>
           </div>
         </div>
       )}

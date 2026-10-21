@@ -553,14 +553,34 @@
 
 /* ==========================================================================
    SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) - MEMBER MANAGEMENT
+   Strict adherence to /industrial-brutalist-ui directives:
+   - Newsprint Substrate: #F4F4F0 / #EAE8E3
+   - Carbon Ink Foreground: #0A0A0A
+   - Hazard Red: #E61919 (monochrome print accent)
+   - 0px border-radius strictly enforced across all elements
+   - 2px/3px solid #0A0A0A structural mechanical borders
+   - Hard offset box-shadows (3px 3px 0px #0A0A0A, 5px 5px 0px #0A0A0A)
+   - Macro typography (Archivo Black/Impact) & Technical Monospace (JetBrains Mono)
    ========================================================================== */
+
 :global(.theme-light) .container {
   background-color: #F4F4F0 !important;
   color: #0A0A0A !important;
+  background-image: 
+    linear-gradient(to right, rgba(10, 10, 10, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10, 10, 10, 0.04) 1px, transparent 1px) !important;
+  background-size: 32px 32px !important;
+}
+
+:global(.theme-light) .container *,
+:global(.theme-light) .container *::before,
+:global(.theme-light) .container *::after {
+  border-radius: 0px !important;
 }
 
 :global(.theme-light) .topHeader {
   border-bottom: 2px solid #0A0A0A !important;
+  padding-bottom: 1.5rem !important;
 }
 
 :global(.theme-light) .mainTitle {
@@ -571,8 +591,10 @@
 }
 
 :global(.theme-light) .subTitle {
-  color: #555555 !important;
+  color: #4A4A4A !important;
   font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+  font-size: 0.8rem !important;
 }
 
 :global(.theme-light) .searchInput {
@@ -582,11 +604,13 @@
   color: #0A0A0A !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
 }
 
 :global(.theme-light) .searchInput:focus {
-  border-color: #0A0A0A !important;
-  box-shadow: 3px 3px 0px #E61919 !important;
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
 }
 
 :global(.theme-light) .termSelect {
@@ -610,8 +634,9 @@
   border-radius: 0px !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
 }
 
 :global(.theme-light) .addMemberBtn:hover,
@@ -621,7 +646,7 @@
   background: #E61919 !important;
   border-color: #0A0A0A !important;
   box-shadow: 4px 4px 0px #0A0A0A !important;
-  transform: translateY(-1px) !important;
+  transform: translate(-1px, -1px) !important;
 }
 
 :global(.theme-light) .orgTabsContainer {
@@ -649,10 +674,16 @@
   background: #0A0A0A !important;
   color: #FFFFFF !important;
   border-color: #0A0A0A !important;
-  box-shadow: none !important;
+  box-shadow: 2px 2px 0px #E61919 !important;
 }
 
-:global(.theme-light) .modal {
+/* ── Modals & Editor Sheets ── */
+:global(.theme-light) .modalOverlay {
+  background: rgba(10, 10, 10, 0.75) !important;
+}
+
+:global(.theme-light) .modal,
+:global(.theme-light) .modalContainer {
   background: #FFFFFF !important;
   border: 3px solid #0A0A0A !important;
   border-radius: 0px !important;
@@ -660,32 +691,116 @@
 }
 
 :global(.theme-light) .modalHeader {
-  background: #F4F4F0 !important;
+  background: #EAE8E3 !important;
   border-bottom: 2px solid #0A0A0A !important;
   border-radius: 0px !important;
 }
 
-:global(.theme-light) .modalHeader h3 {
+:global(.theme-light) .modalHeaderBadge {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .modalHeader h3,
+:global(.theme-light) .modalHeaderTitle h3 {
   color: #0A0A0A !important;
   font-family: 'Archivo Black', 'Impact', sans-serif !important;
   text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
 }
 
-:global(.theme-light) .modalFooter {
-  background: #F4F4F0 !important;
-  border-top: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
+:global(.theme-light) .modalCloseBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .modalCloseBtn:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .modalForm label,
+:global(.theme-light) .formGroup label,
+:global(.theme-light) .formGroupFull label,
+:global(.theme-light) .socialLinkSection label,
+:global(.theme-light) .photoUploadSection label {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
 }
 
 :global(.theme-light) .formInput,
 :global(.theme-light) .formTextarea,
 :global(.theme-light) .formSelect,
-:global(.theme-light) .platformSelect {
+:global(.theme-light) .platformSelect,
+:global(.theme-light) .platformInput,
+:global(.theme-light) .modalForm input:not([type="file"]),
+:global(.theme-light) .modalForm select,
+:global(.theme-light) .modalForm textarea {
   background: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   border-radius: 0px !important;
   color: #0A0A0A !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.85rem !important;
+}
+
+:global(.theme-light) .modalForm input:focus,
+:global(.theme-light) .modalForm select:focus,
+:global(.theme-light) .modalForm textarea:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .customUploadBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-size: 0.78rem !important;
+}
+
+:global(.theme-light) .customUploadBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .previewContainer {
+  border: 2px solid #0A0A0A !important;
+  background: #EAE8E3 !important;
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .previewImg {
+  border-radius: 0px !important;
+}
+
+:global(.theme-light) .previewText {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+}
+
+:global(.theme-light) .modalFooter {
+  background: #EAE8E3 !important;
+  border-top: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
 }
 
 :global(.theme-light) .cancelBtn {
@@ -695,7 +810,13 @@
   border-radius: 0px !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
+}
+
+:global(.theme-light) .cancelBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
 }
 
 :global(.theme-light) .submitBtn {
@@ -703,11 +824,16 @@
   color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   border-radius: 0px !important;
-  box-shadow: 3px 3px 0px #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
   font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
 }
 
 :global(.theme-light) .submitBtn:hover {
   background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
 }

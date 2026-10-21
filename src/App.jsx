@@ -21,6 +21,7 @@ import CommerceHub from './components/CommerceHub/CommerceHub.jsx';
 import Announcement from './components/Announcement.jsx';
 import ClassUpload from './components/ClassUpload.jsx';
 import DeathAid from './components/DeathAid.jsx';
+import SectionsAndContributions from './components/SectionsAndContributions/SectionsAndContributions.jsx';
 import Login from './components/Login/Login.jsx'; 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute.jsx';
 import FinanceDashboard from './components/Finance/FinanceDashboard.jsx';
@@ -274,6 +275,28 @@ function App() {
           >
             <DashboardLayout>
               <DocumentDashboard />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* 6.9 SECTIONS & CONTRIBUTIONS (UNIFIED CLASS ROSTER & DEATH AID) */}
+        <Route path="/sections-contributions" element={
+          <ProtectedRoute
+            allowedRoles={['public', 'admin', 'secretary', 'governor', 'finance_secretary', 'senator', 'representative', 'member', 'guest']}
+            requiredPermissions={['canSubmitRoster']}
+            allowGuest
+            customAccessDenied={
+              <DashboardLayout>
+                <AccessDenied
+                  message="You need to be signed in to access Sections and Contributions."
+                  requiredPermissions={['canSubmitRoster']}
+                  showUserInfo={true}
+                />
+              </DashboardLayout>
+            }
+          >
+            <DashboardLayout>
+              <SectionsAndContributions />
             </DashboardLayout>
           </ProtectedRoute>
         } />

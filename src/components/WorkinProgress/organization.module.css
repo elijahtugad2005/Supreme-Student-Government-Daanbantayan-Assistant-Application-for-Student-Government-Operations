@@ -369,3 +369,367 @@
   .footerRight { flex-direction: column; }
   .bannerLogo, .bannerLogoFallback { width: 72px; height: 72px; }
 }
+
+/* =========================================================
+   SWISS INDUSTRIAL BRUTALIST OVERRIDES – LIGHT THEME
+   Directives:
+   - Substrate: #F4F4F0 / #EAE8E3 / #FFFFFF
+   - Border: 2px / 3px solid #0A0A0A (0px radius)
+   - Ink: #0A0A0A, Monospace technical typography
+   - Accent: #E61919 (Aviation/Hazard Red) exclusively
+   - Shadows: Hard offset 2px 2px / 3px 3px / 4px 4px #0A0A0A
+   ========================================================= */
+
+:global(.theme-light) .orgTab,
+:global(.theme-light) .addOrgTab {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-size: 0.8rem !important;
+}
+
+:global(.theme-light) .orgTab:hover {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .orgTabActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .orgTabActive:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .addOrgTab {
+  border-style: solid !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .addOrgTab:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .orgTabLogo,
+:global(.theme-light) .orgTabFallback {
+  border-radius: 0px !important;
+  border: 1px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .orgTabFallback {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+}
+
+:global(.theme-light) .termLabel {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  color: #0A0A0A !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) .termSelect,
+:global(.theme-light) .newTermInput {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+}
+
+:global(.theme-light) .termSelect:focus,
+:global(.theme-light) .newTermInput:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .termBadge {
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  border: 1px solid #0A0A0A !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .termBadgeCurrent {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .termBadgeArchived {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .newTermBtn {
+  background: #FFFFFF !important;
+  border: 2px dashed #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .newTermBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-style: solid !important;
+}
+
+:global(.theme-light) .setCurrentBtn {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-size: 0.8rem !important;
+}
+
+:global(.theme-light) .setCurrentBtn:hover:not(:disabled) {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .setCurrentBtnActive,
+:global(.theme-light) .setCurrentBtnActive:disabled {
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  box-shadow: none !important;
+}
+
+:global(.theme-light) .archivedNotice {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .bannerLogo,
+:global(.theme-light) .bannerLogoFallback {
+  border-radius: 0px !important;
+  border: 3px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .bannerLogo {
+  background: #FFFFFF !important;
+}
+
+:global(.theme-light) .bannerLogoFallback {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+}
+
+:global(.theme-light) .bannerBadge {
+  background: #EAE8E3 !important;
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .bannerDesc {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #333333 !important;
+  font-size: 0.85rem !important;
+}
+
+:global(.theme-light) .bannerEditBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .bannerEditBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .logoPreview {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+}
+
+:global(.theme-light) .wideInput {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.85rem !important;
+}
+
+:global(.theme-light) .wideInput:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .helperText {
+  color: #555555 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .formError,
+:global(.theme-light) .termError {
+  color: #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .linkBtn {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  text-decoration: underline !important;
+}
+
+:global(.theme-light) .linkBtn:hover {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .editorHead h4 {
+  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  color: #0A0A0A !important;
+  letter-spacing: 0.04em !important;
+}
+
+:global(.theme-light) .sectionCard {
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  background: #F4F4F0 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .miniInput,
+:global(.theme-light) .miniSelect {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.8rem !important;
+}
+
+:global(.theme-light) .miniInput:focus,
+:global(.theme-light) .miniSelect:focus {
+  border-color: #E61919 !important;
+}
+
+:global(.theme-light) .iconBtn {
+  border: 1px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .iconBtn:hover:not(:disabled) {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .iconBtnDanger:hover:not(:disabled) {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .positionList {
+  border-left: 3px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .rankTag {
+  border-radius: 0px !important;
+  border: 1px solid #0A0A0A !important;
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .presetBtn {
+  background: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .presetBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .checkRow {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .dangerBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #E61919 !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .dangerBtn:hover:not(:disabled) {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .photoThumb {
+  border-radius: 0px !important;
+  border: 2px solid #0A0A0A !important;
+}
+
