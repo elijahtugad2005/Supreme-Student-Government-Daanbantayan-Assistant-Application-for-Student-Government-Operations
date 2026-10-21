@@ -42,13 +42,19 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return myRole() == 'admin';
+      return myRole() == 'admin' || myRole() == 'president';
     }
 
-    // SSG Officers: the only roles allowed to verify a roster or ask for a
-    // correction. Matches `canManageRosters` in src/utils/permissions.js.
+    // SSG Officers: roles allowed to verify rosters and manage institutional records.
     function isOfficer() {
-      return myRole() == 'admin' || myRole() == 'secretary';
+      return myRole() == 'admin'
+        || myRole() == 'president'
+        || myRole() == 'vice_president'
+        || myRole() == 'secretary'
+        || myRole() == 'executive_secretary'
+        || myRole() == 'press_secretary'
+        || myRole() == 'linkages_secretary'
+        || myRole() == 'deputy_secretary';
     }
 
     // True when an Admin has individually granted this account a permission.
@@ -78,10 +84,19 @@ service cloud.firestore {
     // verification and the section registry.
     function canManageDeathAid() {
       return myRole() == 'admin'
+        || myRole() == 'president'
+        || myRole() == 'vice_president'
         || myRole() == 'secretary'
+        || myRole() == 'executive_secretary'
+        || myRole() == 'press_secretary'
+        || myRole() == 'linkages_secretary'
+        || myRole() == 'deputy_secretary'
         || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer'
         || myRole() == 'governor'
-        || myRole() == 'representative';
+        || myRole() == 'representative'
+        || myRole() == 'senator';
     }
 
     // A Mayor may read exactly one roster: the one they submitted. They cannot
@@ -291,7 +306,11 @@ service cloud.firestore {
 
     match /funds/{fundId} {
       allow read: if isSignedIn();
-      allow write: if myRole() == 'finance_secretary' || isOfficer() || isAdmin();
+      allow write: if myRole() == 'finance_secretary' 
+        || myRole() == 'auditor' 
+        || myRole() == 'budget_officer' 
+        || isOfficer() 
+        || isAdmin();
     }
 
     // =========================================================================

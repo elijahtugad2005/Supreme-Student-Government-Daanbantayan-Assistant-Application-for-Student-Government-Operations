@@ -7,7 +7,6 @@
  * Roles are read from the Firestore user document (not from token claims), which
  * is how AuthContext populates them, so each context is seeded with a user doc.
  */
-import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import {
   initializeTestEnvironment,
   assertFails,

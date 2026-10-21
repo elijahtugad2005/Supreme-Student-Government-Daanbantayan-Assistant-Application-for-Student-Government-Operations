@@ -11,6 +11,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:env": "node scripts/test-frontend-env.mjs",
     "check-auth": "node scripts/check-auth-setup.js",
     "test-auth": "node scripts/test-auth-flow.js",
     "emulators": "firebase emulators:start --only auth,firestore,storage,functions --project ssg-prototype",
