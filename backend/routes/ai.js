@@ -914,9 +914,14 @@ router.post('/recordSignature', async (req, res) => {
     if (!snap.exists) return res.status(404).json({ error: 'Document not found' });
 
     const docData = snap.data();
-    const checklist = Array.isArray(docData.signatureChecklist) ? [...docData.signatureChecklist] : [];
+    let checklist =
+      (Array.isArray(docData.signatureChecklist) && docData.signatureChecklist.length > 0 ? [...docData.signatureChecklist] : null) ||
+      (Array.isArray(docData.signatures) && docData.signatures.length > 0 ? [...docData.signatures] : null) ||
+      (Array.isArray(docData.aiExtraction?.signatories) && docData.aiExtraction.signatories.length > 0 ? [...docData.aiExtraction.signatories] : null) ||
+      (Array.isArray(docData.aiSuggestion?.signatories) ? [...docData.aiSuggestion.signatories] : []);
+
     if (index < 0 || index >= checklist.length) {
-      return res.status(400).json({ error: 'Signatory index out of range' });
+      return res.status(400).json({ error: `Signatory index ${index} out of range (total: ${checklist.length})` });
     }
 
     const entry = checklist[index];
@@ -953,6 +958,7 @@ router.post('/recordSignature', async (req, res) => {
 
     const updates = {
       signatureChecklist: checklist,
+      signatures: checklist,
       signatureSummary,
       status: complete ? 'approved' : docData.status || 'pending',
     };

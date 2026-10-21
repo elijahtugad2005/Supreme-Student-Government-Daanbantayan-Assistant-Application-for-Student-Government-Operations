@@ -57,9 +57,10 @@ export default function DocumentDetailModal({
         labels: Array.isArray(doc.labels) ? [...doc.labels] : [],
       });
 
-      // Extract signatories list from doc signatures, aiExtraction, or aiSuggestion
+      // Extract signatories list from doc signatureChecklist, signatures, aiExtraction, or aiSuggestion
       const rawSignatures =
-        doc.signatures ||
+        (Array.isArray(doc.signatureChecklist) && doc.signatureChecklist.length > 0 ? doc.signatureChecklist : null) ||
+        (Array.isArray(doc.signatures) && doc.signatures.length > 0 ? doc.signatures : null) ||
         doc.aiExtraction?.signatories ||
         doc.aiSuggestion?.signatories ||
         [];

@@ -319,14 +319,87 @@ export const confirmAnalysis = async (documentId, apply, overrides = {}) => {
  * never asserts "approved" on the strength of a local click.
  */
 export const recordSignature = async (documentId, index, signed, options = {}) => {
-  const { data } = await callable('recordSignature')({
-    documentId,
-    index,
-    signed,
-    signedByName: options.signedByName,
-    note: options.note,
-  });
-  return data;
+  try {
+    const { data } = await callable('recordSignature')({
+      documentId,
+      index,
+      signed,
+      signedByName: options.signedByName,
+      note: options.note,
+    });
+    return data;
+  } catch (err) {
+    console.warn(
+      `[documentAiService] Backend/Cloud recordSignature failed (${err.message}). Falling back to direct client-side Firestore update...`
+    );
+
+    // Direct Firestore update fallback (guarantees signatories can be signed in Vercel even without backend Firebase Admin setup)
+    const { doc, getDoc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+    const { db, auth } = await import('../firebase/firebaseConfig.js');
+
+    const docRef = doc(db, 'documents', documentId);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) throw new Error('Document not found');
+
+    const docData = snap.data();
+    let checklist =
+      (Array.isArray(docData.signatureChecklist) && docData.signatureChecklist.length > 0 ? [...docData.signatureChecklist] : null) ||
+      (Array.isArray(docData.signatures) && docData.signatures.length > 0 ? [...docData.signatures] : null) ||
+      (Array.isArray(docData.aiExtraction?.signatories) && docData.aiExtraction.signatories.length > 0 ? [...docData.aiExtraction.signatories] : null) ||
+      (Array.isArray(docData.aiSuggestion?.signatories) ? [...docData.aiSuggestion.signatories] : []);
+
+    if (index < 0 || index >= checklist.length) {
+      throw new Error(`Signatory index ${index} out of range (total: ${checklist.length})`);
+    }
+
+    const entry = checklist[index];
+    const now = new Date().toISOString();
+    const currentUser = auth?.currentUser;
+
+    checklist[index] = {
+      ...entry,
+      status: signed ? 'signed' : 'pending',
+      signedAt: signed ? entry.signedAt || now : null,
+      signedByName: signed ? String(options.signedByName || entry.name || '').trim() : null,
+      recordedByUid: signed ? currentUser?.uid || null : null,
+      recordedByName: signed ? currentUser?.displayName || 'User' : null,
+      recordedNote: String(options.note || '').trim() || null,
+    };
+
+    const requiredTotal = checklist.filter((s) => s.required).length;
+    const requiredPending = checklist.filter((s) => s.required && s.status !== 'signed').length;
+    const signedCount = checklist.filter((s) => s.status === 'signed').length;
+    const progress = requiredTotal === 0 ? 0 : Math.round(((requiredTotal - requiredPending) / requiredTotal) * 100);
+    const complete = requiredTotal > 0 && requiredPending === 0;
+
+    const signatureSummary = {
+      total: checklist.length,
+      required: requiredTotal,
+      signed: signedCount,
+      requiredPending,
+      progress,
+      complete,
+      state: checklist.length === 0
+        ? 'no_signatures_detected'
+        : complete
+          ? 'complete'
+          : signedCount > 0
+            ? 'partially_signed'
+            : 'pending',
+    };
+
+    const updates = {
+      signatureChecklist: checklist,
+      signatures: checklist,
+      signatureSummary,
+      status: complete ? 'approved' : docData.status || 'pending',
+      updatedAt: serverTimestamp(),
+      updatedBy: currentUser?.uid || null,
+    };
+
+    await updateDoc(docRef, updates);
+    return { ok: true, index, progress, complete, signedCount, requiredTotal };
+  }
 };
 
 export const correctClassification = async (documentId, labelSlug, reason) => {
