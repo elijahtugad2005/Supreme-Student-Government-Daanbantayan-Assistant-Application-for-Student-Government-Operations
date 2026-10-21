@@ -56,8 +56,20 @@ try {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// HEALTH CHECK
+// ROOT & HEALTH CHECK
 // ──────────────────────────────────────────────────────────────────────────────
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'SSG Office Assistant Backend API is live!',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      documents: '/api/documents',
+      ai: '/api/ai'
+    }
+  });
+});
 
 app.get('/health', (req, res) => {
   res.status(200).json({
