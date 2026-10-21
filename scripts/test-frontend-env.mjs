@@ -67,7 +67,7 @@ for (const key of [...REQUIRED_FIREBASE_KEYS, ...OPTIONAL_KEYS]) {
 
 // 3. Fallback defaults test (from src/firebase/firebaseConfig.js)
 const DEFAULT_FIREBASE_FALLBACKS = {
-  VITE_FIREBASE_API_KEY: "AIzaSyBPxd8ag3HyPM6qywsDdpM-cgCXCdjWBVo",
+  VITE_FIREBASE_API_KEY: "AIzaSy_YOUR_VITE_FIREBASE_API_KEY_HERE",
   VITE_FIREBASE_AUTH_DOMAIN: "ssg-prototype.firebaseapp.com",
   VITE_FIREBASE_PROJECT_ID: "ssg-prototype",
   VITE_FIREBASE_STORAGE_BUCKET: "ssg-prototype.firebasestorage.app",

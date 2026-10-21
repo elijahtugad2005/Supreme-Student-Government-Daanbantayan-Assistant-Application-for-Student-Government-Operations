@@ -77,6 +77,71 @@ yarn.lock
 README.md
 
 
+# =========================
+# Documentation & Internal Specs (Secret / API leak protection)
+# =========================
+Documentations/
+docs/
+Markdownfiles/
+Documents/
+functions/src/DUAL_STORAGE.md
+*.pdf
+SKILLS_CHEAT_SHEET.md
+.agents/tasks/
+.kiro/
+.adal/
+.aider-desk/
+.augment/
+.autohand/
+.bob/
+.claude/
+.codeartsdoer/
+.codebuddy/
+.codemaker/
+.codestudio/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.devin/
+.forge/
+.fx/
+.goose/
+.grok/
+.hermes/
+.iflow/
+.inferencesh/
+.jazz/
+.junie/
+.kimchi/
+.kode/
+.lingma/
+.mcpjam/
+.minimax/
+.moxby/
+.mux/
+.neovate/
+.ona/
+.openhands/
+.pochi/
+.posit/
+.qoder/
+.qwen/
+.reasonix/
+.roo/
+.rovodev/
+.tabnine/
+.terramind/
+.tinycloud/
+.trae/
+.vibe/
+.windsurf/
+.zcode/
+.zencoder/
+agent/
+skills/
+skills-lock.json
+
 # .gitignore
 public/_next/
 public/build/
