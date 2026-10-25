@@ -934,14 +934,21 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 1200;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 6.5rem 1.5rem 2.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   animation: modalFadeIn 0.2s ease;
+  box-sizing: border-box;
+  will-change: opacity;
+  transform: translateZ(0);
 }
 
 @keyframes modalFadeIn {
@@ -952,13 +959,22 @@
 .modal {
   width: 100%;
   max-width: 680px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(100vh - 8rem);
+  display: flex;
+  flex-direction: column;
   background: #141923;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
   animation: modalSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 0.5rem;
+  margin-bottom: auto;
+  position: relative;
+  overflow: hidden;
+  contain: layout;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 @keyframes modalSlideUp {
@@ -976,9 +992,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 1.5rem 1.75rem;
+  padding: 1.35rem 1.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.98);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 .modalHeader h2 {
@@ -1017,6 +1037,31 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.5) rgba(15, 23, 42, 0.4);
+  contain: layout;
+}
+
+.form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.form::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 8px;
+}
+
+.form::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.4);
+  border-radius: 8px;
+}
+
+.form::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
 }
 
 .formGrid {
@@ -1111,9 +1156,15 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   padding-top: 1.25rem;
+  padding-bottom: 0.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  bottom: 0;
+  background: #141923;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 5;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1345,6 +1396,773 @@
   border-radius: 0px;
   color: #0a0a0a;
   box-shadow: 2px 2px 0px #0a0a0a;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CLASSIC THEME: ROYAL MAROON, CRIMSON & IMPERIAL GOLD TRIBAL
+   Fully scoped to .inventoryClassic and :global(.theme-dark) .container.
+   Ensures Light & Corporate modes remain 100% insulated and pristine.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --inventory-tribal-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='24' viewBox='0 0 36 24'%3E%3Crect width='36' height='24' fill='%23190507'/%3E%3Cline x1='0' y1='1' x2='36' y2='1' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='23' x2='36' y2='23' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='3.5' x2='36' y2='3.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cline x1='0' y1='20.5' x2='36' y2='20.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cpolygon points='18,4 27,12 18,20 9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='18,7 23,12 18,17 13,12' fill='%23e5b842'/%3E%3Cpolygon points='18,9 21,12 18,15 15,12' fill='%23190507'/%3E%3Cpolygon points='0,4 9,12 0,20 -9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='0,7 5,12 0,17 -5,12' fill='%23e5b842'/%3E%3Cpolygon points='36,4 45,12 36,20 27,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='36,7 41,12 36,17 31,12' fill='%23e5b842'/%3E%3Cpolygon points='0,4 4.5,1 9,4' fill='%23997528'/%3E%3Cpolygon points='9,4 13.5,1 18,4' fill='%23d4af37'/%3E%3Cpolygon points='18,4 22.5,1 27,4' fill='%23d4af37'/%3E%3Cpolygon points='27,4 31.5,1 36,4' fill='%23997528'/%3E%3Cpolygon points='0,20 4.5,23 9,20' fill='%23997528'/%3E%3Cpolygon points='9,20 13.5,23 18,20' fill='%23d4af37'/%3E%3Cpolygon points='18,20 22.5,23 27,20' fill='%23d4af37'/%3E%3Cpolygon points='27,20 31.5,23 36,20' fill='%23997528'/%3E%3C/svg%3E");
+}
+
+/* ─── Top Ethnic Tribal Band (Proportional 36x24 Aspect Ratio, Non-Squashed) ─── */
+.tribalBorderTop {
+  width: calc(100% + 5rem);
+  margin-left: -2.5rem;
+  margin-right: -2.5rem;
+  margin-top: -2rem;
+  margin-bottom: 2rem;
+  height: 24px;
+  background-image: var(--inventory-tribal-band);
+  background-repeat: repeat-x;
+  background-size: 36px 24px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border-radius: 16px 16px 0 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+}
+
+@media (max-width: 900px) {
+  .tribalBorderTop {
+    width: calc(100% + 2.5rem);
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    margin-top: -1.5rem;
+    margin-bottom: 1.5rem;
+    height: 20px;
+    background-size: 30px 20px;
+  }
+}
+
+/* ─── Master Container Surface ─── */
+.inventoryClassic,
+:global(.theme-dark) .container {
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.22) 0%, rgba(18, 3, 5, 0.98) 55%, #100204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(122, 18, 29, 0.2) !important;
+  color: #fff6e5 !important;
+}
+
+/* Custom Scrollbar for Classic Vault */
+.inventoryClassic ::-webkit-scrollbar,
+:global(.theme-dark) .container ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.inventoryClassic ::-webkit-scrollbar-track,
+:global(.theme-dark) .container ::-webkit-scrollbar-track {
+  background: #140306;
+}
+
+.inventoryClassic ::-webkit-scrollbar-thumb,
+:global(.theme-dark) .container ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7a121d 0%, #4a050d 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 4px;
+}
+
+.inventoryClassic ::-webkit-scrollbar-thumb:hover,
+:global(.theme-dark) .container ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9e1b29 0%, #7a121d 100%);
+  border-color: #d4af37;
+}
+
+/* ─── Header Elements ─── */
+.inventoryClassic .header,
+:global(.theme-dark) .container .header {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding-bottom: 1.75rem;
+}
+
+.inventoryClassic .eyebrowBadge,
+:global(.theme-dark) .container .eyebrowBadge {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.85) 0%, rgba(122, 18, 29, 0.75) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.1em !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  font-size: 0.75rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+.inventoryClassic .title,
+:global(.theme-dark) .container .title {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 2px 14px rgba(212, 175, 55, 0.2) !important;
+}
+
+.inventoryClassic .subtitle,
+:global(.theme-dark) .container .subtitle {
+  color: #c9a9ad !important;
+}
+
+/* ─── Stats Bento Grid Cards ─── */
+.inventoryClassic .statCard,
+:global(.theme-dark) .container .statCard {
+  background: linear-gradient(135deg, rgba(28, 5, 9, 0.85) 0%, rgba(18, 3, 5, 0.92) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.12) !important;
+}
+
+.inventoryClassic .statCard:hover,
+:global(.theme-dark) .container .statCard:hover {
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(212, 175, 55, 0.2) !important;
+}
+
+.inventoryClassic .statLabel,
+:global(.theme-dark) .container .statLabel {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.06em !important;
+}
+
+.inventoryClassic .statValue,
+:global(.theme-dark) .container .statValue {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #FFF6E5 !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.inventoryClassic .statCaption,
+:global(.theme-dark) .container .statCaption {
+  color: #bfa5a9 !important;
+}
+
+/* Active 1-Click Stat Card Filter States */
+.inventoryClassic .statCardActive,
+:global(.theme-dark) .container .statCardActive {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.92) 0%, rgba(122, 18, 29, 0.8) 100%) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 1px #d4af37, 0 12px 30px rgba(212, 175, 55, 0.3) !important;
+}
+
+.inventoryClassic .statCardActiveWarning,
+:global(.theme-dark) .container .statCardActiveWarning {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.95) 0%, rgba(158, 27, 41, 0.85) 100%) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 1px #f59e0b, 0 12px 30px rgba(245, 158, 11, 0.3) !important;
+}
+
+.inventoryClassic .statCardActiveInfo,
+:global(.theme-dark) .container .statCardActiveInfo {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.95) 0%, rgba(122, 18, 29, 0.85) 100%) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 1px #d4af37, 0 12px 30px rgba(212, 175, 55, 0.3) !important;
+}
+
+.inventoryClassic .statCardWarning,
+:global(.theme-dark) .container .statCardWarning {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+/* Icon Badges in Metric Cards */
+.inventoryClassic .badgePrimary,
+:global(.theme-dark) .container .badgePrimary {
+  background: rgba(74, 5, 13, 0.85) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+}
+
+.inventoryClassic .badgeWarning,
+:global(.theme-dark) .container .badgeWarning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+.inventoryClassic .badgeInfo,
+:global(.theme-dark) .container .badgeInfo {
+  background: rgba(122, 18, 29, 0.45) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+}
+
+.inventoryClassic .badgeSuccess,
+:global(.theme-dark) .container .badgeSuccess {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+/* ─── Tab Navigation Bar ─── */
+.inventoryClassic .tabs,
+:global(.theme-dark) .container .tabs {
+  background: rgba(20, 4, 7, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(212, 175, 55, 0.1) !important;
+}
+
+.inventoryClassic .tab,
+:global(.theme-dark) .container .tab {
+  color: #c9a9ad !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.03em !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+}
+
+.inventoryClassic .tab:hover:not(.activeTab),
+:global(.theme-dark) .container .tab:hover:not(.activeTab) {
+  background: rgba(74, 5, 13, 0.6) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .activeTab,
+:global(.theme-dark) .container .activeTab {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.3), inset 0 1px 0 rgba(255, 234, 159, 0.35) !important;
+}
+
+.inventoryClassic .activeTab .tabIcon,
+:global(.theme-dark) .container .activeTab .tabIcon {
+  color: #ffea9f !important;
+}
+
+/* ─── Filter Controls & Search Bar ─── */
+.inventoryClassic .searchInput,
+:global(.theme-dark) .container .searchInput {
+  background: rgba(18, 3, 5, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #fff6e5 !important;
+}
+
+.inventoryClassic .searchInput:focus,
+:global(.theme-dark) .container .searchInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+  background: rgba(28, 5, 9, 0.98) !important;
+}
+
+.inventoryClassic .searchInput::placeholder,
+:global(.theme-dark) .container .searchInput::placeholder {
+  color: #8b7376 !important;
+}
+
+.inventoryClassic .searchIcon,
+:global(.theme-dark) .container .searchIcon {
+  color: #d4af37 !important;
+}
+
+.inventoryClassic .clearSearchBtn,
+:global(.theme-dark) .container .clearSearchBtn {
+  color: #c9a9ad !important;
+}
+
+.inventoryClassic .clearSearchBtn:hover,
+:global(.theme-dark) .container .clearSearchBtn:hover {
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .selectIcon,
+:global(.theme-dark) .container .selectIcon {
+  color: #d4af37 !important;
+}
+
+.inventoryClassic .filterSelect,
+:global(.theme-dark) .container .filterSelect {
+  background: rgba(18, 3, 5, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .filterSelect:focus,
+:global(.theme-dark) .container .filterSelect:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+.inventoryClassic .filterSelect option,
+:global(.theme-dark) .container .filterSelect option {
+  background: #190507;
+  color: #fff6e5;
+}
+
+/* ─── Inventory & Ledger Tables ─── */
+.inventoryClassic .tableContainer,
+:global(.theme-dark) .container .tableContainer {
+  background: linear-gradient(135deg, rgba(24, 4, 8, 0.92) 0%, rgba(15, 2, 4, 0.98) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(212, 175, 55, 0.12) !important;
+}
+
+.inventoryClassic .table th,
+:global(.theme-dark) .container .table th {
+  background: linear-gradient(180deg, #2b060b 0%, #1a0306 100%) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.06em !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+.inventoryClassic .table td,
+:global(.theme-dark) .container .table td {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1) !important;
+  color: #ecd9dc !important;
+}
+
+.inventoryClassic .table tbody tr:hover,
+:global(.theme-dark) .container .table tbody tr:hover {
+  background-color: rgba(122, 18, 29, 0.18) !important;
+}
+
+.inventoryClassic .lowStockRow,
+:global(.theme-dark) .container .lowStockRow {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+.inventoryClassic .lowStockRow:hover,
+:global(.theme-dark) .container .lowStockRow:hover {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+}
+
+.inventoryClassic .outOfStockRow,
+:global(.theme-dark) .container .outOfStockRow {
+  background-color: rgba(158, 27, 41, 0.12) !important;
+}
+
+.inventoryClassic .outOfStockRow:hover,
+:global(.theme-dark) .container .outOfStockRow:hover {
+  background-color: rgba(158, 27, 41, 0.2) !important;
+}
+
+/* Cell typography & badges */
+.inventoryClassic .itemNameText,
+:global(.theme-dark) .container .itemNameText {
+  color: #FFF6E5 !important;
+  font-weight: 700 !important;
+}
+
+.inventoryClassic .itemDescriptionText,
+:global(.theme-dark) .container .itemDescriptionText {
+  color: #bfa5a9 !important;
+}
+
+.inventoryClassic .categoryBadge,
+:global(.theme-dark) .container .categoryBadge {
+  background: rgba(74, 5, 13, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .quantityNum,
+:global(.theme-dark) .container .quantityNum {
+  color: #FFF6E5 !important;
+  font-family: 'Cinzel', Georgia, serif;
+}
+
+.inventoryClassic .quantityUnit,
+:global(.theme-dark) .container .quantityUnit {
+  color: #bfa5a9 !important;
+}
+
+.inventoryClassic .priceNum,
+:global(.theme-dark) .container .priceNum {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif;
+  font-weight: 700;
+}
+
+.inventoryClassic .locationTag,
+:global(.theme-dark) .container .locationTag {
+  color: #d4af37 !important;
+  background: rgba(20, 3, 5, 0.6);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+/* Status Badges */
+.inventoryClassic .statusIn,
+:global(.theme-dark) .container .statusIn {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+.inventoryClassic .statusLow,
+:global(.theme-dark) .container .statusLow {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+.inventoryClassic .statusOut,
+:global(.theme-dark) .container .statusOut {
+  background: rgba(158, 27, 41, 0.25) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(158, 27, 41, 0.5) !important;
+}
+
+.inventoryClassic .statusBorrowed,
+:global(.theme-dark) .container .statusBorrowed {
+  background: rgba(122, 18, 29, 0.45) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.inventoryClassic .statusReturned,
+:global(.theme-dark) .container .statusReturned {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Action Buttons inside rows */
+.inventoryClassic .borrowBtn,
+:global(.theme-dark) .container .borrowBtn {
+  background: rgba(74, 5, 13, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .borrowBtn:hover:not(:disabled),
+:global(.theme-dark) .container .borrowBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25) !important;
+}
+
+.inventoryClassic .editBtn,
+:global(.theme-dark) .container .editBtn {
+  background: rgba(20, 4, 7, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .editBtn:hover,
+:global(.theme-dark) .container .editBtn:hover {
+  background: rgba(74, 5, 13, 0.9) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+.inventoryClassic .deleteBtn,
+:global(.theme-dark) .container .deleteBtn {
+  background: rgba(74, 5, 13, 0.4) !important;
+  border: 1px solid rgba(158, 27, 41, 0.4) !important;
+  color: #fca5a5 !important;
+}
+
+.inventoryClassic .deleteBtn:hover,
+:global(.theme-dark) .container .deleteBtn:hover {
+  background: #9e1b29 !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(158, 27, 41, 0.4) !important;
+}
+
+.inventoryClassic .returnActionBtn,
+:global(.theme-dark) .container .returnActionBtn {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif;
+}
+
+.inventoryClassic .returnActionBtn:hover,
+:global(.theme-dark) .container .returnActionBtn:hover {
+  background: linear-gradient(135deg, #9e1b29 0%, #7a121d 100%) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35) !important;
+}
+
+.inventoryClassic .completedCheck,
+:global(.theme-dark) .container .completedCheck {
+  color: #ffea9f !important;
+}
+
+/* ─── Primary & Secondary Buttons ─── */
+.inventoryClassic .primaryButton,
+:global(.theme-dark) .container .primaryButton {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25), inset 0 1px 0 rgba(255, 234, 159, 0.35) !important;
+}
+
+.inventoryClassic .primaryButton:hover:not(:disabled),
+:global(.theme-dark) .container .primaryButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9e1b29 0%, #7a121d 100%) !important;
+  border-color: #ffea9f !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+}
+
+.inventoryClassic .secondaryButton,
+:global(.theme-dark) .container .secondaryButton {
+  background: rgba(28, 5, 9, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+.inventoryClassic .secondaryButton:hover,
+:global(.theme-dark) .container .secondaryButton:hover {
+  background: rgba(74, 5, 13, 0.85) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+/* ─── Categories Management Tab Card ─── */
+.inventoryClassic .categoriesCard,
+:global(.theme-dark) .container .categoriesCard {
+  background: linear-gradient(135deg, rgba(28, 5, 9, 0.85) 0%, rgba(18, 3, 5, 0.95) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65) !important;
+}
+
+.inventoryClassic .categoryCardTitle,
+:global(.theme-dark) .container .categoryCardTitle {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .categoryCardSubtitle,
+:global(.theme-dark) .container .categoryCardSubtitle {
+  color: #bfa5a9 !important;
+}
+
+.inventoryClassic .categoryTagPill,
+:global(.theme-dark) .container .categoryTagPill {
+  background: rgba(74, 5, 13, 0.75) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.inventoryClassic .categoryTagPill:hover,
+:global(.theme-dark) .container .categoryTagPill:hover {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3) !important;
+}
+
+.inventoryClassic .categoryTagIcon,
+:global(.theme-dark) .container .categoryTagIcon {
+  color: #d4af37 !important;
+}
+
+.inventoryClassic .categoryInput,
+:global(.theme-dark) .container .categoryInput {
+  background: rgba(18, 3, 5, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #fff6e5 !important;
+}
+
+.inventoryClassic .categoryInput:focus,
+:global(.theme-dark) .container .categoryInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* ─── Modals and Dialog Overlays ─── */
+.modalOverlayClassic,
+:global(.theme-dark) .modalOverlay {
+  z-index: 1200 !important;
+  background: rgba(10, 2, 3, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  padding: 6.5rem 1.5rem 2.5rem !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  will-change: opacity;
+  transform: translateZ(0);
+}
+
+.modalClassic,
+:global(.theme-dark) .modal {
+  max-height: calc(100vh - 8rem) !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: auto !important;
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.35) 0%, rgba(18, 3, 5, 0.98) 60%, #120204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(122, 18, 29, 0.25) !important;
+  color: #fff6e5 !important;
+  contain: layout;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.modalClassic .modalHeader,
+:global(.theme-dark) .modal .modalHeader {
+  background: #190407 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+.modalClassic .modalHeader h2,
+:global(.theme-dark) .modal .modalHeader h2 {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 50%, #D4AF37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.modalClassic .modalSubtitle,
+:global(.theme-dark) .modal .modalSubtitle {
+  color: #bfa5a9 !important;
+}
+
+.modalClassic .closeButton,
+:global(.theme-dark) .modal .closeButton {
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+.modalClassic .closeButton:hover,
+:global(.theme-dark) .modal .closeButton:hover {
+  background: #7a121d !important;
+  color: #ffffff !important;
+  border-color: #d4af37 !important;
+}
+
+.modalClassic .formGroup label,
+:global(.theme-dark) .modal .formGroup label {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.03em !important;
+  font-size: 0.82rem !important;
+}
+
+.modalClassic .formInput,
+.modalClassic .formSelect,
+.modalClassic .formTextarea,
+:global(.theme-dark) .modal .formInput,
+:global(.theme-dark) .modal .formSelect,
+:global(.theme-dark) .modal .formTextarea {
+  background: rgba(18, 3, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #fff6e5 !important;
+}
+
+.modalClassic .formInput:focus,
+.modalClassic .formSelect:focus,
+.modalClassic .formTextarea:focus,
+:global(.theme-dark) .modal .formInput:focus,
+:global(.theme-dark) .modal .formSelect:focus,
+:global(.theme-dark) .modal .formTextarea:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25) !important;
+}
+
+.modalClassic .formSelect option,
+:global(.theme-dark) .modal .formSelect option {
+  background: #190507;
+  color: #fff6e5;
+}
+
+.modalClassic .form,
+:global(.theme-dark) .modal .form {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.5) #160407;
+  contain: layout;
+}
+
+.modalClassic .form::-webkit-scrollbar,
+:global(.theme-dark) .modal .form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modalClassic .form::-webkit-scrollbar-track,
+:global(.theme-dark) .modal .form::-webkit-scrollbar-track {
+  background: #140306;
+  border-radius: 8px;
+}
+
+.modalClassic .form::-webkit-scrollbar-thumb,
+:global(.theme-dark) .modal .form::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7a121d 0%, #4a050d 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 8px;
+}
+
+.modalClassic .form::-webkit-scrollbar-thumb:hover,
+:global(.theme-dark) .modal .form::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9e1b29 0%, #7a121d 100%);
+  border-color: #d4af37;
+}
+
+.modalClassic .formActions,
+:global(.theme-dark) .modal .formActions {
+  border-top: 1px solid rgba(212, 175, 55, 0.22) !important;
+  background: #150305 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5) !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 5 !important;
+}
+
+.modalClassic .fileUploadButton,
+:global(.theme-dark) .modal .fileUploadButton {
+  background: rgba(74, 5, 13, 0.6) !important;
+  border: 1px dashed rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+}
+
+.modalClassic .fileUploadButton:hover,
+:global(.theme-dark) .modal .fileUploadButton:hover {
+  background: rgba(122, 18, 29, 0.6) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+.modalClassic .fileUploadStatus,
+:global(.theme-dark) .modal .fileUploadStatus {
+  color: #ffea9f !important;
+}
+
+.modalClassic .helperText,
+:global(.theme-dark) .modal .helperText {
+  color: #bfa5a9 !important;
+}
+
+/* ─── Empty State in Classic ─── */
+.inventoryClassic .emptyIconCircle,
+:global(.theme-dark) .container .emptyIconCircle {
+  background: rgba(74, 5, 13, 0.6) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .emptyState h3,
+:global(.theme-dark) .container .emptyState h3 {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #ffea9f !important;
+}
+
+.inventoryClassic .emptyState p,
+:global(.theme-dark) .container .emptyState p {
+  color: #bfa5a9 !important;
 }
 
 /* ─── RESPONSIVE DESIGN ─── */

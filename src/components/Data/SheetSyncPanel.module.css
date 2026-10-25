@@ -1643,4 +1643,53 @@
   background: #E61919 !important;
 }
 
+/* ==========================================================================
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) — SHEET SYNC PANEL
+   ========================================================================== */
+:global(.theme-dark) .container {
+  background: rgba(22, 5, 8, 0.98) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .title {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+:global(.theme-dark) .subtitle {
+  color: rgba(255, 234, 159, 0.75) !important;
+}
+
+:global(.theme-dark) .modeTabs {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+:global(.theme-dark) .modeTab {
+  background: rgba(26, 5, 9, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+}
+
+:global(.theme-dark) .modeTabActive {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  border-color: #ffea9f !important;
+}
+
+:global(.theme-dark) .dropzone {
+  background: rgba(16, 4, 6, 0.9) !important;
+  border: 2px dashed rgba(212, 175, 55, 0.45) !important;
+}
+
+:global(.theme-dark) .input,
+:global(.theme-dark) .select {
+  background: rgba(18, 4, 7, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffffff !important;
+}
+
+
 

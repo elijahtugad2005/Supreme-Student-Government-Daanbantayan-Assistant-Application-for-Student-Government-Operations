@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../../firebase/firebaseConfig.js';
 import { collection, onSnapshot, deleteDoc, doc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
-import { Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, DollarSign, Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet, ChevronDown, ChevronUp, MoreVertical, SlidersHorizontal } from 'lucide-react';
+import { Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet, ChevronDown, ChevronUp, MoreVertical, SlidersHorizontal } from 'lucide-react';
+import PesoSign from '../Common/PesoSign.jsx';
 import Order from '../Order/order.jsx';
 import SheetSyncPanel from './SheetSyncPanel.jsx';
 import styles from './OrderManagement.module.css';
@@ -15,7 +16,7 @@ function OrderManagement() {
   const [loading, setLoading] = useState(true);
   
   // Navigation state
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('orders');
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -266,13 +267,19 @@ function OrderManagement() {
       return;
     }
     const batch = writeBatch(db);
+    // Hoist product snapshot retrieval outside the loop to eliminate N+1 Firestore read storm
+    let productsSnapshot = null;
+    const hasCompletedOrder = ordersToDelete.some(o => o.orderStatus === 'Completed');
+    if (hasCompletedOrder) {
+      productsSnapshot = await getDocs(collection(db, 'products'));
+    }
+
     for (const order of ordersToDelete) {
       // Restore stock if order was completed
-      if (order.orderStatus === 'Completed') {
+      if (order.orderStatus === 'Completed' && productsSnapshot) {
         const productId = order.productInfo?.productId;
         const quantity = order.productInfo?.quantity || 0;
         if (productId && quantity > 0) {
-          const productsSnapshot = await getDocs(collection(db, 'products'));// eslint-disable-next-line no-await-in-loop
           const productDoc = productsSnapshot.docs.find(doc => doc.data().productId === productId);
           if (productDoc) {
             const currentStock = productDoc.data().stockAvailable || 0;
@@ -818,6 +825,25 @@ function OrderManagement() {
                         </div>
                       </div>
 
+                      {/* Status Selector */}
+                      <div className={styles.mobileDetailsSection}>
+                        <span className={styles.mobileDetailsSectionTitle}>⚡ Order Status</span>
+                        <div style={{ marginTop: '0.4rem' }}>
+                          <select
+                            className={styles.statusSelect}
+                            style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem' }}
+                            value={order.orderStatus}
+                            onChange={(e) => handleStatusChange(order, e.target.value)}
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                      </div>
+
                       {/* Action Buttons */}
                       <div className={styles.mobileCardActions}>
                         <button
@@ -918,7 +944,7 @@ function OrderManagement() {
           <div className={styles.kpiCardHeader}>
             <span className={styles.kpiCardLabel}>Claimed Revenue</span>
             <span className={styles.kpiCardIcon}>
-              <DollarSign size={20} />
+              <PesoSign size={20} />
             </span>
           </div>
           <p className={styles.kpiCardValue}>₱{stats.totalRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -976,7 +1002,7 @@ function OrderManagement() {
         <div className={styles.productsToolbarRight}>
             <button
               type="button"
-              className={styles.syncToolbarBtn}
+              className={`${styles.syncToolbarBtn} ${styles.btnSyncSheet}`}
               onClick={() => setActiveSection('settings')}
               title="Import and dynamically sync orders from Excel or Google Sheets"
             >
@@ -986,7 +1012,7 @@ function OrderManagement() {
             {/* Bulk Delete */}
             <button
               type="button"
-              className={styles.syncToolbarBtn}
+              className={`${styles.syncToolbarBtn} ${styles.btnBulkDelete}`}
               onClick={openBulkDeleteModal}
               disabled={selectedOrders.length === 0}
               title="Delete selected orders"
@@ -996,7 +1022,7 @@ function OrderManagement() {
             </button>
             <button
               type="button"
-              className={styles.syncToolbarBtn}
+              className={`${styles.syncToolbarBtn} ${styles.btnDeleteAll}`}
               onClick={handleDeleteAllOrders}
               disabled={orders.length === 0}
               title="Delete all orders"
@@ -1071,20 +1097,30 @@ function OrderManagement() {
                     </td>
                     <td data-label="Total" className={styles.priceCell}>₱{order.productInfo?.totalPrice?.toFixed(2)}</td>
                     <td data-label="Status">
-                        <span 
-                          className={styles.statusBadge}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        <select
+                          className={styles.statusSelect}
+                          value={order.orderStatus}
+                          onChange={(e) => handleStatusChange(order, e.target.value)}
+                          title="Change Order Status"
                           style={{
                             backgroundColor: getStatusColor(order.orderStatus),
-                            color: getStatusTextColor(order.orderStatus)
+                            color: getStatusTextColor(order.orderStatus),
+                            borderColor: 'transparent'
                           }}
                         >
-                          {order.orderStatus}
-                        </span>
+                          <option value="Pending" style={{ background: '#fff', color: '#1f2937' }}>Pending</option>
+                          <option value="Paid" style={{ background: '#fff', color: '#1f2937' }}>Paid</option>
+                          <option value="Ongoing" style={{ background: '#fff', color: '#1f2937' }}>Ongoing</option>
+                          <option value="Completed" style={{ background: '#fff', color: '#1f2937' }}>Completed</option>
+                          <option value="Cancelled" style={{ background: '#fff', color: '#1f2937' }}>Cancelled</option>
+                        </select>
                         <span 
                           className={order.claimed ? styles.claimBadgeClaimed : styles.claimBadgeUnclaimed}
                         >
                           {order.claimed ? "Claimed" : "Unclaimed"}
                         </span>
+                      </div>
                     </td>
                     <td data-label="Payment">
                       <span className={styles.paymentBadge}>
@@ -1167,8 +1203,11 @@ function OrderManagement() {
   // RENDER SETTINGS VIEW
   // ========================================
   const renderSettingsView = () => (
-    <div className={styles.settingsView}>
-      <SheetSyncPanel />
+    <div className={styles.settingsView} style={{ minHeight: 'unset' }}>
+      <SheetSyncPanel onSyncCompleted={() => {
+        // Switch to orders view after brief delay so user can immediately see synced orders
+        setTimeout(() => setActiveSection('orders'), 1200);
+      }} />
     </div>
   );
 
@@ -1214,14 +1253,7 @@ function OrderManagement() {
             <div className={styles.mobileOnly}>{renderMobileOrdersView()}</div>
           </>
         )}
-        {activeSection === 'settings' && (
-          <div className={styles.settingsView} style={{minHeight:'unset'}}>
-            <SheetSyncPanel onSyncCompleted={() => {
-              // Switch to orders view after brief delay so user can immediately see synced orders
-              setTimeout(() => setActiveSection('orders'), 1200);
-            }} />
-          </div>
-        )}
+        {activeSection === 'settings' && renderSettingsView()}
       </div>
 
       {/* EDIT MODAL */}

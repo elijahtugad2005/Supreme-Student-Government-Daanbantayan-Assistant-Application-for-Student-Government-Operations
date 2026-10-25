@@ -3355,4 +3355,227 @@
   text-transform: uppercase !important;
 }
 
+/* ==========================================================================
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) — ORDER MANAGEMENT
+   Applied whenever theme is 'dark'
+   ========================================================================== */
+:global(.theme-dark) {
+  --om-bg: #140306 !important;
+  --om-card-bg: #190407 !important;
+  --om-border: rgba(212, 175, 55, 0.35) !important;
+  --om-text-primary: #ffffff !important;
+  --om-text-secondary: rgba(255, 234, 159, 0.8) !important;
+  --om-text-muted: rgba(255, 234, 159, 0.5) !important;
+}
+
+:global(.theme-dark) .container,
+:global(.theme-dark) .viewContent,
+:global(.theme-dark) .ordersView,
+:global(.theme-dark) .dashboardView {
+  background-color: #140306 !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .omTabNav {
+  background-color: #140306 !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+:global(.theme-dark) .omTabBtn {
+  background: rgba(26, 5, 9, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+  font-family: 'Cinzel', sans-serif !important;
+  letter-spacing: 0.04em !important;
+}
+
+:global(.theme-dark) .omTabBtn:hover:not(.omTabBtnActive) {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .omTabBtnActive {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  border-color: #ffea9f !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35) !important;
+}
+
+:global(.theme-dark) .omTabBadge {
+  background: rgba(212, 175, 55, 0.22) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+}
+
+:global(.theme-dark) .omTabBtnActive .omTabBadge {
+  background: #160406 !important;
+  color: #ffea9f !important;
+  border-color: #d4af37 !important;
+}
+
+/* KPI Cards & Dashboard View */
+:global(.theme-dark) .kpiCard {
+  background: rgba(28, 6, 10, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.12) !important;
+}
+
+:global(.theme-dark) .kpiCard:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.12) !important;
+}
+
+:global(.theme-dark) .kpiCardLabel {
+  color: #e5b842 !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.08em !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-dark) .kpiCardValue {
+  color: #ffffff !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+:global(.theme-dark) .kpiCardSub {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+:global(.theme-dark) .kpiCardIcon {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Toolbar & Filters */
+:global(.theme-dark) .productsToolbar {
+  background: transparent !important;
+}
+
+:global(.theme-dark) .searchInput,
+:global(.theme-dark) .filterSelect {
+  background: rgba(22, 4, 8, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .searchInput::placeholder {
+  color: rgba(255, 234, 159, 0.5) !important;
+}
+
+:global(.theme-dark) .searchInput:focus,
+:global(.theme-dark) .filterSelect:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.22) !important;
+}
+
+:global(.theme-dark) .searchIcon {
+  color: #d4af37 !important;
+}
+
+/* Action Toolbar Buttons */
+:global(.theme-dark) .syncToolbarBtn {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+:global(.theme-dark) .syncToolbarBtn:hover {
+  background: rgba(212, 175, 55, 0.25) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .btnSyncSheet {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  border: 1px solid #ffea9f !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4) !important;
+}
+
+:global(.theme-dark) .btnSyncSheet:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.55) !important;
+  color: #160406 !important;
+}
+
+:global(.theme-dark) .btnBulkDelete {
+  background: rgba(185, 28, 28, 0.2) !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+  color: #fca5a5 !important;
+}
+
+:global(.theme-dark) .btnBulkDelete:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.4) !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .btnDeleteAll {
+  background: rgba(153, 27, 27, 0.3) !important;
+  border: 1px solid rgba(239, 68, 68, 0.55) !important;
+  color: #fecaca !important;
+}
+
+:global(.theme-dark) .btnDeleteAll:hover:not(:disabled) {
+  background: #dc2626 !important;
+  border-color: #ff6b6b !important;
+  color: #ffffff !important;
+}
+
+/* Table Wrapper & Scroll Hint */
+:global(.theme-dark) .tableWrapper {
+  background: rgba(24, 5, 9, 0.98) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6) !important;
+}
+
+:global(.theme-dark) .tableWrapper::before {
+  background: #140306 !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-dark) .tableWrapper::-webkit-scrollbar-track {
+  background: #140306 !important;
+}
+
+:global(.theme-dark) .tableWrapper::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3) !important;
+  border-radius: 4px;
+}
+
+/* Order Table */
+:global(.theme-dark) .orderTable th {
+  background: rgba(20, 4, 7, 0.98) !important;
+  color: #ffea9f !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-dark) .orderTable td {
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15) !important;
+}
+
+:global(.theme-dark) .orderTable tr:hover td {
+  background: rgba(212, 175, 55, 0.08) !important;
+}
+
+:global(.theme-dark) .mobileOrderCard {
+  background: rgba(26, 5, 9, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
+
+
 

@@ -1,6 +1,8 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { useInventory } from '../../components/InventoryContext/InventoryProvider';
 import { useAuth } from '../AuthContext/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import auditService from '../../services/auditService';
 import {
   Package,
   AlertTriangle,
@@ -26,6 +28,9 @@ import {
 import styles from './InventoryManagement.module.css';
 
 const InventoryManagement = () => {
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
+
   const {
     inventory,
     categories,
@@ -59,35 +64,10 @@ const InventoryManagement = () => {
 
   // Toast / feedback message state
   const [toastMsg, setToastMsg] = useState(null);
-  const showToast = (text) => {
+  const showToast = useCallback((text) => {
     setToastMsg(text);
     setTimeout(() => setToastMsg(null), 3200);
-  };
-
-  const [borrowForm, setBorrowForm] = useState({
-    itemId: '',
-    quantityBorrowed: 1,
-    borrowerName: '',
-    borrowerEmail: '',
-    purpose: '',
-    expectedReturnDate: '',
-  });
-
-  const [returnForm, setReturnForm] = useState({
-    notes: '',
-    condition: 'good',
-  });
-
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    quantity: 0,
-    storageLocation: '',
-    amount: 0,
-    receipt: '',
-    description: '',
-    minQuantity: 5,
-  });
+  }, []);
 
   // Role permissions based on access tiers
   const HIGHER_ACCESS_ROLES = [
@@ -116,33 +96,9 @@ const InventoryManagement = () => {
   const canDelete = HIGHER_ACCESS_ROLES.includes(userRole);
 
   const handleOpenDialog = useCallback((item = null) => {
-    if (item) {
-      setFormData({
-        name: item.name || '',
-        category: item.category || '',
-        quantity: item.quantity ?? 0,
-        storageLocation: item.storageLocation || '',
-        amount: item.amount ?? 0,
-        receipt: item.receipt || '',
-        description: item.description || '',
-        minQuantity: item.minQuantity ?? 5,
-      });
-      setSelectedItem(item);
-    } else {
-      setFormData({
-        name: '',
-        category: categories?.[0] || '',
-        quantity: 0,
-        storageLocation: '',
-        amount: 0,
-        receipt: '',
-        description: '',
-        minQuantity: 5,
-      });
-      setSelectedItem(null);
-    }
+    setSelectedItem(item);
     setOpenDialog(true);
-  }, [categories]);
+  }, []);
 
   const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
@@ -151,67 +107,80 @@ const InventoryManagement = () => {
 
   const handleOpenBorrowDialog = useCallback((item) => {
     setSelectedItem(item);
-    setBorrowForm({
-      itemId: item.id,
-      quantityBorrowed: 1,
-      borrowerName: '',
-      borrowerEmail: '',
-      purpose: '',
-      expectedReturnDate: '',
-    });
     setOpenBorrowDialog(true);
   }, []);
 
   const handleOpenReturnDialog = useCallback((log) => {
     setSelectedBorrowLog(log);
-    setReturnForm({
-      notes: '',
-      condition: 'good',
-    });
     setOpenReturnDialog(true);
   }, []);
 
   const handleDeleteItem = useCallback((item) => {
     if (window.confirm(`Permanently remove "${item.name}" from the inventory register?`)) {
       deleteInventoryItem(item.id);
+      // Audit Trail: Log Inventory Deletion (IDL) - Zero UID
+      auditService.logInventoryDelete(userName || 'Authorized Officer', item.name);
       showToast(`Removed "${item.name}"`);
     }
-  }, [deleteInventoryItem]);
+  }, [deleteInventoryItem, userName, showToast]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSaveItem = useCallback(async (formValues) => {
     try {
       const itemData = {
-        ...formData,
-        quantity: parseInt(formData.quantity) || 0,
-        amount: parseFloat(formData.amount) || 0,
-        minQuantity: parseInt(formData.minQuantity) || 5,
+        ...formValues,
+        quantity: parseInt(formValues.quantity) || 0,
+        amount: parseFloat(formValues.amount) || 0,
+        minQuantity: parseInt(formValues.minQuantity) || 5,
         lastUpdatedBy: userName || 'Officer',
       };
 
       if (selectedItem) {
         await updateInventoryItem(selectedItem.id, itemData);
-        showToast(`Item "${formData.name}" successfully updated`);
+
+        // Audit Trail: Log Inventory Update (IUP) - Zero UID & Compact summary
+        const diffs = [];
+        if (selectedItem.quantity !== itemData.quantity) {
+          diffs.push(`Stock: ${selectedItem.quantity} → ${itemData.quantity}`);
+        }
+        if (selectedItem.category !== itemData.category) {
+          diffs.push(`Category: "${itemData.category}"`);
+        }
+        if (selectedItem.storageLocation !== itemData.storageLocation) {
+          diffs.push(`Location: "${itemData.storageLocation || 'N/A'}"`);
+        }
+        const summary = diffs.length > 0 
+          ? `Updated ${diffs.join(', ')}`
+          : `Updated record details for "${itemData.name}"`;
+
+        await auditService.logInventoryUpdate(userName || 'Authorized Officer', itemData.name, summary);
+        showToast(`Item "${formValues.name}" successfully updated`);
       } else {
         await addInventoryItem(itemData);
-        showToast(`Item "${formData.name}" added to inventory`);
+
+        // Audit Trail: Log Inventory Add (IAD) - Zero UID
+        await auditService.logInventoryAdd(
+          userName || 'Authorized Officer',
+          itemData.name,
+          itemData.quantity,
+          itemData.category
+        );
+        showToast(`Item "${formValues.name}" added to inventory`);
       }
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving item:', error);
       alert('Error saving item: ' + error.message);
     }
-  };
+  }, [selectedItem, userName, updateInventoryItem, addInventoryItem, handleCloseDialog, showToast]);
 
-  const handleBorrowSubmit = async (e) => {
-    e.preventDefault();
+  const handleBorrowSubmit = useCallback(async (borrowValues) => {
     try {
-      if (borrowForm.quantityBorrowed > selectedItem?.quantity) {
+      if (borrowValues.quantityBorrowed > (selectedItem?.quantity || 0)) {
         alert('Cannot borrow more than available stock quantity');
         return;
       }
       await borrowItem({
-        ...borrowForm,
+        ...borrowValues,
         itemName: selectedItem.name,
         borrowedBy: userName || 'Officer',
         processedBy: userName || 'Officer',
@@ -223,13 +192,12 @@ const InventoryManagement = () => {
       console.error('Error borrowing item:', error);
       alert('Error borrowing item: ' + error.message);
     }
-  };
+  }, [selectedItem, userName, borrowItem, showToast]);
 
-  const handleReturnSubmit = async (e) => {
-    e.preventDefault();
+  const handleReturnSubmit = useCallback(async (returnValues) => {
     try {
       await returnItem(selectedBorrowLog.id, {
-        ...returnForm,
+        ...returnValues,
         returnedDate: new Date(),
         processedBy: userName || 'Officer',
       });
@@ -240,20 +208,7 @@ const InventoryManagement = () => {
       console.error('Error returning item:', error);
       alert('Error returning item: ' + error.message);
     }
-  };
-
-  const handleReceiptUpload = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        const base64 = await convertImageToBase64(file);
-        setFormData({ ...formData, receipt: base64 });
-      } catch (error) {
-        console.error('Error converting image:', error);
-        alert('Error uploading receipt: ' + error.message);
-      }
-    }
-  };
+  }, [selectedBorrowLog, userName, returnItem, showToast]);
 
   // Metrics
   const lowStockCount = useMemo(() => {
@@ -268,21 +223,21 @@ const InventoryManagement = () => {
     return borrowedItems.filter(item => !item.returned).length;
   }, [borrowedItems]);
 
-  const formatDate = (timestamp) => {
+  const formatDate = useCallback((timestamp) => {
     if (!timestamp) return 'Not specified';
     if (timestamp.toDate) {
       return timestamp.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
     return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+  }, []);
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = useCallback((amount) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
       currency: 'PHP',
       minimumFractionDigits: 2,
     }).format(amount);
-  };
+  }, []);
 
   // Filtered inventory items
   const filteredInventory = useMemo(() => {
@@ -307,7 +262,10 @@ const InventoryManagement = () => {
   }, [inventory, searchTerm, selectedCategory, stockFilter]);
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isClassic ? styles.inventoryClassic : ''}`}>
+      {/* Top Decorative Tribal Band (Classic Maroon Gold Theme Only) */}
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
+
       {/* Toast Feedback */}
       {toastMsg && (
         <div className={styles.toastMessage}>
@@ -321,7 +279,7 @@ const InventoryManagement = () => {
         <div className={styles.headerLeft}>
           <div className={styles.eyebrowBadge}>
             <Sparkles size={13} />
-            <span>Institutional Asset Vault</span>
+            <span>{isClassic ? 'SSG INSTITUTIONAL ASSET VAULT' : 'Institutional Asset Vault'}</span>
           </div>
           <h1 className={styles.title}>Inventory Management</h1>
           <p className={styles.subtitle}>
@@ -680,301 +638,43 @@ const InventoryManagement = () => {
 
       {/* DIALOG: ADD / EDIT ITEM */}
       {openDialog && (
-        <div className={styles.modalOverlay} onClick={handleCloseDialog}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h2>{selectedItem ? 'Modify Asset Specification' : 'Register New Asset'}</h2>
-                <p className={styles.modalSubtitle}>Fill in official details to catalog this item</p>
-              </div>
-              <button type="button" className={styles.closeButton} onClick={handleCloseDialog} aria-label="Close modal">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className={styles.form}>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="name">Item Designation *</label>
-                  <input
-                    type="text"
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    placeholder="e.g. Wireless Microphone Set"
-                    className={styles.formInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="category">Category Classification *</label>
-                  <select
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    required
-                    className={styles.formSelect}
-                  >
-                    <option value="">Select category...</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="quantity">Quantity in Stock *</label>
-                  <input
-                    type="number"
-                    id="quantity"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    required
-                    min="0"
-                    className={styles.formInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="amount">Unit Valuation (₱) *</label>
-                  <input
-                    type="number"
-                    id="amount"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
-                    min="0"
-                    step="0.01"
-                    className={styles.formInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="storageLocation">Storage Location / Cabinet *</label>
-                  <input
-                    type="text"
-                    id="storageLocation"
-                    value={formData.storageLocation}
-                    onChange={(e) => setFormData({ ...formData, storageLocation: e.target.value })}
-                    required
-                    placeholder="e.g. SSG Storage Cabinet B3"
-                    className={styles.formInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="minQuantity">Minimum Stock Alert Threshold</label>
-                  <input
-                    type="number"
-                    id="minQuantity"
-                    value={formData.minQuantity}
-                    onChange={(e) => setFormData({ ...formData, minQuantity: e.target.value })}
-                    min="0"
-                    className={styles.formInput}
-                  />
-                  <small className={styles.helperText}>Triggers warning badge when units fall below this level</small>
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="description">Asset Description & Specs</label>
-                <textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows="3"
-                  placeholder="Include model serial numbers, hardware condition, and packaging notes..."
-                  className={styles.formTextarea}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.fileUploadLabel}>
-                  <span className={styles.fileUploadButton}>
-                    <Paperclip size={15} /> Upload Receipt or Invoice (Optional)
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleReceiptUpload}
-                    className={styles.fileInput}
-                  />
-                </label>
-                {formData.receipt && (
-                  <span className={styles.fileUploadStatus}>
-                    <CheckCircle2 size={14} /> Receipt document attached
-                  </span>
-                )}
-              </div>
-
-              <div className={styles.formActions}>
-                <button type="button" className={styles.secondaryButton} onClick={handleCloseDialog}>
-                  Cancel
-                </button>
-                <button type="submit" className={styles.primaryButton}>
-                  <Check size={16} />
-                  <span>{selectedItem ? 'Update Asset Record' : 'Save New Item'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <AssetDialog
+          isOpen={openDialog}
+          item={selectedItem}
+          categories={categories}
+          isClassic={isClassic}
+          onClose={handleCloseDialog}
+          onSave={handleSaveItem}
+          convertImageToBase64={convertImageToBase64}
+        />
       )}
 
       {/* DIALOG: BORROW ITEM */}
       {openBorrowDialog && selectedItem && (
-        <div className={styles.modalOverlay} onClick={() => setOpenBorrowDialog(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h2>Borrow Requisition: {selectedItem.name}</h2>
-                <p className={styles.modalSubtitle}>Currently available: {selectedItem.quantity} units</p>
-              </div>
-              <button type="button" className={styles.closeButton} onClick={() => setOpenBorrowDialog(false)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleBorrowSubmit} className={styles.form}>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="borrowerName">Borrower Full Name *</label>
-                  <input
-                    type="text"
-                    id="borrowerName"
-                    value={borrowForm.borrowerName}
-                    onChange={(e) => setBorrowForm({ ...borrowForm, borrowerName: e.target.value })}
-                    required
-                    placeholder="e.g. Maria Santos"
-                    className={styles.formInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="borrowerEmail">Borrower University Email</label>
-                  <input
-                    type="email"
-                    id="borrowerEmail"
-                    value={borrowForm.borrowerEmail}
-                    onChange={(e) => setBorrowForm({ ...borrowForm, borrowerEmail: e.target.value })}
-                    placeholder="e.g. maria.santos@ctu.edu.ph"
-                    className={styles.formInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="quantityBorrowed">Quantity to Borrow *</label>
-                  <input
-                    type="number"
-                    id="quantityBorrowed"
-                    value={borrowForm.quantityBorrowed}
-                    onChange={(e) => setBorrowForm({ ...borrowForm, quantityBorrowed: parseInt(e.target.value) || 1 })}
-                    min="1"
-                    max={selectedItem.quantity}
-                    required
-                    className={styles.formInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="expectedReturnDate">Expected Return Date</label>
-                  <input
-                    type="date"
-                    id="expectedReturnDate"
-                    value={borrowForm.expectedReturnDate}
-                    onChange={(e) => setBorrowForm({ ...borrowForm, expectedReturnDate: e.target.value })}
-                    className={styles.formInput}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="purpose">Official Purpose / Committee Event *</label>
-                <input
-                  type="text"
-                  id="purpose"
-                  value={borrowForm.purpose}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, purpose: e.target.value })}
-                  required
-                  placeholder="e.g. College Days Stage Setup"
-                  className={styles.formInput}
-                />
-              </div>
-
-              <div className={styles.formActions}>
-                <button type="button" className={styles.secondaryButton} onClick={() => setOpenBorrowDialog(false)}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.primaryButton}
-                  disabled={borrowForm.quantityBorrowed > selectedItem.quantity || selectedItem.quantity === 0}
-                >
-                  <Check size={16} /> Confirm Custody
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <BorrowDialog
+          isOpen={openBorrowDialog}
+          item={selectedItem}
+          isClassic={isClassic}
+          onClose={() => {
+            setOpenBorrowDialog(false);
+            setSelectedItem(null);
+          }}
+          onSubmit={handleBorrowSubmit}
+        />
       )}
 
       {/* DIALOG: RETURN ITEM */}
       {openReturnDialog && selectedBorrowLog && (
-        <div className={styles.modalOverlay} onClick={() => setOpenReturnDialog(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h2>Process Return: {selectedBorrowLog.itemName}</h2>
-                <p className={styles.modalSubtitle}>Borrower: {selectedBorrowLog.borrowerName || 'Student'}</p>
-              </div>
-              <button type="button" className={styles.closeButton} onClick={() => setOpenReturnDialog(false)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleReturnSubmit} className={styles.form}>
-              <div className={styles.formGroup}>
-                <label htmlFor="condition">Asset Return Condition</label>
-                <select
-                  id="condition"
-                  value={returnForm.condition}
-                  onChange={(e) => setReturnForm({ ...returnForm, condition: e.target.value })}
-                  className={styles.formSelect}
-                >
-                  <option value="excellent">Excellent — Like New</option>
-                  <option value="good">Good — Fully Functional</option>
-                  <option value="fair">Fair — Minor Cosmetic Wear</option>
-                  <option value="poor">Poor — Needs Inspection</option>
-                  <option value="damaged">Damaged — Needs Maintenance</option>
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="notes">Inspection Notes</label>
-                <textarea
-                  id="notes"
-                  value={returnForm.notes}
-                  onChange={(e) => setReturnForm({ ...returnForm, notes: e.target.value })}
-                  rows="3"
-                  className={styles.formTextarea}
-                  placeholder="State any issues, missing cables, or general condition..."
-                />
-              </div>
-
-              <div className={styles.formActions}>
-                <button type="button" className={styles.secondaryButton} onClick={() => setOpenReturnDialog(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className={styles.primaryButton}>
-                  <Check size={16} /> Confirm Check-In
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ReturnDialog
+          isOpen={openReturnDialog}
+          log={selectedBorrowLog}
+          isClassic={isClassic}
+          onClose={() => {
+            setOpenReturnDialog(false);
+            setSelectedBorrowLog(null);
+          }}
+          onSubmit={handleReturnSubmit}
+        />
       )}
     </div>
   );
@@ -1129,6 +829,519 @@ const BorrowLogRow = memo(function BorrowLogRow({
         )}
       </td>
     </tr>
+  );
+});
+
+// ==========================================
+// MEMOIZED HIGH-PERFORMANCE DIALOG SUBCOMPONENTS
+// Isolates form states from the root dashboard to ensure 0ms typing latency
+// ==========================================
+
+const AssetDialog = memo(function AssetDialog({
+  isOpen,
+  item,
+  categories,
+  isClassic,
+  onClose,
+  onSave,
+  convertImageToBase64,
+}) {
+  const [formData, setFormData] = useState(() => ({
+    name: item?.name || '',
+    category: item?.category || categories?.[0] || '',
+    quantity: item?.quantity ?? 0,
+    storageLocation: item?.storageLocation || '',
+    amount: item?.amount ?? 0,
+    receipt: item?.receipt || '',
+    description: item?.description || '',
+    minQuantity: item?.minQuantity ?? 5,
+  }));
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        name: item.name || '',
+        category: item.category || categories?.[0] || '',
+        quantity: item.quantity ?? 0,
+        storageLocation: item.storageLocation || '',
+        amount: item.amount ?? 0,
+        receipt: item.receipt || '',
+        description: item.description || '',
+        minQuantity: item.minQuantity ?? 5,
+      });
+    } else {
+      setFormData({
+        name: '',
+        category: categories?.[0] || '',
+        quantity: 0,
+        storageLocation: '',
+        amount: 0,
+        receipt: '',
+        description: '',
+        minQuantity: 5,
+      });
+    }
+  }, [item, categories]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleReceiptUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await convertImageToBase64(file);
+        setFormData((prev) => ({ ...prev, receipt: base64 }));
+      } catch (error) {
+        console.error('Error converting image:', error);
+        alert('Error uploading receipt: ' + error.message);
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await onSave(formData);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className={`${styles.modalOverlay} ${isClassic ? styles.modalOverlayClassic : ''}`}
+      onClick={onClose}
+    >
+      <div
+        className={`${styles.modal} ${isClassic ? styles.modalClassic : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>{item ? 'Modify Asset Specification' : 'Register New Asset'}</h2>
+            <p className={styles.modalSubtitle}>Fill in official details to catalog this item</p>
+          </div>
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label htmlFor="name">Item Designation *</label>
+              <input
+                type="text"
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                required
+                placeholder="e.g. Wireless Microphone Set"
+                className={styles.formInput}
+                autoFocus
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="category">Category Classification *</label>
+              <select
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
+                required
+                className={styles.formSelect}
+              >
+                <option value="">Select category...</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="quantity">Quantity in Stock *</label>
+              <input
+                type="number"
+                id="quantity"
+                value={formData.quantity}
+                onChange={(e) => setFormData((prev) => ({ ...prev, quantity: e.target.value }))}
+                required
+                min="0"
+                className={styles.formInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="amount">Unit Valuation (₱) *</label>
+              <input
+                type="number"
+                id="amount"
+                value={formData.amount}
+                onChange={(e) => setFormData((prev) => ({ ...prev, amount: e.target.value }))}
+                required
+                min="0"
+                step="0.01"
+                className={styles.formInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="storageLocation">Storage Location / Cabinet *</label>
+              <input
+                type="text"
+                id="storageLocation"
+                value={formData.storageLocation}
+                onChange={(e) => setFormData((prev) => ({ ...prev, storageLocation: e.target.value }))}
+                required
+                placeholder="e.g. SSG Storage Cabinet B3"
+                className={styles.formInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="minQuantity">Minimum Stock Alert Threshold</label>
+              <input
+                type="number"
+                id="minQuantity"
+                value={formData.minQuantity}
+                onChange={(e) => setFormData((prev) => ({ ...prev, minQuantity: e.target.value }))}
+                min="0"
+                className={styles.formInput}
+              />
+              <small className={styles.helperText}>Triggers warning badge when units fall below this level</small>
+            </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="description">Asset Description & Specs</label>
+            <textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              rows="3"
+              placeholder="Include model serial numbers, hardware condition, and packaging notes..."
+              className={styles.formTextarea}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.fileUploadLabel}>
+              <span className={styles.fileUploadButton}>
+                <Paperclip size={15} /> Upload Receipt or Invoice (Optional)
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleReceiptUpload}
+                className={styles.fileInput}
+              />
+            </label>
+            {formData.receipt && (
+              <span className={styles.fileUploadStatus}>
+                <CheckCircle2 size={14} /> Receipt document attached
+              </span>
+            )}
+          </div>
+
+          <div className={styles.formActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button type="submit" className={styles.primaryButton} disabled={submitting}>
+              <Check size={16} />
+              <span>{submitting ? 'Saving...' : item ? 'Update Asset Record' : 'Save New Item'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+});
+
+const BorrowDialog = memo(function BorrowDialog({
+  isOpen,
+  item,
+  isClassic,
+  onClose,
+  onSubmit,
+}) {
+  const [borrowForm, setBorrowForm] = useState(() => ({
+    itemId: item?.id || '',
+    quantityBorrowed: 1,
+    borrowerName: '',
+    borrowerEmail: '',
+    purpose: '',
+    expectedReturnDate: '',
+  }));
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (item) {
+      setBorrowForm({
+        itemId: item.id || '',
+        quantityBorrowed: 1,
+        borrowerName: '',
+        borrowerEmail: '',
+        purpose: '',
+        expectedReturnDate: '',
+      });
+    }
+  }, [item]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (borrowForm.quantityBorrowed > (item?.quantity || 0)) {
+      alert('Cannot borrow more than available stock quantity');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmit(borrowForm);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isOpen || !item) return null;
+
+  return (
+    <div
+      className={`${styles.modalOverlay} ${isClassic ? styles.modalOverlayClassic : ''}`}
+      onClick={onClose}
+    >
+      <div
+        className={`${styles.modal} ${isClassic ? styles.modalClassic : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>Borrow Requisition: {item.name}</h2>
+            <p className={styles.modalSubtitle}>Currently available: {item.quantity} units</p>
+          </div>
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close modal">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label htmlFor="borrowerName">Borrower Full Name *</label>
+              <input
+                type="text"
+                id="borrowerName"
+                value={borrowForm.borrowerName}
+                onChange={(e) => setBorrowForm((prev) => ({ ...prev, borrowerName: e.target.value }))}
+                required
+                placeholder="e.g. Maria Santos"
+                className={styles.formInput}
+                autoFocus
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="borrowerEmail">Borrower University Email</label>
+              <input
+                type="email"
+                id="borrowerEmail"
+                value={borrowForm.borrowerEmail}
+                onChange={(e) => setBorrowForm((prev) => ({ ...prev, borrowerEmail: e.target.value }))}
+                placeholder="e.g. maria.santos@ctu.edu.ph"
+                className={styles.formInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="quantityBorrowed">Quantity to Borrow *</label>
+              <input
+                type="number"
+                id="quantityBorrowed"
+                value={borrowForm.quantityBorrowed}
+                onChange={(e) =>
+                  setBorrowForm((prev) => ({ ...prev, quantityBorrowed: parseInt(e.target.value) || 1 }))
+                }
+                min="1"
+                max={item.quantity}
+                required
+                className={styles.formInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="expectedReturnDate">Expected Return Date</label>
+              <input
+                type="date"
+                id="expectedReturnDate"
+                value={borrowForm.expectedReturnDate}
+                onChange={(e) => setBorrowForm((prev) => ({ ...prev, expectedReturnDate: e.target.value }))}
+                className={styles.formInput}
+              />
+            </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="purpose">Official Purpose / Committee Event *</label>
+            <input
+              type="text"
+              id="purpose"
+              value={borrowForm.purpose}
+              onChange={(e) => setBorrowForm((prev) => ({ ...prev, purpose: e.target.value }))}
+              required
+              placeholder="e.g. College Days Stage Setup"
+              className={styles.formInput}
+            />
+          </div>
+
+          <div className={styles.formActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className={styles.primaryButton}
+              disabled={submitting || borrowForm.quantityBorrowed > item.quantity || item.quantity === 0}
+            >
+              <Check size={16} /> {submitting ? 'Confirming...' : 'Confirm Custody'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+});
+
+const ReturnDialog = memo(function ReturnDialog({
+  isOpen,
+  log,
+  isClassic,
+  onClose,
+  onSubmit,
+}) {
+  const [returnForm, setReturnForm] = useState(() => ({
+    notes: '',
+    condition: 'good',
+  }));
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await onSubmit(returnForm);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isOpen || !log) return null;
+
+  return (
+    <div
+      className={`${styles.modalOverlay} ${isClassic ? styles.modalOverlayClassic : ''}`}
+      onClick={onClose}
+    >
+      <div
+        className={`${styles.modal} ${isClassic ? styles.modalClassic : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>Process Return: {log.itemName}</h2>
+            <p className={styles.modalSubtitle}>Borrower: {log.borrowerName || 'Student'}</p>
+          </div>
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close modal">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label htmlFor="condition">Asset Return Condition</label>
+            <select
+              id="condition"
+              value={returnForm.condition}
+              onChange={(e) => setReturnForm((prev) => ({ ...prev, condition: e.target.value }))}
+              className={styles.formSelect}
+            >
+              <option value="excellent">Excellent — Like New</option>
+              <option value="good">Good — Fully Functional</option>
+              <option value="fair">Fair — Minor Cosmetic Wear</option>
+              <option value="poor">Poor — Needs Inspection</option>
+              <option value="damaged">Damaged — Needs Maintenance</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="notes">Inspection Notes</label>
+            <textarea
+              id="notes"
+              value={returnForm.notes}
+              onChange={(e) => setReturnForm((prev) => ({ ...prev, notes: e.target.value }))}
+              rows="3"
+              className={styles.formTextarea}
+              placeholder="State any issues, missing cables, or general condition..."
+            />
+          </div>
+
+          <div className={styles.formActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button type="submit" className={styles.primaryButton} disabled={submitting}>
+              <Check size={16} /> {submitting ? 'Processing...' : 'Confirm Check-In'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 });
 

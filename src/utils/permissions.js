@@ -61,12 +61,14 @@ export const DEATH_AID_COLLECTION_STATUS = {
   FOR_VERIFICATION: 'for_verification',
   CONFIRMED: 'confirmed',
   DISCREPANCY: 'discrepancy',
+  DENIED: 'denied',
 };
 
 export const DEATH_AID_REMITTANCE_STATUS = {
   CONFIRMED: 'confirmed',
   DISCREPANCY: 'discrepancy',
   RESOLVED: 'resolved',
+  DENIED: 'denied',
 };
 
 export const DEATH_AID_DEBT_TYPES = {
@@ -87,6 +89,7 @@ export const DEATH_AID_STATUS_LABELS = {
   [DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION]: 'For Verification',
   [DEATH_AID_COLLECTION_STATUS.CONFIRMED]: 'Confirmed',
   [DEATH_AID_COLLECTION_STATUS.DISCREPANCY]: 'Discrepancy',
+  [DEATH_AID_COLLECTION_STATUS.DENIED]: 'Denied / Voided',
 };
 
 export const isSignedInRole = (role) => !!role;
@@ -732,14 +735,16 @@ export const canAccessRoute = (user, routeName) => {
     '/admin/users': ['admin', 'president'],
     '/admin/analytics': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
     '/admin/settings': ['admin', 'president'],
-    '/admin/audit': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer'],
+    '/admin/audit': ['admin', 'president', 'vice_president'],
 
     // Management routes (Commerce Hub)
+    '/order': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+    '/track-order': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
     '/products': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative'],
     '/products/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
     '/orders': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
     '/orders/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
-    '/commerce': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
+    '/commerce': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
 
     // Finance — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
     '/finance': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer', 'secretary', 'executive_secretary'],
@@ -763,6 +768,7 @@ export const canAccessRoute = (user, routeName) => {
 
     // Public routes
     '/': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+    '/campus-map': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
     '/login': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
     '/about': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']
   };

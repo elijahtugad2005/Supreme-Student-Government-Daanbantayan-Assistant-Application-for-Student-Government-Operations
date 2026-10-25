@@ -104,12 +104,14 @@ export const computeTotals = (enrolledCount, contribution, beneficiaries) => {
 export const computeOutstanding = (collections) => {
   const latestBySection = new Map();
 
-  collections.forEach((c) => {
-    const current = latestBySection.get(c.sectionKey);
-    if (!current || timeValue(c.submittedAt) > timeValue(current.submittedAt)) {
-      latestBySection.set(c.sectionKey, c);
-    }
-  });
+  collections
+    .filter((c) => c.status !== DEATH_AID_COLLECTION_STATUS.DENIED)
+    .forEach((c) => {
+      const current = latestBySection.get(c.sectionKey);
+      if (!current || timeValue(c.submittedAt) > timeValue(current.submittedAt)) {
+        latestBySection.set(c.sectionKey, c);
+      }
+    });
 
   return Array.from(latestBySection.values())
     .map((c) => ({
@@ -405,6 +407,57 @@ export const recordRemittance = async ({ collectionId, amountReceived, officer, 
   });
 
   return remittance;
+};
+
+/**
+ * Deny / Disclose an erroneous remittance submission.
+ * Used when a student / mayor made an input mistake (e.g. wrong section,
+ * incorrect student count, duplicate filing, or withdrawn physical cash).
+ * Marks the collection as DENIED / VOIDED and logs the reason to the audit trail.
+ */
+export const denyRemittance = async ({ collectionId, officer, reason, note = '' }) => {
+  const collectionRef = doc(db, COLLECTION_COLLECTION, collectionId);
+  const snap = await getDoc(collectionRef);
+  if (!snap.exists()) throw new Error('That collection no longer exists.');
+
+  const record = snap.data();
+  if (record.status !== DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION) {
+    throw new Error(`Only pending collections can be denied. This collection is already ${String(record.status).replace(/_/g, ' ')}.`);
+  }
+
+  const denialReason = String(reason || '').trim();
+  if (!denialReason) {
+    throw new Error('Please select or specify a reason for denying this remittance.');
+  }
+
+  await setDoc(
+    collectionRef,
+    {
+      status: DEATH_AID_COLLECTION_STATUS.DENIED,
+      deniedAt: serverTimestamp(),
+      deniedByUid: officer.uid,
+      deniedByName: officer.name,
+      deniedByRole: officer.role,
+      denialReason,
+      denialNote: String(note || '').trim(),
+    },
+    { merge: true }
+  );
+
+  await appendAudit({
+    collectionId,
+    action: 'remittance_denied',
+    actor: officer,
+    extra: {
+      section: record.section,
+      sectionKey: record.sectionKey,
+      reportedAmount: record.collectedAmount,
+      denialReason,
+      note: String(note || '').trim(),
+    },
+  });
+
+  return { collectionId, status: DEATH_AID_COLLECTION_STATUS.DENIED, denialReason };
 };
 
 // ────────────────────────────────────────────────────────────
