@@ -46,7 +46,7 @@ function Header({ sidebarOpen, toggleSidebar }) {
     <header
       className={`${styles.header} ${isShrunk ? styles.shrink : ''} ${!sidebarOpen ? styles.headerSidebarClosed : ''} ${isClassicMaroon ? styles.headerMaroon : ''}`}
     >
-      {/* Left Area: Hamburger & Campus Emblem */}
+      {/* Left Area: Hamburger Navigation */}
       <div className={styles.leftSection}>
         {toggleSidebar && (
           <button
@@ -60,13 +60,6 @@ function Header({ sidebarOpen, toggleSidebar }) {
             <span className={`${styles.hamburgerBar} ${sidebarOpen ? styles.barBot : ''}`} />
           </button>
         )}
-
-        <img
-          src="/images/logossg.png"
-          alt="SSG Seal"
-          className={styles.headerLogo}
-          onError={(e) => { e.target.style.display = 'none'; }}
-        />
       </div>
 
       {/* Centre: Preserved Font Institutional Title Block */}
