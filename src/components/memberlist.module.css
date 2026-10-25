@@ -1581,3 +1581,411 @@
   border-color: #E61919 !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
 }
+
+/* ==========================================================================
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) – MEMBER DIRECTORY
+   Applied ONLY when theme === 'dark' (Classic Mode).
+   Other themes (Light, Corporate) are completely unaffected.
+   ========================================================================== */
+
+/* ── SSG Title Wrapper ── */
+:global(.theme-dark) .ssgTitleWrapper {
+  background: linear-gradient(135deg, rgba(32, 6, 10, 0.96) 0%, rgba(18, 3, 6, 0.98) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(212, 175, 55, 0.25) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+:global(.theme-dark) .ssgTitleWrapper::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, #d4af37, #8a1a24, #d4af37) !important;
+  opacity: 1 !important;
+}
+
+:global(.theme-dark) .ssgMainTitle {
+  font-family: 'Cinzel', serif !important;
+  font-size: 2.1rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  background: linear-gradient(135deg, #ffffff 0%, #ffea9f 50%, #d4af37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+}
+
+:global(.theme-dark) .ssgTerm {
+  font-family: 'Cinzel', serif !important;
+  font-size: 0.9rem !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.12em !important;
+  font-weight: 700 !important;
+}
+
+/* ── Branch Section Containers ── */
+:global(.theme-dark) .branchSection {
+  background: rgba(20, 4, 7, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+:global(.theme-dark) .advisoryBranch {
+  border-top: 3px solid #10b981 !important;
+}
+
+:global(.theme-dark) .executiveBranch {
+  border-top: 3px solid #d4af37 !important;
+}
+
+:global(.theme-dark) .legislativeBranch {
+  border-top: 3px solid #e5b842 !important;
+}
+
+:global(.theme-dark) .cabinetBranch {
+  border-top: 3px solid #c59b27 !important;
+}
+
+:global(.theme-dark) .creativesBranch {
+  border-top: 3px solid #e0533c !important;
+}
+
+:global(.theme-dark) .generalBranch {
+  border-top: 3px solid #d4af37 !important;
+}
+
+/* ── Section Header ── */
+:global(.theme-dark) .sectionHeader {
+  background: linear-gradient(135deg, rgba(32, 6, 10, 0.95) 0%, rgba(22, 4, 8, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .branchTitle {
+  font-family: 'Cinzel', serif !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .branchSubtitle {
+  color: rgba(255, 234, 159, 0.72) !important;
+}
+
+:global(.theme-dark) .branchIconWrapper {
+  background: rgba(45, 8, 14, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+:global(.theme-dark) .iconAdvisory,
+:global(.theme-dark) .iconExecutive,
+:global(.theme-dark) .iconLegislative,
+:global(.theme-dark) .iconCabinet,
+:global(.theme-dark) .iconCreatives,
+:global(.theme-dark) .iconGeneral {
+  background: rgba(45, 8, 14, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+:global(.theme-dark) .branchTag {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .memberLimitIndicator {
+  background: rgba(30, 5, 10, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .addSectionBtn {
+  background: linear-gradient(135deg, #7a121d 0%, #4a080f 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 4px 14px rgba(122, 18, 29, 0.6), 0 0 10px rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .addSectionBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8f1723 0%, #5a0a12 100%) !important;
+  border-color: #ffd875 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(122, 18, 29, 0.75), 0 0 16px rgba(212, 175, 55, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+:global(.theme-dark) .addSectionBtn:disabled,
+:global(.theme-dark) .addBtnDisabled {
+  background: rgba(45, 8, 14, 0.5) !important;
+  border: 1px solid rgba(212, 175, 55, 0.15) !important;
+  color: rgba(255, 234, 159, 0.4) !important;
+}
+
+/* ── Tree Connecting Lines ── */
+:global(.theme-dark) .verticalStem {
+  background: rgba(212, 175, 55, 0.45) !important;
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.3) !important;
+}
+
+:global(.theme-dark) .horizontalBar {
+  background: rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* ── Collapsible Sub Sections ── */
+:global(.theme-dark) .subSectionBox {
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  background: rgba(16, 3, 6, 0.85) !important;
+}
+
+:global(.theme-dark) .subSectionHeader {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.18) !important;
+  background: rgba(30, 5, 10, 0.75) !important;
+}
+
+:global(.theme-dark) .subSectionHeader:hover {
+  background: rgba(45, 8, 14, 0.9) !important;
+}
+
+:global(.theme-dark) .subHeaderTitle h3 {
+  font-family: 'Cinzel', serif !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.08em !important;
+}
+
+:global(.theme-dark) .countBadge {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+/* ── Member Cards ── */
+:global(.theme-dark) .memberCard {
+  background: linear-gradient(145deg, rgba(28, 5, 9, 0.92) 0%, rgba(18, 3, 6, 0.96) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(212, 175, 55, 0.15) !important;
+}
+
+:global(.theme-dark) .memberCard::before {
+  background: linear-gradient(90deg, #d4af37, #8a1a24, #d4af37) !important;
+}
+
+:global(.theme-dark) .memberCard:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.75), 0 0 20px rgba(212, 175, 55, 0.2), 0 0 0 1px rgba(212, 175, 55, 0.45) !important;
+  border-color: #d4af37 !important;
+}
+
+/* Leader Variant (e.g. President) */
+:global(.theme-dark) .card_executiveLeader {
+  background: linear-gradient(145deg, rgba(38, 7, 12, 0.96) 0%, rgba(22, 4, 8, 0.98) 100%) !important;
+  border: 1.5px solid #d4af37 !important;
+  box-shadow: 0 12px 36px rgba(122, 18, 29, 0.35), 0 0 20px rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .card_executiveLeader::before {
+  background: linear-gradient(90deg, #d4af37, #ffea9f, #d4af37) !important;
+  opacity: 1 !important;
+}
+
+/* ── Avatars ── */
+:global(.theme-dark) .memberAvatar {
+  border: 2px solid rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .memberCard:hover .memberAvatar {
+  transform: scale(1.06) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), 0 0 18px rgba(212, 175, 55, 0.4) !important;
+}
+
+:global(.theme-dark) .card_executiveLeader .memberAvatar {
+  border: 2.5px solid #d4af37 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), 0 0 16px rgba(212, 175, 55, 0.4) !important;
+}
+
+:global(.theme-dark) .avatarPlaceholder {
+  background: linear-gradient(135deg, #7a121d, #3d070c) !important;
+  border: 2px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .crownBadge {
+  filter: drop-shadow(0 2px 6px rgba(212, 175, 55, 0.8)) !important;
+}
+
+/* ── Position Badges ── */
+:global(.theme-dark) .positionBadge {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-dark) .card_executiveLeader .positionBadge {
+  background: linear-gradient(135deg, rgba(122, 18, 29, 0.6) 0%, rgba(212, 175, 55, 0.25) 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .card_legislativeSpeaker .positionBadge,
+:global(.theme-dark) .card_legislativeOfficer .positionBadge,
+:global(.theme-dark) .card_representative .positionBadge {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .card_cabinet .positionBadge {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .card_creatives .positionBadge {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+/* ── Names & Meta ── */
+:global(.theme-dark) .memberName {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-dark) .card_executiveLeader .memberName {
+  font-size: 0.98rem !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .memberIdRow {
+  color: rgba(255, 234, 159, 0.65) !important;
+}
+
+/* ── Card Action Buttons ── */
+:global(.theme-dark) .editBtn {
+  background: rgba(35, 7, 12, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .editBtn:hover {
+  background: rgba(122, 18, 29, 0.45) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(122, 18, 29, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+:global(.theme-dark) .deleteBtn {
+  background: rgba(35, 7, 12, 0.7) !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  color: #fca5a5 !important;
+}
+
+:global(.theme-dark) .deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Empty Notices ── */
+:global(.theme-dark) .emptySlotNotice,
+:global(.theme-dark) .emptyBranchNotice {
+  border: 1px dashed rgba(212, 175, 55, 0.3) !important;
+  background: rgba(20, 3, 6, 0.6) !important;
+  color: rgba(255, 234, 159, 0.55) !important;
+}
+
+/* ── Edit Member Modal ── */
+:global(.theme-dark) .modalOverlay {
+  background: rgba(0, 0, 0, 0.85) !important;
+}
+
+:global(.theme-dark) .modalContent {
+  background: rgba(20, 4, 7, 0.98) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), 0 0 30px rgba(212, 175, 55, 0.1) !important;
+}
+
+:global(.theme-dark) .modalHeader {
+  background: linear-gradient(135deg, rgba(32, 6, 10, 0.98) 0%, rgba(20, 3, 6, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+:global(.theme-dark) .modalHeader h3 {
+  font-family: 'Cinzel', serif !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .closeButton {
+  color: rgba(255, 234, 159, 0.6) !important;
+}
+
+:global(.theme-dark) .closeButton:hover {
+  color: #ffffff !important;
+  background: rgba(122, 18, 29, 0.35) !important;
+}
+
+:global(.theme-dark) .formGroup label {
+  color: #ffea9f !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-dark) .formGroup input,
+:global(.theme-dark) .formGroup select,
+:global(.theme-dark) .formGroup textarea {
+  background: rgba(14, 2, 4, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: 9px !important;
+}
+
+:global(.theme-dark) .formGroup input:focus,
+:global(.theme-dark) .formGroup select:focus,
+:global(.theme-dark) .formGroup textarea:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .formGroup input::placeholder,
+:global(.theme-dark) .formGroup textarea::placeholder {
+  color: rgba(255, 234, 159, 0.4) !important;
+}
+
+:global(.theme-dark) .modalFooter {
+  background: rgba(26, 5, 9, 0.95) !important;
+  border-top: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .saveButton {
+  background: linear-gradient(135deg, #7a121d 0%, #4a080f 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(122, 18, 29, 0.6), 0 0 12px rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .saveButton:hover {
+  background: linear-gradient(135deg, #8f1723 0%, #5a0a12 100%) !important;
+  border-color: #ffd875 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(122, 18, 29, 0.75), 0 0 16px rgba(212, 175, 55, 0.4) !important;
+}

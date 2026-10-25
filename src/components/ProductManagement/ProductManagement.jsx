@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { useAuth } from '../AuthContext/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext.jsx';
+import auditService from '../../services/auditService';
 import ProductFormPanelEnhanced from './ProductFormPanelEnhanced';
+import PesoSign from '../Common/PesoSign.jsx';
 import styles from './productmanagement.module.css';
 
 // ========================================
@@ -193,11 +197,7 @@ function DashboardView({ products, onRestock }) {
           value={`₱${totalValue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           sub="total stock value"
           color="Green"
-          icon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          }
+          icon={<PesoSign size={20} />}
         />
       </div>
 
@@ -530,6 +530,12 @@ function SettingsView() {
 // MAIN COMPONENT
 // ========================================
 function ProductManagement() {
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
+  const { currentUser, userRole, userName } = useAuth();
+  const COMMERCE_DELETE_ROLES = ['admin', 'president', 'vice_president', 'finance_secretary', 'executive_secretary'];
+  const canDeleteCommerce = COMMERCE_DELETE_ROLES.includes(userRole);
+
   // Navigation
   const [activeSection, setActiveSection] = useState('dashboard');
 
@@ -737,9 +743,19 @@ function ProductManagement() {
   // HANDLE DELETE PRODUCT (Firebase)
   // ======================================
   const handleDeleteProduct = async (docId, productName) => {
+    if (!canDeleteCommerce) {
+      showNotification('Security clearance required: Only Finance Secretary, Executive Secretary, President, VP, or Admin can delete products from Commerce Hub.', 'error');
+      return;
+    }
+
     if (!window.confirm(`Are you sure you want to delete "${productName}"?\n\nThis action cannot be undone.`)) return;
     try {
       await deleteDoc(doc(db, 'products', docId));
+
+      // Audit Trail: Log Commerce Deletion (CDL) - Zero UID
+      const performer = userName || currentUser?.displayName || currentUser?.email || 'Authorized Officer';
+      await auditService.logCommerceDelete(performer, productName, 'Product Catalog');
+
       showNotification(`Product "${productName}" deleted successfully!`, 'success');
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -756,7 +772,7 @@ function ProductManagement() {
   };
 
   return (
-    <div className={styles.pmContainer}>
+    <div className={`${styles.pmContainer} ${isClassic ? styles.pmClassic : ''}`}>
       {/* Notification Toast */}
       {notification.show && (
         <div className={`${styles.notification} ${styles[`notification${notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}`]}`}>

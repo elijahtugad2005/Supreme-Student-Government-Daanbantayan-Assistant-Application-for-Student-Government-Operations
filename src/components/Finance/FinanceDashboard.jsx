@@ -12,6 +12,7 @@ import {
   PieChart,
   Wallet
 } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './FinanceDashboard.module.css';
 
 /**
@@ -27,16 +28,19 @@ import styles from './FinanceDashboard.module.css';
  */
 const FinanceDashboard = () => {
   const { canEditFinance } = usePermissions();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'allocation' | 'logs'
 
   return (
-    <div className={styles.financeDashboardContainer}>
+    <div className={`${styles.financeDashboardContainer} ${isClassic ? styles.financeClassic : ''}`}>
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
       {/* Control Center Header */}
       <header className={styles.dashboardHeader}>
         <div className={styles.headerTop}>
           <div className={styles.eyebrowBadge}>
             <Wallet size={13} />
-            <span>Treasury & Fiscal Governance</span>
+            <span>{isClassic ? 'SSG TREASURY & FISCAL GOVERNANCE' : 'Treasury & Fiscal Governance'}</span>
           </div>
           {!canEditFinance && (
             <span className={styles.viewOnlyBadge}>

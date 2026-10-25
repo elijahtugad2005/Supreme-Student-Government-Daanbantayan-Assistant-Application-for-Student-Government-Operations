@@ -265,64 +265,465 @@
 }
 
 /* =====================================================
-   ANALYTICS PLACEHOLDER
+   ANALYTICS DASHBOARD
    ===================================================== */
-.analyticsPlaceholder {
+.analyticsDashboard {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 380px;
-  text-align: center;
-  padding: 3rem 2rem;
+  gap: 1.5rem;
+  animation: fadeSlideIn 0.35s ease both;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.statCard {
   background: var(--ch-card-bg);
   border: 1px solid var(--ch-border);
   border-radius: var(--ch-radius);
+  padding: 1.25rem 1.35rem;
   box-shadow: var(--ch-shadow-sm);
-  animation: fadeSlideIn 0.4s ease both;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.placeholderIcon {
-  width: 76px;
-  height: 76px;
-  background: var(--ch-accent-light);
-  border: 2px solid rgba(59,130,246,0.2);
-  color: var(--ch-accent);
-  border-radius: 50%;
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ch-shadow);
+}
+
+.statHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ch-text-secondary);
+}
+
+.statIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
-  animation: pulseGlow 3s ease-in-out infinite;
-  transition: transform 0.3s ease;
 }
 
-.placeholderIcon:hover {
-  transform: scale(1.08);
+.iconBlue { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.iconGreen { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.iconPurple { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.iconAmber { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.iconGold { background: rgba(212, 175, 55, 0.15); color: #d4af37; }
+
+.statValue {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--ch-text-primary);
+  line-height: 1.2;
 }
 
-.placeholderTitle {
-  font-size: 1.4rem;
+.statSubtext {
+  font-size: 0.75rem;
+  color: var(--ch-text-muted);
+}
+
+/* =====================================================
+   CHARTS & VISUAL ANALYTICS GRID
+   ===================================================== */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 960px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chartCard {
+  background: var(--ch-card-bg);
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--ch-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chartCard:hover {
+  box-shadow: var(--ch-shadow-md);
+}
+
+.chartHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.chartTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--ch-text-primary);
-  margin: 0 0 0.65rem;
-  letter-spacing: -0.02em;
+  margin: 0 0 0.25rem;
 }
 
-.placeholderText {
-  font-size: 0.9rem;
+.chartSubtitle {
+  font-size: 0.78rem;
   color: var(--ch-text-secondary);
-  margin: 0 0 0.5rem;
-  line-height: 1.65;
-  max-width: 480px;
+  margin: 0;
 }
 
-.placeholderSubtext {
-  font-size: 0.82rem;
+.chartFilterToggle {
+  display: inline-flex;
+  padding: 0.25rem;
+  background: var(--ch-accent-light);
+  border-radius: 8px;
+  gap: 0.25rem;
+  border: 1px solid var(--ch-border);
+}
+
+.chartToggleBtn {
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ch-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--ch-font);
+}
+
+.chartToggleBtn:hover {
+  color: var(--ch-text-primary);
+}
+
+.chartToggleBtnActive {
+  background: var(--ch-accent);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.chartContentArea {
+  width: 100%;
+  position: relative;
+  min-height: 260px;
+}
+
+/* Tooltip */
+.chartTooltip {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.chartTooltipLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.25rem;
+}
+
+.chartTooltipValue {
+  font-size: 0.8rem;
+  margin: 0.2rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Donut Chart Presentation */
+.pieChartWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.donutContainer {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.donutCenterLabel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.donutCenterValue {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ch-text-primary);
+  line-height: 1.1;
+}
+
+.donutCenterSub {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ch-text-secondary);
+}
+
+.pieLegendList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.pieLegendItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.6rem;
+  background: var(--ch-accent-light);
+  border-radius: 6px;
+  font-size: 0.76rem;
+  border: 1px solid var(--ch-border);
+}
+
+.pieLegendColor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+.pieLegendName {
+  flex: 1;
+  font-weight: 600;
+  color: var(--ch-text-primary);
+}
+
+.pieLegendCount {
+  font-weight: 800;
+  color: var(--ch-text-primary);
+}
+
+.pieMetricTag {
+  padding: 0.3rem 0.75rem;
+  background: var(--ch-accent-light);
+  border: 1px solid var(--ch-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ch-text-primary);
+}
+
+/* Product Velocity Bar Chart */
+.barChartContainer {
+  width: 100%;
+  min-height: 210px;
+}
+
+.emptyChartNotice {
+  font-size: 0.85rem;
   color: var(--ch-text-muted);
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+/* Low Stock Previews */
+.lowStockPreviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lowStockRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+}
+
+.lowStockName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ch-text-primary);
+}
+
+.lowStockPill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-radius: 999px;
+}
+
+.eyebrowBox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--ch-accent);
+  flex-shrink: 0;
+}
+
+.analyticsDetailRow {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 960px) {
+  .analyticsDetailRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analyticsSectionCard {
+  background: var(--ch-card-bg);
+  border: 1px solid var(--ch-border);
+  border-radius: var(--ch-radius);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: var(--ch-shadow-sm);
+}
+
+.analyticsCardTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ch-text-primary);
   margin: 0;
+}
+
+.analyticsCardDesc {
+  font-size: 0.875rem;
+  color: var(--ch-text-secondary);
   line-height: 1.5;
-  max-width: 420px;
+  margin: 0;
+}
+
+.breakdownList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.breakdownItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  background: var(--ch-accent-light);
+  border-radius: 8px;
+  border: 1px solid var(--ch-border);
+}
+
+.breakdownName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ch-text-primary);
+}
+
+.breakdownBadge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  background: var(--ch-accent);
+  color: #fff;
+  border-radius: 999px;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: auto;
+}
+
+.jumpBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--ch-accent);
+  color: #fff;
+  border: none;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.jumpBtn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.jumpBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: var(--ch-text-primary);
+  border: 1px solid var(--ch-border);
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jumpBtnSecondary:hover {
+  background: var(--ch-accent-light);
+  border-color: var(--ch-accent);
 }
 
 /* =====================================================
@@ -609,6 +1010,339 @@
   font-family: 'JetBrains Mono', monospace !important;
 }
 
+/* ==========================================================================
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) — COMMERCE HUB
+   Applied whenever theme is 'dark' or under .commerceHubClassic
+   Preserves Swiss Industrial Brutalist for .theme-light
+   ========================================================================== */
+:global(.theme-dark) {
+  --ch-bg: #120305 !important;
+  --ch-card-bg: #180407 !important;
+  --ch-border: rgba(212, 175, 55, 0.35) !important;
+  --ch-text-primary: #ffffff !important;
+  --ch-text-secondary: rgba(255, 234, 159, 0.8) !important;
+  --ch-text-muted: rgba(255, 234, 159, 0.5) !important;
+  --ch-accent: #d4af37 !important;
+  --ch-accent-light: rgba(212, 175, 55, 0.12) !important;
+}
+
+.commerceHubClassic,
+:global(.theme-dark) .wrapper {
+  background-color: #120305 !important;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(138, 26, 36, 0.22) 0%, transparent 70%),
+    radial-gradient(circle at 100% 100%, rgba(212, 175, 55, 0.06) 0%, transparent 50%) !important;
+  color: #ffffff !important;
+}
+
+.commerceHubClassic .container,
+:global(.theme-dark) .container {
+  background-color: rgba(20, 4, 7, 0.98) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Traditional Ethnic Tribal Band Header Accent */
+.commerceHubClassic .tribalBorderTop,
+:global(.theme-dark) .tribalBorderTop {
+  width: 100%;
+  height: 22px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 33px 22px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.commerceHubClassic .topBar,
+:global(.theme-dark) .topBar {
+  background: rgba(28, 5, 8, 0.96) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.commerceHubClassic .topBar::before,
+:global(.theme-dark) .topBar::before {
+  background: linear-gradient(90deg, #d4af37, #8a1a24, #d4af37) !important;
+}
+
+.commerceHubClassic .eyebrow,
+:global(.theme-dark) .eyebrow {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.16em !important;
+  font-weight: 700 !important;
+}
+
+.commerceHubClassic .eyebrowDot,
+:global(.theme-dark) .eyebrowDot {
+  background-color: #d4af37 !important;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.8) !important;
+}
+
+.commerceHubClassic .title,
+:global(.theme-dark) .title {
+  color: #ffffff !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8) !important;
+}
+
+.commerceHubClassic .subtitle,
+:global(.theme-dark) .subtitle {
+  color: rgba(255, 234, 159, 0.75) !important;
+}
+
+.commerceHubClassic .hubBadge,
+:global(.theme-dark) .hubBadge {
+  background: rgba(212, 175, 55, 0.14) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Tab Navigation */
+.commerceHubClassic .tabNavigation,
+:global(.theme-dark) .tabNavigation {
+  background: rgba(18, 4, 6, 0.98) !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.commerceHubClassic .tabButton,
+:global(.theme-dark) .tabButton {
+  color: rgba(255, 234, 159, 0.75) !important;
+  font-family: 'Cinzel', sans-serif !important;
+  letter-spacing: 0.04em !important;
+}
+
+.commerceHubClassic .tabButton:hover:not(.tabButtonActive),
+:global(.theme-dark) .tabButton:hover:not(.tabButtonActive) {
+  color: #ffffff !important;
+  background: rgba(212, 175, 55, 0.12) !important;
+}
+
+.commerceHubClassic .tabButtonActive,
+:global(.theme-dark) .tabButtonActive {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  border-bottom-color: #ffea9f !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4) !important;
+}
+
+.commerceHubClassic .tabBadge,
+:global(.theme-dark) .tabBadge {
+  background: rgba(212, 175, 55, 0.18) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.commerceHubClassic .tabButtonActive .tabBadge,
+:global(.theme-dark) .tabButtonActive .tabBadge {
+  background: #160406 !important;
+  color: #ffea9f !important;
+  border-color: #d4af37 !important;
+}
+
+.commerceHubClassic .tabContent,
+:global(.theme-dark) .tabContent {
+  background-color: transparent !important;
+}
+
+/* Stat Cards */
+.commerceHubClassic .statCard,
+:global(.theme-dark) .statCard {
+  background: rgba(28, 6, 10, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.15) !important;
+}
+
+.commerceHubClassic .statCard:hover,
+:global(.theme-dark) .statCard:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.15) !important;
+}
+
+.commerceHubClassic .statLabel,
+:global(.theme-dark) .statLabel {
+  color: #e5b842 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+}
+
+.commerceHubClassic .statValue,
+:global(.theme-dark) .statValue {
+  color: #ffffff !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+.commerceHubClassic .statSubtext,
+:global(.theme-dark) .statSubtext {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+.commerceHubClassic .iconGold,
+:global(.theme-dark) .iconGold {
+  background: rgba(212, 175, 55, 0.18) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.commerceHubClassic .iconGreen,
+:global(.theme-dark) .iconGreen {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+.commerceHubClassic .iconAmber,
+:global(.theme-dark) .iconAmber {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+.commerceHubClassic .iconPurple,
+:global(.theme-dark) .iconPurple {
+  background: rgba(212, 175, 55, 0.18) !important;
+  color: #e5b842 !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+/* Analytics Charts & Cards in Classic Maroon */
+.commerceHubClassic .chartCard,
+.commerceHubClassic .analyticsSectionCard,
+:global(.theme-dark) .chartCard,
+:global(.theme-dark) .analyticsSectionCard {
+  background: rgba(25, 5, 9, 0.96) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.commerceHubClassic .chartTitle,
+.commerceHubClassic .analyticsCardTitle,
+:global(.theme-dark) .chartTitle,
+:global(.theme-dark) .analyticsCardTitle {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.05em !important;
+}
+
+.commerceHubClassic .chartSubtitle,
+.commerceHubClassic .analyticsCardDesc,
+:global(.theme-dark) .chartSubtitle,
+:global(.theme-dark) .analyticsCardDesc {
+  color: rgba(255, 234, 159, 0.72) !important;
+}
+
+.commerceHubClassic .chartFilterToggle,
+:global(.theme-dark) .chartFilterToggle {
+  background: rgba(18, 4, 7, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+.commerceHubClassic .chartToggleBtn,
+:global(.theme-dark) .chartToggleBtn {
+  color: rgba(255, 234, 159, 0.75) !important;
+}
+
+.commerceHubClassic .chartToggleBtnActive,
+:global(.theme-dark) .chartToggleBtnActive {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35) !important;
+}
+
+.commerceHubClassic .chartTooltip,
+:global(.theme-dark) .chartTooltip {
+  background: rgba(20, 4, 7, 0.96) !important;
+  border: 1px solid #d4af37 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 12px rgba(212, 175, 55, 0.2) !important;
+}
+
+.commerceHubClassic .chartTooltipLabel,
+:global(.theme-dark) .chartTooltipLabel {
+  color: #ffea9f !important;
+  border-bottom-color: rgba(212, 175, 55, 0.25) !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+.commerceHubClassic .pieLegendItem,
+:global(.theme-dark) .pieLegendItem {
+  background: rgba(212, 175, 55, 0.08) !important;
+  border-color: rgba(212, 175, 55, 0.25) !important;
+}
+
+.commerceHubClassic .pieLegendName,
+:global(.theme-dark) .pieLegendName {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.commerceHubClassic .pieLegendCount,
+:global(.theme-dark) .pieLegendCount {
+  color: #ffea9f !important;
+}
+
+.commerceHubClassic .pieMetricTag,
+:global(.theme-dark) .pieMetricTag {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+}
+
+.commerceHubClassic .donutCenterValue,
+:global(.theme-dark) .donutCenterValue {
+  color: #ffffff !important;
+}
+
+.commerceHubClassic .donutCenterSub,
+:global(.theme-dark) .donutCenterSub {
+  color: #ffea9f !important;
+}
+
+.commerceHubClassic .lowStockRow,
+:global(.theme-dark) .lowStockRow {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+.commerceHubClassic .lowStockName,
+:global(.theme-dark) .lowStockName {
+  color: #ffffff !important;
+}
+
+.commerceHubClassic .jumpBtn,
+:global(.theme-dark) .jumpBtn {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35) !important;
+}
+
+.commerceHubClassic .jumpBtn:hover,
+:global(.theme-dark) .jumpBtn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5) !important;
+}
+
+.commerceHubClassic .jumpBtnSecondary,
+:global(.theme-dark) .jumpBtnSecondary {
+  background: rgba(212, 175, 55, 0.1) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+}
+
+.commerceHubClassic .jumpBtnSecondary:hover,
+:global(.theme-dark) .jumpBtnSecondary:hover {
+  background: rgba(212, 175, 55, 0.2) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
 /* =====================================================
    PRINT STYLES
    ===================================================== */
@@ -618,4 +1352,5 @@
   .container { background: white; box-shadow: none; }
   .tabContent { padding: 0; }
 }
+
 

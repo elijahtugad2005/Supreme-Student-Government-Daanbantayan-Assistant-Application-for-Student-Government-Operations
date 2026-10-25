@@ -4,8 +4,11 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Package, Clock, CheckCircle, XCircle, Truck, CreditCard, MapPin, Mail, Phone, User, Calendar, AlertCircle } from 'lucide-react';
 import styles from './TrackOrder.module.css';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function TrackOrder() {
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -465,7 +468,10 @@ function TrackOrder() {
   // RENDER
   // ========================================
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isClassic ? styles.trackOrderClassic : ''}`}>
+      {/* Ethnic Tribal Gold Border (Classic Theme Only) */}
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
+
       {/* Top Bar */}
       <div className={styles.topBar}>
         <p className={styles.eyebrow}>Order Tracking</p>

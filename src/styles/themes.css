@@ -54,6 +54,16 @@ html, body {
 
   /* Overlay */
   --overlay-bg: rgba(0, 0, 0, 0.85);
+
+  /* Scrollbar (Classic Mode - Royal Maroon & Imperial Gold) */
+  --scrollbar-track: #120305;
+  --scrollbar-thumb: linear-gradient(180deg, #7a121d 0%, #4a080f 100%);
+  --scrollbar-thumb-hover: linear-gradient(180deg, #991b29 0%, #5e0d15 100%);
+  --scrollbar-thumb-border: rgba(212, 175, 55, 0.45);
+  --scrollbar-thumb-border-hover: #d4af37;
+  --scrollbar-thumb-shadow: 0 0 8px rgba(212, 175, 55, 0.35);
+  --scrollbar-color-thumb: #7a121d;
+  --scrollbar-color-track: #120305;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -120,6 +130,16 @@ html, body {
   /* ── Overlay ── */
   --overlay-bg: rgba(15, 23, 42, 0.50);
 
+  /* ── Scrollbar (Light Mode - Paper / Office) ── */
+  --scrollbar-track: #F4F5F7;
+  --scrollbar-thumb: #CBD5E1;
+  --scrollbar-thumb-hover: #94A3B8;
+  --scrollbar-thumb-border: #D9DEE7;
+  --scrollbar-thumb-border-hover: #94A3B8;
+  --scrollbar-thumb-shadow: none;
+  --scrollbar-color-thumb: #CBD5E1;
+  --scrollbar-color-track: #F4F5F7;
+
   /* ── Hero (homepage banner keeps white text on maroon bg) ── */
   --hero-text-color:       #FFFFFF;
   --hero-eyebrow-color:    #FFFFFF;
@@ -170,6 +190,16 @@ html, body {
 
   /* Overlay */
   --overlay-bg: rgba(0, 0, 0, 0.4);
+
+  /* Scrollbar (Corporate Mode - Modern Blue) */
+  --scrollbar-track: #060b18;
+  --scrollbar-thumb: #1e3a8a;
+  --scrollbar-thumb-hover: #2563eb;
+  --scrollbar-thumb-border: rgba(59, 130, 246, 0.3);
+  --scrollbar-thumb-border-hover: #3b82f6;
+  --scrollbar-thumb-shadow: 0 0 6px rgba(59, 130, 246, 0.2);
+  --scrollbar-color-thumb: #2563eb;
+  --scrollbar-color-track: #060b18;
 }
 
 
@@ -180,6 +210,41 @@ body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ══════════════════════════════════════════════════════════
+   GLOBAL THEME-AWARE SCROLLBAR SYSTEM
+   ══════════════════════════════════════════════════════════ */
+/* Firefox */
+html, body, * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-color-thumb, #7a121d) var(--scrollbar-color-track, #120305);
+}
+
+/* Chrome, Edge, Safari, Opera */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, #120305);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #7a121d);
+  border: 1px solid var(--scrollbar-thumb-border, rgba(212, 175, 55, 0.45));
+  border-radius: 9999px;
+  box-shadow: var(--scrollbar-thumb-shadow, none);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #991b29);
+  border-color: var(--scrollbar-thumb-border-hover, #d4af37);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track, #120305);
 }
 
 /* Smooth transitions for theme changes */

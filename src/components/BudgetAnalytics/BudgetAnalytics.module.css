@@ -976,4 +976,289 @@
   background: #e61919;
   color: #ffffff;
   border-color: #0a0a0a;
+}
+
+/* ==========================================================================
+   CLASSIC MODE: ROYAL MAROON & IMPERIAL GOLD BUDGET ANALYTICS & LEDGER
+   Applies exclusively under Classic Mode (.analyticsClassic / .theme-dark)
+   Leaves Light and Corporate themes 100% insulated and unaffected.
+   ========================================================================== */
+
+/* ─── Header & Title ─── */
+.analyticsClassic .header,
+:global(.theme-dark) .container .header {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+.analyticsClassic .titleGroup h2,
+:global(.theme-dark) .container .titleGroup h2 {
+  font-family: 'Cinzel', Georgia, serif;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.analyticsClassic .headerSubtitle,
+:global(.theme-dark) .container .headerSubtitle {
+  color: #c9a9ad;
+}
+
+.analyticsClassic .refreshButton,
+:global(.theme-dark) .container .refreshButton {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.85) 0%, rgba(122, 18, 29, 0.7) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #ffea9f;
+}
+
+.analyticsClassic .refreshButton:hover,
+:global(.theme-dark) .container .refreshButton:hover {
+  background: linear-gradient(135deg, #7a121d 0%, #9e1b29 100%);
+  border-color: #d4af37;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ─── KPI Telemetry Cards ─── */
+.analyticsClassic .statCard,
+:global(.theme-dark) .container .statCard {
+  background: linear-gradient(135deg, rgba(30, 6, 10, 0.92) 0%, rgba(18, 3, 5, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.15);
+}
+
+.analyticsClassic .statCard:hover,
+:global(.theme-dark) .container .statCard:hover {
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 20px rgba(122, 18, 29, 0.3);
+  transform: translateY(-3px);
+}
+
+.analyticsClassic .statLabel,
+:global(.theme-dark) .container .statLabel {
+  color: #d4af37;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.analyticsClassic .statValue,
+:global(.theme-dark) .container .statValue {
+  font-family: 'Cinzel', Georgia, serif;
+  color: #ffea9f;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+.analyticsClassic .statTrend,
+:global(.theme-dark) .container .statTrend {
+  color: #c9a9ad;
+}
+
+/* ─── Visualization Engine Segmented Bar ─── */
+.analyticsClassic .chartControlsBar,
+:global(.theme-dark) .container .chartControlsBar {
+  background: rgba(20, 4, 7, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+.analyticsClassic .chartControlLabel,
+:global(.theme-dark) .container .chartControlLabel {
+  color: #d4af37;
+  font-family: 'Cinzel', Georgia, serif;
+  letter-spacing: 0.08em;
+}
+
+.analyticsClassic .chartToggleBtn,
+:global(.theme-dark) .container .chartToggleBtn {
+  background: rgba(28, 5, 9, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  color: #d8c0c4;
+}
+
+.analyticsClassic .chartToggleBtn:hover,
+:global(.theme-dark) .container .chartToggleBtn:hover {
+  background: rgba(74, 5, 13, 0.75);
+  border-color: rgba(212, 175, 55, 0.5);
+  color: #ffffff;
+}
+
+.analyticsClassic .chartToggleActive,
+:global(.theme-dark) .container .chartToggleActive {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.35), inset 0 1px 0 rgba(255, 234, 159, 0.3) !important;
+}
+
+/* ─── Chart Cards ─── */
+.analyticsClassic .chartCard,
+:global(.theme-dark) .container .chartCard {
+  background: rgba(18, 3, 5, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.analyticsClassic .chartTitle,
+:global(.theme-dark) .container .chartTitle {
+  font-family: 'Cinzel', Georgia, serif;
+  color: #ffea9f;
+  letter-spacing: 0.03em;
+}
+
+.analyticsClassic .chartMetaTag,
+:global(.theme-dark) .container .chartMetaTag {
+  color: #d4af37;
+  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(74, 5, 13, 0.5);
+}
+
+/* ─── Sheets / Registry Ledger Table ─── */
+.analyticsClassic .sheetSection,
+:global(.theme-dark) .container .sheetSection {
+  background: rgba(18, 3, 5, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border-radius: 14px;
+}
+
+.analyticsClassic .sheetHeader,
+:global(.theme-dark) .container .sheetHeader {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.analyticsClassic .sheetSubheading,
+:global(.theme-dark) .container .sheetSubheading {
+  color: #c9a9ad;
+}
+
+.analyticsClassic .searchBar,
+:global(.theme-dark) .container .searchBar {
+  background: rgba(20, 4, 7, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  color: #fff6e5;
+}
+
+.analyticsClassic .searchBar:focus,
+:global(.theme-dark) .container .searchBar:focus {
+  border-color: #d4af37;
+  background: rgba(24, 5, 9, 0.98);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+}
+
+.analyticsClassic .searchIcon,
+:global(.theme-dark) .container .searchIcon {
+  color: rgba(212, 175, 55, 0.6);
+}
+
+.analyticsClassic .clearSearchBtn,
+:global(.theme-dark) .container .clearSearchBtn {
+  background: rgba(212, 175, 55, 0.15);
+  color: #ffea9f;
+}
+
+.analyticsClassic .filterSelect,
+:global(.theme-dark) .container .filterSelect {
+  background: rgba(20, 4, 7, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  color: #fff6e5;
+}
+
+.analyticsClassic .filterSelect:focus,
+:global(.theme-dark) .container .filterSelect:focus {
+  border-color: #d4af37;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+}
+
+.analyticsClassic .table,
+:global(.theme-dark) .container .table {
+  width: 100%;
+}
+
+.analyticsClassic .table thead,
+:global(.theme-dark) .container .table thead {
+  background: linear-gradient(180deg, rgba(38, 7, 12, 0.95) 0%, rgba(24, 4, 8, 0.98) 100%);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.analyticsClassic .table th,
+:global(.theme-dark) .container .table th {
+  font-family: 'Cinzel', Georgia, serif;
+  color: #ffea9f;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+.analyticsClassic .table tbody tr,
+:global(.theme-dark) .container .table tbody tr {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.08);
+}
+
+.analyticsClassic .table tbody tr:hover,
+:global(.theme-dark) .container .table tbody tr:hover {
+  background: linear-gradient(90deg, rgba(122, 18, 29, 0.2) 0%, rgba(74, 5, 13, 0.12) 100%);
+}
+
+.analyticsClassic .projectName,
+:global(.theme-dark) .container .projectName {
+  color: #fff6e5;
+  font-weight: 700;
+}
+
+.analyticsClassic .committeeBadge,
+:global(.theme-dark) .container .committeeBadge {
+  background: rgba(74, 5, 13, 0.6);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  color: #ffea9f;
+}
+
+.analyticsClassic .copyRowBtn,
+:global(.theme-dark) .container .copyRowBtn {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.85) 0%, rgba(122, 18, 29, 0.7) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #ffea9f;
+}
+
+.analyticsClassic .copyRowBtn:hover,
+:global(.theme-dark) .container .copyRowBtn:hover {
+  background: linear-gradient(135deg, #7a121d 0%, #9e1b29 100%);
+  border-color: #d4af37;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+}
+
+.analyticsClassic .statusGreen,
+:global(.theme-dark) .container .statusGreen {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+.analyticsClassic .statusYellow,
+:global(.theme-dark) .container .statusYellow {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+.analyticsClassic .statusRed,
+:global(.theme-dark) .container .statusRed {
+  background: rgba(220, 38, 38, 0.18) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(220, 38, 38, 0.45) !important;
+}
+
+.analyticsClassic .statusBlue,
+:global(.theme-dark) .container .statusBlue {
+  background: rgba(212, 175, 55, 0.18) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+}
+
+.analyticsClassic .statusGray,
+:global(.theme-dark) .container .statusGray {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }

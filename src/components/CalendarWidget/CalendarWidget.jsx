@@ -43,7 +43,7 @@ const EVENT_TYPES = [
   { label: 'SSG Meeting', value: 'Meeting', color: '#FBBF24', badgeBg: 'rgba(251, 191, 36, 0.12)', border: 'rgba(251, 191, 36, 0.35)', desc: 'Legislative sessions, officer meetings & general assemblies' },
 ];
 
-function CalendarWidget({ readOnly = false }) {
+function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
   const { currentUser } = useAuth() || {};
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -699,7 +699,7 @@ function CalendarWidget({ readOnly = false }) {
   const upcoming = useMemo(getUpcomingEvents, [calendarEvents, filterType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={styles.widgetWrapper}>
+    <div className={`${styles.widgetWrapper} ${isClassicHomepage ? styles.widgetClassic : ''}`}>
       {/* ── TOP ACTION BAR & FILTER SYSTEM ── */}
       <header className={styles.topBar}>
         <div className={styles.brandingBlock}>

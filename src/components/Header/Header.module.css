@@ -414,3 +414,92 @@
     font-size: 0.58rem;
   }
 }
+
+/* ── Header Emblem Seal ── */
+.headerLogo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 50%;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+
+/* ── Dynamic Maroon & Imperial Gold Header across all pages in Classic Theme ── */
+.headerMaroon,
+:global(.theme-dark) .header {
+  background: rgba(30, 6, 9, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.7), 0 0 15px rgba(212, 175, 55, 0.08);
+}
+
+.headerMaroon .hamburger,
+:global(.theme-dark) .header .hamburger {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.headerMaroon .hamburger:hover,
+:global(.theme-dark) .header .hamburger:hover {
+  background: rgba(212, 175, 55, 0.22);
+  border-color: #d4af37;
+}
+
+.headerMaroon .hamburgerBar,
+:global(.theme-dark) .header .hamburgerBar {
+  background-color: #d4af37;
+}
+
+.headerMaroon .eyebrow,
+:global(.theme-dark) .header .eyebrow {
+  color: #ffea9f;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+
+.headerMaroon .eyebrowDot,
+:global(.theme-dark) .header .eyebrowDot {
+  background-color: #d4af37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.8);
+}
+
+.headerMaroon .ssgtitle,
+:global(.theme-dark) .header .ssgtitle {
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.headerMaroon .subtitle,
+:global(.theme-dark) .header .subtitle {
+  color: rgba(255, 234, 159, 0.8);
+}
+
+.headerMaroon .clockCard,
+.headerMaroon .campusCard,
+:global(.theme-dark) .header .clockCard,
+:global(.theme-dark) .header .campusCard {
+  background: rgba(18, 4, 7, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.headerMaroon .clockIcon,
+.headerMaroon .pinIcon,
+:global(.theme-dark) .header .clockIcon,
+:global(.theme-dark) .header .pinIcon {
+  color: #d4af37;
+}
+
+.headerMaroon .clockTime,
+.headerMaroon .campusName,
+:global(.theme-dark) .header .clockTime,
+:global(.theme-dark) .header .campusName {
+  color: #ffffff;
+}
+
+.headerMaroon .campusLocation,
+:global(.theme-dark) .header .campusLocation {
+  color: rgba(255, 234, 159, 0.75);
+}

@@ -780,3 +780,246 @@
     background: rgba(255,255,255,0.03);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) — TRACK ORDER
+   Scoped strictly under .trackOrderClassic.
+   Light & Corporate Formal themes remain completely untouched.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --tribal-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='24' viewBox='0 0 36 24'%3E%3Crect width='36' height='24' fill='%23190507'/%3E%3Cline x1='0' y1='1' x2='36' y2='1' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='23' x2='36' y2='23' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='3.5' x2='36' y2='3.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cline x1='0' y1='20.5' x2='36' y2='20.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cpolygon points='18,4 27,12 18,20 9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='18,7 23,12 18,17 13,12' fill='%23e5b842'/%3E%3Cpolygon points='18,9 21,12 18,15 15,12' fill='%23190507'/%3E%3Cpolygon points='0,4 9,12 0,20 -9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='0,7 5,12 0,17 -5,12' fill='%23e5b842'/%3E%3Cpolygon points='36,4 45,12 36,20 27,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='36,7 41,12 36,17 31,12' fill='%23e5b842'/%3E%3Cpolygon points='0,4 4.5,1 9,4' fill='%23997528'/%3E%3Cpolygon points='9,4 13.5,1 18,4' fill='%23d4af37'/%3E%3Cpolygon points='18,4 22.5,1 27,4' fill='%23d4af37'/%3E%3Cpolygon points='27,4 31.5,1 36,4' fill='%23997528'/%3E%3Cpolygon points='0,20 4.5,23 9,20' fill='%23997528'/%3E%3Cpolygon points='9,20 13.5,23 18,20' fill='%23d4af37'/%3E%3Cpolygon points='18,20 22.5,23 27,20' fill='%23d4af37'/%3E%3Cpolygon points='27,20 31.5,23 36,20' fill='%23997528'/%3E%3C/svg%3E");
+}
+
+.trackOrderClassic {
+  background-color: #140305 !important;
+  color: #ffffff;
+}
+
+.trackOrderClassic .tribalBorderTop {
+  width: 100%;
+  height: 20px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 30px 20px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+/* Top Bar */
+.trackOrderClassic .topBar {
+  background: linear-gradient(135deg, rgba(38, 7, 12, 0.95) 0%, rgba(22, 5, 8, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
+}
+
+.trackOrderClassic .eyebrow {
+  color: #d4af37 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+}
+
+.trackOrderClassic .title {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7) !important;
+}
+
+.trackOrderClassic .subtitle {
+  color: rgba(255, 234, 159, 0.8) !important;
+}
+
+/* Search Card */
+.trackOrderClassic .searchCard {
+  background: linear-gradient(180deg, #24070b 0%, #150306 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.8) !important;
+}
+
+.trackOrderClassic .searchIcon {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+}
+
+.trackOrderClassic .searchTitle {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.trackOrderClassic .searchSubtitle {
+  color: rgba(255, 234, 159, 0.75) !important;
+}
+
+.trackOrderClassic .searchTypeToggle {
+  background: rgba(18, 4, 7, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+}
+
+.trackOrderClassic .toggleBtn {
+  color: rgba(255, 234, 159, 0.7) !important;
+  font-family: 'Cinzel', sans-serif !important;
+  font-weight: 600 !important;
+}
+
+.trackOrderClassic .toggleBtn:hover {
+  color: #ffffff !important;
+}
+
+.trackOrderClassic .toggleBtnActive {
+  background: #d4af37 !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4) !important;
+}
+
+.trackOrderClassic .searchInput {
+  background: rgba(20, 4, 7, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  color: #ffffff !important;
+}
+
+.trackOrderClassic .searchInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25) !important;
+}
+
+.trackOrderClassic .searchFieldIcon {
+  color: #d4af37 !important;
+}
+
+.trackOrderClassic .searchBtn {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  border: 1px solid #ffea9f !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4) !important;
+}
+
+.trackOrderClassic .searchBtn:hover {
+  background: #ffea9f !important;
+  color: #160406 !important;
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.6) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Order Result Card */
+.trackOrderClassic .orderCard {
+  background: linear-gradient(180deg, #24070b 0%, #150306 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.85) !important;
+}
+
+.trackOrderClassic .orderHeader {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+  background: rgba(30, 6, 10, 0.45) !important;
+}
+
+.trackOrderClassic .orderIdValue {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', monospace !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4) !important;
+}
+
+.trackOrderClassic .orderDate {
+  color: rgba(255, 234, 159, 0.65) !important;
+}
+
+/* Timeline */
+.trackOrderClassic .progressBarTrack {
+  background: rgba(212, 175, 55, 0.2) !important;
+}
+
+.trackOrderClassic .progressBarFill {
+  background: linear-gradient(90deg, #e5b842, #d4af37) !important;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.6) !important;
+}
+
+.trackOrderClassic .stepIcon {
+  background: rgba(20, 4, 7, 0.95) !important;
+  border: 2px solid rgba(212, 175, 55, 0.35) !important;
+  color: rgba(255, 234, 159, 0.5) !important;
+}
+
+.trackOrderClassic .stepCompleted .stepIcon {
+  background: #d4af37 !important;
+  border-color: #ffea9f !important;
+  color: #160406 !important;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.5) !important;
+}
+
+.trackOrderClassic .stepActive .stepIcon {
+  border-color: #d4af37 !important;
+  color: #d4af37 !important;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.4) !important;
+}
+
+.trackOrderClassic .stepLabel {
+  color: rgba(255, 234, 159, 0.7) !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+.trackOrderClassic .stepCompleted .stepLabel,
+.trackOrderClassic .stepActive .stepLabel {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Info Cards */
+.trackOrderClassic .infoCard {
+  background: rgba(20, 4, 7, 0.75) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  border-radius: 12px !important;
+}
+
+.trackOrderClassic .infoCardHeader {
+  background: rgba(30, 6, 10, 0.5) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+.trackOrderClassic .infoCardTitle {
+  font-family: 'Cinzel', serif !important;
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+}
+
+.trackOrderClassic .infoLabel {
+  color: rgba(255, 234, 159, 0.65) !important;
+  font-family: 'Cinzel', sans-serif !important;
+}
+
+.trackOrderClassic .infoValue {
+  color: #ffffff !important;
+}
+
+/* No Results & Error */
+.trackOrderClassic .noResults {
+  background: linear-gradient(180deg, #24070b 0%, #150306 100%) !important;
+  border: 1px dashed rgba(212, 175, 55, 0.35) !important;
+  border-radius: 16px !important;
+}
+
+.trackOrderClassic .noResultsIcon {
+  background: rgba(212, 175, 55, 0.12) !important;
+  color: #ffea9f !important;
+}
+
+.trackOrderClassic .noResultsTitle {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+}
+
+.trackOrderClassic .noResultsText {
+  color: rgba(255, 234, 159, 0.75) !important;
+}
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import { useTheme } from '../../contexts/ThemeContext.jsx';
 import financeAuditService from '../../services/financeAuditService.js';
 import styles from './BudgetForm.module.css';
 import { 
@@ -41,6 +42,8 @@ const RESOLUTION_TEMPLATES = [
 
 const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
   const { userName, userRole, currentUser } = useAuth();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const { addBudget, updateBudget, funds, statistics } = useFinance();
   
   // Form state
@@ -372,6 +375,16 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
   // Status color pill
   const getStatusColor = () => {
     const status = determineStatus();
+    if (isClassic) {
+      switch(status) {
+        case 'Over Budget': return '#DC2626';
+        case 'Fully Spent': return '#D4AF37';
+        case 'Almost Spent': return '#F59E0B';
+        case 'In Progress': return '#E5B842';
+        case 'On Track': return '#10B981';
+        default: return '#7a121d';
+      }
+    }
     switch(status) {
       case 'Over Budget': return '#e61919';
       case 'Fully Spent': return '#16a34a';
@@ -386,10 +399,10 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
   const isExceedingTreasury = totalTreasuryFunds > 0 && requestedAmount > unallocatedTreasury && !editingBudget;
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isClassic ? styles.formClassic : ''}`}>
       {/* Header */}
       <div className={styles.header}>
-        <div className={styles.headerBadge}>FINANCIAL ALLOCATION CONTROL</div>
+        <div className={styles.headerBadge}>{isClassic ? 'SSG APPROPRIATIONS & ALLOCATION CONTROL' : 'FINANCIAL ALLOCATION CONTROL'}</div>
         <h2 className={styles.title}>
           <HiCurrencyDollar className={styles.titleIcon} />
           {editingBudget ? 'Edit Budget Allocation' : 'New Budget Allocation'}

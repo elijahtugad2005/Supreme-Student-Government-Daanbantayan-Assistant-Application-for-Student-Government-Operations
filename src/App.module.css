@@ -4,6 +4,10 @@
   background-color: var(--color-bg-primary);
 }
 
+.appClassicHomepage {
+  background-color: #140305 !important;
+}
+
 .mainContent {
   display: flex;
   flex: 1;

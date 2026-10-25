@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTheme } from '../../contexts/ThemeContext';
 import Order from '../Order/order.jsx';
 import TrackOrder from '../TrackOrder/TrackOrder.jsx';
 import { ShoppingCart, Search, Sparkles } from 'lucide-react';
@@ -13,6 +14,8 @@ import styles from './OrderHub.module.css';
 function OrderHub() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
 
   // Determine initial active mode:
   // - from query string (?mode=track or ?mode=place)
@@ -55,7 +58,10 @@ function OrderHub() {
   };
 
   return (
-    <div className={styles.orderHubContainer}>
+    <div className={`${styles.orderHubContainer} ${isClassic ? styles.orderHubClassic : ''}`}>
+      {/* Ethnic Tribal Gold Border (Classic Theme Only) */}
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
+
       {/* Switcher Navigation Bar */}
       <div className={styles.switcherToolbar}>
         <div className={styles.brandBadge}>

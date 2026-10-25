@@ -2100,3 +2100,431 @@
   color: #0A0A0A !important;
 }
 
+/* ==========================================================================
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) — PRODUCT MANAGEMENT
+   Applied whenever theme is 'dark' or under .pmClassic
+   Preserves Swiss Industrial Brutalist for .theme-light
+   ========================================================================== */
+:global(.theme-dark) {
+  --pm-bg: #140306 !important;
+  --pm-card-bg: #190407 !important;
+  --pm-border: rgba(212, 175, 55, 0.35) !important;
+  --pm-text-primary: #ffffff !important;
+  --pm-text-secondary: rgba(255, 234, 159, 0.8) !important;
+  --pm-text-muted: rgba(255, 234, 159, 0.5) !important;
+}
+
+.pmClassic,
+:global(.theme-dark) .pmContainer,
+:global(.theme-dark) .dashboardView,
+:global(.theme-dark) .productsView,
+:global(.theme-dark) .viewContent {
+  background-color: #140306 !important;
+  color: #ffffff !important;
+}
+
+/* Internal Tabs */
+.pmClassic .pmTabNav,
+:global(.theme-dark) .pmTabNav {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.pmClassic .pmTabBtn,
+:global(.theme-dark) .pmTabBtn {
+  background: rgba(26, 5, 9, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+  font-family: 'Cinzel', sans-serif !important;
+  letter-spacing: 0.04em !important;
+}
+
+.pmClassic .pmTabBtn:hover:not(.pmTabBtnActive),
+:global(.theme-dark) .pmTabBtn:hover:not(.pmTabBtnActive) {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.pmClassic .pmTabBtnActive,
+:global(.theme-dark) .pmTabBtnActive {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  border-color: #ffea9f !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35) !important;
+}
+
+.pmClassic .pmTabBadge,
+:global(.theme-dark) .pmTabBadge {
+  background: rgba(212, 175, 55, 0.22) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+}
+
+.pmClassic .pmTabBtnActive .pmTabBadge,
+:global(.theme-dark) .pmTabBtnActive .pmTabBadge {
+  background: #160406 !important;
+  color: #ffea9f !important;
+  border-color: #d4af37 !important;
+}
+
+/* KPI Cards */
+.pmClassic .kpiCard,
+:global(.theme-dark) .kpiCard {
+  background: rgba(28, 6, 10, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.12) !important;
+}
+
+.pmClassic .kpiCard:hover,
+:global(.theme-dark) .kpiCard:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.12) !important;
+}
+
+.pmClassic .kpiCardLabel,
+:global(.theme-dark) .kpiCardLabel {
+  color: #e5b842 !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.08em !important;
+  font-weight: 700 !important;
+}
+
+.pmClassic .kpiCardValue,
+:global(.theme-dark) .kpiCardValue {
+  color: #ffffff !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+.pmClassic .kpiCardSub,
+:global(.theme-dark) .kpiCardSub {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+.pmClassic .kpiCardBlue .kpiCardIcon,
+:global(.theme-dark) .kpiCardBlue .kpiCardIcon {
+  background: rgba(212, 175, 55, 0.18) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.pmClassic .kpiCardAmber .kpiCardIcon,
+:global(.theme-dark) .kpiCardAmber .kpiCardIcon {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+.pmClassic .kpiCardRed .kpiCardIcon,
+:global(.theme-dark) .kpiCardRed .kpiCardIcon {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+
+.pmClassic .kpiCardGreen .kpiCardIcon,
+:global(.theme-dark) .kpiCardGreen .kpiCardIcon {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Dashboard Cards & Tables */
+.pmClassic .dashboardCard,
+.pmClassic .tableWrapper,
+:global(.theme-dark) .dashboardCard,
+:global(.theme-dark) .tableWrapper {
+  background: rgba(24, 5, 9, 0.96) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.pmClassic .dashboardCardHeader,
+:global(.theme-dark) .dashboardCardHeader {
+  background: rgba(20, 4, 7, 0.98) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+.pmClassic .dashboardCardTitle,
+:global(.theme-dark) .dashboardCardTitle {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.05em !important;
+}
+
+.pmClassic .dashboardCardBadgeAmber,
+:global(.theme-dark) .dashboardCardBadgeAmber {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+.pmClassic .alertTable th,
+.pmClassic .productTable th,
+:global(.theme-dark) .alertTable th,
+:global(.theme-dark) .productTable th {
+  background: rgba(20, 4, 7, 0.98) !important;
+  color: #ffea9f !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.06em !important;
+}
+
+.pmClassic .alertTable td,
+.pmClassic .productTable td,
+:global(.theme-dark) .alertTable td,
+:global(.theme-dark) .productTable td {
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15) !important;
+}
+
+.pmClassic .tableRow:hover td,
+.pmClassic .alertTable tr:hover td,
+:global(.theme-dark) .tableRow:hover td,
+:global(.theme-dark) .alertTable tr:hover td {
+  background: rgba(212, 175, 55, 0.07) !important;
+}
+
+.pmClassic .tableProductName,
+:global(.theme-dark) .tableProductName {
+  color: #ffffff !important;
+}
+
+.pmClassic .tablePrice,
+.pmClassic .alertTablePrice,
+:global(.theme-dark) .tablePrice,
+:global(.theme-dark) .alertTablePrice {
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+}
+
+.pmClassic .tableSupplier,
+:global(.theme-dark) .tableSupplier {
+  color: rgba(255, 234, 159, 0.72) !important;
+}
+
+.pmClassic .tableThumb,
+.pmClassic .alertTableThumb,
+:global(.theme-dark) .tableThumb,
+:global(.theme-dark) .alertTableThumb {
+  background: #140306 !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Toolbar & Filters */
+.pmClassic .searchInput,
+.pmClassic .filterSelect,
+:global(.theme-dark) .searchInput,
+:global(.theme-dark) .filterSelect {
+  background: rgba(18, 4, 7, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.pmClassic .searchInput::placeholder,
+:global(.theme-dark) .searchInput::placeholder {
+  color: rgba(255, 234, 159, 0.5) !important;
+}
+
+.pmClassic .searchInput:focus,
+.pmClassic .filterSelect:focus,
+:global(.theme-dark) .searchInput:focus,
+:global(.theme-dark) .filterSelect:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.22) !important;
+}
+
+.pmClassic .searchIcon,
+:global(.theme-dark) .searchIcon {
+  color: #d4af37 !important;
+}
+
+/* Action Buttons */
+.pmClassic .newProductBtn,
+:global(.theme-dark) .newProductBtn {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35) !important;
+}
+
+.pmClassic .newProductBtn:hover,
+:global(.theme-dark) .newProductBtn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.5) !important;
+}
+
+.pmClassic .tableEditBtn,
+:global(.theme-dark) .tableEditBtn {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.pmClassic .tableEditBtn:hover,
+:global(.theme-dark) .tableEditBtn:hover {
+  background: #d4af37 !important;
+  color: #160406 !important;
+  border-color: #ffea9f !important;
+}
+
+.pmClassic .tableDeleteBtn,
+:global(.theme-dark) .tableDeleteBtn {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+
+.pmClassic .tableDeleteBtn:hover,
+:global(.theme-dark) .tableDeleteBtn:hover {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+
+.pmClassic .restockBtn,
+:global(.theme-dark) .restockBtn {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+}
+
+.pmClassic .restockBtn:hover,
+:global(.theme-dark) .restockBtn:hover {
+  background: #d4af37 !important;
+  color: #160406 !important;
+}
+
+/* Stock Badges */
+.pmClassic .stockBadgeOk,
+:global(.theme-dark) .stockBadgeOk {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+.pmClassic .stockBadgeLow,
+:global(.theme-dark) .stockBadgeLow {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+.pmClassic .stockBadgeOut,
+:global(.theme-dark) .stockBadgeOut {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+
+.pmClassic .variationsBadge,
+:global(.theme-dark) .variationsBadge {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+/* Bar Chart (Inventory Valuation) */
+.pmClassic .barChartTrack,
+:global(.theme-dark) .barChartTrack {
+  background: rgba(16, 4, 6, 0.95) !important;
+  border-color: rgba(212, 175, 55, 0.25) !important;
+}
+
+.pmClassic .barChartFill,
+:global(.theme-dark) .barChartFill {
+  background: linear-gradient(90deg, #d4af37, #ffea9f) !important;
+}
+
+.pmClassic .barChartLabel,
+:global(.theme-dark) .barChartLabel {
+  color: #e2e8f0 !important;
+}
+
+.pmClassic .barChartValue,
+:global(.theme-dark) .barChartValue {
+  color: #ffea9f !important;
+}
+
+/* Pagination */
+.pmClassic .paginationBtn,
+:global(.theme-dark) .paginationBtn {
+  background: rgba(20, 4, 7, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+}
+
+.pmClassic .paginationBtn:hover:not(:disabled),
+:global(.theme-dark) .paginationBtn:hover:not(:disabled) {
+  background: #d4af37 !important;
+  color: #160406 !important;
+}
+
+.pmClassic .paginationInfo,
+.pmClassic .paginationPage,
+:global(.theme-dark) .paginationInfo,
+:global(.theme-dark) .paginationPage {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+/* Slide-out Form Panel */
+.pmClassic .formPanel,
+:global(.theme-dark) .formPanel {
+  background: rgba(20, 4, 7, 0.98) !important;
+  border-left: 1px solid rgba(212, 175, 55, 0.4) !important;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.8), -2px 0 12px rgba(212, 175, 55, 0.12) !important;
+}
+
+.pmClassic .formPanelHeader,
+:global(.theme-dark) .formPanelHeader {
+  background: rgba(26, 5, 8, 0.98) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.pmClassic .formPanelTitle,
+:global(.theme-dark) .formPanelTitle {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+.pmClassic .formInput,
+.pmClassic .formSelect,
+.pmClassic .formTextarea,
+:global(.theme-dark) .formInput,
+:global(.theme-dark) .formSelect,
+:global(.theme-dark) .formTextarea {
+  background: rgba(15, 3, 5, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.pmClassic .formInput:focus,
+.pmClassic .formSelect:focus,
+.pmClassic .formTextarea:focus,
+:global(.theme-dark) .formInput:focus,
+:global(.theme-dark) .formSelect:focus,
+:global(.theme-dark) .formTextarea:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.22) !important;
+}
+
+.pmClassic .primaryBtn,
+.pmClassic .saveBtn,
+:global(.theme-dark) .primaryBtn,
+:global(.theme-dark) .saveBtn {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35) !important;
+}
+
+.pmClassic .primaryBtn:hover,
+.pmClassic .saveBtn:hover,
+:global(.theme-dark) .primaryBtn:hover,
+:global(.theme-dark) .saveBtn:hover {
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+

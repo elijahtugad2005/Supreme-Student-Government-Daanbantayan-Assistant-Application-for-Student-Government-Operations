@@ -1,12 +1,12 @@
 // --- CORE IMPORTS ---
 import React from 'react';
-import { Routes, Route } from 'react-router-dom'; 
+import { Routes, Route, useLocation } from 'react-router-dom'; 
 
 // --- CONTEXT IMPORTS ---
 import { AuthProvider } from './components/AuthContext/AuthContext.jsx'; // Make sure this path is correct
 import { InventoryProvider , useInventory } from './components/InventoryContext/InventoryProvider.jsx'; 
 import { FinanceProvider } from './components/FinanceContext/FinanceProvider.jsx';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 // --- COMPONENT IMPORTS (Your Original Files) ---
 import AdminPage from './admin/admin.jsx';
@@ -30,6 +30,7 @@ import DocumentDashboard from './components/Document/DocumentDashboard.jsx';
 import AccessDenied from './components/AccessDenied/AccessDenied.jsx';
 import UserManagement from './components/UserManagement/UserManagement.jsx';
 import AuditTrail from './components/AuditTrail/AuditTrail.jsx';
+import CampusMap from './components/CampusMap/CampusMap.jsx';
 // --- STYLES ---
 import './styles/themes.css';
 
@@ -41,13 +42,30 @@ const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(
     window.innerWidth > 768 // Open by default on desktop
   );
+  const location = useLocation();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
+
+  React.useEffect(() => {
+    if (isClassic) {
+      document.body.style.backgroundColor = '#140305';
+      document.documentElement.style.backgroundColor = '#140305';
+    } else {
+      document.body.style.backgroundColor = '';
+      document.documentElement.style.backgroundColor = '';
+    }
+    return () => {
+      document.body.style.backgroundColor = '';
+      document.documentElement.style.backgroundColor = '';
+    };
+  }, [isClassic]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
   return (
-    <div className={styles.app}>
+    <div className={`${styles.app} ${isClassic ? styles.appClassicHomepage : ''}`}>
       <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <div className={styles.mainContent}>
         <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
@@ -83,18 +101,15 @@ function App() {
           </DashboardLayout>
         } />
 
-        {/* 1.1 ORDER MANAGEMENT (UNIFIED PLACE & TRACK ORDER) */}
+        {/* 1.1 ORDER PLACEMENT (UNIFIED PLACE & TRACK ORDER) */}
         <Route path="/order" element={
           <ProtectedRoute
             allowGuest
-            allowedRoles={['admin', 'secretary', 'representative', 'member']}
-            requiredPermissions={['canManageOrders']}
-            anyPermission={true}
+            allowedRoles={['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']}
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
-                  message="You need order management permissions to access orders."
-                  requiredPermissions={['canManageOrders']}
+                  message="You need to be signed in to access order placement."
                   showUserInfo={true}
                 />
               </DashboardLayout>
@@ -110,14 +125,11 @@ function App() {
         <Route path="/track-order" element={
           <ProtectedRoute
             allowGuest
-            allowedRoles={['admin', 'secretary', 'representative', 'member']}
-            requiredPermissions={['canManageOrders']}
-            anyPermission={true}
+            allowedRoles={['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']}
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
-                  message="You need order management permissions to track orders."
-                  requiredPermissions={['canManageOrders']}
+                  message="You need to be signed in to track orders."
                   showUserInfo={true}
                 />
               </DashboardLayout>
@@ -364,6 +376,13 @@ function App() {
               <Announcement />
             </DashboardLayout>
           </ProtectedRoute>
+        } />
+
+        {/* 9. CAMPUS INTERACTIVE 2D EAGLE-EYE MAP */}
+        <Route path="/campus-map" element={
+          <DashboardLayout>
+            <CampusMap />
+          </DashboardLayout>
         } />
 
         {/* 4. CATCH ALL */}

@@ -1271,6 +1271,459 @@
   box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
+/* ==========================================================================
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) – USER MANAGEMENT (IAM & RBAC)
+   Applied ONLY when theme === 'dark' (Classic Mode) or under .umClassic.
+   Light Mode and Corporate Mode remain 100% insulated and unaffected.
+   ========================================================================== */
+
+.umClassic,
+:global(.theme-dark) .container {
+  background-color: #120305 !important;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(138, 26, 36, 0.22) 0%, transparent 70%),
+    radial-gradient(circle at 100% 100%, rgba(212, 175, 55, 0.06) 0%, transparent 50%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(212, 175, 55, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.umClassic::before,
+:global(.theme-dark) .container::before {
+  background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.08), transparent 70%) !important;
+}
+
+/* Traditional Ethnic Tribal Band Header Accent */
+.tribalBorderTop {
+  width: 100%;
+  height: 22px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 33px 22px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border-radius: 12px 12px 0 0;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
+/* ─── Dashboard Header ─── */
+.umClassic .header,
+:global(.theme-dark) .header {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+.umClassic .eyebrowBadge,
+:global(.theme-dark) .eyebrowBadge {
+  background: rgba(122, 18, 29, 0.4) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.1em !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.umClassic .title,
+:global(.theme-dark) .title {
+  font-family: 'Cinzel', serif !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em !important;
+  background: linear-gradient(135deg, #ffffff 0%, #ffea9f 50%, #d4af37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.umClassic .subtitle,
+:global(.theme-dark) .subtitle {
+  color: rgba(255, 234, 159, 0.75) !important;
+}
+
+/* ─── Key Metrics / Statistics Cards ─── */
+.umClassic .statCard,
+:global(.theme-dark) .statCard {
+  background: linear-gradient(145deg, rgba(28, 5, 9, 0.94) 0%, rgba(18, 3, 6, 0.98) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.umClassic .statCard:hover,
+:global(.theme-dark) .statCard:hover {
+  background: rgba(45, 8, 14, 0.96) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 14px rgba(212, 175, 55, 0.18) !important;
+}
+
+.umClassic .statIcon,
+:global(.theme-dark) .statIcon {
+  background: rgba(45, 8, 14, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #d4af37 !important;
+}
+
+.umClassic .statIconActive,
+:global(.theme-dark) .statIconActive {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(52, 211, 153, 0.45) !important;
+  color: #6ee7b7 !important;
+}
+
+.umClassic .statNumber,
+:global(.theme-dark) .statNumber {
+  color: #ffffff !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.02em !important;
+}
+
+.umClassic .statLabel,
+:global(.theme-dark) .statLabel {
+  color: rgba(255, 234, 159, 0.75) !important;
+}
+
+/* ─── Controls & Search Bar ─── */
+.umClassic .searchInput,
+:global(.theme-dark) .searchInput,
+.umClassic .filterSelect,
+:global(.theme-dark) .filterSelect {
+  background: rgba(16, 2, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+}
+
+.umClassic .searchInput:focus,
+:global(.theme-dark) .searchInput:focus,
+.umClassic .filterSelect:focus,
+:global(.theme-dark) .filterSelect:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+  background: rgba(24, 4, 8, 0.98) !important;
+}
+
+.umClassic .searchInput::placeholder,
+:global(.theme-dark) .searchInput::placeholder {
+  color: rgba(255, 234, 159, 0.45) !important;
+}
+
+.umClassic .searchIcon,
+:global(.theme-dark) .searchIcon {
+  color: #d4af37 !important;
+}
+
+.umClassic .filterSelect option,
+:global(.theme-dark) .filterSelect option {
+  background: #180407 !important;
+  color: #ffffff !important;
+}
+
+.umClassic .exportButton,
+:global(.theme-dark) .exportButton,
+.umClassic .refreshButton,
+:global(.theme-dark) .refreshButton {
+  background: rgba(35, 7, 12, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+  border-radius: 10px !important;
+}
+
+.umClassic .exportButton:hover:not(:disabled),
+:global(.theme-dark) .exportButton:hover:not(:disabled),
+.umClassic .refreshButton:hover:not(:disabled),
+:global(.theme-dark) .refreshButton:hover:not(:disabled) {
+  background: rgba(122, 18, 29, 0.45) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(122, 18, 29, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ─── Users Table ─── */
+.umClassic .usersTable,
+:global(.theme-dark) .usersTable {
+  background: rgba(20, 4, 7, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+.umClassic .tableHeader,
+:global(.theme-dark) .tableHeader {
+  background: linear-gradient(135deg, rgba(35, 6, 11, 0.96) 0%, rgba(20, 3, 6, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.08em !important;
+}
+
+.umClassic .tableRow,
+:global(.theme-dark) .tableRow {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.12) !important;
+}
+
+.umClassic .tableRow:hover,
+:global(.theme-dark) .tableRow:hover {
+  background: rgba(122, 18, 29, 0.15) !important;
+}
+
+.umClassic .userAvatar,
+:global(.theme-dark) .userAvatar {
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
+  background: linear-gradient(135deg, #7a121d, #3d070c) !important;
+  color: #ffea9f !important;
+}
+
+.umClassic .userName,
+:global(.theme-dark) .userName {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.umClassic .userEmail,
+:global(.theme-dark) .userEmail {
+  color: rgba(255, 234, 159, 0.72) !important;
+}
+
+.umClassic .userId,
+:global(.theme-dark) .userId {
+  color: rgba(255, 234, 159, 0.45) !important;
+}
+
+.umClassic .roleDescription,
+:global(.theme-dark) .roleDescription {
+  color: rgba(255, 234, 159, 0.65) !important;
+}
+
+.umClassic .overrideBadge,
+:global(.theme-dark) .overrideBadge {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+.umClassic .deptText,
+:global(.theme-dark) .deptText {
+  background: rgba(28, 5, 8, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  color: rgba(255, 234, 159, 0.85) !important;
+}
+
+.umClassic .statusActive,
+:global(.theme-dark) .statusActive {
+  background: rgba(16, 185, 129, 0.18) !important;
+  border: 1px solid rgba(52, 211, 153, 0.4) !important;
+  color: #6ee7b7 !important;
+}
+
+.umClassic .statusInactive,
+:global(.theme-dark) .statusInactive {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border: 1px solid rgba(248, 113, 113, 0.4) !important;
+  color: #fca5a5 !important;
+}
+
+.umClassic .lastLoginCell,
+:global(.theme-dark) .lastLoginCell {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+.umClassic .editButton,
+:global(.theme-dark) .editButton {
+  background: rgba(35, 7, 12, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+}
+
+.umClassic .editButton:hover:not(:disabled),
+:global(.theme-dark) .editButton:hover:not(:disabled) {
+  background: rgba(122, 18, 29, 0.45) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(122, 18, 29, 0.5) !important;
+}
+
+.umClassic .deactivateButton,
+:global(.theme-dark) .deactivateButton {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
+}
+
+.umClassic .activateButton,
+:global(.theme-dark) .activateButton {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+/* ─── Modals (Edit Access & Confirmation) ─── */
+.umClassic .modal,
+:global(.theme-dark) .modal,
+.umClassic .confirmModal,
+:global(.theme-dark) .confirmModal {
+  background: rgba(20, 4, 7, 0.98) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), 0 0 30px rgba(212, 175, 55, 0.1) !important;
+}
+
+.umClassic .modalHeader,
+:global(.theme-dark) .modalHeader {
+  background: linear-gradient(135deg, rgba(32, 6, 10, 0.98) 0%, rgba(20, 3, 6, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.umClassic .modalHeaderIcon,
+:global(.theme-dark) .modalHeaderIcon {
+  color: #d4af37 !important;
+}
+
+.umClassic .modalHeader h3,
+:global(.theme-dark) .modalHeader h3 {
+  font-family: 'Cinzel', serif !important;
+  color: #ffea9f !important;
+}
+
+.umClassic .modalHeaderSub,
+:global(.theme-dark) .modalHeaderSub {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+.umClassic .modalClose,
+:global(.theme-dark) .modalClose {
+  background: rgba(35, 7, 12, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+.umClassic .modalClose:hover,
+:global(.theme-dark) .modalClose:hover {
+  background: rgba(122, 18, 29, 0.4) !important;
+  color: #ffffff !important;
+  border-color: #d4af37 !important;
+}
+
+.umClassic .formLabel,
+:global(.theme-dark) .formLabel {
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+}
+
+.umClassic .formSelect,
+:global(.theme-dark) .formSelect,
+.umClassic .formInput,
+:global(.theme-dark) .formInput,
+.umClassic .formTextarea,
+:global(.theme-dark) .formTextarea {
+  background: rgba(14, 2, 4, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: 9px !important;
+}
+
+.umClassic .formSelect:focus,
+:global(.theme-dark) .formSelect:focus,
+.umClassic .formInput:focus,
+:global(.theme-dark) .formInput:focus,
+.umClassic .formTextarea:focus,
+:global(.theme-dark) .formTextarea:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+.umClassic .permissionEditor,
+:global(.theme-dark) .permissionEditor {
+  background: rgba(14, 2, 4, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+}
+
+.umClassic .permHeaderLeft,
+:global(.theme-dark) .permHeaderLeft {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+.umClassic .permissionItem,
+:global(.theme-dark) .permissionItem {
+  background: rgba(28, 5, 8, 0.6) !important;
+  border: 1px solid rgba(212, 175, 55, 0.15) !important;
+}
+
+.umClassic .permissionItem:hover,
+:global(.theme-dark) .permissionItem:hover {
+  background: rgba(45, 8, 14, 0.7) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+.umClassic .permissionItemOverride,
+:global(.theme-dark) .permissionItemOverride {
+  background: rgba(122, 18, 29, 0.25) !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+  box-shadow: inset 3px 0 0 #d4af37 !important;
+}
+
+.umClassic .overrideTag,
+:global(.theme-dark) .overrideTag {
+  background: #d4af37 !important;
+  color: #120305 !important;
+  font-weight: 800 !important;
+}
+
+.umClassic .permissionLabel,
+:global(.theme-dark) .permissionLabel {
+  color: #ffffff !important;
+}
+
+.umClassic .permissionHint,
+:global(.theme-dark) .permissionHint {
+  color: rgba(255, 234, 159, 0.65) !important;
+}
+
+.umClassic .permissionSummary,
+:global(.theme-dark) .permissionSummary {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+  color: #6ee7b7 !important;
+}
+
+.umClassic .saveButton,
+:global(.theme-dark) .saveButton {
+  background: linear-gradient(135deg, #7a121d 0%, #4a080f 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(122, 18, 29, 0.6), 0 0 12px rgba(212, 175, 55, 0.25) !important;
+}
+
+.umClassic .saveButton:hover,
+:global(.theme-dark) .saveButton:hover {
+  background: linear-gradient(135deg, #8f1723 0%, #5a0a12 100%) !important;
+  border-color: #ffd875 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(122, 18, 29, 0.75), 0 0 16px rgba(212, 175, 55, 0.4) !important;
+}
+
+.umClassic .cancelButton,
+:global(.theme-dark) .cancelButton {
+  background: rgba(35, 7, 12, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+}
+
+.umClassic .cancelButton:hover,
+:global(.theme-dark) .cancelButton:hover {
+  background: rgba(55, 10, 18, 0.95) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #ffffff !important;
+}
+
+.umClassic .confirmDetails,
+:global(.theme-dark) .confirmDetails {
+  background: rgba(14, 2, 4, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+}
+
 /* =====================================================
    RESPONSIVE LAYOUTS
    ===================================================== */

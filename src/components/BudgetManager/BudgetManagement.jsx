@@ -3,6 +3,7 @@ import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import BudgetForm from '../BudgetForm/BudgetForm.jsx';
 import financeAuditService from '../../services/financeAuditService.js';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './BudgetManager.module.css';
 import { 
   HiSearch, 
@@ -32,6 +33,8 @@ import {
 const BudgetManager = () => {
   const { budgets, deleteBudget, loading } = useFinance();
   const { currentUser } = useAuth();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
@@ -274,12 +277,12 @@ const BudgetManager = () => {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isClassic ? styles.managerClassic : ''}`}>
       
       {/* Header & Quick Actions */}
       <div className={styles.header}>
         <div className={styles.title}>
-          <div className={styles.titleBadge}>INSTITUTIONAL AUDIT ARCHIVE</div>
+          <div className={styles.titleBadge}>{isClassic ? 'SSG INSTITUTIONAL AUDIT ARCHIVE' : 'INSTITUTIONAL AUDIT ARCHIVE'}</div>
           <div className={styles.titleRow}>
             <HiCurrencyDollar className={styles.titleIcon} />
             <div>
@@ -417,7 +420,7 @@ const BudgetManager = () => {
             onClick={() => handleSort('amount')}
             title="Sort by allocated capital"
           >
-            <HiCurrencyDollar size={15} />
+            <span style={{ fontWeight: 800, fontSize: '0.95rem', lineHeight: 1 }}>₱</span>
             Allocation {sortBy === 'amount' && (sortOrder === 'asc' ? <HiSortAscending size={13} /> : <HiSortDescending size={13} />)}
           </button>
           <button 

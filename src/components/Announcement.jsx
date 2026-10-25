@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { db } from '../firebase/firebaseConfig';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { useAuth } from './AuthContext/AuthContext.jsx';
+import { useTheme } from '../contexts/ThemeContext';
+import auditService from '../services/auditService';
 import styles from './Announcement.module.css';
 import GlassModal from './GlassModal/GlassModal';
 import CalendarWidget from './CalendarWidget/CalendarWidget';
@@ -36,7 +39,17 @@ import {
   FiGlobe, 
   FiLock,
   FiUploadCloud,
-  FiTrash2
+  FiTrash2,
+  FiSearch,
+  FiFilter,
+  FiChevronDown,
+  FiChevronUp,
+  FiEdit3,
+  FiShare2,
+  FiActivity,
+  FiInbox,
+  FiRefreshCw,
+  FiCheck
 } from 'react-icons/fi';
 import { HiSpeakerphone } from 'react-icons/hi';
 import { FaTelegramPlane } from 'react-icons/fa';
@@ -63,6 +76,10 @@ const ANNOUNCEMENT_REQUIRED_FIELDS = [
 ];
 
 function Announcement() {
+  const { currentUser, userName } = useAuth();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
+
   // ========================================
   // STATE MANAGEMENT
   // ========================================
@@ -71,9 +88,16 @@ function Announcement() {
   const [announcements, setAnnouncements] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [announcementForm, setAnnouncementForm] = useState({ ...EMPTY_ANNOUNCEMENT_FORM });
-//Image previewer 
-const [imagePreview, setImagePreview] = useState(null);
-const [selectedImage, setSelectedImage] = useState(null);
+  const formRef = useRef(null);
+
+  // Search and Category/Channel Filter state for Announcements Section
+  const [announcementSearch, setAnnouncementSearch] = useState('');
+  const [announcementCategoryFilter, setAnnouncementCategoryFilter] = useState('ALL');
+  const [announcementChannelFilter, setAnnouncementChannelFilter] = useState('ALL'); // ALL | HOMEPAGE | TELEGRAM
+
+  // Image previewer 
+  const [imagePreview, setImagePreview] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // Telegram publishing
   const [telegramChannel, setTelegramChannel] = useState('');
@@ -393,6 +417,10 @@ const handleImageChange = async (e) => {
             createdAt: new Date().toISOString(),
         });
 
+        // Audit Trail: Log Announcement Addition (AAD) - Zero UID
+        const performer = userName || currentUser?.displayName || currentUser?.email || 'Authorized Officer';
+        await auditService.logAnnouncementAdd(performer, announcementForm.title, announcementForm.category);
+
         await notify({
           tone: 'success',
           title: 'Announcement added',
@@ -423,18 +451,33 @@ const handleImageChange = async (e) => {
       venue: announcement.venue,
       eventDate: announcement.eventDate,
       eventTime: announcement.eventTime,
-      category: announcement.category,                              // ADD THIS
+      category: announcement.category || 'General',
       type: announcement.type || '',
       homepageVisible: !!announcement.homepageVisible,
       imageBase64: announcement.imageBase64 || '',  
     });
-     setImagePreview(announcement.imageBase64);
-     setSelectedImage(null);
-     setTelegramChannel(announcement.telegram?.channel || '');
-     setPublishStatus(announcement.telegram?.status || 'idle');
-     setPublishError('');
-     setFormErrors({});
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setImagePreview(announcement.imageBase64 || null);
+    setSelectedImage(null);
+    setTelegramChannel(announcement.telegram?.channel || '');
+    setPublishStatus(announcement.telegram?.status || 'idle');
+    setPublishError('');
+    setFormErrors({});
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAnnouncementId(null);
+    setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
+    setImagePreview(null);
+    setSelectedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setTelegramChannel('');
+    resetPublishState();
+    setFormErrors({});
   };
 
  const handleUpdateAnnouncement = async (e) => {
@@ -512,6 +555,39 @@ const handleImageChange = async (e) => {
     ),
     [announcementForm.type, announcementForm.description, announcementForm.title]
   );
+
+  // Filtered and searched announcements for the management bulletin
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter((ann) => {
+      // Category filter
+      if (announcementCategoryFilter !== 'ALL' && (ann.category || '').toLowerCase() !== announcementCategoryFilter.toLowerCase()) {
+        return false;
+      }
+      // Channel / visibility filter
+      if (announcementChannelFilter === 'HOMEPAGE' && !ann.homepageVisible) {
+        return false;
+      }
+      if (announcementChannelFilter === 'TELEGRAM' && ann.telegram?.status !== 'published') {
+        return false;
+      }
+      // Text search
+      if (announcementSearch.trim()) {
+        const q = announcementSearch.toLowerCase();
+        const matchTitle = (ann.title || '').toLowerCase().includes(q);
+        const matchDesc = (ann.description || '').toLowerCase().includes(q);
+        const matchVenue = (ann.venue || '').toLowerCase().includes(q);
+        const matchType = (ann.type || '').toLowerCase().includes(q);
+        const matchCategory = (ann.category || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchVenue && !matchType && !matchCategory) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [announcements, announcementCategoryFilter, announcementChannelFilter, announcementSearch]);
+
+  const homepageCount = useMemo(() => announcements.filter(a => a.homepageVisible).length, [announcements]);
+  const telegramCount = useMemo(() => announcements.filter(a => a.telegram?.status === 'published').length, [announcements]);
 
   // Which channels a saved announcement actually reached
   const publishedChannelLabels = (announcement) => {
@@ -722,6 +798,9 @@ const handleImageChange = async (e) => {
 
     try {
       await deleteDoc(doc(db, 'announcements', id));
+      // Audit Trail: Log Announcement Deletion (ADL) - Zero UID
+      const performer = userName || currentUser?.displayName || currentUser?.email || 'Authorized Officer';
+      await auditService.logAnnouncementDelete(performer, title);
     } catch (error) {
       console.error('Error deleting announcement:', error);
       await notify({ tone: 'error', title: 'Could not delete', message: 'Please try again.' });
@@ -1160,69 +1239,122 @@ const handleImageChange = async (e) => {
   // RENDER
   // ========================================
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.mainTitle}>Announcements & Events</h2>
-        <p className={styles.headerSubtitle}>Manage announcements and calendar events</p>
-      </div>
+    <div className={`${styles.container} ${isClassic ? styles.announcementClassic : ''}`}>
+      {/* Top Decorative Ethnic Tribal Band (Classic Theme Only) */}
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
 
-      {/* TAB NAVIGATION */}
-      <div className={styles.tabContainer}>
+      {/* =====================================================
+          PREMIUM EDITORIAL HEADER & METRICS
+          ===================================================== */}
+      <header className={styles.header}>
+        <div className={styles.headerTop}>
+          <div className={styles.headerTitleBlock}>
+            <span className={styles.headerEyebrow}>
+              {isClassic ? 'SSG OFFICIAL DISPATCH & EVENT CHRONICLES' : 'CAMPUS DISPATCH & BROADCAST SYSTEM'}
+            </span>
+            <h1 className={styles.mainTitle}>Announcements & Events</h1>
+            <p className={styles.headerSubtitle}>
+              Multicast official university broadcasts, synchronous Telegram alerts, and public student portal bulletins
+            </p>
+          </div>
+
+          <div className={styles.headerMetricsRow}>
+            <div className={styles.headerMetricItem}>
+              <span className={styles.metricValue}>{announcements.length}</span>
+              <span className={styles.metricLabel}>Total Dispatches</span>
+            </div>
+            <div className={styles.headerMetricDivider} />
+            <div className={styles.headerMetricItem}>
+              <span className={styles.metricValue}>{homepageCount}</span>
+              <span className={styles.metricLabel}>On Homepage</span>
+            </div>
+            <div className={styles.headerMetricDivider} />
+            <div className={styles.headerMetricItem}>
+              <span className={styles.metricValue}>{telegramCount}</span>
+              <span className={styles.metricLabel}>Telegram Sent</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* =====================================================
+          SEGMENTED TAB NAVIGATION
+          ===================================================== */}
+      <nav className={styles.tabContainer} aria-label="Announcement Management Navigation">
         <button
+          type="button"
           onClick={() => setActiveTab('announcements')}
           className={`${styles.tab} ${activeTab === 'announcements' ? styles.tabActive : ''}`}
         >
-          📢 Announcements
+          <HiSpeakerphone className={styles.tabIcon} />
+          <span>Announcements</span>
           <span className={styles.tabBadge}>{announcements.length}</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('calendar')}
           className={`${styles.tab} ${activeTab === 'calendar' ? styles.tabActive : ''}`}
         >
-          📅 Event Calendar
+          <FiCalendar className={styles.tabIcon} />
+          <span>Event Calendar</span>
           <span className={styles.tabBadge}>{calendarEvents.length}</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('news')}
           className={`${styles.tab} ${activeTab === 'news' ? styles.tabActive : ''}`}
         >
-          📰 Latest News
+          <FiActivity className={styles.tabIcon} />
+          <span>Latest News</span>
           <span className={styles.tabBadge}>{newsArticles.length}</span>
         </button>
-      </div>
+      </nav>
 
-      {/* ANNOUNCEMENTS TAB */}
+      {/* =====================================================
+          ANNOUNCEMENTS TAB CONTENT
+          ===================================================== */}
       {activeTab === 'announcements' && (
-        <div>
-          {/* ADD/EDIT ANNOUNCEMENT FORM */}
-          <div className={styles.formWrapper}>
+        <div className={styles.announcementsTabContent}>
+          {/* ADD / EDIT ANNOUNCEMENT COMPOSER */}
+          <section ref={formRef} className={`${styles.formWrapper} ${editingAnnouncementId ? styles.formEditingActive : ''}`}>
             <div className={styles.formHeader}>
               <div className={styles.formHeaderLeft}>
                 <div className={styles.formIconBubble}>
                   <HiSpeakerphone className={styles.formBubbleIcon} />
                 </div>
                 <div>
-                  <span className={styles.formEyebrow}>BROADCAST MANAGEMENT</span>
-                  <h3 className={styles.sectionTitle}>
-                    {editingAnnouncementId ? 'Edit Campus Announcement' : 'Publish New Announcement'}
-                  </h3>
+                  <span className={styles.formEyebrow}>BROADCAST STUDIO</span>
+                  <h2 className={styles.sectionTitle}>
+                    {editingAnnouncementId ? 'Edit Campus Announcement' : 'Compose New Announcement'}
+                  </h2>
                 </div>
               </div>
 
               {editingAnnouncementId && (
-                <div className={styles.editModeIndicator}>
-                  <span>Editing Mode Active</span>
+                <div className={styles.editModeIndicatorWrapper}>
+                  <div className={styles.editModeIndicator}>
+                    <span className={styles.pulsingDot} />
+                    <span>Editing Mode Active</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className={styles.exitEditBtn}
+                    title="Exit edit mode and reset form"
+                  >
+                    <FiX /> Exit
+                  </button>
                 </div>
               )}
             </div>
 
             <form onSubmit={editingAnnouncementId ? handleUpdateAnnouncement : handleAddAnnouncement} className={styles.form} noValidate>
               
-              {/* PRIMARY CONTENT FIELDS */}
+              {/* PRIMARY CONTENT CARD */}
               <div className={styles.formCard}>
                 <div className={styles.formCardHeader}>
                   <FiTag className={styles.cardHeaderIcon} />
-                  <span>General Information</span>
+                  <span>Primary Announcement Content</span>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -1246,24 +1378,27 @@ const handleImageChange = async (e) => {
                     <label className={styles.label}>
                       Announcement Type <span className={styles.required}>*</span>
                     </label>
-                    <select
-                      name="type"
-                      value={announcementForm.type}
-                      onChange={(e) => {
-                        handleAnnouncementChange(e);
-                        resetPublishState();
-                      }}
-                      className={styles.select}
-                    >
-                      <option value="">Select Announcement Type</option>
-                      {ANNOUNCEMENT_TYPE_VALUES.map((value) => (
-                        <option key={value} value={value}>
-                          {ANNOUNCEMENT_TYPES[value].label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className={styles.selectWrapper}>
+                      <select
+                        name="type"
+                        value={announcementForm.type}
+                        onChange={(e) => {
+                          handleAnnouncementChange(e);
+                          resetPublishState();
+                        }}
+                        className={styles.select}
+                      >
+                        <option value="">Select Announcement Type</option>
+                        {ANNOUNCEMENT_TYPE_VALUES.map((value) => (
+                          <option key={value} value={value}>
+                            {ANNOUNCEMENT_TYPES[value].label}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown className={styles.selectArrow} />
+                    </div>
                     <p className={styles.helperText}>
-                      Sets the emoji + formal prefix broadcasted to external channels.
+                      Sets the formal emoji & classification badge prefixed on broadcasts.
                     </p>
                   </div>
 
@@ -1271,18 +1406,21 @@ const handleImageChange = async (e) => {
                     <label className={styles.label}>
                       Internal Category <span className={styles.required}>*</span>
                     </label>
-                    <select
-                      name="category"
-                      value={announcementForm.category}
-                      onChange={handleAnnouncementChange}
-                      className={styles.select}
-                    >
-                      <option value="General">General</option>
-                      <option value="Academic">Academic</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Cultural">Cultural</option>
-                      <option value="Meeting">Meeting</option>
-                    </select>
+                    <div className={styles.selectWrapper}>
+                      <select
+                        name="category"
+                        value={announcementForm.category}
+                        onChange={handleAnnouncementChange}
+                        className={styles.select}
+                      >
+                        <option value="General">General</option>
+                        <option value="Academic">Academic</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Cultural">Cultural</option>
+                        <option value="Meeting">Meeting</option>
+                      </select>
+                      <FiChevronDown className={styles.selectArrow} />
+                    </div>
                     <p className={styles.helperText}>
                       Used for portal filtering and archive classification.
                     </p>
@@ -1309,11 +1447,11 @@ const handleImageChange = async (e) => {
                 </div>
               </div>
 
-              {/* LOGISTICS & SCHEDULE */}
+              {/* LOGISTICS & SCHEDULE CARD */}
               <div className={styles.formCard}>
                 <div className={styles.formCardHeader}>
                   <FiClock className={styles.cardHeaderIcon} />
-                  <span>Logistics, Venue & Scheduling</span>
+                  <span>Logistics, Venue & Media Attachment</span>
                 </div>
 
                 <div className={styles.formRowThree}>
@@ -1367,7 +1505,7 @@ const handleImageChange = async (e) => {
                 {/* IMAGE UPLOAD & DROPZONE */}
                 <div className={styles.formGroup}>
                   <label className={styles.label}>
-                    <FiImage className={styles.fieldIconInline} /> Banner / Media Attachment (Optional)
+                    <FiImage className={styles.fieldIconInline} /> Official Banner Graphic Attachment (Optional)
                   </label>
                   
                   <div className={styles.uploadZone}>
@@ -1380,16 +1518,22 @@ const handleImageChange = async (e) => {
                       id="announcement-file-upload"
                     />
                     <label htmlFor="announcement-file-upload" className={styles.uploadDropLabel}>
-                      <FiUploadCloud className={styles.uploadCloudIcon} />
-                      <span className={styles.uploadMainText}>Click to upload official banner graphic</span>
-                      <span className={styles.uploadSubText}>PNG or JPG (auto-compressed for database efficiency)</span>
+                      <div className={styles.uploadIconBadge}>
+                        <FiUploadCloud className={styles.uploadCloudIcon} />
+                      </div>
+                      <span className={styles.uploadMainText}>Click or drag to attach announcement visual</span>
+                      <span className={styles.uploadSubText}>Supports PNG, JPG, WEBP (auto-compressed for database efficiency)</span>
                     </label>
                   </div>
                   
                   {imagePreview && (
                     <div className={styles.imagePreviewContainer}>
                       <div className={styles.previewImageFrame}>
-                        <img src={imagePreview} alt="Announcement preview" className={styles.imagePreview} />
+                        <img src={imagePreview} alt="Announcement graphic preview" className={styles.imagePreview} />
+                      </div>
+                      <div className={styles.imagePreviewMeta}>
+                        <span className={styles.imagePreviewLabel}>Banner Graphic Attached</span>
+                        <span className={styles.imagePreviewSub}>Ready for homepage bulletin and external broadcasts</span>
                       </div>
                       <button
                         type="button"
@@ -1400,158 +1544,206 @@ const handleImageChange = async (e) => {
                         }}
                         className={styles.removeImageBtn}
                       >
-                        <FiTrash2 /> Remove Attachment
+                        <FiTrash2 /> Remove
                       </button>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* HOMEPAGE RELEASE TOGGLE */}
-              <div className={`${styles.releaseBlock} ${announcementForm.homepageVisible ? styles.releaseBlockActive : ''}`}>
-                <label className={styles.releaseToggle}>
-                  <input
-                    type="checkbox"
-                    name="homepageVisible"
-                    checked={announcementForm.homepageVisible}
-                    onChange={handleAnnouncementChange}
-                    className={styles.checkbox}
-                  />
-                  <span className={styles.releaseToggleText}>
-                    <span className={styles.releaseTitleRow}>
-                      {announcementForm.homepageVisible ? <FiGlobe className={styles.globeIconActive} /> : <FiLock className={styles.globeIconMuted} />}
-                      <strong>Publish to CTU-DB Public Homepage</strong>
-                    </span>
-                    <span className={styles.releaseToggleHint}>
-                      {announcementForm.homepageVisible
-                        ? 'Active — Announcement will immediately display on the public student portal homepage carousel.'
-                        : 'Private — Kept in officer records only. Will not appear on the public homepage until enabled.'}
-                    </span>
-                  </span>
-                </label>
-              </div>
-
-              {/* TELEGRAM EXTERNAL BROADCAST CONSOLE */}
-              <div className={styles.telegramPanel}>
-                <div className={styles.telegramPanelHeader}>
-                  <div className={styles.tgHeaderLeft}>
-                    <FaTelegramPlane className={styles.tgIcon} />
-                    <div>
-                      <h4 className={styles.tgTitle}>Telegram Instant Broadcast Gateway</h4>
-                      <p className={styles.tgSubtitle}>Multicast announcements to registered campus subscriber channels</p>
-                    </div>
-                  </div>
-                  <span className={styles.tgStatusChip}>
-                    {telegramChannel ? 'Channel Target Selected' : 'Optional Delivery'}
-                  </span>
+              {/* DISTRIBUTION & MULTICAST CARD */}
+              <div className={styles.formCard}>
+                <div className={styles.formCardHeader}>
+                  <FiShare2 className={styles.cardHeaderIcon} />
+                  <span>Multicast Distribution & Audience Channels</span>
                 </div>
 
-                <div className={styles.tgBodyGrid}>
-                  {/* Left: Channel Selector */}
-                  <div className={styles.tgChannelsCol}>
-                    <span className={styles.telegramBlockLabel}>Target Destination Channel</span>
-                    <div className={styles.channelOptions}>
-                      {Object.values(TELEGRAM_CHANNELS).map((channel) => (
+                {/* HOMEPAGE SPOTLIGHT TOGGLE */}
+                <div className={`${styles.releaseBlock} ${announcementForm.homepageVisible ? styles.releaseBlockActive : ''}`}>
+                  <label className={styles.releaseToggle}>
+                    <div className={styles.switchWrapper}>
+                      <input
+                        type="checkbox"
+                        name="homepageVisible"
+                        checked={announcementForm.homepageVisible}
+                        onChange={handleAnnouncementChange}
+                        className={styles.customSwitch}
+                      />
+                      <span className={styles.switchSlider} />
+                    </div>
+                    <span className={styles.releaseToggleText}>
+                      <span className={styles.releaseTitleRow}>
+                        {announcementForm.homepageVisible ? <FiGlobe className={styles.globeIconActive} /> : <FiLock className={styles.globeIconMuted} />}
+                        <strong>Publish to CTU-DB Public Student Portal Homepage</strong>
+                        {announcementForm.homepageVisible && (
+                          <span className={styles.liveIndicatorBadge}>● LIVE SPOTLIGHT</span>
+                        )}
+                      </span>
+                      <span className={styles.releaseToggleHint}>
+                        {announcementForm.homepageVisible
+                          ? 'Active — This announcement will immediately display prominently on the public homepage news bulletin grid.'
+                          : 'Internal Only — Kept in officer records only. Will not appear on the public homepage until enabled.'}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                {/* TELEGRAM EXTERNAL BROADCAST CONSOLE */}
+                <div className={styles.telegramPanel}>
+                  <div className={styles.telegramPanelHeader}>
+                    <div className={styles.tgHeaderLeft}>
+                      <div className={styles.tgIconBubble}>
+                        <FaTelegramPlane className={styles.tgIcon} />
+                      </div>
+                      <div>
+                        <h4 className={styles.tgTitle}>Telegram Instant Multicast Gateway</h4>
+                        <p className={styles.tgSubtitle}>Synchronously transmit dispatches to registered student leader channels</p>
+                      </div>
+                    </div>
+                    <span className={styles.tgStatusChip}>
+                      {telegramChannel ? 'Channel Target Selected' : 'Optional Delivery Gateway'}
+                    </span>
+                  </div>
+
+                  <div className={styles.tgBodyGrid}>
+                    {/* Left: Channel Selector */}
+                    <div className={styles.tgChannelsCol}>
+                      <span className={styles.telegramBlockLabel}>Select Destination Channel</span>
+                      <div className={styles.channelOptions}>
+                        {Object.values(TELEGRAM_CHANNELS).map((channel) => (
+                          <label
+                            key={channel.value}
+                            className={`${styles.channelOption} ${telegramChannel === channel.value ? styles.channelOptionActive : ''}`}
+                          >
+                            <input
+                              type="radio"
+                              name="telegramChannel"
+                              value={channel.value}
+                              checked={telegramChannel === channel.value}
+                              onChange={(e) => {
+                                setTelegramChannel(e.target.value);
+                                resetPublishState();
+                              }}
+                              className={styles.radioNative}
+                            />
+                            <div className={styles.channelOptionDetails}>
+                              <span className={styles.channelOptionName}>{channel.label}</span>
+                              <span className={styles.channelOptionSub}>Direct broadcast to subscriber feed</span>
+                            </div>
+                            {telegramChannel === channel.value && <FiCheck className={styles.channelSelectedCheck} />}
+                          </label>
+                        ))}
+
                         <label
-                          key={channel.value}
-                          className={`${styles.channelOption} ${telegramChannel === channel.value ? styles.channelOptionActive : ''}`}
+                          className={`${styles.channelOption} ${telegramChannel === BOTH_CHANNELS ? styles.channelOptionActive : ''}`}
                         >
                           <input
                             type="radio"
                             name="telegramChannel"
-                            value={channel.value}
-                            checked={telegramChannel === channel.value}
+                            value={BOTH_CHANNELS}
+                            checked={telegramChannel === BOTH_CHANNELS}
                             onChange={(e) => {
                               setTelegramChannel(e.target.value);
                               resetPublishState();
                             }}
                             className={styles.radioNative}
                           />
-                          <span className={styles.channelOptionName}>{channel.label}</span>
+                          <div className={styles.channelOptionDetails}>
+                            <span className={styles.channelOptionName}>Broadcast Both Channels</span>
+                            <span className={styles.channelOptionSub}>Faculty + All Mayors subscriber networks</span>
+                          </div>
+                          {telegramChannel === BOTH_CHANNELS && <FiCheck className={styles.channelSelectedCheck} />}
                         </label>
-                      ))}
+                      </div>
 
-                      <label
-                        className={`${styles.channelOption} ${telegramChannel === BOTH_CHANNELS ? styles.channelOptionActive : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name="telegramChannel"
-                          value={BOTH_CHANNELS}
-                          checked={telegramChannel === BOTH_CHANNELS}
-                          onChange={(e) => {
-                            setTelegramChannel(e.target.value);
-                            resetPublishState();
-                          }}
-                          className={styles.radioNative}
-                        />
-                        <span className={styles.channelOptionName}>Broadcast Both Channels</span>
-                      </label>
-                    </div>
+                      {/* Readiness summary */}
+                      <div className={styles.publishSummary}>
+                        <div className={styles.publishSummaryTitle}>Broadcast Verification Checklist</div>
+                        {publishChecks.map((check) => (
+                          <div key={check.label} className={styles.publishSummaryRow}>
+                            <span className={styles.publishSummaryLabel}>{check.label}</span>
+                            <span className={`${styles.publishSummaryValue} ${check.ok ? styles.summaryOk : styles.publishSummaryMissing}`}>
+                              {check.ok ? '✓ ' : '✕ '} {check.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
 
-                    {/* Readiness summary */}
-                    <div className={styles.publishSummary}>
-                      {publishChecks.map((check) => (
-                        <div key={check.label} className={styles.publishSummaryRow}>
-                          <span className={styles.publishSummaryLabel}>{check.label}</span>
-                          <span className={`${styles.publishSummaryValue} ${check.ok ? styles.summaryOk : styles.publishSummaryMissing}`}>
-                            {check.value}
+                      {telegramChannel && !targetChannels.every((c) => isTelegramReady(c)) && (
+                        <p className={styles.publishWarning}>
+                          <FiAlertCircle /> Telegram token or channel ID not configured in this environment.
+                        </p>
+                      )}
+
+                      <div className={styles.publishActionRow}>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmOpen(true)}
+                          disabled={!canPublish}
+                          className={styles.publishButton}
+                        >
+                          <FaTelegramPlane />
+                          {publishStatus === 'publishing' ? 'Transmitting Broadcast...' : 'Dispatch Telegram Broadcast'}
+                        </button>
+
+                        {publishStatus === 'published' && (
+                          <span className={styles.publishStatusSuccess}>
+                            <FiCheckCircle /> Broadcast Delivered Successfully
                           </span>
-                        </div>
-                      ))}
+                        )}
+                        {publishStatus === 'partial' && publishError && (
+                          <span className={styles.publishStatusPartial}>
+                            <FiAlertCircle /> Text sent, photo error: {publishError}
+                          </span>
+                        )}
+                        {publishStatus === 'failed' && publishError && (
+                          <span className={styles.publishStatusError}>
+                            <FiX /> {publishError}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {telegramChannel && !targetChannels.every((c) => isTelegramReady(c)) && (
-                      <p className={styles.publishWarning}>
-                        <FiAlertCircle /> Telegram token or channel ID not detected in environment.
-                      </p>
-                    )}
+                    {/* Right: Live Preview Box */}
+                    <div className={styles.tgPreviewCol}>
+                      <span className={styles.telegramBlockLabel}>Subscriber Screen Preview</span>
+                      {selectedTypeConfig ? (
+                        <div className={styles.tgPhoneMockup}>
+                          <div className={styles.tgPhoneHeader}>
+                            <div className={styles.tgAvatarBadge}>SSG</div>
+                            <div className={styles.tgSenderInfo}>
+                              <div className={styles.tgSenderNameRow}>
+                                <span className={styles.tgSenderName}>CTU-DB SSG Official</span>
+                                <span className={styles.tgVerifiedBadge}>✓</span>
+                              </div>
+                              <span className={styles.tgBotSubtitle}>Bot • announcement broadcast</span>
+                            </div>
+                          </div>
 
-                    <div className={styles.publishActionRow}>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmOpen(true)}
-                        disabled={!canPublish}
-                        className={styles.publishButton}
-                      >
-                        <FaTelegramPlane />
-                        {publishStatus === 'publishing' ? 'Transmitting Broadcast...' : 'Dispatch Telegram Broadcast'}
-                      </button>
-
-                      {publishStatus === 'published' && (
-                        <span className={styles.publishStatusSuccess}>
-                          <FiCheckCircle /> Broadcast Delivered
-                        </span>
-                      )}
-                      {publishStatus === 'partial' && publishError && (
-                        <span className={styles.publishStatusPartial}>
-                          <FiAlertCircle /> Text sent, photo error: {publishError}
-                        </span>
-                      )}
-                      {publishStatus === 'failed' && publishError && (
-                        <span className={styles.publishStatusError}>
-                          <FiX /> {publishError}
-                        </span>
+                          <div className={styles.tgBubbleMockup}>
+                            {imagePreview && (
+                              <div className={styles.tgBubbleMedia}>
+                                <img src={imagePreview} alt="Attached media preview" />
+                              </div>
+                            )}
+                            <pre className={styles.telegramPreview}>{renderTelegramText(telegramParts)}</pre>
+                            <div className={styles.tgMetaTime}>
+                              <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span className={styles.tgReadCheck}>✓✓</span>
+                            </div>
+                            <div className={styles.tgReactionRow}>
+                              <span className={styles.tgReactionPill}>❤️ 12</span>
+                              <span className={styles.tgReactionPill}>👍 45</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.telegramPlaceholder}>
+                          <FiEye className={styles.tgPlaceholderIcon} />
+                          <p>Select an Announcement Type above to preview the subscriber message template.</p>
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Right: Live Preview Box */}
-                  <div className={styles.tgPreviewCol}>
-                    <span className={styles.telegramBlockLabel}>Subscriber Screen Preview</span>
-                    {selectedTypeConfig ? (
-                      <div className={styles.tgBubbleMockup}>
-                        <pre className={styles.telegramPreview}>{renderTelegramText(telegramParts)}</pre>
-                        <div className={styles.tgReactionRow}>
-                          <span className={styles.tgReactionPill}>❤️ Seen 0</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={styles.telegramPlaceholder}>
-                        <FiEye className={styles.tgPlaceholderIcon} />
-                        <p>Select an Announcement Type above to preview the subscriber message template.</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1571,161 +1763,366 @@ const handleImageChange = async (e) => {
                       : 'Publish Announcement'}
                 </button>
 
-                {editingAnnouncementId && (
+                {editingAnnouncementId ? (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className={styles.cancelButton}
+                  >
+                    <FiX /> Cancel Changes
+                  </button>
+                ) : (
                   <button
                     type="button"
                     onClick={() => {
-                      setEditingAnnouncementId(null);
                       setAnnouncementForm({ ...EMPTY_ANNOUNCEMENT_FORM });
                       setImagePreview(null);
                       setSelectedImage(null);
                       if (fileInputRef.current) fileInputRef.current.value = '';
                       setTelegramChannel('');
                       resetPublishState();
+                      setFormErrors({});
                     }}
-                    className={styles.cancelButton}
+                    className={styles.resetButton}
                   >
-                    <FiX /> Cancel Changes
+                    <FiRefreshCw /> Reset Form
                   </button>
                 )}
               </div>
             </form>
-          </div>
+          </section>
 
-          {/* ANNOUNCEMENTS LIST */}
-          <div className={styles.announcementsWrapper}>
-            <h3 className={styles.sectionTitle}>All Announcements</h3>
+          {/* =====================================================
+              ANNOUNCEMENTS MANAGEMENT DIRECTORY & BULLETIN
+              ===================================================== */}
+          <section className={styles.announcementsWrapper} aria-label="Announcements Directory">
+            <div className={styles.listHeaderSection}>
+              <div className={styles.listHeaderLeft}>
+                <span className={styles.formEyebrow}>BULLETIN ARCHIVE</span>
+                <h3 className={styles.sectionTitle}>All Dispatches & Announcements</h3>
+                <p className={styles.listSubtitle}>
+                  Showing <strong>{filteredAnnouncements.length}</strong> of <strong>{announcements.length}</strong> dispatches recorded
+                </p>
+              </div>
+
+              {/* Live search input */}
+              <div className={styles.searchBarWrapper}>
+                <FiSearch className={styles.searchIcon} />
+                <input
+                  type="text"
+                  value={announcementSearch}
+                  onChange={(e) => setAnnouncementSearch(e.target.value)}
+                  placeholder="Search by title, venue, or keyword..."
+                  className={styles.searchInput}
+                  aria-label="Search announcements"
+                />
+                {announcementSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setAnnouncementSearch('')}
+                    className={styles.searchClearBtn}
+                    aria-label="Clear search"
+                  >
+                    <FiX />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Filter toolbar */}
+            <div className={styles.filterToolbar}>
+              {/* Category pills */}
+              <div className={styles.filterGroupPills} role="tablist" aria-label="Filter by category">
+                {['ALL', 'General', 'Academic', 'Sports', 'Cultural', 'Meeting'].map((cat) => {
+                  const count = cat === 'ALL' 
+                    ? announcements.length 
+                    : announcements.filter(a => (a.category || '').toLowerCase() === cat.toLowerCase()).length;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      role="tab"
+                      aria-selected={announcementCategoryFilter.toLowerCase() === cat.toLowerCase()}
+                      onClick={() => setAnnouncementCategoryFilter(cat)}
+                      className={`${styles.filterPill} ${announcementCategoryFilter.toLowerCase() === cat.toLowerCase() ? styles.filterPillActive : ''}`}
+                    >
+                      <span>{cat === 'ALL' ? 'All Categories' : cat}</span>
+                      <span className={styles.filterPillCount}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Channel filter pills */}
+              <div className={styles.filterChannelPills}>
+                <button
+                  type="button"
+                  onClick={() => setAnnouncementChannelFilter('ALL')}
+                  className={`${styles.channelPill} ${announcementChannelFilter === 'ALL' ? styles.channelPillActive : ''}`}
+                >
+                  All Channels
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnnouncementChannelFilter('HOMEPAGE')}
+                  className={`${styles.channelPill} ${announcementChannelFilter === 'HOMEPAGE' ? styles.channelPillActive : ''}`}
+                >
+                  🌐 Homepage ({homepageCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnnouncementChannelFilter('TELEGRAM')}
+                  className={`${styles.channelPill} ${announcementChannelFilter === 'TELEGRAM' ? styles.channelPillActive : ''}`}
+                >
+                  📤 Telegram ({telegramCount})
+                </button>
+              </div>
+            </div>
             
             {announcements.length === 0 ? (
               <div className={styles.emptyState}>
-                <p className={styles.emptyText}>No announcements yet. Create your first one above!</p>
+                <div className={styles.emptyStateIconBadge}>
+                  <FiInbox className={styles.emptyIcon} />
+                </div>
+                <h4 className={styles.emptyTitle}>No Announcements Published Yet</h4>
+                <p className={styles.emptyText}>Create your first broadcast using the studio form above to inform the campus.</p>
+                <button
+                  type="button"
+                  onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                  className={styles.emptyActionBtn}
+                >
+                  Compose Announcement
+                </button>
+              </div>
+            ) : filteredAnnouncements.length === 0 ? (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyStateIconBadge}>
+                  <FiFilter className={styles.emptyIcon} />
+                </div>
+                <h4 className={styles.emptyTitle}>No Matching Dispatches Found</h4>
+                <p className={styles.emptyText}>No announcements match your search query or selected filter criteria.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAnnouncementSearch('');
+                    setAnnouncementCategoryFilter('ALL');
+                    setAnnouncementChannelFilter('ALL');
+                  }}
+                  className={styles.emptyActionBtn}
+                >
+                  Reset All Filters
+                </button>
               </div>
             ) : (
               <div className={styles.announcementsList}>
-                {announcements.map((announcement) => (
-                  <div key={announcement.id} className={styles.announcementCard}>
-                    <div 
-                      className={styles.announcementHeader}
-                      onClick={() => setExpandedId(expandedId === announcement.id ? null : announcement.id)}
-                    >
-                      <div className={styles.announcementHeaderLeft}>
-                        <h4 className={styles.announcementTitle}>{announcement.title}</h4>
-                        <div className={styles.announcementMeta}>
+                {filteredAnnouncements.map((announcement) => {
+                  const isExpanded = expandedId === announcement.id;
+                  const typeCfg = getTypeConfig(announcement.type);
+                  return (
+                    <article key={announcement.id} className={`${styles.announcementCard} ${isExpanded ? styles.announcementCardExpanded : ''}`}>
+                      <div 
+                        className={styles.announcementHeader}
+                        onClick={() => setExpandedId(isExpanded ? null : announcement.id)}
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setExpandedId(isExpanded ? null : announcement.id);
+                          }
+                        }}
+                      >
+                        {/* Thumbnail / Media Frame */}
+                        <div className={styles.cardThumbnailFrame}>
+                          {announcement.imageBase64 ? (
+                            <img 
+                              src={announcement.imageBase64} 
+                              alt={announcement.title}
+                              className={styles.cardThumbImg}
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className={styles.cardThumbFallback}>
+                              <HiSpeakerphone className={styles.cardThumbFallbackIcon} />
+                            </div>
+                          )}
                           <span 
                             className={styles.categoryBadge}
                             style={{ backgroundColor: getCategoryColor(announcement.category) }}
                           >
                             {announcement.category}
                           </span>
-                          {getTypeConfig(announcement.type) && (
-                            <span className={styles.typeBadge}>
-                              {getTypeConfig(announcement.type).label}
+                        </div>
+
+                        {/* Middle: Content summary */}
+                        <div className={styles.announcementHeaderLeft}>
+                          <div className={styles.announcementMetaTop}>
+                            {typeCfg && (
+                              <span className={styles.typeBadge}>
+                                {typeCfg.label}
+                              </span>
+                            )}
+                            <span className={`${styles.releaseBadge} ${announcement.homepageVisible ? styles.releaseBadgeLive : ''}`}>
+                              {announcement.homepageVisible ? '🌐 On Homepage' : '🔒 Internal'}
                             </span>
-                          )}
-                          <span className={`${styles.releaseBadge} ${announcement.homepageVisible ? styles.releaseBadgeLive : ''}`}>
-                            {announcement.homepageVisible ? '🌐 On Homepage' : '🔒 Not released'}
+                            {announcement.telegram?.status === 'published' && (
+                              <span className={styles.publishedBadge}>
+                                📤 {publishedChannelLabels(announcement)}
+                              </span>
+                            )}
+                            {announcement.telegram?.status === 'partial' && (
+                              <span className={styles.partialBadge}>
+                                ⚠ Telegram Photo Error
+                              </span>
+                            )}
+                            {announcement.telegram?.status === 'failed' && (
+                              <span className={styles.failedBadge}>✕ Telegram Failed</span>
+                            )}
+                          </div>
+
+                          <h4 className={styles.announcementTitle}>{announcement.title}</h4>
+
+                          <div className={styles.announcementMetaBottom}>
+                            <span className={styles.announcementDate}>
+                              <FiCalendar className={styles.metaIconInline} />
+                              {formatDate(announcement.eventDate)}
+                              {announcement.eventTime ? ` · ${announcement.eventTime}` : ''}
+                            </span>
+                            {announcement.venue && (
+                              <span className={styles.announcementVenuePill}>
+                                <FiMapPin className={styles.metaIconInline} />
+                                {announcement.venue}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right: Expand Toggle */}
+                        <div className={styles.cardExpandTrigger}>
+                          <span className={styles.expandLabelText}>
+                            {isExpanded ? 'Collapse' : 'Details'}
                           </span>
-                          {announcement.telegram?.status === 'published' && (
-                            <span className={styles.publishedBadge}>
-                              📤 {publishedChannelLabels(announcement)}
-                            </span>
+                          <div className={`${styles.expandIcon} ${isExpanded ? styles.expandIconExpanded : ''}`}>
+                            <FiChevronDown />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* EXPANDED ACCORDION BODY */}
+                      {isExpanded && (
+                        <div className={styles.announcementBody}>
+                          {announcement.imageBase64 && (
+                            <div className={styles.announcementFullImageWrapper}>
+                              <img 
+                                src={announcement.imageBase64}
+                                alt={announcement.title}
+                                className={styles.announcementFullImage}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            </div>
                           )}
-                          {announcement.telegram?.status === 'partial' && (
-                            <span className={styles.partialBadge}>
-                              ⚠ Photo not sent
-                            </span>
+
+                          <div className={styles.announcementDetailSection}>
+                            <strong className={styles.detailLabel}>Full Dispatch Announcement:</strong>
+                            <p className={styles.detailValue}>{announcement.description}</p>
+                          </div>
+
+                          <div className={styles.announcementDetailRow}>
+                            <div className={styles.detailPill}>
+                              <FiMapPin className={styles.detailIcon} />
+                              <div>
+                                <span className={styles.detailPillTitle}>Venue / Assembly Location</span>
+                                <span className={styles.detailPillValue}>{announcement.venue || 'TBA'}</span>
+                              </div>
+                            </div>
+
+                            <div className={styles.detailPill}>
+                              <FiClock className={styles.detailIcon} />
+                              <div>
+                                <span className={styles.detailPillTitle}>Schedule</span>
+                                <span className={styles.detailPillValue}>
+                                  {formatDate(announcement.eventDate)} at {announcement.eventTime || 'TBA'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {announcement.telegram?.publishedAt && (
+                            <div className={styles.telemetryBanner}>
+                              <FaTelegramPlane className={styles.telemetryIcon} />
+                              <span>
+                                Broadcast transmitted on {new Date(announcement.telegram.publishedAt).toLocaleString()}
+                              </span>
+                            </div>
                           )}
-                          {announcement.telegram?.status === 'failed' && (
-                            <span className={styles.failedBadge}>✕ Not published</span>
-                          )}
-                          <span className={styles.announcementDate}>
-                            📅 {formatDate(announcement.eventDate)} at {announcement.eventTime}
-                          </span>
-                        </div>
-                      </div>
-                      <div className={`${styles.expandIcon} ${expandedId === announcement.id ? styles.expandIconExpanded : ''}`}>
-                        ▼
-                      </div>
-                    </div>
 
-                    {announcement.imageBase64 && (
-                      <div className={styles.announcementImageWrapper}>
-                        <img 
-                          src={announcement.imageBase64}
-                          alt={announcement.title}
-                          className={styles.announcementImage}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {expandedId === announcement.id && (
-                      <div className={styles.announcementBody}>
-                        <div className={styles.announcementDetail}>
-                          <strong className={styles.detailLabel}>Description:</strong>
-                          <p className={styles.detailValue}>{announcement.description}</p>
+                          <div className={styles.announcementActions}>
+                            <button
+                              type="button"
+                              onClick={() => handleEditAnnouncement(announcement)}
+                              className={styles.editButton}
+                            >
+                              <FiEdit3 /> Edit Announcement
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAnnouncement(announcement)}
+                              className={styles.deleteButton}
+                            >
+                              <FiTrash2 /> Delete Announcement
+                            </button>
+                          </div>
                         </div>
-
-                        <div className={styles.announcementDetail}>
-                          <strong className={styles.detailLabel}>Venue:</strong>
-                          <p className={styles.detailValue}>📍 {announcement.venue}</p>
-                        </div>
-
-                        <div className={styles.announcementActions}>
-                          <button
-                            onClick={() => handleEditAnnouncement(announcement)}
-                            className={styles.editButton}
-                          >
-                            ✏️ Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAnnouncement(announcement)}
-                            className={styles.deleteButton}
-                          >
-                            🗑️ Delete
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </article>
+                  );
+                })}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* PUBLISH CONFIRMATION */}
+          {/* PUBLISH CONFIRMATION GLASS MODAL */}
           {confirmOpen && (
             <div className={styles.confirmOverlay} onClick={() => setConfirmOpen(false)}>
               <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
-                <h3 className={styles.confirmTitle}>Publish Announcement</h3>
+                <div className={styles.confirmModalHeader}>
+                  <div className={styles.confirmIconBubble}>
+                    <FaTelegramPlane className={styles.confirmPlaneIcon} />
+                  </div>
+                  <div>
+                    <h3 className={styles.confirmTitle}>Confirm Telegram Broadcast</h3>
+                    <p className={styles.confirmSubtitle}>Verify dispatch payload before transmission to campus subscribers</p>
+                  </div>
+                </div>
 
                 <div className={styles.confirmRows}>
                   <div className={styles.confirmRow}>
-                    <span className={styles.confirmLabel}>Type:</span>
-                    <span className={styles.confirmValue}>{selectedTypeConfig?.label}</span>
+                    <span className={styles.confirmLabel}>Classification:</span>
+                    <span className={styles.confirmValue}>{selectedTypeConfig?.label || 'General'}</span>
                   </div>
                   <div className={styles.confirmRow}>
-                    <span className={styles.confirmLabel}>Channel:</span>
-                    <span className={styles.confirmValue}>{selectedChannelConfig?.label}</span>
+                    <span className={styles.confirmLabel}>Target Channel:</span>
+                    <span className={styles.confirmValue}>{selectedChannelConfig?.label || 'All Channels'}</span>
                   </div>
                   <div className={styles.confirmRow}>
-                    <span className={styles.confirmLabel}>Attachment:</span>
+                    <span className={styles.confirmLabel}>Graphic Media:</span>
                     <span className={styles.confirmValue}>
-                      {announcementForm.imageBase64 ? '🖼 Photo' : 'None'}
+                      {announcementForm.imageBase64 ? '✓ Graphic Attached (Photo Broadcast)' : 'None (Text Only)'}
                     </span>
                   </div>
                 </div>
 
-                <span className={styles.confirmLabel}>Message:</span>
-                <pre className={styles.confirmMessage}>{renderTelegramText(telegramParts)}</pre>
+                <div className={styles.confirmMessageBlock}>
+                  <span className={styles.confirmMessageLabel}>Message Payload Preview:</span>
+                  <pre className={styles.confirmMessage}>{renderTelegramText(telegramParts)}</pre>
+                </div>
 
                 <div className={styles.confirmActions}>
                   <button
                     type="button"
                     onClick={() => setConfirmOpen(false)}
-                    className={styles.cancelButton}
+                    className={styles.confirmCancelBtn}
                   >
                     Cancel
                   </button>
@@ -1733,9 +2130,10 @@ const handleImageChange = async (e) => {
                     type="button"
                     onClick={handleConfirmPublish}
                     disabled={publishStatus === 'publishing'}
-                    className={styles.publishButton}
+                    className={styles.confirmProceedBtn}
                   >
-                    {publishStatus === 'publishing' ? '⏳ Publishing...' : 'Confirm Publish'}
+                    <FaTelegramPlane />
+                    {publishStatus === 'publishing' ? 'Transmitting...' : 'Confirm & Dispatch'}
                   </button>
                 </div>
               </div>
@@ -1747,7 +2145,7 @@ const handleImageChange = async (e) => {
       {/* CALENDAR TAB */}
       {activeTab === 'calendar' && (
         <div className={styles.calendarTabWrapper}>
-          <CalendarWidget />
+          <CalendarWidget isClassicHomepage={isClassic} />
         </div>
       )}
 

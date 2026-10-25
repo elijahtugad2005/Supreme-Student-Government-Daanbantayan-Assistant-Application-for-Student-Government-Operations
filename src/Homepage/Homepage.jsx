@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import styles from './Homepage.module.css'; // Import CSS module
 import { useRef } from 'react';
 import { useAuth } from '../components/AuthContext/AuthContext.jsx';
+import { usePermissions } from '../hooks/usePermissions.js';
+import { useTheme } from '../contexts/ThemeContext';
 import useCurrentTerm from '../hooks/useCurrentTerm';
 import { SSG_ID, FALLBACK_TERM, getSections } from '../components/orgUtils';
 import CalendarWidget from '../components/CalendarWidget/CalendarWidget';
@@ -17,7 +19,10 @@ import {
   HiCalendar,
   HiCog,
   HiUsers,
-  HiTruck
+  HiTruck,
+  HiLocationMarker,
+  HiShoppingCart,
+  HiDocumentText
 } from 'react-icons/hi';
 import {
   FiShoppingBag,
@@ -252,6 +257,9 @@ const OfficerCarousel = React.memo(function OfficerCarousel({ members }) {
 
 function Homepage({ toggleSidebar, sidebarOpen }) {
   const { userRole, currentUser } = useAuth();
+  const permissions = usePermissions();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const { currentTerm } = useCurrentTerm();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -539,7 +547,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
 
   /* ─────────────────────────────────────────── */
   return (
-    <div className={styles.pageWrapper}>
+    <div className={`${styles.pageWrapper} ${isClassic ? `${styles.pageWrapperClassic} pageWrapperClassic` : ''}`}>
 
       {/* Guest notice — only while browsing without an account */}
       {!currentUser && (
@@ -554,100 +562,163 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       {/* ══════════════════════════════════════
           HERO — editorial masthead
       ══════════════════════════════════════ */}
-      <section ref={heroSectionRef} className={styles.heroSection}>
-        {/* Slideshow */}
+      <section ref={heroSectionRef} className={`${styles.heroSection} ${isClassic ? styles.heroSectionClassic : ''}`}>
+        {/* Top Decorative Tribal Band (Classic Theme Only) */}
+        {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
+
+        {/* Slideshow background */}
         <div className={styles.slideContainer}>
-          {['slide1', 'slide2', 'slide3', 'slide4', 'slide5', 'slide6'].map((s) => (
-            <div key={s} className={`${styles.slide} ${styles[s]}`}></div>
+          {[(isClassic ? 'slideHero' : 'slide1'), 'slide1', 'slide2', 'slide3', 'slide4', 'slide5', 'slide6'].map((s, idx) => (
+            <div key={`${s}-${idx}`} className={`${styles.slide} ${styles[s]}`}></div>
           ))}
         </div>
         <div className={styles.heroOverlay}></div>
         {/* Diagonal texture */}
-        <div className={styles.diagonalTexture}></div>
+        {isClassic && <div className={styles.diagonalTexture}></div>}
 
         <div className={styles.heroContentWrapper}>
           <div className={styles.heroContent}>
-            {/* Eyebrow label */}
-            <span className={styles.heroEyebrow}>Official Student Government Platform</span>
+            {/* Eyebrow row */}
+            {isClassic ? (
+              <div className={styles.heroEyebrowRow}>
+                <span className={styles.eyebrowLine} />
+                <span className={styles.eyebrowDiamond}>◆</span>
+                <span className={styles.heroEyebrow}>OFFICIAL STUDENT GOVERNMENT PLATFORM</span>
+                <span className={styles.eyebrowDiamond}>◆</span>
+                <span className={styles.eyebrowLine} />
+              </div>
+            ) : (
+              <span className={styles.heroEyebrow}>Official Student Government Platform</span>
+            )}
+
             <h1 className={`${styles.heroTitle} ${isHeroFading ? styles.heroTitleFadeOut : styles.heroTitleFadeIn}`}>
               {heroTexts[heroTextIndex].text.split('\n').map((line, i) => (
-                <React.Fragment key={i}>
+                <span
+                  key={i}
+                  className={isClassic ? (i === 0 ? styles.heroTitleWhite : styles.heroTitleGold) : undefined}
+                >
                   {line}
                   {i < heroTexts[heroTextIndex].text.split('\n').length - 1 && <br />}
-                </React.Fragment>
+                </span>
               ))}
             </h1>
-            <div className={styles.heroRule}></div>
+
             <p className={styles.heroDescription}>
-              <em>Centralizing Student Government for a Connected Future.</em>{' '}
+              Centralizing Student Government for a Connected Future.
+              <br />
               Track, engage, and plan university events with unprecedented efficiency.
             </p>
-            <button className={styles.exploreButton} onClick={() => scrollToSection(productsRef)}>EXPLORE SERVICES</button>
+
+            <button
+              type="button"
+              className={styles.exploreButton}
+              onClick={() => scrollToSection(productsRef)}
+              aria-label="Explore student services and catalogue"
+            >
+              <span>EXPLORE SERVICES</span>
+              <FiArrowRight className={styles.exploreArrow} />
+            </button>
           </div>
 
-          {/* Quick Access */}
-          <div className={styles.quickAccessSection}>
-            <p className={styles.quickAccessEyebrow}>QUICK ACCESS</p>
-            <div className={styles.quickAccessGrid}>
-              {(() => {
-                const getRoleQuickAccessItems = () => {
-                  switch (userRole) {
-                    case 'secretary':
-                      return [
-                        { icon: <HiCurrencyDollar />, label: 'Finances', action: () => navigate('/finance') },
-                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
-                        { icon: <HiSpeakerphone />, label: 'Announcements', action: () => navigate('/announcement') },
-                      ];
-                    case 'representative':
-                      return [
-                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
-                        { icon: <HiCube />, label: 'Inventory', action: () => navigate('/inventory') },
-                        { icon: <HiSpeakerphone />, label: 'Announcements', action: () => navigate('/announcement') },
-                      ];
-                    case 'finance_secretary':
-                      return [
-                        { icon: <HiShoppingBag />, label: 'Commerce Hub', action: () => navigate('/commerce') },
-                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
-                        { icon: <HiCurrencyDollar />, label: 'Finances', action: () => navigate('/finance') },
-                      ];
-                    case 'senator':
-                      return [
-                        { icon: <HiCube />, label: 'Inventory', action: () => navigate('/inventory') },
-                        { icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') },
-                        { icon: <HiCalendar />, label: 'Event Calendar', action: () => scrollToSection(calendarRef) },
-                      ];
-                    case 'admin':
-                      return [
-                        { icon: <HiCog />, label: 'Admin Dashboard', action: () => navigate('/admin') },
-                        { icon: <HiCurrencyDollar />, label: 'Finances', action: () => navigate('/finance') },
-                        { icon: <HiUsers />, label: 'User Management', action: () => navigate('/admin/users') },
-                      ];
-                    default:
-                      // member, guest, or unauthenticated default
-                      return [
-                        { icon: <HiTruck />, label: 'Track My Order', action: () => navigate('/track-order') },
-                        { icon: <HiShoppingBag />, label: 'Product Catalogue', action: () => scrollToSection(productsRef) },
-                        { icon: <HiCalendar />, label: 'Event Calendar', action: () => scrollToSection(calendarRef) },
-                      ];
-                  }
-                };
+          {/* Quick Access Card */}
+          <div className={`${styles.quickAccessCard} ${isClassic ? styles.quickAccessCardClassic : ''}`}>
+            {isClassic && <div className={styles.quickAccessTribalStrip} aria-hidden="true" />}
+            <div className={styles.quickAccessBody}>
+              <p className={styles.quickAccessEyebrow}>QUICK ACCESS</p>
+              <div className={styles.quickAccessList}>
+                {(() => {
+                  const getDynamicQuickAccessItems = () => {
+                    const items = [];
 
-                return getRoleQuickAccessItems().map(({ icon, label, action }) => (
-                  <div
-                    key={label}
-                    className={`${styles.quickAccessCard} ${action ? styles.quickAccessCardClickable : ''}`}
-                    onClick={action}
-                    role={action ? 'button' : 'div'}
-                    tabIndex={action ? 0 : undefined}
-                  >
-                    <span className={styles.quickAccessIcon}>{icon}</span>
-                    <span className={styles.quickAccessLabel}>{label}</span>
-                  </div>
-                ));
-              })()}
+                    // 1. Admin & User Management (for users with admin/user management privileges or overrides)
+                    if (permissions.checkPermission('canManageUsers') || permissions.checkRole('admin') || permissions.checkRole('president')) {
+                      items.push({ icon: <HiCog />, label: 'Admin Dashboard', action: () => navigate('/admin') });
+                      items.push({ icon: <HiUsers />, label: 'User Management', action: () => navigate('/admin/users') });
+                    }
+
+                    // 2. Finance (for users with finance viewing/editing permission)
+                    if (permissions.checkPermission('canViewFinance')) {
+                      items.push({ icon: <HiCurrencyDollar />, label: 'Finances', action: () => navigate('/finance') });
+                    }
+
+                    // 3. Documents (for secretariat, legislative, officers or users with canExportData)
+                    if (permissions.checkPermission('canExportData')) {
+                      items.push({ icon: <HiFolder />, label: 'Documents', action: () => navigate('/documents') });
+                    }
+
+                    // 4. Inventory (for users with canManageProducts)
+                    if (permissions.checkPermission('canManageProducts')) {
+                      items.push({ icon: <HiCube />, label: 'Inventory', action: () => navigate('/inventory') });
+                    }
+
+                    // 5. Announcements (for users with canSendNotifications or Creatives)
+                    if (permissions.checkPermission('canSendNotifications') || permissions.checkPermission('canManageCreatives')) {
+                      items.push({ icon: <HiSpeakerphone />, label: 'Announcements', action: () => navigate('/announcement') });
+                    }
+
+                    // 6. Commerce Hub (management for officers with canManageOrders or /commerce access)
+                    if (permissions.checkPermission('canManageOrders') || permissions.checkRouteAccess('/commerce')) {
+                      items.push({ icon: <HiShoppingBag />, label: 'Commerce Hub', action: () => navigate('/commerce') });
+                    }
+
+                    // 7. Sections & Contributions / Roster
+                    if (permissions.checkPermission('canSubmitRoster') || permissions.checkRouteAccess('/sections-contributions')) {
+                      items.push({ icon: <HiDocumentText />, label: 'Sections & Rosters', action: () => navigate('/sections-contributions') });
+                    }
+
+                    // 8. Order Placement (student/member requisition)
+                    items.push({ icon: <HiShoppingCart />, label: 'Order Placement', action: () => navigate('/order') });
+
+                    // 9. Interactive Campus Sky Map (open to all students and members)
+                    items.push({ icon: <HiLocationMarker />, label: 'Campus Map', action: () => navigate('/campus-map') });
+
+                    // 10. Event Calendar
+                    items.push({ icon: <HiCalendar />, label: 'Event Calendar', action: () => scrollToSection(calendarRef) });
+
+                    // Deduplicate by label and take top 3 most relevant for the user
+                    const uniqueItems = [];
+                    const seen = new Set();
+                    for (const item of items) {
+                      if (!seen.has(item.label)) {
+                        seen.add(item.label);
+                        uniqueItems.push(item);
+                      }
+                      if (uniqueItems.length === 3) break;
+                    }
+
+                    return uniqueItems;
+                  };
+
+                  return getDynamicQuickAccessItems().map(({ icon, label, action }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className={styles.quickAccessRow}
+                      onClick={action}
+                    >
+                      <span className={styles.quickAccessIconWrap}>{icon}</span>
+                      <span className={styles.quickAccessLabel}>{label}</span>
+                    </button>
+                  ));
+                })()}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Hero Bottom Ticker Bar (Classic Theme Only) */}
+        {isClassic && (
+          <div className={styles.heroBottomTicker}>
+            <span>STUDENT VOICE</span>
+            <span className={styles.tickerDiamond}>✦</span>
+            <span>STRONGER COMMUNITY</span>
+            <span className={styles.tickerDiamond}>✦</span>
+            <span>BRIGHTER FUTURE</span>
+          </div>
+        )}
+
+        {/* Bottom Decorative Tribal Band (Classic Theme Only) */}
+        {isClassic && <div className={styles.tribalBorderBottom} aria-hidden="true" />}
       </section>
 
       <hr className={styles.sectionRule} />
@@ -1055,7 +1126,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
         </header>
 
         <div className={styles.calendarWrapper}>
-          <CalendarWidget readOnly={true} />
+          <CalendarWidget readOnly={true} isClassicHomepage={isClassic} />
         </div>
       </section>
 
@@ -1171,25 +1242,38 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       {/* ══════════════════════════════════════
           FOOTER
       ══════════════════════════════════════ */}
-      <footer className={styles.footer}>
-        <hr className={styles.footerRule} />
+      <footer className={`${styles.footer} ${isClassic ? styles.footerClassic : ''}`}>
+        {isClassic && <div className={styles.footerTribalBorder} aria-hidden="true" />}
         <div className={styles.footerInner}>
           <div className={styles.footerLeft}>
-            <span className={styles.footerBrand}>SUPREMO GOBYERNO</span>
-            <p className={styles.footerTagline}>Official Student Government E-Commerce Platform</p>
+            <div className={styles.footerBrandRow}>
+              <img
+                src="/images/logossg.png"
+                alt="SSG Seal"
+                className={styles.footerLogo}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              <div>
+                <span className={styles.footerBrand}>SUPREMO GOBYERNO</span>
+                <p className={styles.footerSubBrand}>SUPREME STUDENT GOVERNMENT · CTU DAANBANTAYAN</p>
+              </div>
+            </div>
+            <p className={styles.footerTagline}>Official Student Government Administrative & E-Commerce Platform</p>
+            <p className={styles.footerMotto}><em>Ducere Non Ducere</em> — To Lead, Not to Be Led</p>
           </div>
           <div className={styles.footerRight}>
             <div className={styles.footerSocialLinks}>
-              <a href="https://facebook.com/SSGCTUDB" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Facebook">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              <a href="https://facebook.com/SSGCTUDB" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Official Facebook">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
               </a>
-              <a href="https://www.instagram.com/ssgctudb/" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Instagram">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
+              <a href="https://www.instagram.com/ssgctudb/" className={styles.footerSocialLink} target="_blank" rel="noreferrer" aria-label="Official Instagram">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
               </a>
             </div>
             <p className={styles.footerCopyright}>
-              © 2025 Supremo Gobyerno. All rights reserved.
+              © {new Date().getFullYear()} Supremo Student Government. All rights reserved.
             </p>
+            <p className={styles.footerCampus}>Cebu Technological University — Daanbantayan Campus</p>
           </div>
         </div>
       </footer>

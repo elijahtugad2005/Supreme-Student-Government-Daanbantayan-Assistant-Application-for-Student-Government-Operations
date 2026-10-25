@@ -1,16 +1,49 @@
 // components/Login/Login.jsx
-// PURPOSE: Login page for users to authenticate
-// FEATURES:
-//   - Email/password login form
-//   - Error handling with user-friendly messages
-//   - Redirects to previous page after login
-//   - Shows loading state during authentication
+// PURPOSE: Official Student Government Authentication Portal
+// AESTHETICS: Classic Royal Maroon & Imperial Gold with Traditional Ethnic Border Art
 
 import React, { useState } from 'react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  HiLockClosed, 
+  HiMail, 
+  HiEye, 
+  HiEyeOff, 
+  HiArrowLeft, 
+  HiShieldCheck, 
+  HiSparkles 
+} from 'react-icons/hi';
 import styles from './Login.module.css';
 import GoogleSignInButton from './GoogleSignInButton.jsx';
+
+/**
+ * Traditional Ethnic Gold Corner Bracket SVG
+ */
+const EthnicCornerBracket = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <path
+      d="M3 29V7C3 4.79086 4.79086 3 7 3H29"
+      stroke="#d4af37"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    <path
+      d="M7 16V7H16"
+      stroke="#e5b842"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+    <circle cx="7" cy="7" r="2.2" fill="#d4af37" />
+    <polygon points="14,14 18,10 22,14 18,18" fill="#d4af37" opacity="0.85" />
+  </svg>
+);
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -28,7 +61,6 @@ function Login() {
 
   // ========================================
   // HANDLE LOGIN SUBMISSION
-  // Authenticates user and redirects to intended page
   // ========================================
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,98 +71,161 @@ function Login() {
       
       await login(email, password);
       
-      // Success! Redirect to where they came from
+      // Success! Redirect to target page
       navigate(from, { replace: true });
       
     } catch (error) {
-      // Handle specific error messages
       if (error.code === 'auth/user-not-found') {
-        setError('No account found with this email');
+        setError('No account found with this email address.');
       } else if (error.code === 'auth/wrong-password') {
-        setError('Incorrect password');
+        setError('Incorrect password. Please verify your credentials.');
       } else if (error.code === 'auth/invalid-email') {
-        setError('Invalid email address');
+        setError('Invalid email address format.');
+      } else if (error.code === 'auth/too-many-requests') {
+        setError('Too many failed login attempts. Please wait a moment.');
       } else {
-        setError('Failed to log in: ' + error.message);
+        setError('Authentication failed: ' + (error.message || 'Please check your connection.'));
       }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <div className={styles.container}>
-      <div className={styles.loginCard}>
-        <h1 className={styles.title}>Login to SSG APP</h1>
-        <p className={styles.subtitle}>Student Government Management System</p>
+      {/* Top & Bottom Page-Level Ethnic Tribal Border Bands */}
+      <div className={styles.tribalBorderTop} aria-hidden="true" />
+      <div className={styles.tribalBorderBottom} aria-hidden="true" />
 
-        {error && (
-          <div className={styles.errorBox}>
-            ❌ {error}
-          </div>
-        )}
-           
-        {/* Google Sign-In Option */}
-        <GoogleSignInButton />
-        
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your.email@example.com"
-              className={styles.input}
-              required
-            />
-          </div>
-              
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Password</label>
-            <div className={styles.passwordWrapper}>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className={styles.input}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className={styles.togglePasswordButton}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                tabIndex={-1}
-              >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
-              </button>
+      {/* Atmospheric ambient radiant glow */}
+      <div className={styles.ambientGlow} aria-hidden="true" />
+
+      {/* Main Login Card */}
+      <div className={styles.loginCard}>
+        {/* Card Top Tribal Accent Ribbon */}
+        <div className={styles.cardTribalStripTop} aria-hidden="true" />
+
+        {/* Four Authentic Ethnic Gold Inlaid Corner Brackets */}
+        <EthnicCornerBracket className={`${styles.cornerBracket} ${styles.cornerTopLeft}`} />
+        <EthnicCornerBracket className={`${styles.cornerBracket} ${styles.cornerTopRight}`} />
+        <EthnicCornerBracket className={`${styles.cornerBracket} ${styles.cornerBottomLeft}`} />
+        <EthnicCornerBracket className={`${styles.cornerBracket} ${styles.cornerBottomRight}`} />
+
+        <div className={styles.cardInner}>
+          {/* Institutional Header Block (Text Only) */}
+          <div className={styles.headerBlock}>
+            <div className={styles.eyebrowRow}>
+              <span className={styles.eyebrowDiamond}>◆</span>
+              <span className={styles.eyebrowText}>OFFICIAL STUDENT GOVERNMENT PORTAL</span>
+              <span className={styles.eyebrowDiamond}>◆</span>
+            </div>
+
+            <h1 className={styles.title}>LOGIN TO SSG APP</h1>
+            <p className={styles.subtitle}>Cebu Technological University — Daanbantayan Campus</p>
+            <div className={styles.ethnicDividerMini} aria-hidden="true">
+              <span className={styles.dividerLine} />
+              <span className={styles.dividerGlyph}>❖</span>
+              <span className={styles.dividerLine} />
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            className={styles.loginButton}
-          >
-            {loading ? 'Logging in...' : ' Login'}
-          </button>
+          {error && (
+            <div className={styles.errorBox} role="alert">
+              <span className={styles.errorIcon}>⚠️</span>
+              <span className={styles.errorText}>{error}</span>
+            </div>
+          )}
 
-         <button 
-            type="button"
-            onClick={() => navigate('/')}
-            className={styles.homeButton}
-            disabled={loading}
+          {/* Google Sign-In Option */}
+          <GoogleSignInButton />
+
+          {/* Traditional Email / Password Form */}
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="login-email">
+                Institutional Email
+              </label>
+              <div className={styles.inputWrapper}>
+                <HiMail className={styles.inputIcon} aria-hidden="true" />
+                <input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@ctu.edu.ph"
+                  className={styles.input}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="login-password">
+                Password
+              </label>
+              <div className={styles.inputWrapper}>
+                <HiLockClosed className={styles.inputIcon} aria-hidden="true" />
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your security credentials"
+                  className={`${styles.input} ${styles.inputWithToggle}`}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={styles.togglePasswordButton}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <HiEyeOff size={18} /> : <HiEye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className={styles.loginButton}
             >
-            Go Home
+              {loading ? (
+                <span className={styles.btnContent}>
+                  <span className={styles.btnSpinner} />
+                  <span>Authenticating...</span>
+                </span>
+              ) : (
+                <span className={styles.btnContent}>
+                  <HiSparkles className={styles.btnIcon} />
+                  <span>Sign In to SSG Portal</span>
+                </span>
+              )}
             </button>
-          
-        </form>
 
-        <p className={styles.helpText}>
-          Don't have an account? Contact your administrator.
-        </p>
+            <button 
+              type="button"
+              onClick={() => navigate('/')}
+              className={styles.homeButton}
+              disabled={loading}
+            >
+              <HiArrowLeft size={16} />
+              <span>Return to Campus Home</span>
+            </button>
+          </form>
+
+          {/* Card Footer Security & Admin Notice */}
+          <div className={styles.footerNote}>
+            <HiShieldCheck className={styles.shieldIcon} />
+            <span>Authorized Student Government & Collegiate Access Portal</span>
+          </div>
+        </div>
+
+        {/* Card Bottom Tribal Accent Ribbon */}
+        <div className={styles.cardTribalStripBottom} aria-hidden="true" />
       </div>
     </div>
   );

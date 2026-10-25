@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Landmark, Clock, MapPin, Sparkles } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Clock, MapPin } from 'lucide-react';
 import styles from './Header.module.css';
 
 function Header({ sidebarOpen, toggleSidebar }) {
   const [isShrunk, setIsShrunk] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [time, setTime] = useState(new Date());
+  const { theme } = useTheme();
+  const isClassicMaroon = theme === 'dark';
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -40,9 +44,9 @@ function Header({ sidebarOpen, toggleSidebar }) {
 
   return (
     <header
-      className={`${styles.header} ${isShrunk ? styles.shrink : ''} ${!sidebarOpen ? styles.headerSidebarClosed : ''}`}
+      className={`${styles.header} ${isShrunk ? styles.shrink : ''} ${!sidebarOpen ? styles.headerSidebarClosed : ''} ${isClassicMaroon ? styles.headerMaroon : ''}`}
     >
-      {/* Left Area: Hamburger & Emblem Badge */}
+      {/* Left Area: Hamburger & Campus Emblem */}
       <div className={styles.leftSection}>
         {toggleSidebar && (
           <button
@@ -57,10 +61,12 @@ function Header({ sidebarOpen, toggleSidebar }) {
           </button>
         )}
 
-        <div className={styles.emblemBadge} title="Supreme Student Government • CTU Daanbantayan">
-          <Landmark size={18} className={styles.emblemIcon} />
-          <span className={styles.emblemText}>SSG Portal</span>
-        </div>
+        <img
+          src="/images/logossg.png"
+          alt="SSG Seal"
+          className={styles.headerLogo}
+          onError={(e) => { e.target.style.display = 'none'; }}
+        />
       </div>
 
       {/* Centre: Preserved Font Institutional Title Block */}

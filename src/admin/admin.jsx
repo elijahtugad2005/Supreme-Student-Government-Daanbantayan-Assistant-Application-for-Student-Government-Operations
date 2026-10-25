@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import styles from './admin.module.css';
+import { useTheme } from '../contexts/ThemeContext';
 import MemberDashboard from '../components/MemberDashboard';
 import ProductManagement from '../components/ProductManagement/ProductManagement';
 import Data from '../components/Data/OrderManagement.jsx';
@@ -9,13 +10,24 @@ import { HiCube, HiShoppingCart, HiUsers, HiShieldCheck } from 'react-icons/hi';
 
 function Admin() {
     const [activeTab, setActiveTab] = useState('products');
+    const { theme } = useTheme();
+    const isClassic = theme === 'dark';
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${isClassic ? styles.adminClassic : ''}`}>
+            {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
             {/* Page Title */}
             <header className={styles.pagetitle}>
-                <h1>Admin Dashboard</h1>
-                <h2>Welcome back, Administrator</h2>
+                <div className={styles.titleInfo}>
+                    {isClassic && (
+                        <div className={styles.eyebrowRow}>
+                            <span className={styles.eyebrowDot}></span>
+                            <span className={styles.eyebrowText}>SSG EXECUTIVE ADMINISTRATION</span>
+                        </div>
+                    )}
+                    <h1>Admin Dashboard</h1>
+                    <h2>Welcome back, Administrator</h2>
+                </div>
             </header>
 
             {/* Tab Navigation */}

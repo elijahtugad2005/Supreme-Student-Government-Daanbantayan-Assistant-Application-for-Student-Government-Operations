@@ -43,10 +43,13 @@ import {
   Clock,
   Briefcase
 } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 import styles from './UserManagement.module.css';
 
 function UserManagement() {
   const { currentUser, userRole } = useAuth();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   
   // State management
   const [users, setUsers] = useState([]);
@@ -371,13 +374,14 @@ function UserManagement() {
   }
   
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isClassic ? styles.umClassic : ''}`}>
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
       {/* Top Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <div className={styles.eyebrowBadge}>
             <Shield size={13} />
-            <span>Identity & Access Management (IAM)</span>
+            <span>{isClassic ? 'SSG EXECUTIVE IAM & RBAC' : 'Identity & Access Management (IAM)'}</span>
           </div>
           <h1 className={styles.title}>User Management & RBAC</h1>
           <p className={styles.subtitle}>

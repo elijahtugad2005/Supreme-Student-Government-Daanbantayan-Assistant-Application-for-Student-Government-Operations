@@ -837,3 +837,219 @@
   color: #FFFFFF !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
 }
+
+/* =========================================================
+   ROYAL MAROON & IMPERIAL GOLD – DARK / CLASSIC THEME
+   Dashboard Containers First (Header, Search, Wrappers, Modals)
+   ========================================================= */
+.dashboardClassic,
+:global(.theme-dark) .container {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  padding: 0 !important;
+}
+
+/* Eyebrow badge in Top Header */
+.eyebrowRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.eyebrowDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #d4af37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.85);
+}
+
+.eyebrowText {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  color: #ffea9f;
+  text-transform: uppercase;
+}
+
+/* Top Header Container */
+.dashboardClassic .topHeader,
+:global(.theme-dark) .topHeader {
+  background: linear-gradient(135deg, rgba(32, 6, 10, 0.96) 0%, rgba(18, 3, 6, 0.98) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  border-radius: 14px !important;
+  padding: 1.5rem 1.75rem !important;
+  margin-bottom: 1.75rem !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(212, 175, 55, 0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.dashboardClassic .topHeader::before,
+:global(.theme-dark) .topHeader::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #d4af37, #8a1a24, #d4af37) !important;
+}
+
+:global(.theme-dark) .mainTitle {
+  font-family: 'Cinzel', serif !important;
+  color: #ffffff !important;
+  font-size: 1.9rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em !important;
+  background: linear-gradient(135deg, #ffffff 0%, #ffea9f 50%, #d4af37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  margin: 0 !important;
+}
+
+:global(.theme-dark) .subTitle {
+  color: rgba(255, 234, 159, 0.75) !important;
+  font-size: 0.88rem !important;
+  margin-top: 0.25rem !important;
+}
+
+/* Search Wrapper & Inputs */
+:global(.theme-dark) .searchInput {
+  background: rgba(16, 2, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+}
+
+:global(.theme-dark) .searchInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+  background: rgba(24, 4, 8, 0.98) !important;
+}
+
+:global(.theme-dark) .searchInput::placeholder {
+  color: rgba(255, 234, 159, 0.45) !important;
+}
+
+:global(.theme-dark) .searchIcon {
+  color: #d4af37 !important;
+}
+
+:global(.theme-dark) .clearSearchBtn {
+  color: rgba(255, 234, 159, 0.6) !important;
+}
+
+:global(.theme-dark) .clearSearchBtn:hover {
+  color: #ffea9f !important;
+}
+
+/* Member List & Chart Container Wrapper */
+:global(.theme-dark) .memberListWrapper {
+  background: rgba(18, 3, 6, 0.75) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  border-radius: 16px !important;
+  padding: 1.5rem !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5) !important;
+  box-sizing: border-box !important;
+}
+
+/* Modal Containers */
+:global(.theme-dark) .modalContainer {
+  background: rgba(20, 4, 7, 0.98) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), 0 0 30px rgba(212, 175, 55, 0.1) !important;
+}
+
+:global(.theme-dark) .modalHeader {
+  background: linear-gradient(135deg, rgba(32, 6, 10, 0.98) 0%, rgba(20, 3, 6, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+:global(.theme-dark) .modalHeaderBadge {
+  background: linear-gradient(135deg, #7a121d, #d4af37) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(122, 18, 29, 0.5) !important;
+}
+
+:global(.theme-dark) .modalHeader h3 {
+  font-family: 'Cinzel', serif !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .modalCloseBtn {
+  color: rgba(255, 234, 159, 0.6) !important;
+}
+
+:global(.theme-dark) .modalCloseBtn:hover {
+  color: #ffffff !important;
+  background: rgba(122, 18, 29, 0.35) !important;
+}
+
+:global(.theme-dark) .formGroup label,
+:global(.theme-dark) .formGroupFull label,
+:global(.theme-dark) .socialLinkSection label,
+:global(.theme-dark) .photoUploadSection label {
+  color: #ffea9f !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+}
+
+:global(.theme-dark) .formGroup input,
+:global(.theme-dark) .formGroup select,
+:global(.theme-dark) .formGroupFull textarea,
+:global(.theme-dark) .platformSelect,
+:global(.theme-dark) .platformInput {
+  background: rgba(14, 2, 4, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: 9px !important;
+}
+
+:global(.theme-dark) .formGroup input:focus,
+:global(.theme-dark) .formGroup select:focus,
+:global(.theme-dark) .formGroupFull textarea:focus,
+:global(.theme-dark) .platformSelect:focus,
+:global(.theme-dark) .platformInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .modalFooter {
+  background: rgba(26, 5, 9, 0.95) !important;
+  border-top: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .cancelBtn {
+  background: rgba(35, 7, 12, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+}
+
+:global(.theme-dark) .cancelBtn:hover {
+  background: rgba(55, 10, 18, 0.95) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .submitBtn {
+  background: linear-gradient(135deg, #7a121d 0%, #4a080f 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(122, 18, 29, 0.6), 0 0 12px rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .customUploadBtn {
+  background: rgba(28, 5, 8, 0.85) !important;
+  border: 1px dashed rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .customUploadBtn:hover {
+  background: rgba(122, 18, 29, 0.3) !important;
+  border-color: #d4af37 !important;
+}

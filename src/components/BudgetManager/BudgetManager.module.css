@@ -1174,4 +1174,317 @@
   font-family: 'JetBrains Mono', monospace;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+/* ==========================================================================
+   CLASSIC MODE: ROYAL MAROON & IMPERIAL GOLD BUDGET MANAGER
+   Applies exclusively under Classic Mode (.managerClassic / .theme-dark)
+   Leaves Light and Corporate themes 100% insulated and unaffected.
+   ========================================================================== */
+
+/* ─── Classic Container Surface ─── */
+.managerClassic,
+:global(.theme-dark) .container {
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.22) 0%, rgba(18, 3, 5, 0.98) 55%, #100204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(122, 18, 29, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* ─── Classic Header ─── */
+.managerClassic .titleBadge,
+:global(.theme-dark) .container .titleBadge {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.85) 0%, rgba(122, 18, 29, 0.75) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.08em !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+.managerClassic .title h2,
+:global(.theme-dark) .container .title h2 {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 800 !important;
+}
+
+.managerClassic .titleIcon,
+:global(.theme-dark) .container .titleIcon {
+  color: #d4af37 !important;
+}
+
+.managerClassic .headerSubtitle,
+:global(.theme-dark) .container .headerSubtitle {
+  color: #c9a9ad !important;
+}
+
+.managerClassic .exportBtn,
+:global(.theme-dark) .container .exportBtn {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.85) 0%, rgba(122, 18, 29, 0.7) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+.managerClassic .exportBtn:hover:not(:disabled),
+:global(.theme-dark) .container .exportBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7a121d 0%, #9e1b29 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* ─── KPI Metric Bar ─── */
+.managerClassic .kpiBar,
+:global(.theme-dark) .container .kpiBar {
+  gap: 1rem !important;
+}
+
+.managerClassic .kpiCard,
+:global(.theme-dark) .container .kpiCard {
+  background: linear-gradient(135deg, rgba(30, 6, 10, 0.92) 0%, rgba(18, 3, 5, 0.95) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.15) !important;
+}
+
+.managerClassic .kpiLabel,
+:global(.theme-dark) .container .kpiLabel {
+  color: #d4af37 !important;
+  letter-spacing: 0.08em !important;
+  font-weight: 700 !important;
+}
+
+.managerClassic .kpiValue,
+:global(.theme-dark) .container .kpiValue {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #ffea9f !important;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.35) !important;
+}
+
+.managerClassic .cardMeterTrack,
+:global(.theme-dark) .container .cardMeterTrack {
+  background: rgba(14, 2, 4, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.15) !important;
+}
+
+.managerClassic .cardMeterFill,
+:global(.theme-dark) .container .cardMeterFill {
+  background: linear-gradient(90deg, #d4af37 0%, #9e1b29 100%) !important;
+}
+
+/* ─── Filter Controls & Search Forms ─── */
+.managerClassic .searchInput,
+:global(.theme-dark) .container .searchInput {
+  background: rgba(20, 4, 7, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  color: #fff6e5 !important;
+}
+
+.managerClassic .searchInput::placeholder,
+:global(.theme-dark) .container .searchInput::placeholder {
+  color: #8c6e73 !important;
+}
+
+.managerClassic .searchInput:focus,
+:global(.theme-dark) .container .searchInput:focus {
+  border-color: #d4af37 !important;
+  background: rgba(26, 5, 10, 0.98) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+.managerClassic .searchIcon,
+:global(.theme-dark) .container .searchIcon {
+  color: rgba(212, 175, 55, 0.6) !important;
+}
+
+.managerClassic .clearSearch,
+:global(.theme-dark) .container .clearSearch {
+  color: #ffea9f !important;
+}
+
+.managerClassic .clearSearch:hover,
+:global(.theme-dark) .container .clearSearch:hover {
+  background: rgba(212, 175, 55, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.managerClassic .filterGroup,
+:global(.theme-dark) .container .filterGroup {
+  background: rgba(20, 4, 7, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+}
+
+.managerClassic .filterGroup:focus-within,
+:global(.theme-dark) .container .filterGroup:focus-within {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+.managerClassic .filterIcon,
+:global(.theme-dark) .container .filterIcon {
+  color: #d4af37 !important;
+}
+
+.managerClassic .filterSelect,
+:global(.theme-dark) .container .filterSelect {
+  background: transparent !important;
+  color: #fff6e5 !important;
+}
+
+.managerClassic .filterSelect option,
+:global(.theme-dark) .container .filterSelect option {
+  background: #140306 !important;
+  color: #ffea9f !important;
+}
+
+.managerClassic .sortBtn,
+:global(.theme-dark) .container .sortBtn {
+  background: rgba(28, 5, 9, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #c9a9ad !important;
+  font-weight: 600 !important;
+}
+
+.managerClassic .sortBtn:hover,
+:global(.theme-dark) .container .sortBtn:hover {
+  background: rgba(74, 5, 13, 0.75) !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+}
+
+.managerClassic .sortBtn.active,
+:global(.theme-dark) .container .sortBtn.active {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.35), inset 0 1px 0 rgba(255, 234, 159, 0.3) !important;
+}
+
+/* ─── Results Summary Bar ─── */
+.managerClassic .resultsSummary,
+:global(.theme-dark) .container .resultsSummary {
+  background: rgba(14, 2, 4, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  color: #c9a9ad !important;
+}
+
+.managerClassic .resultsSummary strong,
+:global(.theme-dark) .container .resultsSummary strong {
+  color: #ffea9f !important;
+}
+
+.managerClassic .clearFilters,
+:global(.theme-dark) .container .clearFilters {
+  background: rgba(74, 5, 13, 0.75) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+.managerClassic .clearFilters:hover,
+:global(.theme-dark) .container .clearFilters:hover {
+  background: linear-gradient(135deg, #7a121d 0%, #9e1b29 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+.managerClassic .viewModeBtn,
+:global(.theme-dark) .container .viewModeBtn {
+  background: rgba(28, 5, 9, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  color: #d8c0c4 !important;
+}
+
+.managerClassic .viewModeActive,
+:global(.theme-dark) .container .viewModeActive {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+}
+
+/* ─── Budget Cards & Table ─── */
+.managerClassic .budgetCard,
+:global(.theme-dark) .container .budgetCard {
+  background: rgba(18, 3, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+.managerClassic .budgetCard:hover,
+:global(.theme-dark) .container .budgetCard:hover {
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.7), 0 0 16px rgba(122, 18, 29, 0.25) !important;
+}
+
+.managerClassic .cardTitle,
+:global(.theme-dark) .container .cardTitle {
+  color: #fff6e5 !important;
+  font-weight: 700 !important;
+}
+
+.managerClassic .cardSpent,
+:global(.theme-dark) .container .cardSpent {
+  color: #ffea9f !important;
+}
+
+.managerClassic .detailsDrawer,
+:global(.theme-dark) .container .detailsDrawer {
+  background: rgba(14, 2, 4, 0.95) !important;
+  border-top: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+.managerClassic .drawerLabel,
+:global(.theme-dark) .container .drawerLabel {
+  color: #d4af37 !important;
+  font-weight: 700 !important;
+}
+
+.managerClassic .drawerValue,
+:global(.theme-dark) .container .drawerValue {
+  color: #fff6e5 !important;
+}
+
+.managerClassic .committeeLabel,
+:global(.theme-dark) .container .committeeLabel {
+  color: #ffea9f !important;
+}
+
+.managerClassic .disbursedSubtext,
+:global(.theme-dark) .container .disbursedSubtext {
+  color: #bfa5a9 !important;
+}
+
+/* ─── Action Buttons ─── */
+.managerClassic .actionBtn,
+:global(.theme-dark) .container .actionBtn {
+  background: rgba(74, 5, 13, 0.6) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffea9f !important;
+}
+
+.managerClassic .actionBtn:hover,
+:global(.theme-dark) .container .actionBtn:hover {
+  background: #7a121d !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+/* ─── Modals ─── */
+.managerClassic .modal,
+:global(.theme-dark) .modal {
+  background: radial-gradient(circle at 50% 0%, rgba(38, 7, 12, 0.98) 0%, #120305 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9), 0 0 30px rgba(122, 18, 29, 0.35) !important;
+}
+
+.managerClassic .modalHeader,
+:global(.theme-dark) .modalHeader {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.22) !important;
+}
+
+.managerClassic .modalHeader h3,
+:global(.theme-dark) .modalHeader h3 {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #ffea9f !important;
 }

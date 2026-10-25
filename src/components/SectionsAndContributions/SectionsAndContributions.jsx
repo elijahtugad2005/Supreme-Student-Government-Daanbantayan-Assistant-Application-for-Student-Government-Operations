@@ -7,12 +7,16 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { collection, onSnapshot, query, limit } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
+import { useTheme } from '../../contexts/ThemeContext';
 import ClassUpload from '../ClassUpload.jsx';
 import DeathAid from '../DeathAid.jsx';
 import styles from './SectionsAndContributions.module.css';
 import { HiDocumentText, HiCurrencyDollar, HiUpload, HiPlusCircle } from 'react-icons/hi';
+import { Sparkles } from 'lucide-react';
 
 export default function SectionsAndContributions() {
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTabFromUrl = searchParams.get('tab') === 'death-aid' ? 'death-aid' : 'roster';
   const [activeTab, setActiveTab] = useState(currentTabFromUrl);
@@ -20,6 +24,7 @@ export default function SectionsAndContributions() {
   // Live lightweight count badges
   const [sectionCount, setSectionCount] = useState(null);
   const [collectionCount, setCollectionCount] = useState(null);
+  const [pendingDeathAidCount, setPendingDeathAidCount] = useState(0);
 
   // 1. Sync local tab state with URL (handles browser Back/Forward navigation)
   useEffect(() => {
@@ -47,10 +52,19 @@ export default function SectionsAndContributions() {
     const unsubCollections = onSnapshot(
       query(collection(db, 'deathAidCollections'), limit(200)),
       (snapshot) => {
-        if (alive) setCollectionCount(snapshot.size);
+        if (alive) {
+          setCollectionCount(snapshot.size);
+          const pending = snapshot.docs.filter(
+            (d) => d.data()?.status === 'for_verification'
+          ).length;
+          setPendingDeathAidCount(pending);
+        }
       },
       () => {
-        if (alive) setCollectionCount(null);
+        if (alive) {
+          setCollectionCount(null);
+          setPendingDeathAidCount(0);
+        }
       }
     );
 
@@ -76,11 +90,24 @@ export default function SectionsAndContributions() {
   };
 
   return (
-    <div className={styles.container}>
-      {/* ── Macro Industrial Header ── */}
+    <div className={`${styles.container} ${isClassic ? styles.sectionsClassic : ''}`}>
+      {/* ── Ethnic Tribal Gold Accent Band (Isolated Maroon Classic Theme) ── */}
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
+
+      {/* ── Macro Institutional Header ── */}
       <header className={styles.header}>
         <div className={styles.headerMain}>
-          <div className={styles.badge}>SSG OPERATIONAL ARCHIVE // 2026</div>
+          {isClassic ? (
+            <div className={styles.classicEyebrowRow}>
+              <span className={styles.eyebrowLine} />
+              <span className={styles.eyebrowDiamond}>◆</span>
+              <div className={styles.badge}>SSG OPERATIONAL ARCHIVE // 2026</div>
+              <span className={styles.eyebrowDiamond}>◆</span>
+              <span className={styles.eyebrowLine} />
+            </div>
+          ) : (
+            <div className={styles.badge}>SSG OPERATIONAL ARCHIVE // 2026</div>
+          )}
           <h1 className={styles.title}>Sections &amp; Contributions</h1>
           <p className={styles.subtitle}>
             Integrated administrative console for institutional student section rosters, mayor filings, and physical death aid collection tracking.
@@ -109,7 +136,7 @@ export default function SectionsAndContributions() {
         </div>
       </header>
 
-      {/* ── Mechanical Navigation Bar with ARIA Tab Semantics & Live Badges ── */}
+      {/* ── Navigation Bar with ARIA Tab Semantics & Live Badges ── */}
       <nav
         className={styles.navBar}
         role="tablist"
@@ -153,6 +180,15 @@ export default function SectionsAndContributions() {
               {collectionCount} {collectionCount === 1 ? 'Record' : 'Records'}
             </span>
           )}
+          {pendingDeathAidCount > 0 && (
+            <span
+              className={styles.pendingTabBadge}
+              title={`${pendingDeathAidCount} pending death aid contribution(s) awaiting cash remittance`}
+            >
+              <span className={styles.pendingPulseDot} />
+              {pendingDeathAidCount} Pending
+            </span>
+          )}
           {activeTab === 'death-aid' && <span className={styles.activeDot} />}
         </button>
       </nav>
@@ -181,6 +217,9 @@ export default function SectionsAndContributions() {
           </div>
         )}
       </main>
+
+      {/* Bottom Decorative Tribal Band (Classic Theme Only) */}
+      {isClassic && <div className={styles.tribalBorderBottom} aria-hidden="true" />}
     </div>
   );
 }

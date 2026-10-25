@@ -1,293 +1,640 @@
 /* components/Login/Login.module.css */
+/* PURPOSE: Official SSG Portal Authentication Stylesheet */
+/* AESTHETICS: Classic Royal Maroon & Imperial Gold with Traditional Ethnic Border Art */
 
+:root {
+  --tribal-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='24' viewBox='0 0 36 24'%3E%3Crect width='36' height='24' fill='%23190507'/%3E%3Cline x1='0' y1='1' x2='36' y2='1' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='23' x2='36' y2='23' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='3.5' x2='36' y2='3.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cline x1='0' y1='20.5' x2='36' y2='20.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cpolygon points='18,4 27,12 18,20 9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='18,7 23,12 18,17 13,12' fill='%23e5b842'/%3E%3Cpolygon points='18,9 21,12 18,15 15,12' fill='%23190507'/%3E%3Cpolygon points='0,4 9,12 0,20 -9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='0,7 5,12 0,17 -5,12' fill='%23e5b842'/%3E%3Cpolygon points='36,4 45,12 36,20 27,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='36,7 41,12 36,17 31,12' fill='%23e5b842'/%3E%3Cpolygon points='0,4 4.5,1 9,4' fill='%23997528'/%3E%3Cpolygon points='9,4 13.5,1 18,4' fill='%23d4af37'/%3E%3Cpolygon points='18,4 22.5,1 27,4' fill='%23d4af37'/%3E%3Cpolygon points='27,4 31.5,1 36,4' fill='%23997528'/%3E%3Cpolygon points='0,20 4.5,23 9,20' fill='%23997528'/%3E%3Cpolygon points='9,20 13.5,23 18,20' fill='%23d4af37'/%3E%3Cpolygon points='18,20 22.5,23 27,20' fill='%23d4af37'/%3E%3Cpolygon points='27,20 31.5,23 36,20' fill='%23997528'/%3E%3C/svg%3E");
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE CONTAINER & ATMOSPHERIC ETHNIC MAROON CANVAS
+══════════════════════════════════════════════════════════ */
 .container {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #4c1515;
-  padding: 2rem;
+  background-color: #140306;
+  background-image: 
+    radial-gradient(ellipse at 50% 18%, rgba(68, 12, 19, 0.7) 0%, rgba(32, 6, 9, 0.95) 55%, #0d0204 100%),
+    repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.015) 0, rgba(212, 175, 55, 0.015) 1px, transparent 0, transparent 32px);
+  padding: 3.5rem 1.5rem;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
+/* ── Top and Bottom Page-Level Tribal Border Bands ── */
+.tribalBorderTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 36px 24px;
+  z-index: 10;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.85);
+}
+
+.tribalBorderBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 36px 24px;
+  z-index: 10;
+  border-top: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.85);
+}
+
+
+
+/* Atmospheric center radiance */
+.ambientGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, rgba(138, 24, 36, 0.12) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ══════════════════════════════════════════════════════════
+   THE LOGIN CARD (ROYAL ETHNIC MAROON & IMPERIAL GOLD)
+══════════════════════════════════════════════════════════ */
 .loginCard {
-  background-color: #5a1a1a;
-  padding: 3rem;
-  border-radius: 1rem;
-  max-width: 450px;
+  position: relative;
+  z-index: 5;
   width: 100%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(254, 92, 3, 0.2);
+  max-width: 480px;
+  background: linear-gradient(180deg, rgba(34, 7, 11, 0.96) 0%, rgba(20, 4, 7, 0.98) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 1.25rem;
+  box-shadow: 
+    0 24px 64px rgba(0, 0, 0, 0.85),
+    0 0 50px rgba(212, 175, 55, 0.12),
+    inset 0 0 0 1px rgba(212, 175, 55, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.loginCard:hover {
+  box-shadow: 
+    0 28px 72px rgba(0, 0, 0, 0.9),
+    0 0 60px rgba(212, 175, 55, 0.18),
+    inset 0 0 0 1px rgba(212, 175, 55, 0.25);
+}
+
+/* Card-level tribal border bands */
+.cardTribalStripTop {
+  width: 100%;
+  height: 18px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 27px 18px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.cardTribalStripBottom {
+  width: 100%;
+  height: 18px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 27px 18px;
+  border-top: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Four Inlaid Authentic Ethnic Corner Brackets ── */
+.cornerBracket {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.cornerTopLeft {
+  top: 26px;
+  left: 12px;
+}
+
+.cornerTopRight {
+  top: 26px;
+  right: 12px;
+  transform: scaleX(-1);
+}
+
+.cornerBottomLeft {
+  bottom: 26px;
+  left: 12px;
+  transform: scaleY(-1);
+}
+
+.cornerBottomRight {
+  bottom: 26px;
+  right: 12px;
+  transform: scale(-1, -1);
+}
+
+/* Inner content area */
+.cardInner {
+  padding: 2.25rem 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══════════════════════════════════════════════════════════
+   INSTITUTIONAL HEADER & CREST
+══════════════════════════════════════════════════════════ */
+.headerBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+
+
+.eyebrowRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.eyebrowDiamond {
+  color: #d4af37;
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.eyebrowText {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #ffea9f;
+  text-transform: uppercase;
 }
 
 .title {
-  font-size: 2rem;
-  color: #fe5c03;
-  margin-bottom: 0.5rem;
-  text-align: center;
-  font-weight: bold;
+  font-family: 'Cinzel', serif;
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0.2rem 0 0.4rem;
+  background: linear-gradient(135deg, #fff5d1 0%, #e5b842 50%, #b8861e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
+  line-height: 1.15;
 }
 
 .subtitle {
-  font-size: 1rem;
-  color: #c0c0c0;
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.errorBox {
-  background-color: #f44336;
-  color: #fff;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  color: rgba(255, 234, 159, 0.8);
+  margin: 0;
+  line-height: 1.4;
   font-weight: 500;
 }
 
+.ethnicDividerMini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 80%;
+  margin: 1rem auto 0.25rem;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
+}
+
+.dividerGlyph {
+  color: #d4af37;
+  font-size: 0.75rem;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ERROR BOX
+══════════════════════════════════════════════════════════ */
+.errorBox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: rgba(58, 10, 16, 0.95);
+  color: #ffcdd2;
+  border: 1px solid rgba(229, 115, 115, 0.6);
+  padding: 0.85rem 1.1rem;
+  border-radius: 0.65rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.errorIcon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.errorText {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FORM & INPUTS (VELVET MAROON & GOLD ACCENTS)
+══════════════════════════════════════════════════════════ */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.2rem;
+  margin-top: 0.5rem;
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
+  gap: 0.45rem;
 }
 
-.passwordWrapper {
+.label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #ffea9f;
+  text-transform: uppercase;
+}
+
+.inputWrapper {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
-.passwordWrapper .input {
-  padding-right: 3rem;
+.inputIcon {
+  position: absolute;
+  left: 1.1rem;
+  font-size: 1.15rem;
+  color: #d4af37;
+  pointer-events: none;
+  transition: color 0.25s ease;
+  z-index: 2;
+}
+
+.input {
   width: 100%;
+  padding: 0.9rem 1.1rem 0.9rem 2.85rem;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 0.7rem;
+  background-color: rgba(18, 4, 7, 0.85);
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: rgba(255, 234, 159, 0.4);
+}
+
+.input:focus {
+  border-color: #e5b842;
+  background-color: rgba(24, 5, 9, 0.95);
+  box-shadow: 
+    0 0 0 3px rgba(212, 175, 55, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.input:focus ~ .inputIcon,
+.inputWrapper:focus-within .inputIcon {
+  color: #ffea9f;
+}
+
+.inputWithToggle {
+  padding-right: 3rem;
 }
 
 .togglePasswordButton {
   position: absolute;
-  right: 0.75rem;
+  right: 0.85rem;
   background: transparent;
   border: none;
+  color: rgba(212, 175, 55, 0.75);
   cursor: pointer;
-  font-size: 1.25rem;
-  padding: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c0c0c0;
+  padding: 0.4rem;
+  border-radius: 0.4rem;
   transition: all 0.2s ease;
-  border-radius: 0.25rem;
-  user-select: none;
+  z-index: 2;
 }
 
 .togglePasswordButton:hover {
-  color: #fe5c03;
-  background-color: rgba(254, 92, 3, 0.1);
+  color: #ffea9f;
+  background-color: rgba(212, 175, 55, 0.15);
+  transform: scale(1.05);
 }
 
-.togglePasswordButton:active {
-  transform: scale(0.95);
-}
-
-.togglePasswordButton:focus {
-  outline: 2px solid #fe5c03;
-  outline-offset: 2px;
-}
-
-.label {
-  font-size: 0.95rem;
-  color: #f1f1f1;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-}
-
-.input {
-  padding: 1rem;
-  border: 1px solid #7a2a2a;
-  border-radius: 0.5rem;
-  background-color: #732020;
-  color: #f1f1f1;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
-
-.input:focus {
-  border-color: #fe5c03;
-}
-
+/* ══════════════════════════════════════════════════════════
+   BUTTONS (IMPERIAL GOLD & VELVET GHOST AFFORDANCES)
+══════════════════════════════════════════════════════════ */
 .loginButton {
-  padding: 1.2rem;
-  background-color: #fe5c03;
-  color: #000;
-  border: none;
+  position: relative;
+  width: 100%;
+  padding: 1.05rem 1.5rem;
+  margin-top: 0.6rem;
+  background: linear-gradient(135deg, #fce08e 0%, #d4af37 45%, #a67c1e 100%);
+  color: #160305;
+  border: 1px solid #ffea9f;
   border-radius: 50px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  font-family: 'Cinzel', serif;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1rem;
+  box-shadow: 
+    0 8px 24px rgba(212, 175, 55, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-.loginButton:hover {
-  background-color: #ff7035;
+.loginButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transition: left 0.6s ease;
+}
+
+.loginButton:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.loginButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fff2be 0%, #e5b842 45%, #b8861e 100%);
   transform: translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(212, 175, 55, 0.55),
+    0 4px 10px rgba(0, 0, 0, 0.7);
 }
 
-.loginButton:disabled {
-  background-color: #7a2a2a;
-  cursor: not-allowed;
+.loginButton:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.helpText {
-  text-align: center;
-  color: #c0c0c0;
-  font-size: 0.9rem;
-  margin-top: 1.5rem;
+.loginButton:disabled {
+  background: rgba(68, 16, 22, 0.8);
+  border-color: rgba(212, 175, 55, 0.2);
+  color: rgba(255, 234, 159, 0.4);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
-.homeButton{
-   padding: 1.2rem;
-  background-color: #fe5c03;
-  color: #000;
-  border: none;
+.btnContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.btnIcon {
+  font-size: 1.15rem;
+}
+
+.btnSpinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(22, 3, 5, 0.3);
+  border-top-color: #160305;
+  border-radius: 50%;
+  animation: btnSpin 0.75s linear infinite;
+}
+
+@keyframes btnSpin {
+  to { transform: rotate(360deg); }
+}
+
+.homeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  background: rgba(212, 175, 55, 0.08);
+  color: #ffea9f;
+  border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 50px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1rem;
+  transition: all 0.25s ease;
 }
 
-.homeButton:hover {
-  background-color: #297029;
-  transform: translateY(-2px);
+.homeButton:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.18);
+  border-color: #ffea9f;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
-/* ========================================
-   Google Sign-In Styles
-   ======================================== */
 
+.homeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ══════════════════════════════════════════════════════════
+   GOOGLE SIGN-IN INTEGRATION (DARK MAROON ETHNIC STYLE)
+══════════════════════════════════════════════════════════ */
 .googleSignInContainer {
-  margin-top: 2rem;
-  border-top: 1px solid rgba(254, 92, 3, 0.2);
-  padding-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.googleErrorBox {
+  background-color: rgba(58, 10, 16, 0.95);
+  color: #ffcdd2;
+  border: 1px solid rgba(229, 115, 115, 0.6);
+  padding: 0.75rem 1rem;
+  border-radius: 0.65rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
 }
 
 .googleSignInButton {
   width: 100%;
-  padding: 1rem;
-  background-color: white;
-  color: #5f6368;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
+  padding: 0.95rem 1.25rem;
+  background: rgba(24, 5, 8, 0.9);
+  color: #ffea9f;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 50px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
-.googleSignInButton:hover {
-  background-color: #f8f9fa;
-  border-color: #c8ccd0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+.googleSignInButton:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.16);
+  border-color: #ffea9f;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.25);
 }
 
 .googleSignInButton:disabled {
-  background-color: #f8f9fa;
-  color: #9aa0a6;
+  opacity: 0.55;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
-}
-
-.googleSignInButton:disabled:hover {
-  background-color: #f8f9fa;
-  border-color: #dadce0;
 }
 
 .googleButtonContent {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
 }
 
 .googleIcon {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
 }
 
 .googleDivider {
   display: flex;
   align-items: center;
   text-align: center;
-  margin: 1.5rem 0;
+  margin: 1.35rem 0 0.85rem;
 }
 
 .googleDivider::before,
 .googleDivider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid rgba(254, 92, 3, 0.2);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
 }
 
 .dividerText {
   padding: 0 1rem;
-  color: #c0c0c0;
-  font-size: 0.9rem;
-  font-weight: 500;
+  color: rgba(255, 234, 159, 0.65);
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.googleErrorBox {
-  background-color: #fce8e6;
-  color: #c5221f;
-  padding: 0.875rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid #f5c6cb;
-  font-size: 0.9rem;
-  font-weight: 500;
+.googleHelpText {
+  display: none; /* Keep clean and uncluttered */
 }
 
 .googleSpinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-top-color: #5f6368;
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  border-top-color: #ffea9f;
   border-radius: 50%;
-  animation: googleSpinner 0.8s linear infinite;
+  animation: btnSpin 0.75s linear infinite;
 }
 
-@keyframes googleSpinner {
-  to { transform: rotate(360deg); }
-}
-
-.googleHelpText {
+/* ══════════════════════════════════════════════════════════
+   CARD FOOTER SECURITY NOTE
+══════════════════════════════════════════════════════════ */
+.footerNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 1.5rem;
+  color: rgba(255, 234, 159, 0.55);
+  font-size: 0.75rem;
   text-align: center;
-  color: #c0c0c0;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  margin-top: 1rem;
+  line-height: 1.3;
 }
 
-/* Responsive adjustments */
-@media (max-width: 480px) {
-  .googleSignInButton {
-    padding: 0.875rem;
-    font-size: 0.95rem;
+.shieldIcon {
+  font-size: 0.95rem;
+  color: #d4af37;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .container {
+    padding: 2.5rem 1rem;
   }
-  
-  .googleIcon {
-    width: 18px;
-    height: 18px;
+
+  .cardInner {
+    padding: 1.75rem 1.4rem 1.5rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .filigreeCorner {
+    width: 130px;
+    height: 130px;
+  }
+
+  .cornerBracket {
+    width: 24px;
+    height: 24px;
+  }
+
+  .crestRingOuter {
+    width: 64px;
+    height: 64px;
+  }
+
+  .crestLogo {
+    width: 44px;
+    height: 44px;
   }
 }

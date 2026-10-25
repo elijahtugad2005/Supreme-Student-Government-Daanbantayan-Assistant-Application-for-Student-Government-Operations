@@ -54,8 +54,8 @@
 .logoSection {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  justify-content: flex-start;
+  margin-bottom: 1.25rem;
 }
 
 .logoToggleButton {
@@ -848,4 +848,340 @@
   background-color: #E61919 !important;
   border-radius: 0px !important;
   border: 1px solid #FFFFFF !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CLASSIC MAROON THEME (ROYAL ETHNIC MAROON & IMPERIAL GOLD)
+   Scoped for .sidebarClassic and :global(.theme-dark) .container
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --sidebar-tribal-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='24' viewBox='0 0 36 24'%3E%3Crect width='36' height='24' fill='%23190507'/%3E%3Cline x1='0' y1='1' x2='36' y2='1' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='23' x2='36' y2='23' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='3.5' x2='36' y2='3.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cline x1='0' y1='20.5' x2='36' y2='20.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cpolygon points='18,4 27,12 18,20 9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='18,7 23,12 18,17 13,12' fill='%23e5b842'/%3E%3Cpolygon points='18,9 21,12 18,15 15,12' fill='%23190507'/%3E%3Cpolygon points='0,4 9,12 0,20 -9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='0,7 5,12 0,17 -5,12' fill='%23e5b842'/%3E%3Cpolygon points='36,4 45,12 36,20 27,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='36,7 41,12 36,17 31,12' fill='%23e5b842'/%3E%3Cpolygon points='0,4 4.5,1 9,4' fill='%23997528'/%3E%3Cpolygon points='9,4 13.5,1 18,4' fill='%23d4af37'/%3E%3Cpolygon points='18,4 22.5,1 27,4' fill='%23d4af37'/%3E%3Cpolygon points='27,4 31.5,1 36,4' fill='%23997528'/%3E%3Cpolygon points='0,20 4.5,23 9,20' fill='%23997528'/%3E%3Cpolygon points='9,20 13.5,23 18,20' fill='%23d4af37'/%3E%3Cpolygon points='18,20 22.5,23 27,20' fill='%23d4af37'/%3E%3Cpolygon points='27,20 31.5,23 36,20' fill='%23997528'/%3E%3C/svg%3E");
+}
+
+/* ── Container ── */
+.sidebarClassic,
+:global(.theme-dark) .container {
+  background-color: #150305 !important;
+  background-image: 
+    linear-gradient(180deg, rgba(32, 6, 9, 0.98) 0%, rgba(21, 3, 6, 0.98) 45%, rgba(14, 2, 4, 0.99) 100%),
+    repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.015) 0, rgba(212, 175, 55, 0.015) 1px, transparent 0, transparent 24px) !important;
+  color: #ffffff !important;
+  border-right: 1px solid rgba(212, 175, 55, 0.38) !important;
+  box-shadow: 10px 0 40px rgba(0, 0, 0, 0.85), 2px 0 16px rgba(212, 175, 55, 0.1) !important;
+}
+
+/* ── Top & Bottom Ethnic Tribal Bands ── */
+.sidebarClassic .tribalBorderTop,
+:global(.theme-dark) .tribalBorderTop {
+  width: 100%;
+  height: 18px;
+  background-image: var(--sidebar-tribal-band);
+  background-repeat: repeat-x;
+  background-size: 27px 18px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.sidebarClassic .tribalBorderBottom,
+:global(.theme-dark) .tribalBorderBottom {
+  width: 100%;
+  height: 18px;
+  background-image: var(--sidebar-tribal-band);
+  background-repeat: repeat-x;
+  background-size: 27px 18px;
+  border-top: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+/* ── Sidebar Header ── */
+.sidebarClassic .sidebarHeader,
+:global(.theme-dark) .sidebarHeader {
+  background: linear-gradient(180deg, rgba(38, 8, 13, 0.96) 0%, rgba(24, 5, 8, 0.98) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Logo Medallion & Title ── */
+.sidebarClassic .logo,
+:global(.theme-dark) .logo {
+  background: linear-gradient(135deg, #fff2be 0%, #e5b842 50%, #997528 100%) !important;
+  border: 1px solid #ffea9f !important;
+  border-radius: 12px !important;
+  color: #160305 !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4) !important;
+}
+
+.sidebarClassic .logoToggleButton:hover .logo,
+:global(.theme-dark) .logoToggleButton:hover .logo {
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.65) !important;
+  transform: scale(1.08) !important;
+}
+
+.sidebarClassic .logoIcon,
+:global(.theme-dark) .logoIcon {
+  color: #160305 !important;
+}
+
+.sidebarClassic .logoText,
+:global(.theme-dark) .logoText {
+  font-family: 'Cinzel', serif !important;
+  font-weight: 800 !important;
+  font-size: 1.25rem !important;
+  letter-spacing: 0.05em !important;
+  background: linear-gradient(135deg, #fff5d1 0%, #e5b842 55%, #b8861e 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7)) !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  flex: 1 !important;
+  margin: 0 !important;
+}
+
+/* ── User Profile Card ── */
+.sidebarClassic .userInfo,
+:global(.theme-dark) .userInfo {
+  background: rgba(18, 4, 7, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: inset 0 1px 0 rgba(212, 175, 55, 0.15), 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+}
+
+.sidebarClassic .userAvatar,
+:global(.theme-dark) .userAvatar {
+  background: linear-gradient(135deg, #fce08e 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160305 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 800 !important;
+  border: 1px solid #ffea9f !important;
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.35) !important;
+}
+
+.sidebarClassic .userName,
+:global(.theme-dark) .userName {
+  color: #ffea9f !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 600 !important;
+}
+
+.sidebarClassic .userRole,
+:global(.theme-dark) .userRole {
+  background: rgba(212, 175, 55, 0.14) !important;
+  border: 1px solid rgba(212, 175, 55, 0.38) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  padding: 0.2rem 0.55rem !important;
+}
+
+/* ── Navigation List & Links ── */
+.sidebarClassic .navLink,
+:global(.theme-dark) .navLink {
+  color: rgba(255, 234, 159, 0.8) !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 0.92rem !important;
+  letter-spacing: 0.02em !important;
+  border: 1px solid transparent !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.sidebarClassic .navIcon,
+:global(.theme-dark) .navIcon {
+  color: #d4af37 !important;
+  transition: color 0.25s ease, transform 0.25s ease !important;
+}
+
+.sidebarClassic .navLink:hover:not(.active),
+:global(.theme-dark) .navLink:hover:not(.active) {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.14) 0%, rgba(138, 24, 36, 0.22) 100%) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #ffffff !important;
+  transform: translateX(5px) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+}
+
+.sidebarClassic .navLink:hover:not(.active) .navIcon,
+:global(.theme-dark) .navLink:hover:not(.active) .navIcon {
+  color: #ffea9f !important;
+  transform: scale(1.1) !important;
+}
+
+.sidebarClassic .active,
+:global(.theme-dark) .active {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.28) 0%, rgba(138, 24, 36, 0.38) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.55) !important;
+  border-left: 4px solid #e5b842 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(212, 175, 55, 0.14) !important;
+}
+
+.sidebarClassic .active .navIcon,
+.sidebarClassic .active svg,
+:global(.theme-dark) .active .navIcon,
+:global(.theme-dark) .active svg {
+  color: #ffea9f !important;
+  filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6)) !important;
+}
+
+.sidebarClassic .active:hover,
+:global(.theme-dark) .active:hover {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.34) 0%, rgba(138, 24, 36, 0.45) 100%) !important;
+  border-color: #ffea9f !important;
+  transform: translateX(2px) !important;
+}
+
+/* ── Button Section ── */
+.sidebarClassic .buttonSection,
+:global(.theme-dark) .buttonSection {
+  background: rgba(24, 5, 8, 0.95) !important;
+  border-top: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Settings Button */
+.sidebarClassic .settingsButton,
+:global(.theme-dark) .settingsButton {
+  background: rgba(212, 175, 55, 0.08) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  color: #ffea9f !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 600 !important;
+  transition: all 0.25s ease !important;
+}
+
+.sidebarClassic .settingsButton:hover,
+:global(.theme-dark) .settingsButton:hover {
+  background: rgba(212, 175, 55, 0.18) !important;
+  border-color: #ffea9f !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Login Button */
+.sidebarClassic .loginButton,
+:global(.theme-dark) .loginButton {
+  background: linear-gradient(135deg, #fce08e 0%, #d4af37 45%, #a67c1e 100%) !important;
+  color: #160305 !important;
+  border: 1px solid #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.38) !important;
+}
+
+.sidebarClassic .loginButton:hover,
+:global(.theme-dark) .loginButton:hover {
+  background: linear-gradient(135deg, #fff2be 0%, #e5b842 45%, #b8861e 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.55) !important;
+}
+
+/* Logout Button */
+.sidebarClassic .logoutButton,
+:global(.theme-dark) .logoutButton {
+  background: rgba(138, 24, 36, 0.28) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffcdd2 !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 600 !important;
+}
+
+.sidebarClassic .logoutButton:hover,
+:global(.theme-dark) .logoutButton:hover {
+  background: rgba(180, 24, 36, 0.5) !important;
+  border-color: #e57373 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Theme Modal in Classic Theme ── */
+.themeModalClassic,
+:global(.theme-dark) .themeModal {
+  background: linear-gradient(180deg, rgba(36, 8, 12, 0.98) 0%, rgba(20, 4, 7, 0.99) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 40px rgba(212, 175, 55, 0.15) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.themeModalClassic .themeModalHeader,
+:global(.theme-dark) .themeModalHeader {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+.themeModalClassic .themeModalTitle,
+:global(.theme-dark) .themeModalTitle {
+  font-family: 'Cinzel', serif !important;
+  font-weight: 800 !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.06em !important;
+}
+
+.themeModalClassic .themeModalClose,
+:global(.theme-dark) .themeModalClose {
+  color: rgba(212, 175, 55, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  border-radius: 8px !important;
+  background: rgba(212, 175, 55, 0.08) !important;
+  transition: all 0.2s ease !important;
+}
+
+.themeModalClassic .themeModalClose:hover,
+:global(.theme-dark) .themeModalClose:hover {
+  background: rgba(212, 175, 55, 0.22) !important;
+  color: #ffffff !important;
+  border-color: #ffea9f !important;
+}
+
+.themeModalClassic .themeOption,
+:global(.theme-dark) .themeOption {
+  background: rgba(18, 4, 7, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 12px !important;
+  transition: all 0.25s ease !important;
+}
+
+.themeModalClassic .themeOption:hover,
+:global(.theme-dark) .themeOption:hover {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  transform: translateY(-2px) !important;
+}
+
+.themeModalClassic .themeOptionActive,
+:global(.theme-dark) .themeOptionActive {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(138, 24, 36, 0.3) 100%) !important;
+  border: 1px solid #d4af37 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.12) !important;
+}
+
+.themeModalClassic .themeOptionName,
+:global(.theme-dark) .themeOptionName {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+.themeModalClassic .themeOptionDesc,
+:global(.theme-dark) .themeOptionDesc {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+.themeModalClassic .themeOptionCheck,
+:global(.theme-dark) .themeOptionCheck {
+  background: linear-gradient(135deg, #fce08e 0%, #d4af37 100%) !important;
+  color: #160305 !important;
+  border-radius: 50% !important;
+  font-weight: 800 !important;
 }

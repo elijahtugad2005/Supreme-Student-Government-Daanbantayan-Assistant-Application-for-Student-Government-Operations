@@ -14,6 +14,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { HiX, HiCheck, HiSparkles, HiTag, HiShieldCheck, HiPencilAlt, HiDocumentText, HiIdentification, HiClock, HiEye } from 'react-icons/hi';
 import { T, statusPill } from '../../utils/themeStyles';
 import { recordSignature } from '../../services/documentAiService';
+import stylesModule from './DocumentDashboard.module.css';
 
 export const getAutoDocId = (doc) => {
   if (!doc) return 'DOC-PENDING';
@@ -37,15 +38,52 @@ export default function DocumentDetailModal({
 }) {
   if (!isOpen || !doc) return null;
 
+  return (
+    <DocumentDetailModalContent
+      doc={doc}
+      labels={labels}
+      onClose={onClose}
+      onSave={onSave}
+      saving={saving}
+      onSay={onSay}
+      onOpenPreview={onOpenPreview}
+    />
+  );
+}
+
+function DocumentDetailModalContent({
+  doc,
+  labels = [],
+  onClose,
+  onSave,
+  saving = false,
+  onSay,
+  onOpenPreview,
+}) {
   // Local editable form state
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    labels: [],
-  });
+  const [formData, setFormData] = useState(() => ({
+    title: doc?.title || '',
+    description: doc?.description || doc?.subject || doc?.agenda || '',
+    labels: Array.isArray(doc?.labels) ? [...doc.labels] : [],
+  }));
 
   // Local signatories checklist state
-  const [localSignatures, setLocalSignatures] = useState([]);
+  const [localSignatures, setLocalSignatures] = useState(() => {
+    const rawSignatures =
+      (Array.isArray(doc?.signatureChecklist) && doc.signatureChecklist.length > 0 ? doc.signatureChecklist : null) ||
+      (Array.isArray(doc?.signatures) && doc.signatures.length > 0 ? doc.signatures : null) ||
+      doc?.aiExtraction?.signatories ||
+      doc?.aiSuggestion?.signatories ||
+      [];
+
+    return rawSignatures.map((s, idx) => ({
+      id: s.id || idx,
+      name: s.name || 'Unnamed Official',
+      position: s.position || s.role || 'Signatory',
+      status: s.status === 'signed' || s.signed ? 'signed' : 'pending',
+      signedAt: s.signedAt || null,
+    }));
+  });
   const [signingIdx, setSigningIdx] = useState(-1);
 
   // Initialize or reset when doc changes
@@ -139,8 +177,8 @@ export default function DocumentDetailModal({
   };
 
   return (
-    <div style={modalStyles.backdrop} onClick={onClose} role="dialog" aria-modal="true">
-      <div style={modalStyles.modalBox} onClick={(e) => e.stopPropagation()}>
+    <div className={stylesModule.modalOverlay} style={modalStyles.backdrop} onClick={onClose} role="dialog" aria-modal="true">
+      <div className={stylesModule.modalBox} style={modalStyles.modalBox} onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div style={modalStyles.header}>
           <div style={modalStyles.headerLeft}>

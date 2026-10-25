@@ -175,6 +175,40 @@
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+.pendingTabBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: monospace;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  margin-left: 0.35rem;
+  animation: pendingAlertPulse 2s infinite ease-in-out;
+}
+
+.pendingPulseDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+  display: inline-block;
+}
+
+@keyframes pendingAlertPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0);
+  }
+}
+
 .viewPanel {
   width: 100%;
 }
@@ -321,6 +355,18 @@
   color: #FFFFFF !important;
   border-color: #E61919 !important;
   box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .pendingTabBadge {
+  background: #FEF3C7 !important;
+  color: #92400E !important;
+  border: 1px solid #D97706 !important;
+  box-shadow: 1px 1px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .pendingPulseDot {
+  background: #D97706 !important;
+  box-shadow: 0 0 4px #D97706 !important;
 }
 
 /* =========================================================
@@ -557,5 +603,458 @@
   border-radius: 0px !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
   color: #0A0A0A !important;
+}
+
+/* =========================================================
+   ISOLATED MAROON CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD)
+   Directly matching Homepage, Order, and TrackOrder styling
+   Scoped strictly under .sectionsClassic
+   ========================================================= */
+
+:root {
+  --tribal-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='24' viewBox='0 0 36 24'%3E%3Crect width='36' height='24' fill='%23190507'/%3E%3Cline x1='0' y1='1' x2='36' y2='1' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='23' x2='36' y2='23' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='3.5' x2='36' y2='3.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cline x1='0' y1='20.5' x2='36' y2='20.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cpolygon points='18,4 27,12 18,20 9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='18,7 23,12 18,17 13,12' fill='%23e5b842'/%3E%3Cpolygon points='18,9 21,12 18,15 15,12' fill='%23190507'/%3E%3Cpolygon points='0,4 9,12 0,20 -9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='0,7 5,12 0,17 -5,12' fill='%23e5b842'/%3E%3Cpolygon points='36,4 45,12 36,20 27,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='36,7 41,12 36,17 31,12' fill='%23e5b842'/%3E%3Cpolygon points='0,4 4.5,1 9,4' fill='%23997528'/%3E%3Cpolygon points='9,4 13.5,1 18,4' fill='%23d4af37'/%3E%3Cpolygon points='18,4 22.5,1 27,4' fill='%23d4af37'/%3E%3Cpolygon points='27,4 31.5,1 36,4' fill='%23997528'/%3E%3Cpolygon points='0,20 4.5,23 9,20' fill='%23997528'/%3E%3Cpolygon points='9,20 13.5,23 18,20' fill='%23d4af37'/%3E%3Cpolygon points='18,20 22.5,23 27,20' fill='%23d4af37'/%3E%3Cpolygon points='27,20 31.5,23 36,20' fill='%23997528'/%3E%3C/svg%3E");
+}
+
+/* ── Container Substrate ── */
+.sectionsClassic {
+  background-color: #140305 !important;
+  color: #ffffff !important;
+  min-height: 100vh;
+  position: relative;
+  padding: 0 0 2rem 0;
+}
+
+/* ── Top & Bottom Ethnic Tribal Gold Accent Bands ── */
+.sectionsClassic .tribalBorderTop {
+  width: 100%;
+  height: 22px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 33px 22px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  margin-bottom: 1.5rem;
+}
+
+.sectionsClassic .tribalBorderBottom {
+  width: 100%;
+  height: 22px;
+  background-image: var(--tribal-band);
+  background-repeat: repeat-x;
+  background-size: 33px 22px;
+  border-top: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  margin-top: 2.5rem;
+}
+
+/* ── Classic Eyebrow Row with Geometric Gold Accents ── */
+.classicEyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.eyebrowLine {
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d4af37);
+}
+
+.classicEyebrowRow .eyebrowLine:last-child {
+  background: linear-gradient(90deg, #d4af37, transparent);
+}
+
+.eyebrowDiamond {
+  color: #d4af37;
+  font-size: 0.6rem;
+  opacity: 0.85;
+}
+
+/* ── Header Styling in Classic Maroon ── */
+.sectionsClassic .header {
+  background: linear-gradient(135deg, rgba(38, 7, 12, 0.95) 0%, rgba(22, 5, 8, 0.98) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(212, 175, 55, 0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.sectionsClassic .header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e5b842 20%, #d4af37 50%, #e5b842 80%, transparent) !important;
+}
+
+.sectionsClassic .badge {
+  background: rgba(212, 175, 55, 0.14) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  padding: 0.3rem 0.85rem !important;
+  border-radius: 9999px !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important;
+}
+
+.sectionsClassic .title {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8) !important;
+}
+
+.sectionsClassic .subtitle {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  color: rgba(255, 234, 159, 0.8) !important;
+  font-size: 0.92rem !important;
+}
+
+/* ── Header Action Buttons ── */
+.sectionsClassic .headerActionBtn {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border: 1px solid rgba(212, 175, 55, 0.38) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.25s ease !important;
+}
+
+.sectionsClassic .headerActionBtn:hover {
+  background: #d4af37 !important;
+  color: #160406 !important;
+  border-color: #ffea9f !important;
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Navigation Tabs ── */
+.sectionsClassic .navBar {
+  background: rgba(18, 4, 7, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 12px !important;
+  padding: 0.45rem !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+}
+
+.sectionsClassic .navButton {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: rgba(255, 234, 159, 0.72) !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  font-size: 0.88rem !important;
+  border-radius: 8px !important;
+  transition: all 0.22s ease !important;
+}
+
+.sectionsClassic .navButton:hover:not(.navButtonActive) {
+  background: rgba(212, 175, 55, 0.14) !important;
+  color: #ffffff !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+.sectionsClassic .navButtonActive {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+  border-color: #ffea9f !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4) !important;
+}
+
+.sectionsClassic .navButtonActive .navIcon {
+  color: #160406 !important;
+}
+
+.sectionsClassic .navButtonActive .activeDot {
+  background: #160406 !important;
+  box-shadow: 0 0 6px rgba(22, 4, 6, 0.8) !important;
+}
+
+.sectionsClassic .tabBadge {
+  background: rgba(212, 175, 55, 0.16) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+.sectionsClassic .navButtonActive .tabBadge {
+  background: rgba(22, 4, 6, 0.28) !important;
+  color: #160406 !important;
+  border-color: rgba(22, 4, 6, 0.45) !important;
+  font-weight: 800 !important;
+}
+
+.sectionsClassic .pendingTabBadge {
+  background: rgba(229, 184, 66, 0.2) !important;
+  color: #ffd875 !important;
+  border: 1px solid rgba(212, 175, 55, 0.6) !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+.sectionsClassic .pendingPulseDot {
+  background: #e5b842 !important;
+  box-shadow: 0 0 8px #e5b842 !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHILD VIEWPORT OVERRIDES: DEATH AID & CLASS UPLOAD
+   Deep styling for cards, panels, inputs, tables, & modal
+   ══════════════════════════════════════════════════════════ */
+
+/* Main Container Card Surfaces */
+.sectionsClassic div[style*="background-color: var(--color-bg-card)"],
+.sectionsClassic section[style*="background-color: var(--color-bg-card)"] {
+  background: linear-gradient(180deg, #24070b 0%, #160406 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Secondary Panels & Tertiary Substrates */
+.sectionsClassic div[style*="background-color: var(--color-bg-tertiary)"],
+.sectionsClassic section[style*="background-color: var(--color-bg-tertiary)"] {
+  background: rgba(30, 6, 9, 0.7) !important;
+  border: 1px solid rgba(212, 175, 55, 0.24) !important;
+  border-radius: 10px !important;
+}
+
+/* Headings in Roster & Death Aid */
+.sectionsClassic h1,
+.sectionsClassic h2,
+.sectionsClassic h3,
+.sectionsClassic h4 {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+  color: #ffffff !important;
+  letter-spacing: 0.02em !important;
+}
+
+.sectionsClassic p,
+.sectionsClassic span,
+.sectionsClassic label {
+  color: #f5f2eb !important;
+}
+
+/* Tab Bar buttons inside DeathAid & ClassUpload */
+.sectionsClassic div[style*="border-bottom: 2px solid"] button,
+.sectionsClassic div[style*="display: flex"][style*="border-bottom"] button {
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+  border-radius: 8px 8px 0 0 !important;
+  color: rgba(255, 234, 159, 0.75) !important;
+  transition: all 0.2s ease !important;
+}
+
+.sectionsClassic div[style*="border-bottom: 2px solid"] button:hover,
+.sectionsClassic div[style*="display: flex"][style*="border-bottom"] button:hover {
+  color: #ffffff !important;
+  background: rgba(212, 175, 55, 0.12) !important;
+}
+
+.sectionsClassic button[style*="border-bottom: 3px solid"],
+.sectionsClassic button[style*="border-bottom-color: var(--color-accent-primary)"] {
+  color: #ffea9f !important;
+  border-bottom-color: #d4af37 !important;
+  background: rgba(212, 175, 55, 0.15) !important;
+}
+
+/* Form Inputs, Selects, and Textareas */
+.sectionsClassic input,
+.sectionsClassic select,
+.sectionsClassic textarea {
+  background: rgba(18, 4, 7, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.sectionsClassic input:focus,
+.sectionsClassic select:focus,
+.sectionsClassic textarea:focus {
+  border-color: #d4af37 !important;
+  outline: none !important;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.45), inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Tables in Death Aid & Roster */
+.sectionsClassic table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  background: rgba(20, 4, 7, 0.85) !important;
+}
+
+.sectionsClassic th {
+  background: linear-gradient(180deg, #320a10 0%, #200508 100%) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35) !important;
+  padding: 0.85rem 1rem !important;
+}
+
+.sectionsClassic td {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15) !important;
+  color: #f5f2eb !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.sectionsClassic tr:hover td {
+  background: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Buttons in Death Aid & Roster */
+.sectionsClassic button[style*="background-color: var(--color-accent-primary)"] {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 50%, #997528 100%) !important;
+  color: #160406 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  border: 1px solid #ffea9f !important;
+  border-radius: 50px !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4) !important;
+  transition: all 0.22s ease !important;
+}
+
+.sectionsClassic button[style*="background-color: var(--color-accent-primary)"]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6) !important;
+  background: linear-gradient(135deg, #ffd875 0%, #e5b842 50%, #b38b2e 100%) !important;
+}
+
+.sectionsClassic button[style*="background-color: var(--color-success)"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 50px !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+}
+
+.sectionsClassic button[style*="border: 2px solid var(--color-border)"],
+.sectionsClassic button[style*="border: 1px solid var(--color-border)"] {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  border-radius: 50px !important;
+  transition: all 0.2s ease !important;
+}
+
+.sectionsClassic button[style*="border: 2px solid var(--color-border)"]:hover,
+.sectionsClassic button[style*="border: 1px solid var(--color-border)"]:hover {
+  background: #d4af37 !important;
+  color: #160406 !important;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.45) !important;
+}
+
+/* Status Pills & Badges in Death Aid */
+.sectionsClassic span[style*="border-radius: 50px"] {
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.06em !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Dropzones in Class Upload */
+.sectionsClassic div[style*="border: 2px dashed"] {
+  background: rgba(24, 5, 8, 0.8) !important;
+  border: 2px dashed rgba(212, 175, 55, 0.5) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Summary Grid Tiles in Death Aid */
+.sectionsClassic div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] > div {
+  background: linear-gradient(180deg, #28080d 0%, #170407 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6) !important;
+}
+
+.sectionsClassic div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] span {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* Section Cards & Review Cards in Roster / Death Aid */
+.sectionsClassic div[style*="margin-bottom: 1rem"][style*="border: 1px solid"],
+.sectionsClassic div[style*="margin-bottom: 0.7rem"][style*="border: 1px solid"] {
+  background: linear-gradient(180deg, #24070b 0%, #150306 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Section Card Header Buttons */
+.sectionsClassic button[style*="cursor: pointer"][style*="text-align: left"] {
+  background: linear-gradient(90deg, rgba(46, 10, 15, 0.9) 0%, rgba(26, 6, 9, 0.9) 100%) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.sectionsClassic button[style*="cursor: pointer"][style*="text-align: left"]:hover {
+  background: linear-gradient(90deg, rgba(60, 14, 20, 0.9) 0%, rgba(35, 8, 12, 0.9) 100%) !important;
+}
+
+/* Action Link Buttons */
+.sectionsClassic button[style*="padding: 0.3rem 0.6rem"],
+.sectionsClassic button[style*="padding: 0.35rem 0.7rem"] {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  border-radius: 6px !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  transition: all 0.2s ease !important;
+}
+
+.sectionsClassic button[style*="padding: 0.3rem 0.6rem"]:hover,
+.sectionsClassic button[style*="padding: 0.35rem 0.7rem"]:hover {
+  background: #d4af37 !important;
+  color: #160406 !important;
+}
+
+/* Notice & Warning Blocks */
+.sectionsClassic div[style*="padding: 0.8rem"][style*="margin-bottom: 1rem"],
+.sectionsClassic div[style*="padding: 1.5rem"][style*="border-radius: 1rem"] {
+  background: rgba(45, 10, 15, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.38) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  color: #ffea9f !important;
+}
+
+/* Double-Check Modal Overlay in Death Aid */
+.sectionsClassic div[style*="position: fixed"][style*="z-index: 9999"] > div {
+  background: linear-gradient(180deg, #2a070c 0%, #160406 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 175, 55, 0.15) !important;
+  border-radius: 16px !important;
 }
 

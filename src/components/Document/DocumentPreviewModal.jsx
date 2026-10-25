@@ -28,8 +28,8 @@ export default function DocumentPreviewModal({
     (doc.mimeType && doc.mimeType.startsWith('image/'));
 
   return (
-    <div style={previewModalStyles.backdrop} onClick={onClose} role="dialog" aria-modal="true">
-      <div style={previewModalStyles.modalBox} onClick={(e) => e.stopPropagation()}>
+    <div className={stylesModule.modalOverlay} style={previewModalStyles.backdrop} onClick={onClose} role="dialog" aria-modal="true">
+      <div className={stylesModule.modalBox} style={previewModalStyles.modalBox} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={previewModalStyles.header}>
           <div style={previewModalStyles.headerLeft}>

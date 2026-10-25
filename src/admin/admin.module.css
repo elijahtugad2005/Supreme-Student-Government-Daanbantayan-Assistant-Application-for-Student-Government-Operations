@@ -373,4 +373,172 @@
     font-family: 'Archivo Black', 'Impact', sans-serif !important;
     border-bottom: 2px solid #0A0A0A !important;
     text-transform: uppercase !important;
+}
+
+/* ==========================================================================
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) - ADMIN DASHBOARD CONTAINERS
+   ========================================================================== */
+.adminClassic,
+:global(.theme-dark) .container {
+    background-color: #120305 !important;
+    background-image: 
+        radial-gradient(ellipse at 50% 0%, rgba(138, 26, 36, 0.22) 0%, transparent 70%),
+        radial-gradient(circle at 100% 100%, rgba(212, 175, 55, 0.06) 0%, transparent 50%) !important;
+    color: #ffffff !important;
+}
+
+/* Traditional Ethnic Tribal Band Accent */
+.tribalBorderTop {
+    width: 100%;
+    height: 22px;
+    background-image: var(--tribal-band);
+    background-repeat: repeat-x;
+    background-size: 33px 22px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 1.25rem;
+    flex-shrink: 0;
+}
+
+/* Eyebrow badge in Header Container */
+.eyebrowRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.eyebrowDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #d4af37;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.85);
+}
+
+.eyebrowText {
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    color: #ffea9f;
+    text-transform: uppercase;
+}
+
+.titleInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Page Title Header Container */
+.adminClassic .pagetitle,
+:global(.theme-dark) .pagetitle {
+    background: linear-gradient(135deg, rgba(32, 6, 10, 0.96) 0%, rgba(18, 3, 6, 0.98) 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.35) !important;
+    border-radius: 14px !important;
+    padding: 1.5rem 1.75rem !important;
+    margin-bottom: 1.75rem !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(212, 175, 55, 0.25) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.adminClassic .pagetitle::before,
+:global(.theme-dark) .pagetitle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #d4af37, #8a1a24, #d4af37) !important;
+}
+
+.adminClassic .pagetitle h1,
+:global(.theme-dark) .pagetitle h1 {
+    font-family: 'Cinzel', serif !important;
+    font-size: 2.1rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    background: linear-gradient(135deg, #ffffff 0%, #ffea9f 50%, #d4af37 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    margin: 0 !important;
+}
+
+.adminClassic .pagetitle h2,
+:global(.theme-dark) .pagetitle h2 {
+    color: rgba(255, 234, 159, 0.75) !important;
+    font-size: 0.92rem !important;
+    margin-top: 0.35rem !important;
+    font-weight: 400 !important;
+}
+
+/* Tab Navigation Container */
+.adminClassic .tabNavigation,
+:global(.theme-dark) .tabNavigation {
+    gap: 0.85rem !important;
+    margin-bottom: 1.75rem !important;
+}
+
+.adminClassic .tabButton,
+:global(.theme-dark) .tabButton {
+    background-color: rgba(26, 5, 9, 0.88) !important;
+    border: 1px solid rgba(212, 175, 55, 0.22) !important;
+    border-radius: 12px !important;
+    color: rgba(255, 234, 159, 0.8) !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    padding: 0.95rem 1.4rem !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.adminClassic .tabButton:hover:not(.tabActive),
+:global(.theme-dark) .tabButton:hover:not(.tabActive) {
+    background-color: rgba(48, 8, 14, 0.96) !important;
+    border-color: rgba(212, 175, 55, 0.5) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5), 0 0 14px rgba(212, 175, 55, 0.18) !important;
+}
+
+.adminClassic .tabButton.tabActive,
+:global(.theme-dark) .tabButton.tabActive {
+    background: linear-gradient(135deg, #7a121d 0%, #4a080f 100%) !important;
+    border: 1px solid #d4af37 !important;
+    color: #ffea9f !important;
+    font-weight: 700 !important;
+    box-shadow: 0 6px 22px rgba(122, 18, 29, 0.65), 0 0 18px rgba(212, 175, 55, 0.25) !important;
+    transform: translateY(-1px) !important;
+}
+
+.adminClassic .tabButton.tabActive .tabIcon,
+:global(.theme-dark) .tabButton.tabActive .tabIcon,
+.adminClassic .tabButton.tabActive .tabIcon svg,
+:global(.theme-dark) .tabButton.tabActive .tabIcon svg {
+    color: #d4af37 !important;
+}
+
+/* Main Dashboard Card Container */
+.adminClassic .dashboard_card,
+:global(.theme-dark) .dashboard_card {
+    background-color: rgba(20, 4, 7, 0.98) !important;
+    border: 1px solid rgba(212, 175, 55, 0.35) !important;
+    border-radius: 16px !important;
+    padding: 1.75rem !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(212, 175, 55, 0.08) !important;
+    overflow: hidden !important;
+}
+
+.adminClassic .dashboard_card h3,
+:global(.theme-dark) .dashboard_card h3 {
+    font-family: 'Cinzel', serif !important;
+    color: #ffea9f !important;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+    padding-bottom: 0.75rem !important;
+    letter-spacing: 0.05em !important;
 }

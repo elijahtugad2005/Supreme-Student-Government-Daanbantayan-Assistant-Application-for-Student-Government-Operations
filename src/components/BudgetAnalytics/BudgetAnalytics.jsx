@@ -24,6 +24,7 @@ import {
 const BudgetAnalytics = () => {
   const { budgets, statistics, loading, fetchBudgets } = useFinance();
   const { theme, isLight } = useTheme();
+  const isClassic = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCommittee, setFilterCommittee] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -115,14 +116,16 @@ const BudgetAnalytics = () => {
     link.download = `Budget_Report_${new Date().toLocaleDateString()}.csv`;
     link.click();
   };
-  // Chart Colors (Adaptive: Light mode has Swiss Industrial high contrast; Classic Mode has rich maroon, amber, and jewel tones)
+  // Chart Colors (Adaptive: Light mode has Swiss Industrial high contrast; Classic Mode has rich imperial gold and royal maroon)
   const COLORS = useMemo(() => {
     if (isLight) {
       return ['#0A0A0A', '#E61919', '#2563EB', '#16A34A', '#D97706', '#9333EA', '#0891B2'];
     }
-    // Classic Mode (Maroon editorial / Dark palette)
+    if (isClassic) {
+      return ['#D4AF37', '#9E1B29', '#E5B842', '#7A121D', '#F59E0B', '#C93B2B', '#E2D06D'];
+    }
     return ['#D94F1F', '#F59E0B', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#06B6D4'];
-  }, [isLight]);
+  }, [isLight, isClassic]);
 
   if (loading) {
     return (
@@ -134,13 +137,13 @@ const BudgetAnalytics = () => {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isClassic ? styles.analyticsClassic : ''}`}>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.titleGroup}>
           <h2>
             <HiChartBar style={{marginRight: '0.5rem', verticalAlign: 'middle'}} />
-            Financial Dashboard
+            {isClassic ? 'Institutional Treasury Telemetry' : 'Financial Dashboard'}
           </h2>
           <p className={styles.headerSubtitle}>Overview of fiscal year allocations, budget velocity, and expenditure</p>
         </div>
@@ -259,6 +262,13 @@ const BudgetAnalytics = () => {
                     fontSize: '12px',
                     background: '#ffffff',
                     color: '#0a0a0a'
+                  } : isClassic ? {
+                    borderRadius: '10px',
+                    border: '1px solid rgba(212, 175, 55, 0.45)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 0 15px rgba(122, 18, 29, 0.3)',
+                    background: '#190507',
+                    color: '#ffea9f',
+                    padding: '10px 14px'
                   } : {
                     borderRadius: '10px',
                     border: '1px solid rgba(217, 79, 31, 0.45)',
@@ -268,13 +278,13 @@ const BudgetAnalytics = () => {
                     padding: '10px 14px'
                   }}
                   itemStyle={{
-                    color: isLight ? '#0a0a0a' : '#ffffff',
+                    color: isLight ? '#0a0a0a' : isClassic ? '#fff6e5' : '#ffffff',
                     fontSize: '12px',
                     fontWeight: 600,
                     padding: '2px 0'
                   }}
                   labelStyle={{
-                    color: isLight ? '#0a0a0a' : '#f5f5dc',
+                    color: isLight ? '#0a0a0a' : isClassic ? '#ffea9f' : '#f5f5dc',
                     fontWeight: 700,
                     marginBottom: '4px',
                     fontSize: '13px'
@@ -291,13 +301,13 @@ const BudgetAnalytics = () => {
                 <Bar 
                   dataKey="allocated" 
                   name="Allocated" 
-                  fill={isLight ? "#0a0a0a" : "#D94F1F"} 
+                  fill={isLight ? "#0a0a0a" : isClassic ? "#D4AF37" : "#D94F1F"} 
                   radius={isLight ? [0, 0, 0, 0] : [6, 6, 0, 0]} 
                 />
                 <Bar 
                   dataKey="spent" 
                   name="Spent" 
-                  fill={isLight ? "#e61919" : "#F59E0B"} 
+                  fill={isLight ? "#e61919" : isClassic ? "#9E1B29" : "#F59E0B"} 
                   radius={isLight ? [0, 0, 0, 0] : [6, 6, 0, 0]} 
                 />
               </BarChart>
@@ -339,6 +349,13 @@ const BudgetAnalytics = () => {
                     fontSize: '12px',
                     background: '#ffffff',
                     color: '#0a0a0a'
+                  } : isClassic ? {
+                    borderRadius: '10px',
+                    border: '1px solid rgba(212, 175, 55, 0.45)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 0 15px rgba(122, 18, 29, 0.3)',
+                    background: '#190507',
+                    color: '#ffea9f',
+                    padding: '10px 14px'
                   } : {
                     borderRadius: '10px',
                     border: '1px solid rgba(217, 79, 31, 0.45)',
@@ -348,13 +365,13 @@ const BudgetAnalytics = () => {
                     padding: '10px 14px'
                   }}
                   itemStyle={{
-                    color: isLight ? '#0a0a0a' : '#ffffff',
+                    color: isLight ? '#0a0a0a' : isClassic ? '#fff6e5' : '#ffffff',
                     fontSize: '12px',
                     fontWeight: 600,
                     padding: '2px 0'
                   }}
                   labelStyle={{
-                    color: isLight ? '#0a0a0a' : '#f5f5dc',
+                    color: isLight ? '#0a0a0a' : isClassic ? '#ffea9f' : '#f5f5dc',
                     fontWeight: 700,
                     marginBottom: '4px',
                     fontSize: '13px'

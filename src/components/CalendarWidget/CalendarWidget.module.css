@@ -1742,3 +1742,386 @@
   font-weight: 700 !important;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   CLASSIC THEME (ROYAL MAROON & IMPERIAL GOLD) — HOMEPAGE ONLY
+   Active when inside .pageWrapperClassic or with .widgetClassic.
+   On other pages and in other themes, returns to standard slate/grey.
+   ══════════════════════════════════════════════════════════════ */
+:global(.pageWrapperClassic) .topBar,
+.widgetClassic .topBar {
+  background: linear-gradient(135deg, #26070b 0%, #170407 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.75) !important;
+}
+
+:global(.pageWrapperClassic) .calendarIconBubble,
+.widgetClassic .calendarIconBubble {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+}
+
+:global(.pageWrapperClassic) .eyebrowTag,
+.widgetClassic .eyebrowTag {
+  color: #d4af37 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+}
+
+:global(.pageWrapperClassic) .mainTitle,
+.widgetClassic .mainTitle {
+  color: #ffffff !important;
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+}
+
+:global(.pageWrapperClassic) .filterPill,
+.widgetClassic .filterPill {
+  background: rgba(26, 6, 10, 0.75) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  color: rgba(255, 234, 159, 0.85) !important;
+}
+
+:global(.pageWrapperClassic) .filterPill:hover,
+.widgetClassic .filterPill:hover {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+:global(.pageWrapperClassic) .filterPillActive,
+.widgetClassic .filterPillActive {
+  background: rgba(212, 175, 55, 0.25) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.4) !important;
+}
+
+:global(.pageWrapperClassic) .calendarPanel,
+:global(.pageWrapperClassic) .agendaPanel,
+.widgetClassic .calendarPanel,
+.widgetClassic .agendaPanel {
+  background: linear-gradient(180deg, #24070b 0%, #150306 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.85) !important;
+}
+
+:global(.pageWrapperClassic) .monthToolbar,
+:global(.pageWrapperClassic) .agendaHeader,
+:global(.pageWrapperClassic) .typeKeyFooter,
+.widgetClassic .monthToolbar,
+.widgetClassic .agendaHeader,
+.widgetClassic .typeKeyFooter {
+  border-bottom-color: rgba(212, 175, 55, 0.2) !important;
+  border-top-color: rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.pageWrapperClassic) .monthHeading,
+:global(.pageWrapperClassic) .agendaTitle,
+.widgetClassic .monthHeading,
+.widgetClassic .agendaTitle {
+  color: #ffffff !important;
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+  font-weight: 700 !important;
+}
+
+:global(.pageWrapperClassic) .yearHighlight,
+.widgetClassic .yearHighlight {
+  color: #d4af37 !important;
+}
+
+:global(.pageWrapperClassic) .todayButton,
+.widgetClassic .todayButton {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border: 1px solid rgba(212, 175, 55, 0.38) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+:global(.pageWrapperClassic) .todayButton:hover,
+.widgetClassic .todayButton:hover {
+  background: #d4af37 !important;
+  color: #160406 !important;
+}
+
+:global(.pageWrapperClassic) .navButton,
+.widgetClassic .navButton {
+  background: rgba(24, 6, 9, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.pageWrapperClassic) .navButton:hover,
+.widgetClassic .navButton:hover {
+  background: #d4af37 !important;
+  color: #160406 !important;
+  border-color: #ffea9f !important;
+}
+
+:global(.pageWrapperClassic) .weekdayHeader,
+:global(.pageWrapperClassic) .weekdayCell,
+.widgetClassic .weekdayHeader,
+.widgetClassic .weekdayCell {
+  color: #d4af37 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+}
+
+:global(.pageWrapperClassic) .dayCell,
+.widgetClassic .dayCell {
+  background: rgba(30, 7, 12, 0.55) !important;
+  border: 1px solid rgba(212, 175, 55, 0.18) !important;
+}
+
+:global(.pageWrapperClassic) .dayCell:hover,
+.widgetClassic .dayCell:hover {
+  background: rgba(212, 175, 55, 0.14) !important;
+  border-color: #d4af37 !important;
+}
+
+:global(.pageWrapperClassic) .dayToday,
+.widgetClassic .dayToday {
+  border-color: #d4af37 !important;
+  background: rgba(212, 175, 55, 0.18) !important;
+}
+
+:global(.pageWrapperClassic) .dayToday .dayNumber,
+.widgetClassic .dayToday .dayNumber {
+  color: #ffea9f !important;
+  font-weight: 800 !important;
+}
+
+:global(.pageWrapperClassic) .dayToday::before,
+.widgetClassic .dayToday::before {
+  background: #d4af37 !important;
+}
+
+:global(.pageWrapperClassic) .daySelected,
+.widgetClassic .daySelected {
+  border-color: #d4af37 !important;
+  background: rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 0 0 1px #d4af37 !important;
+}
+
+:global(.pageWrapperClassic) .dayHasEvents,
+.widgetClassic .dayHasEvents {
+  background: rgba(44, 9, 17, 0.75) !important;
+  border-color: rgba(212, 175, 55, 0.32) !important;
+}
+
+:global(.pageWrapperClassic) .dayNumber,
+.widgetClassic .dayNumber {
+  color: rgba(255, 234, 159, 0.95) !important;
+}
+
+:global(.pageWrapperClassic) .dayCountPill,
+.widgetClassic .dayCountPill {
+  background: #d4af37 !important;
+  color: #160406 !important;
+  font-weight: 800 !important;
+}
+
+:global(.pageWrapperClassic) .agendaIcon,
+.widgetClassic .agendaIcon {
+  color: #d4af37 !important;
+}
+
+:global(.pageWrapperClassic) .agendaCountBadge,
+.widgetClassic .agendaCountBadge {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+:global(.pageWrapperClassic) .timelineCard,
+.widgetClassic .timelineCard {
+  background: rgba(36, 7, 12, 0.65) !important;
+  border: 1px solid rgba(212, 175, 55, 0.24) !important;
+}
+
+:global(.pageWrapperClassic) .timelineCard:hover,
+.widgetClassic .timelineCard:hover {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border-color: rgba(212, 175, 55, 0.55) !important;
+}
+
+:global(.pageWrapperClassic) .dateBlock,
+.widgetClassic .dateBlock {
+  background: rgba(20, 4, 7, 0.88) !important;
+  border: 1px solid rgba(212, 175, 55, 0.32) !important;
+}
+
+:global(.pageWrapperClassic) .dateMonth,
+.widgetClassic .dateMonth {
+  color: #d4af37 !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+}
+
+:global(.pageWrapperClassic) .dateDay,
+.widgetClassic .dateDay {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+:global(.pageWrapperClassic) .dateWeekday,
+.widgetClassic .dateWeekday {
+  color: rgba(255, 234, 159, 0.6) !important;
+}
+
+:global(.pageWrapperClassic) .cardTitle,
+.widgetClassic .cardTitle {
+  color: #ffffff !important;
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+}
+
+:global(.pageWrapperClassic) .cardDesc,
+.widgetClassic .cardDesc {
+  color: rgba(255, 234, 159, 0.8) !important;
+}
+
+:global(.pageWrapperClassic) .emptyAgenda,
+.widgetClassic .emptyAgenda {
+  background: rgba(212, 175, 55, 0.04) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+:global(.pageWrapperClassic) .emptyTitle,
+.widgetClassic .emptyTitle {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+:global(.pageWrapperClassic) .emptyText,
+.widgetClassic .emptyText {
+  color: rgba(255, 234, 159, 0.7) !important;
+}
+
+:global(.pageWrapperClassic) .keyLabel,
+.widgetClassic .keyLabel {
+  color: rgba(255, 234, 159, 0.6) !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+:global(.pageWrapperClassic) .keyItem,
+.widgetClassic .keyItem {
+  color: rgba(255, 234, 159, 0.85) !important;
+}
+
+/* ─── Classic Event Dialog & Modals ─── */
+:global(.pageWrapperClassic) .modalOverlay,
+.widgetClassic .modalOverlay {
+  background: rgba(10, 2, 3, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+:global(.pageWrapperClassic) .modalCard,
+.widgetClassic .modalCard {
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.35) 0%, rgba(18, 3, 5, 0.98) 60%, #120204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(122, 18, 29, 0.25) !important;
+  color: #fff6e5 !important;
+}
+
+:global(.pageWrapperClassic) .modalHeader,
+.widgetClassic .modalHeader {
+  background: rgba(28, 5, 9, 0.95) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.pageWrapperClassic) .modalEyebrow,
+.widgetClassic .modalEyebrow {
+  color: #d4af37 !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.15em !important;
+}
+
+:global(.pageWrapperClassic) .modalTitle,
+.widgetClassic .modalTitle {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 50%, #D4AF37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+:global(.pageWrapperClassic) .modalCloseBtn,
+.widgetClassic .modalCloseBtn {
+  color: #ffea9f !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  background: rgba(74, 5, 13, 0.6) !important;
+}
+
+:global(.pageWrapperClassic) .modalCloseBtn:hover,
+.widgetClassic .modalCloseBtn:hover {
+  background: #7a121d !important;
+  color: #ffffff !important;
+  border-color: #d4af37 !important;
+}
+
+:global(.pageWrapperClassic) .modalItem,
+.widgetClassic .modalItem {
+  background: rgba(26, 5, 8, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.pageWrapperClassic) .modalItem:hover,
+.widgetClassic .modalItem:hover {
+  background: rgba(74, 5, 13, 0.4) !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+}
+
+:global(.pageWrapperClassic) .modalItemTitle,
+.widgetClassic .modalItemTitle {
+  color: #fff6e5 !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+:global(.pageWrapperClassic) .formControl,
+.widgetClassic .formControl {
+  background: rgba(18, 3, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #fff6e5 !important;
+}
+
+:global(.pageWrapperClassic) .formControl:focus,
+.widgetClassic .formControl:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.pageWrapperClassic) .btnPrimary,
+.widgetClassic .btnPrimary {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.pageWrapperClassic) .btnPrimary:hover,
+.widgetClassic .btnPrimary:hover {
+  background: linear-gradient(135deg, #9e1b29 0%, #7a121d 100%) !important;
+  border-color: #ffea9f !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.4) !important;
+}
+
+:global(.pageWrapperClassic) .btnSecondary,
+.widgetClassic .btnSecondary {
+  background: rgba(28, 5, 9, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+:global(.pageWrapperClassic) .btnSecondary:hover,
+.widgetClassic .btnSecondary:hover {
+  background: rgba(74, 5, 13, 0.85) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+

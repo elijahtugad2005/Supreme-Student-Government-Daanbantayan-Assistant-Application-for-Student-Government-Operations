@@ -21,8 +21,11 @@ import {
   AlertCircle
 } from 'lucide-react';
 import styles from './Order.module.css';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function Order(props) {
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const location = useLocation();
   const navigate = useNavigate();
   const selectedProduct = location.state?.selectedProduct;
@@ -500,7 +503,10 @@ function Order(props) {
   // RENDER: ORDER FORM
   // ========================================
   return (
-    <div className={`${styles.container} ${editingOrder ? styles.modalMode : ''}`}>
+    <div className={`${styles.container} ${editingOrder ? styles.modalMode : ''} ${isClassic ? styles.orderClassic : ''}`}>
+      {/* Ethnic Tribal Gold Border (Classic Theme Only) */}
+      {isClassic && <div className={styles.tribalBorderTop} aria-hidden="true" />}
+
       {/* Top Bar Header */}
       <header className={styles.topBar}>
         <div className={styles.topBarLeft}>

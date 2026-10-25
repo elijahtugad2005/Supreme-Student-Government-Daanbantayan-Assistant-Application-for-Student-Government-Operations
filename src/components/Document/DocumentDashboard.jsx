@@ -8,6 +8,7 @@
 // having any.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   ACCEPT_ATTRIBUTE,
   DOC_STATUS,
@@ -28,6 +29,7 @@ import {
   uploadDocument,
   validateFile,
 } from '../../services/documentService';
+import auditService from '../../services/auditService';
 import { S, T, statusBanner, statusPill } from '../../utils/themeStyles';
 import { storageWarning } from '../../services/fileStore';
 import { analyzeDocumentContent } from '../../services/documentAiService';
@@ -70,6 +72,8 @@ const emptyForm = () => ({
 
 function DocumentDashboard() {
   const { currentUser, userName } = useAuth();
+  const { theme } = useTheme();
+  const isClassic = theme === 'dark';
   const actor = { uid: currentUser?.uid, name: userName || currentUser?.displayName || 'Unknown' };
 
   const [documents, setDocuments] = useState([]);
@@ -202,6 +206,14 @@ function DocumentDashboard() {
         actor,
         onProgress: setProgress,
       });
+
+      // Audit Trail: Log Document Added (DAD) - Zero UID
+      const performer = actor?.name || actor?.email || 'Authorized Officer';
+      await auditService.logDocumentAdd(
+        performer, 
+        form.title, 
+        (form.labels && form.labels.length > 0) ? form.labels.join(', ') : 'Institutional'
+      );
 
       setUploadStepState('analyzing');
       say('success', `“${form.title}” uploaded. Reading and evaluating document content…`);
@@ -414,6 +426,14 @@ function DocumentDashboard() {
     try {
       // Pass the full document object so deleteDocument doesn't need to re-fetch getDoc()
       await deleteDocument(document);
+
+      // Audit Trail: Log Document Deletion (DDL) - Zero UID
+      const performer = actor?.name || actor?.email || 'Authorized Officer';
+      await auditService.logDocumentDelete(
+        performer,
+        document.title || document.originalFileName || 'Document'
+      );
+
       say('success', `“${document.title}” deleted.`);
     } catch (error) {
       // Rollback on failure
@@ -428,10 +448,16 @@ function DocumentDashboard() {
   const hasFilters = term || statusFilter || labelFilter.length > 0;
 
   return (
-    <div className={stylesModule.container} style={styles.page}>
+    <div className={`${stylesModule.container} ${isClassic ? stylesModule.docClassic : ''}`} style={styles.page}>
+      {/* Top Decorative Ethnic Tribal Band (Classic Maroon Gold Theme Only) */}
+      {isClassic && <div className={stylesModule.tribalBorderTop} aria-hidden="true" />}
+
       <header className={stylesModule.headerWrap} style={styles.header}>
         <HiDocumentText className={stylesModule.headerIcon} style={styles.headerIcon} />
         <div>
+          <div className={stylesModule.eyebrowBadge}>
+            <span>{isClassic ? 'SSG OFFICIAL ARCHIVE & LEGISLATIVE VAULT' : 'ADMINISTRATIVE ARCHIVE'}</span>
+          </div>
           <h1 className={stylesModule.headerTitle} style={styles.title}>Document Repository</h1>
           <p className={stylesModule.headerSubtitle} style={styles.subtitle}>
             Upload, organise and retrieve administrative documents. AI analysis is added in the
@@ -462,7 +488,7 @@ function DocumentDashboard() {
         </div>
       )}
 
-      <div style={styles.stats}>
+      <div className={stylesModule.statsGrid} style={styles.stats}>
         <Stat label="Documents" value={counts.total} />
         <Stat label="Pending" value={counts[DOC_STATUS.PENDING] || 0} />
         <Stat label="Under Review" value={counts[DOC_STATUS.UNDER_REVIEW] || 0} />
@@ -977,9 +1003,9 @@ function Field({ label, hint, children }) {
 
 function Stat({ label, value }) {
   return (
-    <div style={styles.stat}>
-      <span style={styles.statLabel}>{label}</span>
-      <span style={styles.statValue}>{value}</span>
+    <div className={stylesModule.statBox} style={styles.stat}>
+      <span className={stylesModule.statBoxLabel} style={styles.statLabel}>{label}</span>
+      <span className={stylesModule.statBoxVal} style={styles.statValue}>{value}</span>
     </div>
   );
 }

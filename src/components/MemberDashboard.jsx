@@ -9,11 +9,10 @@ import {
     collection, addDoc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch,
     onSnapshot, query, where, doc,
 } from "firebase/firestore";
-import {
-    SSG_ID, SSG_DEFAULT_NAME, FALLBACK_TERM, isValidTerm, compressImage, getSections, timeOf,
-} from './orgUtils';
+import { SSG_ID, SSG_DEFAULT_NAME, FALLBACK_TERM, isValidTerm, compressImage, getSections, timeOf } from './orgUtils';
 import useCurrentTerm from '../hooks/useCurrentTerm';
 import { useAuth } from './AuthContext/AuthContext.jsx';
+import { useTheme } from '../contexts/ThemeContext';
 
 // SSG position lists (unchanged from the original, grouped by section key)
 const SSG_POSITIONS = {
@@ -39,6 +38,8 @@ const SSG_FALLBACK = { id: SSG_ID, name: SSG_DEFAULT_NAME, type: 'ssg' };
 
 function MemberDashboard() {
     const { userRole } = useAuth();
+    const { theme } = useTheme();
+    const isClassic = theme === 'dark';
     const canSetCurrentTerm = userRole === 'admin';
     const [member, setMember] = useState(EMPTY_MEMBER);
     const [selectedPlatform, setSelectedPlatform] = useState('facebookLink');
@@ -273,9 +274,15 @@ function MemberDashboard() {
         : '';
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${isClassic ? styles.dashboardClassic : ''}`}>
             <div className={styles.topHeader}>
                 <div className={styles.headerLeft}>
+                    {isClassic && (
+                        <div className={styles.eyebrowRow}>
+                            <span className={styles.eyebrowDot}></span>
+                            <span className={styles.eyebrowText}>SSG ROSTER & ORGANIZATION</span>
+                        </div>
+                    )}
                     <h1 className={styles.mainTitle}>Members</h1>
                     <p className={styles.subTitle}>
                         Manage, add, edit, and organize the members of each organization and term.

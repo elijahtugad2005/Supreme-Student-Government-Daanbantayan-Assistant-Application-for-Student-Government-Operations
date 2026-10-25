@@ -1193,4 +1193,240 @@
   font-family: 'JetBrains Mono', monospace;
   color: #475569;
   font-weight: 600;
+}
+
+/* ==========================================================================
+   CLASSIC MODE: ROYAL MAROON & IMPERIAL GOLD BUDGET ALLOCATION FORM
+   Applies exclusively under Classic Mode (.formClassic / .theme-dark)
+   Leaves Light and Corporate themes 100% insulated and unaffected.
+   ========================================================================== */
+
+/* ─── Classic Container Surface ─── */
+.formClassic,
+:global(.theme-dark) .container {
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.22) 0%, rgba(18, 3, 5, 0.98) 55%, #100204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(122, 18, 29, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* ─── Classic Header ─── */
+.formClassic .headerBadge,
+:global(.theme-dark) .container .headerBadge {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.85) 0%, rgba(122, 18, 29, 0.75) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.08em !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+.formClassic .title,
+:global(.theme-dark) .container .title {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 800 !important;
+}
+
+.formClassic .titleIcon,
+:global(.theme-dark) .container .titleIcon {
+  color: #d4af37 !important;
+}
+
+.formClassic .subtitle,
+:global(.theme-dark) .container .subtitle {
+  color: #c9a9ad !important;
+}
+
+/* ─── Classic Form Body ─── */
+.formClassic .form,
+:global(.theme-dark) .container .form {
+  background: rgba(18, 3, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  border-radius: 14px !important;
+  padding: 1.75rem !important;
+}
+
+/* ─── Live Preview Telemetry Card ─── */
+.formClassic .previewCard,
+:global(.theme-dark) .container .previewCard {
+  background: linear-gradient(135deg, rgba(30, 6, 10, 0.92) 0%, rgba(18, 3, 5, 0.95) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.15) !important;
+}
+
+.formClassic .previewLabel,
+:global(.theme-dark) .container .previewLabel {
+  color: #d4af37 !important;
+  letter-spacing: 0.06em !important;
+  font-weight: 700 !important;
+}
+
+.formClassic .previewValue,
+:global(.theme-dark) .container .previewValue {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #ffea9f !important;
+}
+
+/* ─── Presets & Template Pills ─── */
+.formClassic .presetBtn,
+:global(.theme-dark) .container .presetBtn {
+  background: rgba(28, 5, 9, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  color: #d8c0c4 !important;
+}
+
+.formClassic .presetBtn:hover,
+:global(.theme-dark) .container .presetBtn:hover {
+  background: rgba(74, 5, 13, 0.8) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+}
+
+.formClassic .templatePillBtn,
+:global(.theme-dark) .container .templatePillBtn {
+  background: rgba(28, 5, 9, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  color: #e2cbd0 !important;
+}
+
+.formClassic .templatePillBtn:hover,
+:global(.theme-dark) .container .templatePillBtn:hover {
+  background: rgba(74, 5, 13, 0.7) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+/* ─── Form Inputs, Selects, & Textareas ─── */
+.formClassic .input,
+.formClassic .select,
+.formClassic .textarea,
+:global(.theme-dark) .container .input,
+:global(.theme-dark) .container .select,
+:global(.theme-dark) .container .textarea {
+  background: rgba(20, 4, 7, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.24) !important;
+  color: #fff6e5 !important;
+}
+
+.formClassic .input:focus,
+.formClassic .select:focus,
+.formClassic .textarea:focus,
+:global(.theme-dark) .container .input:focus,
+:global(.theme-dark) .container .select:focus,
+:global(.theme-dark) .container .textarea:focus {
+  border-color: #d4af37 !important;
+  background: rgba(24, 5, 9, 0.98) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+.formClassic .label,
+:global(.theme-dark) .container .label {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.04em !important;
+}
+
+.formClassic .inputHelp,
+:global(.theme-dark) .container .inputHelp {
+  color: #bfa5a9 !important;
+}
+
+/* ─── Action Buttons ─── */
+.formClassic .primaryButton,
+:global(.theme-dark) .container .primaryButton {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.05em !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+.formClassic .primaryButton:hover:not(:disabled),
+:global(.theme-dark) .container .primaryButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9e1b29 0%, #7a121d 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.35) !important;
+}
+
+.formClassic .secondaryButton,
+:global(.theme-dark) .container .secondaryButton {
+  background: rgba(28, 5, 9, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+.formClassic .secondaryButton:hover:not(:disabled),
+:global(.theme-dark) .container .secondaryButton:hover:not(:disabled) {
+  background: rgba(74, 5, 13, 0.7) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+/* ─── Success Modal ─── */
+.formClassic .successModal,
+:global(.theme-dark) .successModal {
+  background: radial-gradient(circle at 50% 0%, rgba(38, 7, 12, 0.98) 0%, #120305 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9), 0 0 30px rgba(122, 18, 29, 0.35) !important;
+}
+
+.formClassic .successModal h3,
+:global(.theme-dark) .successModal h3 {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #ffea9f !important;
+}
+
+.formClassic .successModal p,
+:global(.theme-dark) .successModal p {
+  color: #c9a9ad !important;
+}
+
+/* ─── Classic Budget Utilization Meter ─── */
+.formClassic .progressSection,
+:global(.theme-dark) .container .progressSection {
+  background: rgba(14, 2, 4, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+.formClassic .progressHeader,
+:global(.theme-dark) .container .progressHeader {
+  color: #ffea9f !important;
+}
+
+.formClassic .progressTitle,
+:global(.theme-dark) .container .progressTitle {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+}
+
+.formClassic .progressPct,
+:global(.theme-dark) .container .progressPct {
+  font-family: 'Cinzel', Georgia, serif !important;
+  color: #d4af37 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.35) !important;
+}
+
+.formClassic .progressBar,
+:global(.theme-dark) .container .progressBar {
+  background: rgba(10, 2, 3, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  height: 10px !important;
+  border-radius: 999px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7) !important;
+}
+
+.formClassic .progressFill,
+:global(.theme-dark) .container .progressFill {
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35) !important;
+  border-radius: 999px !important;
 }

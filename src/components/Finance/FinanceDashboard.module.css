@@ -323,3 +323,144 @@
     display: inline;
   }
 }
+
+/* ==========================================================================
+   CLASSIC MODE: ROYAL MAROON & IMPERIAL GOLD FINANCIAL DASHBOARD
+   Applies exclusively under Classic Mode (.financeClassic / .theme-dark)
+   Leaves Light and Corporate themes 100% insulated and unaffected.
+   ========================================================================== */
+
+:root {
+  --finance-tribal-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='24' viewBox='0 0 36 24'%3E%3Crect width='36' height='24' fill='%23190507'/%3E%3Cline x1='0' y1='1' x2='36' y2='1' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='23' x2='36' y2='23' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='3.5' x2='36' y2='3.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cline x1='0' y1='20.5' x2='36' y2='20.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cpolygon points='18,4 27,12 18,20 9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='18,7 23,12 18,17 13,12' fill='%23e5b842'/%3E%3Cpolygon points='18,9 21,12 18,15 15,12' fill='%23190507'/%3E%3Cpolygon points='0,4 9,12 0,20 -9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='0,7 5,12 0,17 -5,12' fill='%23e5b842'/%3E%3Cpolygon points='36,4 45,12 36,20 27,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='36,7 41,12 36,17 31,12' fill='%23e5b842'/%3E%3Cpolygon points='0,4 4.5,1 9,4' fill='%23997528'/%3E%3Cpolygon points='9,4 13.5,1 18,4' fill='%23d4af37'/%3E%3Cpolygon points='18,4 22.5,1 27,4' fill='%23d4af37'/%3E%3Cpolygon points='27,4 31.5,1 36,4' fill='%23997528'/%3E%3Cpolygon points='0,20 4.5,23 9,20' fill='%23997528'/%3E%3Cpolygon points='9,20 13.5,23 18,20' fill='%23d4af37'/%3E%3Cpolygon points='18,20 22.5,23 27,20' fill='%23d4af37'/%3E%3Cpolygon points='27,20 31.5,23 36,20' fill='%23997528'/%3E%3C/svg%3E");
+}
+
+/* ─── Top Ethnic Tribal Band (Proportional 36x24 Aspect Ratio) ─── */
+.tribalBorderTop {
+  width: calc(100% + 4rem);
+  margin-left: -2rem;
+  margin-right: -2rem;
+  margin-top: -1.75rem;
+  margin-bottom: 2rem;
+  height: 24px;
+  background-image: var(--finance-tribal-band);
+  background-repeat: repeat-x;
+  background-size: 36px 24px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border-radius: 20px 20px 0 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+}
+
+@media (max-width: 900px) {
+  .tribalBorderTop {
+    width: calc(100% + 2.5rem);
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    margin-top: -1.25rem;
+    margin-bottom: 1.5rem;
+    height: 20px;
+    background-size: 30px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .tribalBorderTop {
+    width: calc(100% + 1.5rem);
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    margin-top: -1rem;
+    margin-bottom: 1.25rem;
+    height: 18px;
+    background-size: 27px 18px;
+  }
+}
+
+/* ─── Classic Container Surface ─── */
+.financeClassic,
+:global(.theme-dark) .financeDashboardContainer {
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.22) 0%, rgba(18, 3, 5, 0.98) 55%, #100204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(122, 18, 29, 0.2) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Classic Header ─── */
+.financeClassic .dashboardHeader,
+:global(.theme-dark) .financeDashboardContainer .dashboardHeader {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding-bottom: 1.75rem;
+}
+
+.financeClassic .eyebrowBadge,
+:global(.theme-dark) .financeDashboardContainer .eyebrowBadge {
+  background: linear-gradient(135deg, rgba(74, 5, 13, 0.85) 0%, rgba(122, 18, 29, 0.75) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  letter-spacing: 0.08em !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+.financeClassic .viewOnlyBadge,
+:global(.theme-dark) .financeDashboardContainer .viewOnlyBadge {
+  background: rgba(74, 5, 13, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+.financeClassic .mainTitle,
+:global(.theme-dark) .financeDashboardContainer .mainTitle {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 2px 14px rgba(212, 175, 55, 0.2) !important;
+}
+
+.financeClassic .subtitle,
+:global(.theme-dark) .financeDashboardContainer .subtitle {
+  color: #c9a9ad !important;
+}
+
+/* ─── Classic Tab Navigation Segmented Bar ─── */
+.financeClassic .tabNavigation,
+:global(.theme-dark) .financeDashboardContainer .tabNavigation {
+  background: rgba(20, 4, 7, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(212, 175, 55, 0.1) !important;
+}
+
+.financeClassic .tabButton,
+:global(.theme-dark) .financeDashboardContainer .tabButton {
+  color: #c9a9ad;
+  font-family: 'Cinzel', Georgia, serif;
+  letter-spacing: 0.03em;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.financeClassic .tabButton:hover:not(.tabActive),
+:global(.theme-dark) .financeDashboardContainer .tabButton:hover:not(.tabActive) {
+  background: rgba(74, 5, 13, 0.6);
+  border-color: rgba(212, 175, 55, 0.35);
+  color: #ffea9f;
+}
+
+.financeClassic .tabActive,
+:global(.theme-dark) .financeDashboardContainer .tabActive {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.3), inset 0 1px 0 rgba(255, 234, 159, 0.35) !important;
+}
+
+.financeClassic .tabActive .tabIcon,
+:global(.theme-dark) .financeDashboardContainer .tabActive .tabIcon {
+  color: #ffea9f !important;
+}

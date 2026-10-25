@@ -598,3 +598,428 @@
   color: #FFFFFF !important;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   CLASSIC THEME: ROYAL MAROON, CRIMSON & IMPERIAL GOLD TRIBAL
+   Fully scoped to .docClassic and :global(.theme-dark) .container.
+   Ensures Light & Corporate modes remain 100% pristine and unaffected.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --doc-tribal-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='24' viewBox='0 0 36 24'%3E%3Crect width='36' height='24' fill='%23190507'/%3E%3Cline x1='0' y1='1' x2='36' y2='1' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='23' x2='36' y2='23' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cline x1='0' y1='3.5' x2='36' y2='3.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cline x1='0' y1='20.5' x2='36' y2='20.5' stroke='%238a6520' stroke-width='0.75'/%3E%3Cpolygon points='18,4 27,12 18,20 9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='18,7 23,12 18,17 13,12' fill='%23e5b842'/%3E%3Cpolygon points='18,9 21,12 18,15 15,12' fill='%23190507'/%3E%3Cpolygon points='0,4 9,12 0,20 -9,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='0,7 5,12 0,17 -5,12' fill='%23e5b842'/%3E%3Cpolygon points='36,4 45,12 36,20 27,12' fill='none' stroke='%23d4af37' stroke-width='1.5'/%3E%3Cpolygon points='36,7 41,12 36,17 31,12' fill='%23e5b842'/%3E%3Cpolygon points='0,4 4.5,1 9,4' fill='%23997528'/%3E%3Cpolygon points='9,4 13.5,1 18,4' fill='%23d4af37'/%3E%3Cpolygon points='18,4 22.5,1 27,4' fill='%23d4af37'/%3E%3Cpolygon points='27,4 31.5,1 36,4' fill='%23997528'/%3E%3Cpolygon points='0,20 4.5,23 9,20' fill='%23997528'/%3E%3Cpolygon points='9,20 13.5,23 18,20' fill='%23d4af37'/%3E%3Cpolygon points='18,20 22.5,23 27,20' fill='%23d4af37'/%3E%3Cpolygon points='27,20 31.5,23 36,20' fill='%23997528'/%3E%3C/svg%3E");
+}
+
+/* ─── Top Ethnic Tribal Band (Proportional 36x24 Native Aspect Ratio) ─── */
+.tribalBorderTop {
+  width: calc(100% + 3rem);
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  margin-top: -1.5rem;
+  margin-bottom: 1.75rem;
+  height: 24px;
+  background-image: var(--doc-tribal-band);
+  background-repeat: repeat-x;
+  background-size: 36px 24px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border-radius: 16px 16px 0 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+}
+
+@media (max-width: 900px) {
+  .tribalBorderTop {
+    width: calc(100% + 2rem);
+    margin-left: -1rem;
+    margin-right: -1rem;
+    margin-top: -1rem;
+    margin-bottom: 1.25rem;
+    height: 20px;
+    background-size: 30px 20px;
+  }
+}
+
+/* ─── Master Container & Surface ─── */
+.docClassic,
+:global(.theme-dark) .container {
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.22) 0%, rgba(18, 3, 5, 0.98) 55%, #100204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(122, 18, 29, 0.2) !important;
+  color: #fff6e5 !important;
+  padding: 1.5rem !important;
+}
+
+/* Custom Velvet Scrollbar */
+.docClassic ::-webkit-scrollbar,
+:global(.theme-dark) .container ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.docClassic ::-webkit-scrollbar-track,
+:global(.theme-dark) .container ::-webkit-scrollbar-track {
+  background: #140306;
+}
+
+.docClassic ::-webkit-scrollbar-thumb,
+:global(.theme-dark) .container ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7a121d 0%, #4a050d 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 4px;
+}
+
+.docClassic ::-webkit-scrollbar-thumb:hover,
+:global(.theme-dark) .container ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9e1b29 0%, #7a121d 100%);
+  border-color: #d4af37;
+}
+
+/* ─── Header Banner ─── */
+.docClassic .headerWrap,
+:global(.theme-dark) .container .headerWrap {
+  background: linear-gradient(135deg, rgba(32, 6, 11, 0.95) 0%, rgba(18, 3, 5, 0.98) 60%, rgba(122, 18, 29, 0.25) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(212, 175, 55, 0.15) !important;
+  position: relative !important;
+  padding: 1.75rem 2rem !important;
+}
+
+.docClassic .headerWrap::before,
+:global(.theme-dark) .container .headerWrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #7a121d 0%, #d4af37 50%, #7a121d 100%);
+}
+
+.docClassic .eyebrowBadge,
+:global(.theme-dark) .container .eyebrowBadge {
+  display: inline-block;
+  background: rgba(74, 5, 13, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #ffea9f;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.5rem;
+}
+
+.docClassic .headerTitle,
+:global(.theme-dark) .container .headerTitle {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 2px 14px rgba(212, 175, 55, 0.2) !important;
+}
+
+.docClassic .headerSubtitle,
+:global(.theme-dark) .container .headerSubtitle {
+  color: #c9a9ad !important;
+}
+
+.docClassic .headerIcon,
+:global(.theme-dark) .container .headerIcon {
+  color: #d4af37 !important;
+  background: rgba(74, 5, 13, 0.7) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ─── Upload Card / Studio Surface ─── */
+.docClassic .uploadCard,
+:global(.theme-dark) .container section[style*="card"],
+:global(.theme-dark) .container .uploadCard {
+  background: linear-gradient(135deg, rgba(28, 5, 9, 0.9) 0%, rgba(18, 3, 5, 0.96) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65) !important;
+}
+
+.docClassic .uploadStepBox,
+:global(.theme-dark) .container .uploadStepBox {
+  background: rgba(18, 3, 5, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  border-radius: 12px !important;
+}
+
+.docClassic .stepBadge,
+:global(.theme-dark) .container .stepBadge {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 800 !important;
+}
+
+.docClassic .stepHeadline,
+:global(.theme-dark) .container .stepHeadline {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+.docClassic .brutalistFieldLabel,
+:global(.theme-dark) .container .brutalistFieldLabel {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+.docClassic .brutalistInput,
+:global(.theme-dark) .container .brutalistInput {
+  background: rgba(16, 2, 4, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #fff6e5 !important;
+  border-radius: 8px !important;
+}
+
+.docClassic .brutalistInput:focus,
+:global(.theme-dark) .container .brutalistInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.22) !important;
+}
+
+/* ─── Filter Bar & Category Chips ─── */
+.docClassic .brutalistChip,
+:global(.theme-dark) .container .brutalistChip {
+  background: rgba(24, 4, 7, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #c9a9ad !important;
+  font-family: 'Cinzel', serif !important;
+  border-radius: 9999px !important;
+  transition: all 0.18s ease !important;
+}
+
+.docClassic .brutalistChip:hover,
+:global(.theme-dark) .container .brutalistChip:hover {
+  background: rgba(74, 5, 13, 0.6) !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+}
+
+.docClassic .brutalistChipActive,
+:global(.theme-dark) .container .brutalistChipActive {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 2px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* ─── Action Buttons ─── */
+.docClassic .btnPrimary,
+:global(.theme-dark) .container .btnPrimary,
+:global(.theme-dark) .container button[style*="cursor: pointer"][style*="background"] {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25) !important;
+  border-radius: 8px !important;
+}
+
+.docClassic .btnPrimary:hover:not(:disabled),
+:global(.theme-dark) .container .btnPrimary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9e1b29 0%, #7a121d 100%) !important;
+  border-color: #ffea9f !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+}
+
+.docClassic .btnSecondary,
+:global(.theme-dark) .container .btnSecondary {
+  background: rgba(28, 5, 9, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  border-radius: 8px !important;
+}
+
+.docClassic .btnSecondary:hover,
+:global(.theme-dark) .container .btnSecondary:hover {
+  background: rgba(74, 5, 13, 0.85) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+/* ─── Document Rows & Cards ─── */
+.docClassic .docRow,
+:global(.theme-dark) .container .docRow {
+  background: linear-gradient(135deg, rgba(24, 4, 8, 0.92) 0%, rgba(14, 2, 4, 0.98) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.24) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45) !important;
+  transition: all 0.2s ease !important;
+}
+
+.docClassic .docRow:hover,
+:global(.theme-dark) .container .docRow:hover {
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(212, 175, 55, 0.2) !important;
+}
+
+.docClassic .docActionBtn,
+:global(.theme-dark) .container .docActionBtn {
+  background: rgba(74, 5, 13, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+  border-radius: 6px !important;
+}
+
+.docClassic .docActionBtn:hover,
+:global(.theme-dark) .container .docActionBtn:hover {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+/* ─── AI Status Badge Classic Overrides ─── */
+.docClassic .aiBadgeWrap,
+:global(.theme-dark) .container .aiBadgeWrap {
+  background: linear-gradient(135deg, rgba(28, 5, 9, 0.9) 0%, rgba(18, 3, 5, 0.95) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+.docClassic .aiBadgePill,
+:global(.theme-dark) .container .aiBadgePill {
+  background: rgba(74, 5, 13, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+}
+
+.docClassic .aiBadgeBar,
+:global(.theme-dark) .container .aiBadgeBar {
+  background: #140306 !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+.docClassic .aiBadgeFill,
+:global(.theme-dark) .container .aiBadgeFill {
+  background: linear-gradient(90deg, #7a121d 0%, #d4af37 100%) !important;
+  border-radius: 4px !important;
+}
+
+/* ─── Document Detail & Preview Modals (Classic Mode) ─── */
+.modalOverlay,
+:global(.theme-dark) .modalOverlay {
+  background: rgba(10, 2, 3, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  z-index: 1200 !important;
+}
+
+.modalBox,
+:global(.theme-dark) .modalBox {
+  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.35) 0%, rgba(18, 3, 5, 0.98) 60%, #120204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(122, 18, 29, 0.25) !important;
+  color: #fff6e5 !important;
+  border-radius: 16px !important;
+}
+
+.modalBox div[style*="borderBottom"],
+:global(.theme-dark) .modalBox div[style*="borderBottom"] {
+  background: rgba(28, 5, 9, 0.95) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+.modalBox h2,
+.modalBox h3,
+:global(.theme-dark) .modalBox h2,
+:global(.theme-dark) .modalBox h3 {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 50%, #D4AF37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.modalBox input,
+.modalBox textarea,
+.modalBox select,
+:global(.theme-dark) .modalBox input,
+:global(.theme-dark) .modalBox textarea,
+:global(.theme-dark) .modalBox select {
+  background: rgba(18, 3, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #fff6e5 !important;
+  border-radius: 8px !important;
+}
+
+.modalBox input:focus,
+.modalBox textarea:focus,
+.modalBox select:focus,
+:global(.theme-dark) .modalBox input:focus,
+:global(.theme-dark) .modalBox textarea:focus,
+:global(.theme-dark) .modalBox select:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25) !important;
+}
+
+.modalBox button:hover,
+:global(.theme-dark) .modalBox button:hover {
+  border-color: #d4af37 !important;
+}
+
+/* ─── Metric Stat Cards (Classic Royal Maroon & Gold) ─── */
+.docClassic .statBox,
+:global(.theme-dark) .container .statBox,
+:global(.theme-dark) .container div[style*="stat"] {
+  background: linear-gradient(135deg, rgba(28, 5, 9, 0.88) 0%, rgba(18, 3, 5, 0.95) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 14px !important;
+  padding: 1.15rem 1.35rem !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.12) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.docClassic .statBox:hover,
+:global(.theme-dark) .container .statBox:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(212, 175, 55, 0.22) !important;
+}
+
+.docClassic .statBoxLabel,
+:global(.theme-dark) .container .statBoxLabel {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  font-size: 0.76rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 0.35rem !important;
+  display: block !important;
+}
+
+.docClassic .statBoxVal,
+:global(.theme-dark) .container .statBoxVal {
+  font-family: 'Cinzel', Georgia, serif !important;
+  font-size: 2.1rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 2px 12px rgba(212, 175, 55, 0.2) !important;
+}
+
+
+
+

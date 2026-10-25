@@ -733,3 +733,174 @@
   border: 2px solid #0A0A0A !important;
 }
 
+/* =========================================================
+   ROYAL MAROON & IMPERIAL GOLD – DARK / CLASSIC THEME
+   Directives:
+   - Deep Velvet Maroon Canvas: #120305, #180407
+   - Imperial Gold Accents: #d4af37, #ffea9f, rgba(212, 175, 55, ...)
+   - Clean, elevated card containers with subtle glows
+   ========================================================= */
+:global(.theme-dark) .orgTab,
+:global(.theme-dark) .addOrgTab {
+  background: rgba(28, 5, 8, 0.88) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: rgba(255, 234, 159, 0.85) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+:global(.theme-dark) .orgTab:hover {
+  background: rgba(48, 8, 14, 0.95) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), 0 0 10px rgba(212, 175, 55, 0.15) !important;
+}
+
+:global(.theme-dark) .orgTabActive {
+  background: linear-gradient(135deg, #7a121d 0%, #4a080f 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 16px rgba(122, 18, 29, 0.6), 0 0 14px rgba(212, 175, 55, 0.28) !important;
+}
+
+:global(.theme-dark) .addOrgTab {
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  color: #d4af37 !important;
+}
+
+:global(.theme-dark) .addOrgTab:hover {
+  background: rgba(122, 18, 29, 0.25) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .orgTabFallback {
+  background: linear-gradient(135deg, #7a121d, #d4af37) !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .orgTabLogo {
+  background: rgba(18, 3, 6, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+/* Term Bar Container */
+:global(.theme-dark) .termBar {
+  background: rgba(24, 4, 7, 0.88) !important;
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+  border-radius: 12px !important;
+  padding: 0.75rem 1.25rem !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+:global(.theme-dark) .termLabel {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.08em !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-dark) .termSelect,
+:global(.theme-dark) .newTermInput {
+  background: rgba(16, 2, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .termSelect:focus,
+:global(.theme-dark) .newTermInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .termBadgeCurrent {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border: 1px solid rgba(52, 211, 153, 0.45) !important;
+  color: #6ee7b7 !important;
+}
+
+:global(.theme-dark) .termBadgeArchived {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .newTermBtn {
+  border-color: rgba(212, 175, 55, 0.45) !important;
+  color: #d4af37 !important;
+}
+
+:global(.theme-dark) .newTermBtn:hover {
+  background: rgba(122, 18, 29, 0.3) !important;
+  border-color: #d4af37 !important;
+}
+
+:global(.theme-dark) .setCurrentBtn {
+  background: linear-gradient(135deg, #7a121d 0%, #4a080f 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 4px 12px rgba(122, 18, 29, 0.5) !important;
+}
+
+:global(.theme-dark) .setCurrentBtnActive {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(52, 211, 153, 0.5) !important;
+  color: #6ee7b7 !important;
+}
+
+:global(.theme-dark) .archivedNotice {
+  background: rgba(38, 7, 12, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+:global(.theme-dark) .bannerLogo {
+  background: rgba(20, 3, 6, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.1) !important;
+}
+
+:global(.theme-dark) .bannerLogoFallback {
+  background: linear-gradient(135deg, #7a121d, #d4af37) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+:global(.theme-dark) .bannerEditBtn {
+  background: rgba(28, 5, 8, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .bannerEditBtn:hover {
+  background: rgba(48, 8, 14, 0.95) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .logoPreview {
+  background: rgba(16, 2, 5, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #d4af37 !important;
+}
+
+:global(.theme-dark) .wideInput {
+  background: rgba(16, 2, 5, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .sectionCard {
+  background: rgba(24, 4, 8, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+
+:global(.theme-dark) .miniInput,
+:global(.theme-dark) .miniSelect {
+  background: rgba(14, 2, 4, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffffff !important;
+}
+
