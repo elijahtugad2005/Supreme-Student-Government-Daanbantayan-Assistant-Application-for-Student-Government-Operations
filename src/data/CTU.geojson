@@ -1,0 +1,1683 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008002,
+                            11.267951,
+                            0
+                        ],
+                        [
+                            124.007745,
+                            11.265573,
+                            0
+                        ],
+                        [
+                            124.007686,
+                            11.265221,
+                            0
+                        ],
+                        [
+                            124.00914,
+                            11.264911,
+                            0
+                        ],
+                        [
+                            124.009268,
+                            11.264905,
+                            0
+                        ],
+                        [
+                            124.009333,
+                            11.265605,
+                            0
+                        ],
+                        [
+                            124.009435,
+                            11.266278,
+                            0
+                        ],
+                        [
+                            124.009504,
+                            11.266673,
+                            0
+                        ],
+                        [
+                            124.009579,
+                            11.267089,
+                            0
+                        ],
+                        [
+                            124.009622,
+                            11.267483,
+                            0
+                        ],
+                        [
+                            124.009641,
+                            11.267607,
+                            0
+                        ],
+                        [
+                            124.009663,
+                            11.267786,
+                            0
+                        ],
+                        [
+                            124.009048,
+                            11.267846,
+                            0
+                        ],
+                        [
+                            124.009055,
+                            11.267925,
+                            0
+                        ],
+                        [
+                            124.00908,
+                            11.268251,
+                            0
+                        ],
+                        [
+                            124.008002,
+                            11.267951,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "CTU Shape",
+                "styleUrl": "#poly-006064-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#006064",
+                "stroke-opacity": 1,
+                "stroke": "#006064",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008108,
+                            11.267067,
+                            0
+                        ],
+                        [
+                            124.008022,
+                            11.265878,
+                            0
+                        ],
+                        [
+                            124.00828,
+                            11.265625,
+                            0
+                        ],
+                        [
+                            124.008618,
+                            11.265657,
+                            0
+                        ],
+                        [
+                            124.008768,
+                            11.265893,
+                            0
+                        ],
+                        [
+                            124.008832,
+                            11.266925,
+                            0
+                        ],
+                        [
+                            124.008746,
+                            11.267151,
+                            0
+                        ],
+                        [
+                            124.00843,
+                            11.267188,
+                            0
+                        ],
+                        [
+                            124.008199,
+                            11.267146,
+                            0
+                        ],
+                        [
+                            124.008108,
+                            11.267067,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "CTU OVAL",
+                "styleUrl": "#poly-558B2F-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#558b2f",
+                "stroke-opacity": 1,
+                "stroke": "#558b2f",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    124.008598,
+                    11.267764,
+                    0
+                ]
+            },
+            "properties": {
+                "name": "QUADRANGLE",
+                "styleUrl": "#icon-1899-0288D1-nodesc",
+                "label-scale": 0,
+                "icon-scale": 1,
+                "icon-offset": [
+                    32,
+                    64
+                ],
+                "icon-offset-units": [
+                    "pixels",
+                    "insetPixels"
+                ],
+                "icon": "images/icon-1.png"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    124.009167,
+                    11.266954,
+                    0
+                ]
+            },
+            "properties": {
+                "name": "FOOD COURT",
+                "styleUrl": "#icon-1899-0288D1-nodesc",
+                "label-scale": 0,
+                "icon-scale": 1,
+                "icon-offset": [
+                    32,
+                    64
+                ],
+                "icon-offset-units": [
+                    "pixels",
+                    "insetPixels"
+                ],
+                "icon": "images/icon-1.png"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    124.009419,
+                    11.267159,
+                    0
+                ]
+            },
+            "properties": {
+                "name": "SSG",
+                "styleUrl": "#icon-1899-A52714-nodesc",
+                "label-scale": 0,
+                "icon-scale": 1,
+                "icon-offset": [
+                    32,
+                    64
+                ],
+                "icon-offset-units": [
+                    "pixels",
+                    "insetPixels"
+                ],
+                "icon": "images/icon-2.png"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    124.00826,
+                    11.267801,
+                    0
+                ]
+            },
+            "properties": {
+                "name": "ADMIN /MIS",
+                "styleUrl": "#icon-1899-FFD600-nodesc",
+                "label-scale": 0,
+                "icon-scale": 1,
+                "icon-offset": [
+                    32,
+                    64
+                ],
+                "icon-offset-units": [
+                    "pixels",
+                    "insetPixels"
+                ],
+                "icon": "images/icon-3.png"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    124.008947,
+                    11.266459,
+                    0
+                ]
+            },
+            "properties": {
+                "name": "MSR",
+                "styleUrl": "#icon-1899-0F9D58-nodesc",
+                "label-scale": 0,
+                "icon-scale": 1,
+                "icon-offset": [
+                    32,
+                    64
+                ],
+                "icon-offset-units": [
+                    "pixels",
+                    "insetPixels"
+                ],
+                "icon": "images/icon-4.png"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    124.00923,
+                    11.26655,
+                    0
+                ]
+            },
+            "properties": {
+                "name": "Kalambuan Gym",
+                "styleUrl": "#icon-1899-01579B-nodesc",
+                "label-scale": 0,
+                "icon-scale": 1,
+                "icon-offset": [
+                    32,
+                    64
+                ],
+                "icon-offset-units": [
+                    "pixels",
+                    "insetPixels"
+                ],
+                "icon": "images/icon-5.png"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008123,
+                            11.267247,
+                            0
+                        ],
+                        [
+                            124.008137,
+                            11.267159,
+                            0
+                        ],
+                        [
+                            124.008403,
+                            11.267226,
+                            0
+                        ],
+                        [
+                            124.008384,
+                            11.267348,
+                            0
+                        ],
+                        [
+                            124.008133,
+                            11.267302,
+                            0
+                        ],
+                        [
+                            124.008123,
+                            11.267247,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "HM Faculty Building",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008391,
+                            11.267369,
+                            0
+                        ],
+                        [
+                            124.008431,
+                            11.267239,
+                            0
+                        ],
+                        [
+                            124.008623,
+                            11.267288,
+                            0
+                        ],
+                        [
+                            124.00863,
+                            11.267273,
+                            0
+                        ],
+                        [
+                            124.008791,
+                            11.267319,
+                            0
+                        ],
+                        [
+                            124.008789,
+                            11.267336,
+                            0
+                        ],
+                        [
+                            124.008997,
+                            11.267377,
+                            0
+                        ],
+                        [
+                            124.008953,
+                            11.267518,
+                            0
+                        ],
+                        [
+                            124.00875,
+                            11.267464,
+                            0
+                        ],
+                        [
+                            124.008753,
+                            11.267447,
+                            0
+                        ],
+                        [
+                            124.008595,
+                            11.267405,
+                            0
+                        ],
+                        [
+                            124.008579,
+                            11.26742,
+                            0
+                        ],
+                        [
+                            124.008391,
+                            11.267369,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Education Building 1",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008304,
+                            11.267671,
+                            0
+                        ],
+                        [
+                            124.008379,
+                            11.267424,
+                            0
+                        ],
+                        [
+                            124.008442,
+                            11.267426,
+                            0
+                        ],
+                        [
+                            124.008514,
+                            11.267473,
+                            0
+                        ],
+                        [
+                            124.008446,
+                            11.267711,
+                            0
+                        ],
+                        [
+                            124.008304,
+                            11.267671,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Education Building 2",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008726,
+                            11.267786,
+                            0
+                        ],
+                        [
+                            124.008805,
+                            11.267492,
+                            0
+                        ],
+                        [
+                            124.008858,
+                            11.2675,
+                            0
+                        ],
+                        [
+                            124.008844,
+                            11.267542,
+                            0
+                        ],
+                        [
+                            124.008872,
+                            11.267537,
+                            0
+                        ],
+                        [
+                            124.008938,
+                            11.267578,
+                            0
+                        ],
+                        [
+                            124.00887,
+                            11.267818,
+                            0
+                        ],
+                        [
+                            124.008726,
+                            11.267786,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Education Building 3/ OLD MIS Office",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008133,
+                            11.267876,
+                            0
+                        ],
+                        [
+                            124.008123,
+                            11.267834,
+                            0
+                        ],
+                        [
+                            124.008175,
+                            11.267676,
+                            0
+                        ],
+                        [
+                            124.008386,
+                            11.267743,
+                            0
+                        ],
+                        [
+                            124.008367,
+                            11.267797,
+                            0
+                        ],
+                        [
+                            124.008418,
+                            11.267809,
+                            0
+                        ],
+                        [
+                            124.008383,
+                            11.267952,
+                            0
+                        ],
+                        [
+                            124.008133,
+                            11.267876,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Polygon 5",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008564,
+                            11.268019,
+                            0
+                        ],
+                        [
+                            124.008577,
+                            11.267963,
+                            0
+                        ],
+                        [
+                            124.008665,
+                            11.267992,
+                            0
+                        ],
+                        [
+                            124.008646,
+                            11.268045,
+                            0
+                        ],
+                        [
+                            124.008564,
+                            11.268019,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "GAD OFFICE",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008632,
+                            11.268096,
+                            0
+                        ],
+                        [
+                            124.008651,
+                            11.268023,
+                            0
+                        ],
+                        [
+                            124.008741,
+                            11.268047,
+                            0
+                        ],
+                        [
+                            124.008722,
+                            11.268122,
+                            0
+                        ],
+                        [
+                            124.008632,
+                            11.268096,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "GAD Comfort Room",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008849,
+                            11.26816,
+                            0
+                        ],
+                        [
+                            124.008864,
+                            11.268132,
+                            0
+                        ],
+                        [
+                            124.008912,
+                            11.268147,
+                            0
+                        ],
+                        [
+                            124.008899,
+                            11.268176,
+                            0
+                        ],
+                        [
+                            124.008849,
+                            11.26816,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Guard House",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008957,
+                            11.268144,
+                            0
+                        ],
+                        [
+                            124.008969,
+                            11.26791,
+                            0
+                        ],
+                        [
+                            124.009069,
+                            11.267896,
+                            0
+                        ],
+                        [
+                            124.009072,
+                            11.268155,
+                            0
+                        ],
+                        [
+                            124.008957,
+                            11.268144,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Polygon 9",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009095,
+                            11.26783,
+                            0
+                        ],
+                        [
+                            124.009085,
+                            11.267704,
+                            0
+                        ],
+                        [
+                            124.009418,
+                            11.267679,
+                            0
+                        ],
+                        [
+                            124.009428,
+                            11.267799,
+                            0
+                        ],
+                        [
+                            124.009095,
+                            11.26783,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "BIT AUTO CLASS ROOM",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009428,
+                            11.267799,
+                            0
+                        ],
+                        [
+                            124.009418,
+                            11.267679,
+                            0
+                        ],
+                        [
+                            124.009576,
+                            11.267654,
+                            0
+                        ],
+                        [
+                            124.009575,
+                            11.267621,
+                            0
+                        ],
+                        [
+                            124.009635,
+                            11.267616,
+                            0
+                        ],
+                        [
+                            124.009663,
+                            11.267786,
+                            0
+                        ],
+                        [
+                            124.009428,
+                            11.267799,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "BSIT / Cultural / Inventory Office",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009422,
+                            11.267607,
+                            0
+                        ],
+                        [
+                            124.009408,
+                            11.267491,
+                            0
+                        ],
+                        [
+                            124.009485,
+                            11.267477,
+                            0
+                        ],
+                        [
+                            124.009498,
+                            11.267596,
+                            0
+                        ],
+                        [
+                            124.009422,
+                            11.267607,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "OLD SHED STAGE",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008386,
+                            11.267939,
+                            0
+                        ],
+                        [
+                            124.008544,
+                            11.267427,
+                            0
+                        ],
+                        [
+                            124.008793,
+                            11.267499,
+                            0
+                        ],
+                        [
+                            124.008726,
+                            11.267786,
+                            0
+                        ],
+                        [
+                            124.008721,
+                            11.26788,
+                            0
+                        ],
+                        [
+                            124.008705,
+                            11.267922,
+                            0
+                        ],
+                        [
+                            124.008643,
+                            11.267922,
+                            0
+                        ],
+                        [
+                            124.008634,
+                            11.267955,
+                            0
+                        ],
+                        [
+                            124.008575,
+                            11.267948,
+                            0
+                        ],
+                        [
+                            124.008556,
+                            11.267998,
+                            0
+                        ],
+                        [
+                            124.008386,
+                            11.267939,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Quadrangle",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009055,
+                            11.267439,
+                            0
+                        ],
+                        [
+                            124.009044,
+                            11.267318,
+                            0
+                        ],
+                        [
+                            124.009256,
+                            11.267301,
+                            0
+                        ],
+                        [
+                            124.009375,
+                            11.267297,
+                            0
+                        ],
+                        [
+                            124.009385,
+                            11.267432,
+                            0
+                        ],
+                        [
+                            124.009055,
+                            11.267439,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Library / Laboratory",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009231,
+                            11.267292,
+                            0
+                        ],
+                        [
+                            124.009217,
+                            11.267111,
+                            0
+                        ],
+                        [
+                            124.009349,
+                            11.267106,
+                            0
+                        ],
+                        [
+                            124.009367,
+                            11.26729,
+                            0
+                        ],
+                        [
+                            124.009231,
+                            11.267292,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "TMF/E Library and Graduation Room",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009406,
+                            11.267414,
+                            0
+                        ],
+                        [
+                            124.009394,
+                            11.267259,
+                            0
+                        ],
+                        [
+                            124.009461,
+                            11.267251,
+                            0
+                        ],
+                        [
+                            124.009484,
+                            11.267405,
+                            0
+                        ],
+                        [
+                            124.009406,
+                            11.267414,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "Student Lounge",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009383,
+                            11.267213,
+                            0
+                        ],
+                        [
+                            124.009373,
+                            11.267125,
+                            0
+                        ],
+                        [
+                            124.009445,
+                            11.26712,
+                            0
+                        ],
+                        [
+                            124.009458,
+                            11.267209,
+                            0
+                        ],
+                        [
+                            124.009383,
+                            11.267213,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "SSG OFFICE",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009511,
+                            11.267492,
+                            0
+                        ],
+                        [
+                            124.009444,
+                            11.26698,
+                            0
+                        ],
+                        [
+                            124.009513,
+                            11.266958,
+                            0
+                        ],
+                        [
+                            124.00956,
+                            11.266965,
+                            0
+                        ],
+                        [
+                            124.009622,
+                            11.267483,
+                            0
+                        ],
+                        [
+                            124.009511,
+                            11.267492,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "HM CLASSROOMS",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.00898,
+                            11.267086,
+                            0
+                        ],
+                        [
+                            124.008964,
+                            11.266865,
+                            0
+                        ],
+                        [
+                            124.009315,
+                            11.266847,
+                            0
+                        ],
+                        [
+                            124.009332,
+                            11.267057,
+                            0
+                        ],
+                        [
+                            124.00898,
+                            11.267086,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "FOOD COURT",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008972,
+                            11.266794,
+                            0
+                        ],
+                        [
+                            124.008951,
+                            11.266594,
+                            0
+                        ],
+                        [
+                            124.009026,
+                            11.266592,
+                            0
+                        ],
+                        [
+                            124.009042,
+                            11.266799,
+                            0
+                        ],
+                        [
+                            124.008972,
+                            11.266794,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "CANTEEN",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009101,
+                            11.266725,
+                            0
+                        ],
+                        [
+                            124.009063,
+                            11.266314,
+                            0
+                        ],
+                        [
+                            124.009302,
+                            11.266312,
+                            0
+                        ],
+                        [
+                            124.009334,
+                            11.266696,
+                            0
+                        ],
+                        [
+                            124.00935,
+                            11.266788,
+                            0
+                        ],
+                        [
+                            124.009152,
+                            11.266801,
+                            0
+                        ],
+                        [
+                            124.009141,
+                            11.26674,
+                            0
+                        ],
+                        [
+                            124.009101,
+                            11.266725,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "KALAMBUAN GYM",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        124.009366,
+                        11.266613,
+                        0
+                    ],
+                    [
+                        124.009345,
+                        11.266387,
+                        0
+                    ],
+                    [
+                        124.009399,
+                        11.266376,
+                        0
+                    ],
+                    [
+                        124.009444,
+                        11.266381,
+                        0
+                    ],
+                    [
+                        124.009482,
+                        11.266642,
+                        0
+                    ],
+                    [
+                        124.009377,
+                        11.266673,
+                        0
+                    ],
+                    [
+                        124.009372,
+                        11.266592,
+                        0
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "MAINTENANCE",
+                "styleUrl": "#line-000000-1200-nodesc",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009302,
+                            11.266239,
+                            0
+                        ],
+                        [
+                            124.00921,
+                            11.265603,
+                            0
+                        ],
+                        [
+                            124.009333,
+                            11.265605,
+                            0
+                        ],
+                        [
+                            124.009412,
+                            11.266221,
+                            0
+                        ],
+                        [
+                            124.009302,
+                            11.266239,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "TECHNOLOGY BUILDING",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009248,
+                            11.265979,
+                            0
+                        ],
+                        [
+                            124.008953,
+                            11.266021,
+                            0
+                        ],
+                        [
+                            124.008966,
+                            11.266302,
+                            0
+                        ],
+                        [
+                            124.008886,
+                            11.2663,
+                            0
+                        ],
+                        [
+                            124.00887,
+                            11.26601,
+                            0
+                        ],
+                        [
+                            124.008867,
+                            11.265942,
+                            0
+                        ],
+                        [
+                            124.00924,
+                            11.265895,
+                            0
+                        ],
+                        [
+                            124.009248,
+                            11.265979,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "BSIT MSR",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.008972,
+                            11.266794,
+                            0
+                        ],
+                        [
+                            124.008889,
+                            11.266802,
+                            0
+                        ],
+                        [
+                            124.008886,
+                            11.2663,
+                            0
+                        ],
+                        [
+                            124.008966,
+                            11.266302,
+                            0
+                        ],
+                        [
+                            124.008972,
+                            11.266794,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "BIT MSR",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.009042,
+                            11.266799,
+                            0
+                        ],
+                        [
+                            124.00902,
+                            11.266372,
+                            0
+                        ],
+                        [
+                            124.009068,
+                            11.266369,
+                            0
+                        ],
+                        [
+                            124.009103,
+                            11.266802,
+                            0
+                        ],
+                        [
+                            124.009042,
+                            11.266799,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "FISHIRIES MSR",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            124.00891,
+                            11.267353,
+                            0
+                        ],
+                        [
+                            124.008889,
+                            11.266802,
+                            0
+                        ],
+                        [
+                            124.008972,
+                            11.266794,
+                            0
+                        ],
+                        [
+                            124.008997,
+                            11.267377,
+                            0
+                        ],
+                        [
+                            124.00891,
+                            11.267353,
+                            0
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "name": "IE MSR",
+                "styleUrl": "#poly-000000-1200-77-nodesc",
+                "fill-opacity": 0.30196078431372547,
+                "fill": "#000000",
+                "stroke-opacity": 1,
+                "stroke": "#000000",
+                "stroke-width": 1.2
+            }
+        }
+    ]
+}
