@@ -63,9 +63,19 @@ function DocumentDetailModalContent({
   // Local editable form state
   const [formData, setFormData] = useState(() => ({
     title: doc?.title || '',
-    description: doc?.description || doc?.subject || doc?.agenda || '',
+    documentNumber: doc?.documentNumber || '',
+    description: doc?.description || '',
     labels: Array.isArray(doc?.labels) ? [...doc.labels] : [],
   }));
+
+  // Current document status, responsive to signatory signing
+  const [currentStatus, setCurrentStatus] = useState(() => doc?.status || 'pending');
+
+  useEffect(() => {
+    if (doc?.status) {
+      setCurrentStatus(doc.status);
+    }
+  }, [doc?.status]);
 
   // Local signatories checklist state
   const [localSignatures, setLocalSignatures] = useState(() => {
@@ -80,6 +90,7 @@ function DocumentDetailModalContent({
       id: s.id || idx,
       name: s.name || 'Unnamed Official',
       position: s.position || s.role || 'Signatory',
+      required: s.required !== false,
       status: s.status === 'signed' || s.signed ? 'signed' : 'pending',
       signedAt: s.signedAt || null,
     }));
@@ -91,9 +102,11 @@ function DocumentDetailModalContent({
     if (doc) {
       setFormData({
         title: doc.title || '',
-        description: doc.description || doc.subject || doc.agenda || '',
+        documentNumber: doc.documentNumber || '',
+        description: doc.description || '',
         labels: Array.isArray(doc.labels) ? [...doc.labels] : [],
       });
+      setCurrentStatus(doc.status || 'pending');
 
       // Extract signatories list from doc signatureChecklist, signatures, aiExtraction, or aiSuggestion
       const rawSignatures =
@@ -108,6 +121,7 @@ function DocumentDetailModalContent({
           id: s.id || idx,
           name: s.name || 'Unnamed Official',
           position: s.position || s.role || 'Signatory',
+          required: s.required !== false,
           status: s.status === 'signed' || s.signed ? 'signed' : 'pending',
           signedAt: s.signedAt || null,
         }))
@@ -139,17 +153,36 @@ function DocumentDetailModalContent({
     };
     setLocalSignatures(updated);
 
+    // Optimistically update status if all are signed
+    const allSigned = updated.length > 0 && updated.every((s) => s.status === 'signed');
+    if (allSigned) {
+      setCurrentStatus('approved');
+    } else if (currentStatus === 'approved') {
+      setCurrentStatus('pending');
+    }
+
     setSigningIdx(index);
     try {
-      await recordSignature(doc.id, index, nextSigned, {
+      const result = await recordSignature(doc.id, index, nextSigned, {
         signedByName: target.name,
       });
+      if (result?.status) {
+        setCurrentStatus(result.status);
+      } else if (result?.complete || allSigned) {
+        setCurrentStatus('approved');
+      }
       if (onSay) {
-        onSay('info', `${target.position || target.name} marked as ${nextSigned ? 'signed' : 'pending'}.`);
+        onSay(
+          'info',
+          `${target.position || target.name} marked as ${nextSigned ? 'signed' : 'pending'}.${
+            allSigned || result?.complete ? ' Document is now Approved!' : ''
+          }`
+        );
       }
     } catch (err) {
       // Revert if failed
       setLocalSignatures(localSignatures);
+      setCurrentStatus(doc?.status || 'pending');
       if (onSay) {
         onSay('error', `Failed to update signatory: ${err.message}`);
       }
@@ -172,7 +205,9 @@ function DocumentDetailModalContent({
       title: formData.title.trim(),
       description: formData.description.trim(),
       labels: formData.labels,
-      documentNumber: doc.documentNumber || autoDocId,
+      documentNumber: (formData.documentNumber || doc.documentNumber || '').trim(),
+      status: currentStatus,
+      signatureChecklist: localSignatures,
     });
   };
 
@@ -187,8 +222,8 @@ function DocumentDetailModalContent({
                 <HiIdentification style={{ fontSize: '1rem', color: T.accent }} />
                 <span>{autoDocId}</span>
               </span>
-              <span style={statusPill(doc.status === 'approved' ? 'success' : doc.status === 'under_review' ? 'warning' : 'info')}>
-                {doc.status ? doc.status.toUpperCase() : 'PENDING'}
+              <span style={statusPill(currentStatus === 'approved' ? 'success' : currentStatus === 'under_review' ? 'warning' : 'info')}>
+                {currentStatus ? currentStatus.toUpperCase() : 'PENDING'}
               </span>
               {doc.aiState && (
                 <span style={modalStyles.aiPill}>
@@ -254,6 +289,18 @@ function DocumentDetailModalContent({
               <p style={modalStyles.summaryParagraph}>
                 {institutionalSummary}
               </p>
+              {doc.subject && (
+                <div style={modalStyles.subMetaRow}>
+                  <span style={modalStyles.subMetaLabel}>Subject:</span>
+                  <span style={modalStyles.subMetaVal}>{doc.subject}</span>
+                </div>
+              )}
+              {doc.agenda && (
+                <div style={modalStyles.subMetaRow}>
+                  <span style={modalStyles.subMetaLabel}>Agenda:</span>
+                  <span style={modalStyles.subMetaVal}>{doc.agenda}</span>
+                </div>
+              )}
               {doc.office && (
                 <div style={modalStyles.subMetaRow}>
                   <span style={modalStyles.subMetaLabel}>Originating Office:</span>
@@ -372,6 +419,17 @@ function DocumentDetailModalContent({
             </div>
 
             <div style={modalStyles.formGroup}>
+              <label style={modalStyles.fieldLabel}>Document Number (Optional)</label>
+              <input
+                type="text"
+                value={formData.documentNumber}
+                onChange={(e) => setFormData({ ...formData, documentNumber: e.target.value })}
+                placeholder="Official reference or resolution number (e.g. RES-2026-001)"
+                style={modalStyles.textInput}
+              />
+            </div>
+
+            <div style={modalStyles.formGroup}>
               <label style={modalStyles.fieldLabel}>Document Labels</label>
               <div style={modalStyles.labelsContainer}>
                 {labels.filter((l) => l.active !== false).map((label) => {
@@ -395,12 +453,12 @@ function DocumentDetailModalContent({
             </div>
 
             <div style={modalStyles.formGroup}>
-              <label style={modalStyles.fieldLabel}>Description / Agenda</label>
+              <label style={modalStyles.fieldLabel}>Description / Notes</label>
               <textarea
                 rows={4}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Provide details regarding the agenda, background, or rationale for this document..."
+                placeholder="Provide details regarding the background, rationale, or notes for this document..."
                 style={modalStyles.textArea}
               />
             </div>

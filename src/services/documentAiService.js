@@ -208,26 +208,40 @@ const fileToBase64 = async (file) => {
  * content with the request removes that dependency and keeps analysis working
  * before any bucket is provisioned.
  */
+// In-flight deduplication cache to guarantee a document is never analyzed twice concurrently
+const inFlightAnalyses = new Map();
+
 export const analyzeDocumentContent = async (documentId, file) => {
-  let inline = null;
+  if (inFlightAnalyses.has(documentId)) {
+    return inFlightAnalyses.get(documentId);
+  }
 
-  if (file && file.size <= MAX_INLINE_BYTES) {
-    const base64 = await fileToBase64(file);
-    if (base64) {
-      inline = { base64, mimeType: file.type || 'application/octet-stream', name: file.name };
+  const promise = (async () => {
+    let inline = null;
+
+    if (file && file.size <= MAX_INLINE_BYTES) {
+      const base64 = await fileToBase64(file);
+      if (base64) {
+        inline = { base64, mimeType: file.type || 'application/octet-stream', name: file.name };
+      }
     }
-  }
 
-  try {
-    const { data } = await callable('analyzeDocument')({
-      documentId,
-      ...(inline ? { fileContent: inline } : {}),
-    });
-    return data;
-  } catch (error) {
-    captureQuotaError(error);
-    throw error;
-  }
+    try {
+      const { data } = await callable('analyzeDocument')({
+        documentId,
+        ...(inline ? { fileContent: inline } : {}),
+      });
+      return data;
+    } catch (error) {
+      captureQuotaError(error);
+      throw error;
+    }
+  })().finally(() => {
+    inFlightAnalyses.delete(documentId);
+  });
+
+  inFlightAnalyses.set(documentId, promise);
+  return promise;
 };
 
 /**
@@ -252,54 +266,65 @@ export const checkAiStatus = async () => {
 };
 
 export const analyzeOne = async (documentId, options = {}) => {
-  const provider = options.preferredProvider || options.provider || 'auto';
-
-  // Only block if explicitly targeting Gemini and quota is blocked
-  if (provider === 'gemini' && secondsUntilReset() !== null) {
-    const err = new Error("Gemini's daily allowance is used up. Try again after the reset or switch provider to OpenRouter.");
-    err.quotaBlocked = true;
-    throw err;
+  if (inFlightAnalyses.has(documentId)) {
+    return inFlightAnalyses.get(documentId);
   }
-  try {
-    let inline = null;
+
+  const promise = (async () => {
+    const provider = options.preferredProvider || options.provider || 'auto';
+
+    // Only block if explicitly targeting Gemini and quota is blocked
+    if (provider === 'gemini' && secondsUntilReset() !== null) {
+      const err = new Error("Gemini's daily allowance is used up. Try again after the reset or switch provider to OpenRouter.");
+      err.quotaBlocked = true;
+      throw err;
+    }
     try {
-      const { doc, getDoc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/firebaseConfig.js');
-      const snap = await getDoc(doc(db, 'documents', documentId));
-      if (snap.exists()) {
-        const d = snap.data();
-        if ((d.storageType === 'local' || !d.storageType) && d.storagePath) {
-          const { localStore } = await import('./fileStore/localStore.js');
-          const blob = await localStore.get(d.storagePath);
-          if (blob && blob.size <= MAX_INLINE_BYTES) {
-            const base64 = await fileToBase64(blob);
-            if (base64) {
-              inline = {
-                base64,
-                mimeType: blob.type || d.mimeType || 'application/pdf',
-                name: d.originalFileName || d.title || 'document.pdf',
-              };
+      let inline = null;
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../firebase/firebaseConfig.js');
+        const snap = await getDoc(doc(db, 'documents', documentId));
+        if (snap.exists()) {
+          const d = snap.data();
+          if ((d.storageType === 'local' || !d.storageType) && d.storagePath) {
+            const { localStore } = await import('./fileStore/localStore.js');
+            const blob = await localStore.get(d.storagePath);
+            if (blob && blob.size <= MAX_INLINE_BYTES) {
+              const base64 = await fileToBase64(blob);
+              if (base64) {
+                inline = {
+                  base64,
+                  mimeType: blob.type || d.mimeType || 'application/pdf',
+                  name: d.originalFileName || d.title || 'document.pdf',
+                };
+              }
             }
           }
         }
+      } catch (readErr) {
+        console.warn('[analyzeOne] Could not preload local file binary:', readErr);
       }
-    } catch (readErr) {
-      console.warn('[analyzeOne] Could not preload local file binary:', readErr);
-    }
 
-    const { data } = await callable('analyzeDocument')({
-      documentId,
-      provider,
-      preferredProvider: provider,
-      ...(inline ? { fileContent: inline } : {}),
-    });
-    return data;
-  } catch (error) {
-    if (provider !== 'openrouter') {
-      captureQuotaError(error);
+      const { data } = await callable('analyzeDocument')({
+        documentId,
+        provider,
+        preferredProvider: provider,
+        ...(inline ? { fileContent: inline } : {}),
+      });
+      return data;
+    } catch (error) {
+      if (provider !== 'openrouter') {
+        captureQuotaError(error);
+      }
+      throw error;
     }
-    throw error;
-  }
+  })().finally(() => {
+    inFlightAnalyses.delete(documentId);
+  });
+
+  inFlightAnalyses.set(documentId, promise);
+  return promise;
 };
 
 /**
@@ -366,11 +391,13 @@ export const recordSignature = async (documentId, index, signed, options = {}) =
       recordedNote: String(options.note || '').trim() || null,
     };
 
-    const requiredTotal = checklist.filter((s) => s.required).length;
-    const requiredPending = checklist.filter((s) => s.required && s.status !== 'signed').length;
+    const requiredTotal = checklist.filter((s) => s.required !== false).length || checklist.length;
+    const requiredPending = checklist.filter((s) => (s.required !== false) && s.status !== 'signed').length;
     const signedCount = checklist.filter((s) => s.status === 'signed').length;
-    const progress = requiredTotal === 0 ? 0 : Math.round(((requiredTotal - requiredPending) / requiredTotal) * 100);
-    const complete = requiredTotal > 0 && requiredPending === 0;
+    const progress = requiredTotal === 0
+      ? (checklist.length > 0 && signedCount === checklist.length ? 100 : 0)
+      : Math.round(((requiredTotal - requiredPending) / requiredTotal) * 100);
+    const complete = (requiredTotal > 0 && requiredPending === 0) || (checklist.length > 0 && signedCount === checklist.length);
 
     const signatureSummary = {
       total: checklist.length,
@@ -392,13 +419,13 @@ export const recordSignature = async (documentId, index, signed, options = {}) =
       signatureChecklist: checklist,
       signatures: checklist,
       signatureSummary,
-      status: complete ? 'approved' : docData.status || 'pending',
+      status: complete ? 'approved' : docData.status === 'approved' ? 'pending' : (docData.status || 'pending'),
       updatedAt: serverTimestamp(),
       updatedBy: currentUser?.uid || null,
     };
 
     await updateDoc(docRef, updates);
-    return { ok: true, index, progress, complete, signedCount, requiredTotal };
+    return { ok: true, index, progress, complete, signedCount, requiredTotal, status: updates.status };
   }
 };
 

@@ -65,7 +65,7 @@
 @media (max-width: 768px) {
   .mainContent {
     padding: 0;
-    margin-top: 5.5rem; /* Match tablet header height */
+    margin-top: 4.5rem; /* Match mobile/tablet fixed header height */
     flex-direction: column;
   }
 
@@ -86,7 +86,7 @@
 /* Extra Small Devices */
 @media (max-width: 480px) {
   .mainContent {
-    margin-top: 8rem; /* Match mobile header height (stacked layout) */
+    margin-top: 4.25rem; /* Match compact phone fixed header height */
   }
   
   .contentWrapper > .container {

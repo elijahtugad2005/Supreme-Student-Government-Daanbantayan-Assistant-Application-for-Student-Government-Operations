@@ -1071,31 +1071,47 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
               </article>
             )}
 
-            {/* Remaining items — list style */}
+            {/* Remaining items — modular list cards */}
             <div className={styles.announcementList}>
               {announcements.slice(1).map((ann) => (
                 <article
                   key={ann.id}
-                  className={styles.announcementListItem}
-                  onClick={() => setExpandedId(expandedID === ann.id ? null : ann.id)}
+                  className={`${styles.announcementListItem} ${expandedID === ann.id ? styles.announcementListItemExpanded : ''}`}
                 >
-                  <div className={styles.announcementListLeft}>
-                    {ann.imageBase64 && (
-                      <div className={styles.announcementListThumb}>
-                        <img src={ann.imageBase64} alt={ann.title}
-                          onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }} />
+                  <div
+                    className={styles.announcementItemHeader}
+                    onClick={() => setExpandedId(expandedID === ann.id ? null : ann.id)}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={expandedID === ann.id}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setExpandedId(expandedID === ann.id ? null : ann.id);
+                      }
+                    }}
+                  >
+                    <div className={styles.announcementListLeft}>
+                      {ann.imageBase64 && (
+                        <div className={styles.announcementListThumb}>
+                          <img
+                            src={ann.imageBase64}
+                            alt={ann.title}
+                            onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                          />
+                        </div>
+                      )}
+                      <div className={styles.announcementListMeta}>
+                        <span className={styles.announcementCategory}>{getCategoryLabel(ann.category)}</span>
+                        <h4 className={styles.announcementListTitle}>{ann.title}</h4>
+                        <p className={styles.announcementDateLine}>
+                          <em>{formatDate(ann.eventDate)}{ann.eventTime ? ` · ${ann.eventTime}` : ''}</em>
+                        </p>
                       </div>
-                    )}
-                    <div className={styles.announcementListMeta}>
-                      <span className={styles.announcementCategory}>{getCategoryLabel(ann.category)}</span>
-                      <h4 className={styles.announcementListTitle}>{ann.title}</h4>
-                      <p className={styles.announcementDateLine}>
-                        <em>{formatDate(ann.eventDate)}{ann.eventTime ? ` · ${ann.eventTime}` : ''}</em>
-                      </p>
                     </div>
-                  </div>
-                  <div className={styles.announcementListToggle}>
-                    {expandedID === ann.id ? '−' : '+'}
+                    <div className={styles.announcementListToggle} aria-label="Toggle details">
+                      <span>{expandedID === ann.id ? '−' : '+'}</span>
+                    </div>
                   </div>
 
                   {expandedID === ann.id && (
@@ -1107,6 +1123,20 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
                 </article>
               ))}
             </div>
+          </div>
+        )}
+
+        {announcements.length > 0 && (
+          <div className={styles.announcementsFooterAction}>
+            <button
+              type="button"
+              className={styles.viewAllAnnouncementsBtn}
+              onClick={() => navigate('/announcement')}
+              aria-label="View all campus announcements and bulletins"
+            >
+              <span>VIEW COMPLETE BULLETIN ARCHIVE</span>
+              <FiArrowRight className={styles.archiveArrow} />
+            </button>
           </div>
         )}
       </section>

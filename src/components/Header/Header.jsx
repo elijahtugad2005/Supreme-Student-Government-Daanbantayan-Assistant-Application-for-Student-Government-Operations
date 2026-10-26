@@ -89,6 +89,9 @@ function Header({ sidebarOpen, toggleSidebar }) {
           <span className={styles.campusLocation}>Agujo, Daanbantayan, Cebu</span>
         </div>
       </div>
+
+      {/* Symmetrical mobile balancer element */}
+      <div className={styles.headerSpacerRight} aria-hidden="true" />
     </header>
   );
 }

@@ -6,7 +6,7 @@
 // Suggestions live under `aiSuggestion` until someone ticks the boxes and
 // presses Confirm, and a disagreement is recorded as a correction even when the
 // end label happens to match.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ITEM_STATE,
   aiSupported,
@@ -65,12 +65,13 @@ const PROVIDER_LABEL = {
   openrouter: 'OpenRouter',
 };
 
-export default function DocumentAnalysis({ document, labels, onMessage, autoAnalysing = false }) {
+export default function DocumentAnalysis({ document, labels, onMessage, autoAnalysing = false, onAnalyzed }) {
   const [status, setStatus] = useState(null);
   const [queueState, setQueueState] = useState(null);
   const [selected, setSelected] = useState({});
   const [overrides, setOverrides] = useState({});
   const [busy, setBusy] = useState(false);
+  const isAnalyzingRef = useRef(false);
   // Which row is mid-save. Separate from `busy` so one in-flight signature does
   // not lock the whole panel.
   const [signingIndex, setSigningIndex] = useState(-1);
@@ -106,7 +107,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     }
     const interval = setInterval(() => {
       setActiveStageIndex((prev) => (prev < ANALYSIS_STAGES.length - 1 ? prev + 1 : prev));
-    }, 1100);
+    }, 2000);
     return () => clearInterval(interval);
   }, [isAnalyzing, ANALYSIS_STAGES.length]);
 
@@ -177,23 +178,24 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     return () => clearInterval(timer);
   }, []);
 
+  const seededDocKeyRef = useRef(null);
+
   // Seed the tick-boxes whenever suggestion or extraction is available
   useEffect(() => {
     if (!suggestion && !extraction) return;
-    setSelected((prev) => {
-      // If user has already made manual selections, don't clobber them
-      const hasAnyPrior = Object.values(prev || {}).some(Boolean);
-      const seeded = { ...prev };
-      let newlyAdded = false;
+    const currentKey = `${document.id}_${document.aiProcessedAt || ''}_${document.aiState || ''}`;
+    if (seededDocKeyRef.current === currentKey) return;
+
+    setSelected(() => {
+      const seeded = {};
       FIELDS.forEach((f) => {
         const value = f.key === 'documentType' ? suggestion?.documentTypeLabel : extraction?.[f.key];
-        const hasVal = Boolean(fmt(value));
-        if (hasVal && (prev[f.key] === undefined || !hasAnyPrior)) {
+        if (Boolean(fmt(value))) {
           seeded[f.key] = true;
-          newlyAdded = true;
         }
       });
-      return newlyAdded || !hasAnyPrior ? seeded : prev;
+      seededDocKeyRef.current = currentKey;
+      return seeded;
     });
   }, [document.id, document.aiProcessedAt, document.aiState, suggestion, extraction]);
 
@@ -209,7 +211,9 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
       });
       onMessage(
         'info',
-        `${entry.position || entry.name} ${signed ? 'signed' : 'unmarked'} — ${result.progress}% complete.`
+        `${entry.position || entry.name} ${signed ? 'signed' : 'unmarked'} — ${result.progress}% complete.${
+          result?.complete || result?.status === 'approved' ? ' Document is now Approved!' : ''
+        }`
       );
     } catch (error) {
       onMessage('error', `Could not record that signature: ${error.message}`);
@@ -217,6 +221,11 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
       setSigningIndex(-1);
     }
   };
+
+  const applyKeys = useMemo(
+    () => Object.entries(selected).filter(([, on]) => Boolean(on)).map(([k]) => k),
+    [selected]
+  );
 
   /**
    * What Confirm will actually write, shown before it is pressed.
@@ -234,7 +243,7 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
     const shown = Array.isArray(value) ? value.join(', ') : String(value ?? '');
     const isSame = shown === String(current ?? '');
     return { ...f, value: shown, current, willChange: !isSame && shown.length > 0 };
-  }).filter((f) => (selected[f.key] ?? true) && f.value.length > 0);
+  }).filter((f) => Boolean(selected[f.key]) && f.value.length > 0);
 
   const changing = pendingChanges.filter((f) => f.willChange);
   const unchanged = pendingChanges.length - changing.length;
@@ -242,6 +251,8 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
   const setOverride = (key, value) => setOverrides((prev) => ({ ...prev, [key]: value }));
 
   const analyze = async () => {
+    if (isAnalyzingRef.current) return;
+    isAnalyzingRef.current = true;
     setBusy(true);
     setQueueState({ state: ITEM_STATE.ANALYZING, error: null });
     try {
@@ -251,17 +262,20 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
         { intervalMs: 0, preferredProvider }
       );
       await refreshAiStatus();
+      onAnalyzed?.(null, document);
     } catch (error) {
       setQueueState({ state: ITEM_STATE.FAILED, error: error.message });
       await refreshAiStatus();
+      onAnalyzed?.(error, document);
     } finally {
       setBusy(false);
+      isAnalyzingRef.current = false;
     }
   };
 
   useEffect(() => {
+    if (!autoAnalysing) return;
     if (
-      autoAnalysing &&
       document &&
       document.aiState !== 'processing' &&
       (!document.aiSuggestion && !document.aiExtraction) &&
@@ -269,34 +283,53 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
       !busy
     ) {
       analyze();
+    } else {
+      // Auto-analysing was requested, but document does not qualify or is already analysed/approved.
+      // Immediately notify parent so autoAnalyseId is cleared and not left hanging.
+      onAnalyzed?.(null, document);
     }
   }, [autoAnalysing]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Cleanup if unmounted while autoAnalysing is active
+  useEffect(() => {
+    return () => {
+      if (autoAnalysing) {
+        onAnalyzed?.(null, document);
+      }
+    };
+  }, [autoAnalysing, document]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const confirm = async () => {
-    let apply = Object.entries(selected)
-      .filter(([, on]) => on)
+    const apply = Object.entries(selected)
+      .filter(([, on]) => Boolean(on))
       .map(([key]) => key);
-
-    // If no individual checkboxes were selected, auto-select all fields with values
-    if (apply.length === 0) {
-      apply = FIELDS.filter((f) => {
-        const val = f.key === 'documentType' ? suggestion?.documentTypeLabel : extraction?.[f.key];
-        return Boolean(fmt(overrides[f.key] ?? val));
-      }).map((f) => f.key);
-      // Auto-update selected state
-      const allSelected = {};
-      apply.forEach((k) => { allSelected[k] = true; });
-      setSelected(allSelected);
-    }
-
-    if (apply.length === 0) {
-      // If truly no metadata extracted, still allow marking as human-approved
-      apply = ['documentType'];
-    }
 
     setBusy(true);
     try {
-      const result = await confirmAnalysis(document.id, apply, overrides);
+      // Core rule: "The AI proposes, a person decides."
+      // Unticking all boxes means the administrator intentionally rejects all AI suggestions.
+      // We must NEVER auto-select unselected fields.
+      if (apply.length === 0) {
+        const { updateDocument } = await import('../../services/documentService.js');
+        await updateDocument(document.id, {
+          aiState: 'approved',
+          verifiedFields: [],
+          verifiedAt: new Date().toISOString(),
+        });
+        onMessage('info', 'Document verified. No AI suggestions were applied.');
+        setOverrides({});
+        return;
+      }
+
+      // Filter overrides so unselected fields are never leaked to the backend
+      const activeOverrides = {};
+      apply.forEach((key) => {
+        if (overrides[key] !== undefined) {
+          activeOverrides[key] = overrides[key];
+        }
+      });
+
+      const result = await confirmAnalysis(document.id, apply, activeOverrides);
       const appliedCount = result?.applied?.length || apply.length;
       onMessage('success', `Confirmed ${appliedCount} field(s). Marked human-verified.`);
       setOverrides({});
@@ -305,16 +338,46 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
       // Direct update fallback via Firestore if callable fails
       try {
         const { updateDocument } = await import('../../services/documentService.js');
-        const updates = { aiState: 'approved' };
-        if (suggestion?.documentTypeLabel) updates.labels = [suggestion.documentTypeLabel];
-        if (extraction?.title) updates.title = extraction.title;
-        if (extraction?.documentNumber) updates.documentNumber = extraction.documentNumber;
-        if (extraction?.documentDate) updates.documentDate = extraction.documentDate;
-        if (extraction?.summary) updates.summary = extraction.summary;
-        if (extraction?.agenda) updates.agenda = extraction.agenda;
-        if (extraction?.subject) updates.subject = extraction.subject;
-        if (overrides) Object.assign(updates, overrides);
-        updates.verifiedFields = apply;
+        const updates = {
+          aiState: 'approved',
+          verifiedFields: apply,
+          verifiedAt: new Date().toISOString(),
+        };
+
+        // Strictly apply ONLY the fields the administrator ticked
+        if (apply.includes('documentType')) {
+          const typeVal = overrides.documentType !== undefined ? overrides.documentType : (suggestion?.documentTypeLabel || suggestion?.documentType);
+          if (typeVal) updates.labels = [typeVal];
+        }
+        if (apply.includes('title')) {
+          const val = overrides.title !== undefined ? overrides.title : extraction?.title;
+          if (val) updates.title = val;
+        }
+        if (apply.includes('documentNumber')) {
+          const val = overrides.documentNumber !== undefined ? overrides.documentNumber : extraction?.documentNumber;
+          if (val) updates.documentNumber = val;
+        }
+        if (apply.includes('documentDate')) {
+          const val = overrides.documentDate !== undefined ? overrides.documentDate : extraction?.documentDate;
+          if (val) updates.documentDate = val;
+        }
+        if (apply.includes('summary')) {
+          const val = overrides.summary !== undefined ? overrides.summary : extraction?.summary;
+          if (val) updates.summary = val;
+        }
+        if (apply.includes('agenda')) {
+          const val = overrides.agenda !== undefined ? overrides.agenda : extraction?.agenda;
+          if (val) updates.agenda = val;
+        }
+        if (apply.includes('subject')) {
+          const val = overrides.subject !== undefined ? overrides.subject : extraction?.subject;
+          if (val) updates.subject = val;
+        }
+        if (apply.includes('organization')) {
+          const val = overrides.organization !== undefined ? overrides.organization : extraction?.organization;
+          if (val) updates.office = val;
+        }
+
         await updateDocument(document.id, updates);
         onMessage('success', `Confirmed ${apply.length} field(s). Marked human-verified.`);
         setOverrides({});
@@ -342,17 +405,19 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
 
   const signatories = extraction?.signatories || document.signatureChecklist || [];
   const checklist = document.signatureChecklist || [];
+  const signedCount = checklist.filter((s) => s.status === 'signed').length;
+  const isComplete = (checklist.length > 0 && signedCount === checklist.length) || Boolean(document.signatureSummary?.complete);
   const signatureSummary = document.signatureSummary || {
     total: checklist.length,
-    required: checklist.filter((s) => s.required).length,
-    signed: checklist.filter((s) => s.status === 'signed').length,
-    requiredPending: checklist.filter((s) => s.required && s.status !== 'signed').length,
-    progress: 0,
-    complete: false,
-    state: checklist.length === 0 ? 'no_signatures_detected' : 'pending',
+    required: checklist.filter((s) => s.required !== false).length || checklist.length,
+    signed: signedCount,
+    requiredPending: checklist.filter((s) => (s.required !== false) && s.status !== 'signed').length,
+    progress: checklist.length === 0 ? 0 : Math.round((signedCount / checklist.length) * 100),
+    complete: isComplete,
+    state: checklist.length === 0 ? 'no_signatures_detected' : isComplete ? 'complete' : signedCount > 0 ? 'partially_signed' : 'pending',
   };
   const pendingNames = checklist
-    .filter((s) => s.required && s.status !== 'signed')
+    .filter((s) => (s.required !== false) && s.status !== 'signed')
     .map((s) => s.position || s.name)
     .filter(Boolean);
 
@@ -807,6 +872,28 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
           )}
 
           {/* Field-by-field acceptance */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>
+              Field-by-field verification:
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const anySelected = Object.values(selected).some(Boolean);
+                const next = {};
+                FIELDS.forEach((f) => {
+                  const val = f.key === 'documentType' ? suggestion?.documentTypeLabel : extraction?.[f.key];
+                  if (Boolean(fmt(overrides[f.key] ?? val))) {
+                    next[f.key] = !anySelected;
+                  }
+                });
+                setSelected(next);
+              }}
+              style={{ ...styles.linkBtn, marginTop: 0 }}
+            >
+              {Object.values(selected).some(Boolean) ? 'Deselect all' : 'Select all'}
+            </button>
+          </div>
           <div style={styles.fields}>
             {FIELDS.map((f) => {
               const value =
@@ -883,6 +970,12 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
             </p>
           )}
 
+          {applyKeys.length === 0 && (
+            <p style={{ ...styles.pendingChanges, color: '#94a3b8' }}>
+              No fields selected. Confirming will mark the document as reviewed without applying any AI values.
+            </p>
+          )}
+
           <div style={styles.actionRow}>
             <button
               type="button"
@@ -902,7 +995,13 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
               }}
             >
               <HiCheckCircle style={{ fontSize: '1.1rem' }} />
-              <span>{busy ? 'Confirming…' : 'Confirm selected'}</span>
+              <span>
+                {busy
+                  ? 'Confirming…'
+                  : applyKeys.length === 0
+                    ? 'Confirm (0 fields to apply)'
+                    : `Confirm selected (${applyKeys.length})`}
+              </span>
             </button>
             <button
               type="button"

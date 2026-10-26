@@ -13,7 +13,6 @@ import {
   ACCEPT_ATTRIBUTE,
   DOC_STATUS,
   DOC_STATUS_LABELS,
-  MAX_FILE_BYTES,
   canPreviewInline,
   formatBytes,
   formatDate,
@@ -30,9 +29,8 @@ import {
   validateFile,
 } from '../../services/documentService';
 import auditService from '../../services/auditService';
-import { S, T, statusBanner, statusPill } from '../../utils/themeStyles';
+import { S, T, statusPill } from '../../utils/themeStyles';
 import { storageWarning } from '../../services/fileStore';
-import { analyzeDocumentContent } from '../../services/documentAiService';
 import AiStatusBadge from './AiStatusBadge.jsx';
 import DocumentAnalysis from './DocumentAnalysis.jsx';
 import DocumentDetailModal from './DocumentDetailModal.jsx';
@@ -45,15 +43,10 @@ import {
   HiDownload,
   HiTrash,
   HiX,
-  HiCheckCircle,
   HiTag,
   HiFolderOpen,
   HiSearch,
   HiPencil,
-  HiChevronDown,
-  HiSparkles,
-  HiRefresh,
-  HiExclamationCircle,
 } from 'react-icons/hi';
 
 const STATUS_TONE = {
@@ -108,8 +101,7 @@ function DocumentDashboard() {
   const [previewProgress, setPreviewProgress] = useState(0);
   const previewCache = useRef(new Map());
   const previewAbortRef = useRef(null);
-  const [editing, setEditing] = useState(null);
-  const [modalDoc, setModalDoc] = useState(null);
+  const [modalDocId, setModalDocId] = useState(null);
   const [modalSaving, setModalSaving] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -121,7 +113,10 @@ function DocumentDashboard() {
     let alive = true;
 
     const unsubDocs = subscribeToDocuments(
-      (rows) => alive && setDocuments(rows),
+      (rows) => {
+        if (!alive) return;
+        setDocuments(rows);
+      },
       (error) => alive && say('error', `Could not load documents: ${error.message}`)
     );
 
@@ -142,6 +137,26 @@ function DocumentDashboard() {
     };
   }, [say]);
 
+  // Clear autoAnalyseId when document is updated in Firestore or is no longer processing
+  useEffect(() => {
+    if (!autoAnalyseId) return;
+    const target = documents.find((d) => d.id === autoAnalyseId);
+    if (target && target.aiState && target.aiState !== 'processing') {
+      setAutoAnalyseId('');
+      setUploadStepState('');
+    }
+  }, [documents, autoAnalyseId]);
+
+  // Fallback safety timeout so autoAnalyseId can never hang indefinitely
+  useEffect(() => {
+    if (!autoAnalyseId) return;
+    const timer = setTimeout(() => {
+      setAutoAnalyseId('');
+      setUploadStepState('');
+    }, 45000);
+    return () => clearTimeout(timer);
+  }, [autoAnalyseId]);
+
   const activeLabels = useMemo(() => labels.filter((l) => l.active), [labels]);
 
   const visible = useMemo(
@@ -157,9 +172,9 @@ function DocumentDashboard() {
     return out;
   }, [documents]);
 
-  const offices = useMemo(
-    () => Array.from(new Set(documents.map((d) => d.office).filter(Boolean))).sort(),
-    [documents]
+  const activeModalDoc = useMemo(
+    () => (modalDocId ? documents.find((d) => d.id === modalDocId) || null : null),
+    [documents, modalDocId]
   );
 
   // ── Upload handlers ──
@@ -193,59 +208,56 @@ function DocumentDashboard() {
     setBusy(true);
     setUploadStepState('reading');
     setProgress(15);
+
+    const docTitle = form.title.trim();
+    const docLabels = form.labels || [];
+    const uploadedFile = file;
+
+    let id = null;
+
     try {
       // Stage: reading file binary & validating buffer
       await new Promise((r) => setTimeout(r, 350));
       setUploadStepState('uploading');
 
-      const id = await uploadDocument({
-        file,
+      id = await uploadDocument({
+        file: uploadedFile,
         metadata: {
           ...form,
         },
         actor,
         onProgress: setProgress,
       });
+    } catch (error) {
+      // Primary upload failed — preserve form so user can correct and retry
+      say('error', error.message);
+      setUploadStepState('');
+      setBusy(false);
+      return;
+    }
 
-      // Audit Trail: Log Document Added (DAD) - Zero UID
+    // ── Primary Mutation Succeeded ──────────────────────────────
+    // Immediately transition state and clear form to prevent duplicate uploads
+    setUploadStepState('analyzing');
+    say('success', `“${docTitle}” uploaded. Reading and evaluating document content…`);
+    setFile(null);
+    setForm(emptyForm());
+    setProgress(null);
+    setOpenId(id);
+    setAutoAnalyseId(id);
+    setBusy(false);
+
+    // ── Audit Trail (Separated Recovery) ─────────────────────────
+    // An audit log failure must never invalidate or fail a successful document upload
+    try {
       const performer = actor?.name || actor?.email || 'Authorized Officer';
       await auditService.logDocumentAdd(
         performer, 
-        form.title, 
-        (form.labels && form.labels.length > 0) ? form.labels.join(', ') : 'Institutional'
+        docTitle, 
+        (docLabels && docLabels.length > 0) ? docLabels.join(', ') : 'Institutional'
       );
-
-      setUploadStepState('analyzing');
-      say('success', `“${form.title}” uploaded. Reading and evaluating document content…`);
-      setFile(null);
-      setForm(emptyForm());
-      setProgress(null);
-      setOpenId(id);
-      setAutoAnalyseId(id);
-
-      const uploadedFile = file;
-      analyzeDocumentContent(id, uploadedFile)
-        .then((result) => {
-          const filled = Object.keys(result?.autoFilled || {});
-          say(
-            'success',
-            filled.length
-              ? `Document read. Filled in automatically: ${filled.join(', ')}.`
-              : 'Document read and analysed.'
-          );
-        })
-        .catch((error) => {
-          say('error', `Uploaded, but reading failed: ${error.message}`);
-        })
-        .finally(() => {
-          setAutoAnalyseId('');
-          setUploadStepState('');
-        });
-    } catch (error) {
-      say('error', error.message);
-      setUploadStepState('');
-    } finally {
-      setBusy(false);
+    } catch (auditError) {
+      console.warn('Audit trail log failed for document upload (non-blocking):', auditError);
     }
   };
 
@@ -361,48 +373,32 @@ function DocumentDashboard() {
     }
   };
 
-  const saveEdit = async () => {
-    if (!editing) return;
-    setBusy(true);
-    try {
-      await updateDocument(
-        editing.id,
-        {
-          title: editing.title.trim(),
-          documentNumber: editing.documentNumber?.trim() || '',
-          status: editing.status,
-          documentDate: editing.documentDate || '',
-          office: editing.office || '',
-          labels: editing.labels || [],
-        },
-        actor
-      );
-      say('success', 'Document updated.');
-      setEditing(null);
-    } catch (error) {
-      say('error', error.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleSaveModalDoc = async (patch) => {
-    if (!modalDoc) return;
+    if (!activeModalDoc) return;
     setModalSaving(true);
     try {
-      await updateDocument(
-        modalDoc.id,
-        {
-          title: patch.title.trim(),
-          documentNumber: patch.documentNumber || '',
-          labels: patch.labels || [],
-          description: patch.description || '',
-          subject: patch.description || '',
-        },
-        actor
-      );
+      const updates = {
+        title: patch.title.trim(),
+        labels: patch.labels || [],
+      };
+      if (patch.documentNumber !== undefined) {
+        updates.documentNumber = patch.documentNumber.trim();
+      }
+      if (patch.description !== undefined) {
+        updates.description = patch.description.trim();
+      }
+      // Preserve real AI-extracted or existing subject; never overwrite subject with description
+      if (patch.subject !== undefined) {
+        updates.subject = patch.subject.trim();
+      }
+      if (patch.status) updates.status = patch.status;
+      if (patch.signatureChecklist) {
+        updates.signatureChecklist = patch.signatureChecklist;
+        updates.signatures = patch.signatureChecklist;
+      }
+      await updateDocument(activeModalDoc.id, updates, actor);
       say('success', `“${patch.title}” metadata saved.`);
-      setModalDoc(null);
+      setModalDocId(null);
     } catch (error) {
       say('error', `Could not update document: ${error.message}`);
     } finally {
@@ -426,22 +422,30 @@ function DocumentDashboard() {
     try {
       // Pass the full document object so deleteDocument doesn't need to re-fetch getDoc()
       await deleteDocument(document);
+    } catch (error) {
+      // Rollback only when the primary deletion mutation fails!
+      setDocuments(prevDocs);
+      say('error', error.message);
+      setBusy(false);
+      setDeletingDocId(null);
+      return;
+    }
 
-      // Audit Trail: Log Document Deletion (DDL) - Zero UID
+    // ── Primary Deletion Succeeded ──────────────────────────────
+    say('success', `“${document.title}” deleted.`);
+    setBusy(false);
+    setDeletingDocId(null);
+
+    // ── Audit Trail (Separated Recovery) ─────────────────────────
+    // Audit failure must never restore the deleted document in the UI
+    try {
       const performer = actor?.name || actor?.email || 'Authorized Officer';
       await auditService.logDocumentDelete(
         performer,
         document.title || document.originalFileName || 'Document'
       );
-
-      say('success', `“${document.title}” deleted.`);
-    } catch (error) {
-      // Rollback on failure
-      setDocuments(prevDocs);
-      say('error', error.message);
-    } finally {
-      setBusy(false);
-      setDeletingDocId(null);
+    } catch (auditError) {
+      console.warn('Audit trail log failed for document deletion (non-blocking):', auditError);
     }
   };
 
@@ -738,8 +742,10 @@ function DocumentDashboard() {
       ) : (
         visible.map((document) => {
           const isOpen = openId === document.id;
-          const isEditing = editing?.id === document.id;
-          const isLocked = false;
+          const isDocAnalyzing =
+            (document.aiState === 'processing' || autoAnalyseId === document.id) &&
+            document.aiState !== 'ready_for_review' &&
+            document.aiState !== 'approved';
 
           return (
             <div key={document.id} className={stylesModule.docRow} style={styles.row}>
@@ -749,7 +755,7 @@ function DocumentDashboard() {
                     <strong
                       className={stylesModule.docRowTitle}
                       style={{ ...styles.rowTitle, cursor: 'pointer' }}
-                      onClick={() => setModalDoc(document)}
+                      onClick={() => setModalDocId(document.id)}
                       title="Click to view details & edit metadata"
                     >
                       {document.title}
@@ -777,7 +783,7 @@ function DocumentDashboard() {
                   {(document.subject || document.agenda || document.summary) && (
                     <p
                       style={{ margin: '0.35rem 0 0.15rem', fontSize: '0.8rem', color: T.textMuted, lineHeight: 1.4, cursor: 'pointer' }}
-                      onClick={() => setModalDoc(document)}
+                      onClick={() => setModalDocId(document.id)}
                       title="Click to view full summary & details in modal"
                     >
                       {document.subject && <span><strong>Subject:</strong> {document.subject} · </span>}
@@ -799,87 +805,91 @@ function DocumentDashboard() {
                 </div>
 
                 <div style={styles.rowActions}>
-                  <button
-                    type="button"
-                    title={
-                      document.aiState === 'processing' || autoAnalyseId === document.id
-                        ? 'Analysing document with AI…'
-                        : document.aiState === 'ready_for_review'
-                        ? 'View AI analysis and suggestions'
-                        : document.aiState === 'approved'
-                        ? 'AI suggestions verified'
-                        : 'Analyse this document with AI'
-                    }
-                    onClick={() => {
-                      const nextOpen = openId === document.id ? '' : document.id;
-                      setOpenId(nextOpen);
-                      if (nextOpen) {
-                        loadPreview(document);
-                        if (
-                          document.aiState !== 'processing' &&
-                          (!document.aiSuggestion && !document.aiExtraction) &&
-                          document.aiState !== 'approved'
-                        ) {
-                          setAutoAnalyseId(document.id);
+                      <button
+                        type="button"
+                        title={
+                          document.aiState === 'ready_for_review'
+                            ? 'View AI analysis and suggestions'
+                            : document.aiState === 'approved'
+                            ? 'AI suggestions verified'
+                            : isDocAnalyzing
+                            ? 'Analysing document with AI…'
+                            : 'Analyse this document with AI'
                         }
-                      } else {
-                        setPreviewUrl(null);
-                        setPreviewError('');
-                        setPreviewLoading(false);
-                        setIframeLoaded(false);
-                      }
-                    }}
-                    className={`${stylesModule.actionBtn} ${
-                      document.aiState === 'processing' || autoAnalyseId === document.id
-                        ? stylesModule.aiTriggerBtnActive
-                        : stylesModule.aiTriggerBtn
-                    }`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      padding: '0.35rem 0.65rem',
-                      borderRadius: '6px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: `1px solid ${
-                        document.aiState === 'approved'
-                          ? '#22c55e'
-                          : document.aiState === 'ready_for_review'
-                          ? '#3b82f6'
-                          : 'rgba(99, 102, 241, 0.6)'
-                      }`,
-                      backgroundColor:
-                        document.aiState === 'approved'
-                          ? 'rgba(34, 197, 94, 0.15)'
-                          : document.aiState === 'ready_for_review'
-                          ? 'rgba(59, 130, 246, 0.18)'
-                          : 'rgba(99, 102, 241, 0.15)',
-                      color:
-                        document.aiState === 'approved'
-                          ? '#4ade80'
-                          : document.aiState === 'ready_for_review'
-                          ? '#93c5fd'
-                          : '#a5b4fc',
-                      transition: 'all 0.15s ease-in-out',
-                    }}
-                  >
-                    {document.aiState === 'processing' || autoAnalyseId === document.id ? (
-                      <span className={stylesModule.spinningCircle} />
-                    ) : (
-                      <HiSparkles style={{ fontSize: '0.95rem' }} />
-                    )}
-                    <span>
-                      {document.aiState === 'processing' || autoAnalyseId === document.id
-                        ? 'Analysing…'
-                        : document.aiState === 'ready_for_review'
-                        ? 'Review AI'
-                        : document.aiState === 'approved'
-                        ? 'AI Verified'
-                        : 'Analyze'}
-                    </span>
-                  </button>
+                        onClick={() => {
+                          const nextOpen = openId === document.id ? '' : document.id;
+                          setOpenId(nextOpen);
+                          if (nextOpen) {
+                            loadPreview(document);
+                            if (
+                              document.aiState !== 'processing' &&
+                              (!document.aiSuggestion && !document.aiExtraction) &&
+                              document.aiState !== 'approved' &&
+                              document.aiState !== 'ready_for_review'
+                            ) {
+                              setAutoAnalyseId(document.id);
+                            }
+                          } else {
+                            if (autoAnalyseId === document.id) {
+                              setAutoAnalyseId('');
+                            }
+                            setPreviewUrl(null);
+                            setPreviewError('');
+                            setPreviewLoading(false);
+                            setIframeLoaded(false);
+                          }
+                        }}
+                        className={`${stylesModule.actionBtn} ${
+                          isDocAnalyzing
+                            ? stylesModule.aiTriggerBtnActive
+                            : stylesModule.aiTriggerBtn
+                        }`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: `1px solid ${
+                            document.aiState === 'approved'
+                              ? '#22c55e'
+                              : document.aiState === 'ready_for_review'
+                              ? '#3b82f6'
+                              : 'rgba(99, 102, 241, 0.6)'
+                          }`,
+                          backgroundColor:
+                            document.aiState === 'approved'
+                              ? 'rgba(34, 197, 94, 0.15)'
+                              : document.aiState === 'ready_for_review'
+                              ? 'rgba(59, 130, 246, 0.18)'
+                              : 'rgba(99, 102, 241, 0.15)',
+                          color:
+                            document.aiState === 'approved'
+                              ? '#4ade80'
+                              : document.aiState === 'ready_for_review'
+                              ? '#93c5fd'
+                              : '#a5b4fc',
+                          transition: 'all 0.15s ease-in-out',
+                        }}
+                      >
+                        {isDocAnalyzing ? (
+                          <span className={stylesModule.spinningCircle} />
+                        ) : (
+                          <HiSparkles style={{ fontSize: '0.95rem' }} />
+                        )}
+                        <span>
+                          {document.aiState === 'ready_for_review'
+                            ? 'Review AI'
+                            : document.aiState === 'approved'
+                            ? 'AI Verified'
+                            : isDocAnalyzing
+                            ? 'Analysing…'
+                            : 'Analyze'}
+                        </span>
+                      </button>
 
                   <IconBtn title="Preview document" onClick={() => openPreviewModal(document)}>
                     {previewDoc?.id === document.id && previewLoading ? (
@@ -897,7 +907,7 @@ function DocumentDashboard() {
                   </IconBtn>
                   <IconBtn
                     title="View details & edit"
-                    onClick={() => setModalDoc(document)}
+                    onClick={() => setModalDocId(document.id)}
                   >
                     <HiPencil />
                   </IconBtn>
@@ -949,6 +959,10 @@ function DocumentDashboard() {
                     labels={labels}
                     onMessage={say}
                     autoAnalysing={autoAnalyseId === document.id}
+                    onAnalyzed={() => {
+                      setAutoAnalyseId('');
+                      setUploadStepState('');
+                    }}
                   />
                 </div>
               )}
@@ -959,10 +973,10 @@ function DocumentDashboard() {
 
       {/* Modal Dialog for Summary & Edit Section */}
       <DocumentDetailModal
-        isOpen={Boolean(modalDoc)}
-        document={modalDoc}
+        isOpen={Boolean(activeModalDoc)}
+        document={activeModalDoc}
         labels={labels}
-        onClose={() => setModalDoc(null)}
+        onClose={() => setModalDocId(null)}
         onSave={handleSaveModalDoc}
         saving={modalSaving}
         onSay={say}
@@ -1263,90 +1277,6 @@ const styles = {
   confirmText: { color: T.error, fontSize: '0.85rem', margin: 0, flex: '1 1 240px' },
 
   rowBody: { marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${T.borderSoft}` },
-  frame: {
-    width: '100%',
-    height: '70vh',
-    border: `1px solid ${T.borderSoft}`,
-    borderRadius: '0.6rem',
-    backgroundColor: T.bgTertiary,
-  },
-  previewContainer: {
-    position: 'relative',
-    width: '100%',
-    minHeight: '260px',
-    marginTop: '0.8rem',
-  },
-  previewLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    minHeight: '260px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.85rem',
-    backgroundColor: 'rgba(15, 23, 42, 0.72)',
-    backdropFilter: 'blur(4px)',
-    borderRadius: '0.6rem',
-    border: `1px solid ${T.borderSoft}`,
-    zIndex: 2,
-  },
-  spinner: {
-    width: '36px',
-    height: '36px',
-    border: '3px solid rgba(255, 255, 255, 0.15)',
-    borderTop: `3px solid ${T.accent}`,
-    borderRadius: '50%',
-    animation: 'docPreviewSpin 0.8s linear infinite',
-  },
-  previewLoadingText: {
-    margin: 0,
-    color: T.text,
-    fontSize: '0.88rem',
-    fontWeight: 600,
-  },
-  previewLoadingSubtext: {
-    color: T.textMuted,
-    fontSize: '0.74rem',
-  },
-  previewPlaceholder: {
-    minHeight: '160px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.6rem',
-    backgroundColor: T.bgTertiary,
-    borderRadius: '0.6rem',
-    border: `1px solid ${T.borderSoft}`,
-  },
-  previewErrorBox: {
-    marginTop: '0.8rem',
-    padding: '0.9rem 1.1rem',
-    borderRadius: '0.6rem',
-    backgroundColor: T.errorLight,
-    border: `1px solid ${T.error}`,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.9rem',
-    flexWrap: 'wrap',
-  },
-  retryBtn: {
-    padding: '0.42rem 0.8rem',
-    backgroundColor: T.accent,
-    color: T.textOnAccent,
-    border: 'none',
-    borderRadius: '6px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.35rem',
-    fontSize: '0.8rem',
-  },
 
   empty: {
     ...S.card,

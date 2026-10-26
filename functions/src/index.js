@@ -739,7 +739,11 @@ export const recordSignature = onCall(async (request) => {
   if (!snap.exists) throw new HttpsError('not-found', 'That document no longer exists.');
 
   const doc = snap.data();
-  const checklist = Array.isArray(doc.signatureChecklist) ? doc.signatureChecklist : [];
+  const checklist =
+    (Array.isArray(doc.signatureChecklist) && doc.signatureChecklist.length > 0 ? [...doc.signatureChecklist] : null) ||
+    (Array.isArray(doc.signatures) && doc.signatures.length > 0 ? [...doc.signatures] : null) ||
+    (Array.isArray(doc.aiExtraction?.signatories) && doc.aiExtraction.signatories.length > 0 ? [...doc.aiExtraction.signatories] : null) ||
+    (Array.isArray(doc.aiSuggestion?.signatories) ? [...doc.aiSuggestion.signatories] : []);
 
   if (index < 0 || index >= checklist.length) {
     throw new HttpsError('invalid-argument', 'That signatory is no longer on the list.');
@@ -761,13 +765,13 @@ export const recordSignature = onCall(async (request) => {
   };
 
   // Recompute from the checklist, never from what the caller claims.
-  const requiredTotal = checklist.filter((s) => s.required).length;
-  const requiredPending = checklist.filter((s) => s.required && s.status !== 'signed').length;
+  const requiredTotal = checklist.filter((s) => s.required !== false).length || checklist.length;
+  const requiredPending = checklist.filter((s) => (s.required !== false) && s.status !== 'signed').length;
   const signedCount = checklist.filter((s) => s.status === 'signed').length;
   const progress = requiredTotal === 0
-    ? 0
-    : Math.round(((requiredTotal - requiredPending.length) / requiredTotal) * 100);
-  const complete = requiredTotal > 0 && requiredPending.length === 0;
+    ? (checklist.length > 0 && signedCount === checklist.length ? 100 : 0)
+    : Math.round(((requiredTotal - requiredPending) / requiredTotal) * 100);
+  const complete = (requiredTotal > 0 && requiredPending === 0) || (checklist.length > 0 && signedCount === checklist.length);
 
   const status = complete
     ? DOC_STATUS.APPROVED
@@ -777,11 +781,12 @@ export const recordSignature = onCall(async (request) => {
 
   await docRef.update({
     signatureChecklist: checklist,
+    signatures: checklist,
     signatureSummary: {
       total: checklist.length,
       required: requiredTotal,
       signed: signedCount,
-      requiredPending: requiredPending.length,
+      requiredPending,
       progress,
       complete,
       state: checklist.length === 0
