@@ -2,16 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingBag, Package, BarChart3, TrendingUp, CheckCircle2, 
   Clock, AlertTriangle, ArrowRight, Sparkles, Layers, ShieldCheck, 
-  PieChart as PieChartIcon, Activity
+  PieChart as PieChartIcon, Activity, Landmark
 } from 'lucide-react';
 import PesoSign from '../Common/PesoSign.jsx';
 import { 
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
+import { fromCentavos } from '../../utils/financeConstants.js';
 import OrderManagement from '../Data/OrderManagement.jsx';
 import ProductManagement from '../ProductManagement/ProductManagement.jsx';
 import styles from './CommerceHub.module.css';
@@ -26,12 +27,15 @@ function CommerceHub() {
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'orders' | 'products'
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
+  const [igfAccount, setIgfAccount] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [analyticsViewType, setAnalyticsViewType] = useState('revenue'); // 'revenue' | 'volume'
 
   // Subscribe to real-time stats for analytics dashboard
   useEffect(() => {
     let unsubProducts = () => {};
+    let unsubIgf = () => {};
+
     const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setOrders(docs);
@@ -50,9 +54,24 @@ function CommerceHub() {
       console.error('Error fetching products for analytics:', err);
     }
 
+    try {
+      unsubIgf = onSnapshot(doc(db, 'fundAccounts', 'fund_igf_main'), (docSnap) => {
+        if (docSnap.exists()) {
+          setIgfAccount({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          setIgfAccount({ balanceCentavos: 0 });
+        }
+      }, (err) => {
+        console.warn('Error reading IGF account in CommerceHub:', err);
+      });
+    } catch (err) {
+      console.error('Error subscribing to IGF account:', err);
+    }
+
     return () => {
       unsubOrders();
       unsubProducts();
+      unsubIgf();
     };
   }, []);
 
@@ -75,6 +94,9 @@ function CommerceHub() {
   const totalCatalogValue = useMemo(() => {
     return products.reduce((sum, p) => sum + (Number(p.price) || 0) * (Number(p.stockAvailable) || 0), 0);
   }, [products]);
+
+  const igfBalance = useMemo(() => fromCentavos(igfAccount?.balanceCentavos || 0), [igfAccount]);
+  const syncedOrdersCount = useMemo(() => orders.filter(o => o.igfSynced).length, [orders]);
 
   // Chronological revenue & order trend calculation for Recharts AreaChart
   const trendData = useMemo(() => {
@@ -238,6 +260,22 @@ function CommerceHub() {
           <div className={styles.statSubtext}>Active non-cancelled transactions</div>
         </div>
 
+        <div className={`${styles.statCard} ${styles.statCardIgf}`}>
+          <div className={styles.statHeader}>
+            <span className={styles.statLabel}>
+              <span className={styles.igfLabelBadge}>IGF Fund</span>
+              Treasury Balance
+            </span>
+            <div className={`${styles.statIcon} ${styles.iconGold}`}><Landmark size={20} /></div>
+          </div>
+          <div className={styles.statValue}>
+            {loadingStats ? '...' : `₱${igfBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          </div>
+          <div className={styles.statSubtext}>
+            <span className={styles.igfLinkDot} /> {syncedOrdersCount} orders credited to IGF
+          </div>
+        </div>
+
         <div className={styles.statCard}>
           <div className={styles.statHeader}>
             <span className={styles.statLabel}>Inventory Valuation</span>
@@ -247,6 +285,40 @@ function CommerceHub() {
             {loadingStats ? '...' : `₱${totalCatalogValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </div>
           <div className={styles.statSubtext}>{products.length} active catalog SKUs</div>
+        </div>
+      </div>
+
+      {/* IGF Profit & Treasury Integration Banner */}
+      <div className={styles.igfIntegrationBanner}>
+        <div className={styles.igfBannerLeft}>
+          <div className={styles.igfBannerIcon}>
+            <Landmark size={24} />
+          </div>
+          <div>
+            <div className={styles.igfBannerTitleRow}>
+              <h4 className={styles.igfBannerTitle}>Income Generated Fund (IGF) Integration</h4>
+              <span className={styles.igfStatusTag}>Live Treasury Link</span>
+            </div>
+            <p className={styles.igfBannerDesc}>
+              SSG Merchandise profits directly fuel the Income Generated Fund (IGF). Official sales from shirts, uniforms, and student merchandise are tracked and credited into the IGF general ledger.
+            </p>
+          </div>
+        </div>
+        <div className={styles.igfBannerRight}>
+          <div className={styles.igfBannerMetric}>
+            <span className={styles.igfMetricLabel}>Merchandise Revenue</span>
+            <span className={styles.igfMetricValue}>
+              ₱{totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <button 
+            type="button"
+            className={styles.igfBannerActionBtn}
+            onClick={() => setActiveTab('orders')}
+          >
+            <span>Manage Order Sync</span>
+            <ArrowRight size={14} />
+          </button>
         </div>
       </div>
 

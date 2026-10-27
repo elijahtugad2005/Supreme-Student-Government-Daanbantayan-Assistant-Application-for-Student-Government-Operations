@@ -1,19 +1,32 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../../firebase/firebaseConfig.js';
 import { collection, onSnapshot, deleteDoc, doc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
-import { Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet, ChevronDown, ChevronUp, MoreVertical, SlidersHorizontal } from 'lucide-react';
+import { 
+  Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, 
+  Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet, 
+  ChevronDown, ChevronUp, MoreVertical, SlidersHorizontal,
+  Landmark, Sparkles, RefreshCw, ExternalLink, ShieldCheck, TrendingUp, ArrowRight
+} from 'lucide-react';
 import PesoSign from '../Common/PesoSign.jsx';
 import Order from '../Order/order.jsx';
 import SheetSyncPanel from './SheetSyncPanel.jsx';
+import { useAuth } from '../AuthContext/AuthContext.jsx';
+import financeService from '../../services/financeService.js';
+import { fromCentavos, toCentavos, formatPHP } from '../../utils/financeConstants.js';
 import styles from './OrderManagement.module.css';
 
 function OrderManagement() {
+  const { currentUser, userName, userRole } = useAuth();
+
   // ========================================
   // STATE MANAGEMENT
   // ========================================
   
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [igfAccount, setIgfAccount] = useState(null);
+  const [isSyncingIGF, setIsSyncingIGF] = useState(false);
+  const [igfModalOpen, setIgfModalOpen] = useState(false);
   
   // Navigation state
   const [activeSection, setActiveSection] = useState('orders');
@@ -97,6 +110,26 @@ function OrderManagement() {
     );
 
     return () => unsubscribe();
+  }, []);
+
+  // SUBSCRIBE TO OFFICIAL IGF FUND ACCOUNT
+  // ========================================
+  useEffect(() => {
+    const unsubscribeIgf = onSnapshot(
+      doc(db, 'fundAccounts', 'fund_igf_main'),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setIgfAccount({ id: snapshot.id, ...snapshot.data() });
+        } else {
+          setIgfAccount({ id: 'fund_igf_main', balanceCentavos: 0 });
+        }
+      },
+      (error) => {
+        console.warn('Error subscribing to IGF account:', error);
+      }
+    );
+
+    return () => unsubscribeIgf();
   }, []);
 
   // ========================================
@@ -196,6 +229,32 @@ function OrderManagement() {
         orderStatus: newStatus,
         updatedAt: new Date().toISOString()
       });
+
+      // IGF Integration: When order is marked Completed or Paid, auto-sync merchandise proceeds to IGF
+      if ((newStatus === 'Completed' || newStatus === 'Paid') && !order.igfSynced) {
+        try {
+          await financeService.syncOrderRevenueToIGF({
+            order: { ...order, docId, orderStatus: newStatus },
+            user: currentUser,
+            notes: `Merchandise order #${order.orderId} status set to ${newStatus}`
+          });
+        } catch (syncErr) {
+          console.warn('Auto IGF sync notice:', syncErr);
+        }
+      }
+
+      // If an order that was synced to IGF is Cancelled, reverse the revenue from IGF ledger
+      if (newStatus === 'Cancelled' && order.igfSynced) {
+        try {
+          await financeService.reverseOrderRevenueFromIGF({
+            order: { ...order, docId },
+            user: currentUser,
+            reason: 'Order cancelled by officer'
+          });
+        } catch (revErr) {
+          console.warn('Auto IGF reversal notice:', revErr);
+        }
+      }
       
       // Show success state
       showToast(`Order status updated to ${newStatus}`, 'success');
@@ -339,14 +398,26 @@ function OrderManagement() {
         orderStatus: newStatus,
         updatedAt: new Date().toISOString(),
       });
-      showToast(`Order ${order.orderId} marked as ${newStatus}.`, 'success');
+
+      // Auto-sync to IGF when marked claimed if not already synced
+      if (newClaimed && !order.igfSynced) {
+        try {
+          await financeService.syncOrderRevenueToIGF({
+            order: { ...order, claimed: true, orderStatus: 'Claimed' },
+            user: currentUser,
+            notes: `Merchandise order #${order.orderId} claimed by student`
+          });
+        } catch (syncErr) {
+          console.warn('IGF sync on claim notice:', syncErr);
+        }
+      }
+
+      showToast(`Order ${order.orderId} marked as ${newStatus}${newClaimed ? ' & synced to IGF' : ''}.`, 'success');
     } catch (err) {
       console.error('Error toggling claim status:', err);
       showToast('Failed to update claim status.', 'error');
     }
   };
-
-
 
   // ========================================
   // FILTER ORDERS (MEMOIZED)
@@ -392,6 +463,97 @@ function OrderManagement() {
   };
 
   const stats = getStatistics();
+
+  // ========================================
+  // IGF REVENUE LINKAGE METRICS
+  // ========================================
+  const igfMetrics = useMemo(() => {
+    const igfBalance = fromCentavos(igfAccount?.balanceCentavos || 0);
+
+    const settledOrders = orders.filter(
+      (o) => o.orderStatus !== 'Cancelled' && (o.claimed || o.orderStatus === 'Completed' || o.orderStatus === 'Paid')
+    );
+    const settledRevenue = settledOrders.reduce((sum, o) => {
+      const val = Number(o.productInfo?.totalPrice || o.totalPrice) || 0;
+      return sum + val;
+    }, 0);
+
+    const syncedOrders = orders.filter((o) => o.igfSynced === true);
+    const syncedRevenue = syncedOrders.reduce((sum, o) => {
+      const val = Number(o.productInfo?.totalPrice || o.totalPrice) || 0;
+      return sum + val;
+    }, 0);
+
+    const eligibleOrders = settledOrders.filter((o) => !o.igfSynced);
+    const eligibleRevenue = eligibleOrders.reduce((sum, o) => {
+      const val = Number(o.productInfo?.totalPrice || o.totalPrice) || 0;
+      return sum + val;
+    }, 0);
+
+    const syncPercentage = settledRevenue > 0
+      ? Math.min(100, Math.round((syncedRevenue / settledRevenue) * 100))
+      : (settledOrders.length === 0 ? 100 : 0);
+
+    return {
+      igfBalance,
+      settledOrders,
+      settledRevenue,
+      syncedOrders,
+      syncedRevenue,
+      eligibleOrders,
+      eligibleRevenue,
+      syncPercentage,
+    };
+  }, [orders, igfAccount]);
+
+  // Sync single order revenue to IGF
+  const handleSyncOrderToIGF = async (order) => {
+    if (!order) return;
+    setIsSyncingIGF(true);
+    showToast(`Linking Order #${order.orderId} revenue to IGF...`, 'info');
+    try {
+      const res = await financeService.syncOrderRevenueToIGF({
+        order,
+        user: currentUser,
+        notes: `Merchandise order #${order.orderId} profit linked directly to Income Generated Fund.`
+      });
+      if (res.alreadySynced) {
+        showToast(`Order #${order.orderId} is already linked to IGF (${res.refNumber}).`, 'info');
+      } else {
+        showToast(`✓ Order #${order.orderId} (₱${(Number(order.productInfo?.totalPrice || order.totalPrice) || 0).toFixed(2)}) linked to IGF Fund!`, 'success');
+      }
+    } catch (err) {
+      console.error('Error syncing order to IGF:', err);
+      showToast(`Failed to link order to IGF: ${err.message}`, 'error');
+    } finally {
+      setIsSyncingIGF(false);
+    }
+  };
+
+  // Batch sync all eligible orders to IGF
+  const handleBatchSyncToIGF = async () => {
+    if (igfMetrics.eligibleOrders.length === 0) {
+      showToast('All completed and claimed merchandise orders are already synced to IGF.', 'info');
+      return;
+    }
+    setIsSyncingIGF(true);
+    showToast(`Synchronizing ${igfMetrics.eligibleOrders.length} merchandise orders to IGF...`, 'info');
+    try {
+      const res = await financeService.batchSyncOrderRevenueToIGF({
+        orders: igfMetrics.eligibleOrders,
+        user: currentUser,
+        notes: 'Batch merchandise sales revenue sync to Income Generated Fund.'
+      });
+      const totalPHP = fromCentavos(res.totalCentavos || 0);
+      showToast(`✓ Successfully synced ${res.count} orders (₱${totalPHP.toLocaleString('en-PH', { minimumFractionDigits: 2 })}) to IGF Treasury!`, 'success');
+      setIgfModalOpen(false);
+    } catch (err) {
+      console.error('Error batch syncing to IGF:', err);
+      showToast(`Batch sync error: ${err.message}`, 'error');
+    } finally {
+      setIsSyncingIGF(false);
+    }
+  };
 
   // ========================================
   // MODAL HANDLERS
@@ -576,6 +738,10 @@ function OrderManagement() {
               </button>
               {mobileToolsOpen && (
                 <div className={styles.mobileToolsMenu}>
+                  <button className={styles.mobileToolsItem} onClick={() => { setIgfModalOpen(true); setMobileToolsOpen(false); }}>
+                    <Landmark size={16} />
+                    IGF Revenue Link {igfMetrics.eligibleOrders.length > 0 && `(${igfMetrics.eligibleOrders.length})`}
+                  </button>
                   <button className={styles.mobileToolsItem} onClick={() => { setActiveSection('settings'); setMobileToolsOpen(false); }}>
                     <FileSpreadsheet size={16} />
                     Sync Sheet / Excel
@@ -619,6 +785,10 @@ function OrderManagement() {
           <div className={`${styles.mobileStatChip} ${styles.mobileStatChipBlue}`}>
             <span className={styles.mobileStatValue}>₱{stats.totalRevenue.toLocaleString('en-PH', { maximumFractionDigits: 0 })}</span>
             <span className={styles.mobileStatLabel}>Revenue</span>
+          </div>
+          <div className={`${styles.mobileStatChip} ${styles.mobileStatChipGold}`} onClick={() => setIgfModalOpen(true)}>
+            <span className={styles.mobileStatValue}>₱{igfMetrics.igfBalance.toLocaleString('en-PH', { maximumFractionDigits: 0 })}</span>
+            <span className={styles.mobileStatLabel}>IGF Fund</span>
           </div>
         </div>
 
@@ -743,6 +913,11 @@ function OrderManagement() {
                         >
                           {order.claimed ? '✓ Claimed' : '○ Unclaimed'}
                         </span>
+                        {order.igfSynced && (
+                          <span className={styles.igfBadgeSynced} style={{ padding: '0.15rem 0.45rem', fontSize: '0.68rem' }}>
+                            <ShieldCheck size={11} /> IGF Synced
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -853,6 +1028,18 @@ function OrderManagement() {
                           {order.claimed ? <X size={15} /> : <CheckCircle size={15} />}
                           {order.claimed ? 'Unclaim' : 'Mark Claimed'}
                         </button>
+                        {!order.igfSynced && (order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Paid') && order.orderStatus !== 'Cancelled' && (
+                          <button
+                            type="button"
+                            className={styles.mobileActionBtn}
+                            style={{ background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)', color: '#160406', fontWeight: '700' }}
+                            onClick={() => handleSyncOrderToIGF(order)}
+                            disabled={isSyncingIGF}
+                          >
+                            <Sparkles size={14} />
+                            Link to IGF
+                          </button>
+                        )}
                         <button
                           className={`${styles.mobileActionBtn} ${styles.mobileActionBtnBlue}`}
                           onClick={() => handleEditClick(order)}
@@ -950,6 +1137,113 @@ function OrderManagement() {
           <p className={styles.kpiCardValue}>₱{stats.totalRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           <p className={styles.kpiCardSub}>revenue from claimed orders</p>
         </div>
+
+        {/* 5th KPI Card: Official IGF Fund Balance */}
+        <div className={`${styles.kpiCard} ${styles.kpiCardIgf}`}>
+          <div className={styles.kpiCardHeader}>
+            <span className={styles.kpiCardLabel}>
+              IGF Fund
+              <span className={styles.igfCardBadge}>Treasury</span>
+            </span>
+            <span className={styles.kpiCardIcon} style={{ color: '#d4af37' }}>
+              <Landmark size={20} />
+            </span>
+          </div>
+          <p className={styles.kpiCardValue}>₱{igfMetrics.igfBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className={styles.kpiCardSub}>
+            ₱{igfMetrics.syncedRevenue.toLocaleString('en-PH', { maximumFractionDigits: 0 })} synced • ₱{igfMetrics.eligibleRevenue.toLocaleString('en-PH', { maximumFractionDigits: 0 })} pending
+          </p>
+        </div>
+      </div>
+
+      {/* IGF Merchandise Profit Flow Banner */}
+      <div className={styles.igfFlowBanner}>
+        <div className={styles.igfFlowHeader}>
+          <div className={styles.igfFlowHeaderLeft}>
+            <div className={styles.igfFlowIcon}>
+              <Landmark size={26} />
+            </div>
+            <div>
+              <div className={styles.igfFlowTitleRow}>
+                <h3 className={styles.igfFlowTitle}>Income Generated Fund (IGF) Revenue Linkage</h3>
+                <span className={styles.igfCardBadge}>Merchandise Profits</span>
+              </div>
+              <p className={styles.igfFlowSubtitle}>
+                The Income Generated Fund (IGF) derives its profits from SSG merchandise sales, uniforms, and pre-orders. Settled merchandise revenue is credited into the official IGF treasury account.
+              </p>
+            </div>
+          </div>
+          <div className={styles.igfFlowActions}>
+            <button
+              type="button"
+              className={styles.igfDetailsActionBtn}
+              onClick={() => setIgfModalOpen(true)}
+            >
+              <FileSpreadsheet size={16} />
+              <span>Audit Details</span>
+            </button>
+            <button
+              type="button"
+              className={styles.igfSyncActionBtn}
+              onClick={handleBatchSyncToIGF}
+              disabled={igfMetrics.eligibleOrders.length === 0 || isSyncingIGF}
+            >
+              {isSyncingIGF ? (
+                <>
+                  <RefreshCw size={16} className={styles.spinning} />
+                  <span>Syncing to IGF...</span>
+                </>
+              ) : igfMetrics.eligibleOrders.length > 0 ? (
+                <>
+                  <Sparkles size={16} />
+                  <span>Sync Pending ₱{igfMetrics.eligibleRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} />
+                  <span>All Settled Orders Synced</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Live Flow Stats Grid */}
+        <div className={styles.igfFlowStatsGrid}>
+          <div className={styles.igfFlowStatItem}>
+            <span className={styles.igfFlowStatLabel}>Live IGF Balance</span>
+            <span className={styles.igfFlowStatValue}>₱{igfMetrics.igfBalance.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+            <span className={styles.igfFlowStatSub}>SSG Fund Account</span>
+          </div>
+          <div className={styles.igfFlowStatItem}>
+            <span className={styles.igfFlowStatLabel}>Settled Merchandise Sales</span>
+            <span className={styles.igfFlowStatValue}>₱{igfMetrics.settledRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+            <span className={styles.igfFlowStatSub}>{igfMetrics.settledOrders.length} paid/claimed orders</span>
+          </div>
+          <div className={styles.igfFlowStatItem}>
+            <span className={styles.igfFlowStatLabel}>Credited to Ledger</span>
+            <span className={styles.igfFlowStatValue} style={{ color: '#34d399' }}>₱{igfMetrics.syncedRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+            <span className={styles.igfFlowStatSub}>{igfMetrics.syncedOrders.length} transactions posted</span>
+          </div>
+          <div className={styles.igfFlowStatItem}>
+            <span className={styles.igfFlowStatLabel}>Pending IGF Sync</span>
+            <span className={styles.igfFlowStatValue} style={{ color: igfMetrics.eligibleRevenue > 0 ? '#fbbf24' : '#94a3b8' }}>
+              ₱{igfMetrics.eligibleRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+            </span>
+            <span className={styles.igfFlowStatSub}>{igfMetrics.eligibleOrders.length} orders awaiting sync</span>
+          </div>
+        </div>
+
+        {/* Sync Progress Bar */}
+        <div className={styles.igfProgressSection}>
+          <div className={styles.igfProgressHeader}>
+            <span>Ledger Synchronization Progress</span>
+            <span><strong>{igfMetrics.syncPercentage}%</strong> of settled revenue credited to IGF</span>
+          </div>
+          <div className={styles.igfProgressBarTrack}>
+            <div className={styles.igfProgressBarFill} style={{ width: `${igfMetrics.syncPercentage}%` }} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1000,6 +1294,18 @@ function OrderManagement() {
         </div>
 
         <div className={styles.productsToolbarRight}>
+            <button
+              type="button"
+              className={`${styles.syncToolbarBtn} ${styles.btnSyncIgf}`}
+              onClick={() => setIgfModalOpen(true)}
+              title="Review merchandise revenue and sync with official SSG IGF fund account"
+            >
+              <Landmark size={16} />
+              <span>IGF Revenue Link</span>
+              {igfMetrics.eligibleOrders.length > 0 && (
+                <span className={styles.igfPendingPill}>{igfMetrics.eligibleOrders.length}</span>
+              )}
+            </button>
             <button
               type="button"
               className={`${styles.syncToolbarBtn} ${styles.btnSyncSheet}`}
@@ -1065,6 +1371,7 @@ function OrderManagement() {
                   <th>Total</th>
                   <th>Status</th>
                   <th>Payment</th>
+                  <th>IGF Treasury</th>
                   <th>Date</th>
                   <th>Actions</th>
                 </tr>
@@ -1126,6 +1433,27 @@ function OrderManagement() {
                       <span className={styles.paymentBadge}>
                         {order.paymentInfo?.paymentMethod}
                       </span>
+                    </td>
+                    <td data-label="IGF Treasury">
+                      {order.igfSynced ? (
+                        <span className={styles.igfBadgeSynced} title={`Recorded in IGF ledger: ${order.igfTxRef || 'IGF-ORD'}`}>
+                          <ShieldCheck size={13} />
+                          <span>IGF Synced</span>
+                        </span>
+                      ) : (order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Paid') && order.orderStatus !== 'Cancelled' ? (
+                        <button
+                          type="button"
+                          className={styles.igfSyncRowBtn}
+                          onClick={() => handleSyncOrderToIGF(order)}
+                          disabled={isSyncingIGF}
+                          title="Credit this merchandise order revenue into IGF Fund Account"
+                        >
+                          <Sparkles size={12} />
+                          <span>Link to IGF</span>
+                        </button>
+                      ) : (
+                        <span className={styles.igfBadgePending}>—</span>
+                      )}
                     </td>
                     <td data-label="Date" className={styles.dateCell}>{formatDate(order.dateOrdered)}</td>
                     <td data-label="Actions" className={styles.actionsCell}>
@@ -1297,6 +1625,142 @@ function OrderManagement() {
               >
                 Confirm
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IGF REVENUE LINKAGE MODAL */}
+      {igfModalOpen && (
+        <div className={styles.igfModalOverlay} onClick={() => setIgfModalOpen(false)}>
+          <div className={styles.igfModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.igfModalHeader}>
+              <div className={styles.igfModalTitleGroup}>
+                <Landmark size={22} style={{ color: '#ffea9f' }} />
+                <h3 className={styles.igfModalTitle}>Income Generated Fund (IGF) Revenue Linkage</h3>
+              </div>
+              <button
+                type="button"
+                className={styles.igfModalCloseBtn}
+                onClick={() => setIgfModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.igfModalBody}>
+              <div className={styles.igfModalDescBox}>
+                <strong>Why is Order Revenue linked to IGF?</strong>
+                <p style={{ margin: '0.35rem 0 0', color: '#cbd5e1' }}>
+                  The Student Government's <strong>Income Generated Fund (IGF)</strong> gathers and manages revenue created through commercial operations — such as shirts, student lanyards, uniform accessories, and merchandise. All profits are credited directly into the IGF general ledger to finance student projects, supplies, and official operations.
+                </p>
+              </div>
+
+              <div className={styles.igfModalGrid}>
+                <div className={styles.igfModalCard}>
+                  <span className={styles.igfModalCardLabel}>Official IGF Fund Balance</span>
+                  <span className={styles.igfModalCardVal}>
+                    ₱{igfMetrics.igfBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className={styles.igfModalCardSub}>Active fund balance in Finance</span>
+                </div>
+
+                <div className={styles.igfModalCard}>
+                  <span className={styles.igfModalCardLabel}>Settled Merchandise Revenue</span>
+                  <span className={styles.igfModalCardVal}>
+                    ₱{igfMetrics.settledRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className={styles.igfModalCardSub}>{igfMetrics.settledOrders.length} completed & claimed orders</span>
+                </div>
+
+                <div className={styles.igfModalCard}>
+                  <span className={styles.igfModalCardLabel}>Credited to Ledger</span>
+                  <span className={styles.igfModalCardVal} style={{ color: '#34d399' }}>
+                    ₱{igfMetrics.syncedRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className={styles.igfModalCardSub}>{igfMetrics.syncedOrders.length} orders safely recorded</span>
+                </div>
+
+                <div className={styles.igfModalCard}>
+                  <span className={styles.igfModalCardLabel}>Pending Sync to IGF</span>
+                  <span className={styles.igfModalCardVal} style={{ color: igfMetrics.eligibleRevenue > 0 ? '#fbbf24' : '#94a3b8' }}>
+                    ₱{igfMetrics.eligibleRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className={styles.igfModalCardSub}>{igfMetrics.eligibleOrders.length} orders awaiting ledger post</span>
+                </div>
+              </div>
+
+              {/* Pending Orders List */}
+              <div className={styles.igfModalPendingList}>
+                <div className={styles.igfModalListHeader}>
+                  {igfMetrics.eligibleOrders.length > 0
+                    ? `Eligible Unsynced Orders (${igfMetrics.eligibleOrders.length})`
+                    : 'All Merchandise Orders Up to Date'}
+                </div>
+
+                {igfMetrics.eligibleOrders.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', color: '#94a3b8' }}>
+                    <ShieldCheck size={32} style={{ color: '#10b981', margin: '0 auto 0.5rem', display: 'block' }} />
+                    <p style={{ margin: 0, fontWeight: 600, color: '#e2e8f0' }}>All eligible merchandise revenue is synchronized with IGF!</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>Every settled order is accounted for in the SSG Income Generated Funds ledger.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '220px', overflowY: 'auto' }}>
+                    {igfMetrics.eligibleOrders.map((order) => (
+                      <div key={order.docId} className={styles.igfModalOrderRow}>
+                        <div className={styles.igfModalOrderInfo}>
+                          <span className={styles.igfModalOrderId}>{order.orderId} — {order.customerInfo?.fullName}</span>
+                          <span className={styles.igfModalOrderDetails}>
+                            {order.productInfo?.productName} (x{order.productInfo?.quantity || 1}) • Status: {order.orderStatus} {order.claimed ? '(Claimed)' : ''}
+                          </span>
+                        </div>
+                        <div className={styles.igfModalOrderAction}>
+                          <span className={styles.igfModalOrderPrice}>₱{(Number(order.productInfo?.totalPrice || order.totalPrice) || 0).toFixed(2)}</span>
+                          <button
+                            type="button"
+                            className={styles.igfSyncRowBtn}
+                            onClick={() => handleSyncOrderToIGF(order)}
+                            disabled={isSyncingIGF}
+                          >
+                            <Sparkles size={12} />
+                            Sync
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.igfModalFooter}>
+              <button
+                type="button"
+                className={styles.igfModalCancelBtn}
+                onClick={() => setIgfModalOpen(false)}
+              >
+                Close
+              </button>
+              {igfMetrics.eligibleOrders.length > 0 && (
+                <button
+                  type="button"
+                  className={styles.igfModalSyncAllBtn}
+                  onClick={handleBatchSyncToIGF}
+                  disabled={isSyncingIGF}
+                >
+                  {isSyncingIGF ? (
+                    <>
+                      <RefreshCw size={16} className={styles.spinning} />
+                      <span>Syncing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span>Sync All ({igfMetrics.eligibleOrders.length} Orders • ₱{igfMetrics.eligibleRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })})</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

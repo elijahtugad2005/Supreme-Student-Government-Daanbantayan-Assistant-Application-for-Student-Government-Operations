@@ -3576,6 +3576,554 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
 }
 
+/* =====================================================
+   IGF (INCOME GENERATED FUND) LINKAGE & REVENUE STYLES
+   ===================================================== */
+
+/* KPI Card IGF Highlight */
+.kpiCardIgf {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(138, 26, 46, 0.09) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpiCardIgf::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #d4af37, #8a1a2e);
+}
+
+.igfCardBadge {
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+  color: #160406;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  margin-left: 0.5rem;
+}
+
+/* IGF Flow Banner */
+.igfFlowBanner {
+  background: linear-gradient(135deg, rgba(26, 5, 9, 0.96) 0%, rgba(42, 8, 14, 0.94) 50%, rgba(20, 4, 7, 0.98) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 14px;
+  padding: 1.6rem 2rem;
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.igfFlowBanner::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.14) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.igfFlowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.igfFlowHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+.igfFlowIcon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(138, 26, 46, 0.4) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffea9f;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+}
+
+.igfFlowTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.igfFlowTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffea9f;
+  font-family: 'Cinzel', serif, var(--om-font);
+  letter-spacing: 0.04em;
+}
+
+.igfFlowSubtitle {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  max-width: 680px;
+}
+
+/* IGF Flow Stats Grid */
+.igfFlowStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.igfFlowStatItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.igfFlowStatLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.igfFlowStatValue {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: var(--om-font);
+}
+
+.igfFlowStatSub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* Progress bar */
+.igfProgressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.igfProgressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: #e2e8f0;
+}
+
+.igfProgressHeader span strong {
+  color: #ffea9f;
+}
+
+.igfProgressBarTrack {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.igfProgressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4af37 0%, #10b981 100%);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+/* Flow actions */
+.igfFlowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.igfSyncActionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.35rem;
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+  color: #1a0507;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 234, 159, 0.6);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+}
+
+.igfSyncActionBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.45);
+  background: linear-gradient(135deg, #f5d77f 0%, #d4af37 100%);
+}
+
+.igfSyncActionBtn:disabled {
+  background: rgba(212, 175, 55, 0.2);
+  color: #94a3b8;
+  border-color: rgba(212, 175, 55, 0.2);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.igfDetailsActionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #ffea9f;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.igfDetailsActionBtn:hover {
+  background: rgba(212, 175, 55, 0.22);
+  border-color: #d4af37;
+  color: #ffffff;
+}
+
+/* Toolbar button */
+.btnSyncIgf {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(138, 26, 46, 0.2) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: #ffea9f !important;
+  position: relative;
+}
+
+.btnSyncIgf:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(138, 26, 46, 0.35) 100%) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+.igfPendingPill {
+  background: #e66b3d;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  margin-left: 0.35rem;
+}
+
+/* Badges for table */
+.igfBadgeSynced {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.igfBadgePending {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.igfSyncRowBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(230, 107, 61, 0.2) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #ffea9f;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.igfSyncRowBtn:hover {
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+  color: #1a0507;
+  border-color: #ffea9f;
+  transform: translateY(-1px);
+}
+
+/* Mobile Stat Chip Gold */
+.mobileStatChipGold {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+  cursor: pointer;
+}
+
+/* Modal styles */
+.igfModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease both;
+}
+
+.igfModalContent {
+  background: linear-gradient(135deg, rgba(26, 5, 9, 0.98) 0%, rgba(35, 7, 12, 0.97) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  color: #e2e8f0;
+}
+
+.igfModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.6rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.igfModalTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.igfModalTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffea9f;
+  font-family: 'Cinzel', serif, var(--om-font);
+  letter-spacing: 0.04em;
+}
+
+.igfModalCloseBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.igfModalCloseBtn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.igfModalBody {
+  padding: 1.5rem 1.6rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.igfModalDescBox {
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.igfModalGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.igfModalCard {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.igfModalCardLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.igfModalCardVal {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ffea9f;
+}
+
+.igfModalCardSub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.igfModalPendingList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.igfModalListHeader {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffea9f;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.igfModalOrderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.igfModalOrderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.igfModalOrderId {
+  font-weight: 700;
+  color: #ffea9f;
+}
+
+.igfModalOrderDetails {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.igfModalOrderAction {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.igfModalOrderPrice {
+  font-weight: 700;
+  color: #34d399;
+}
+
+.igfModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.6rem;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.igfModalCancelBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  padding: 0.6rem 1.15rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.igfModalCancelBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.igfModalSyncAllBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+  color: #1a0507;
+  border: 1px solid rgba(255, 234, 159, 0.6);
+  padding: 0.65rem 1.35rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+}
+
+.igfModalSyncAllBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.45);
+  background: linear-gradient(135deg, #f5d77f 0%, #d4af37 100%);
+}
+
+.igfModalSyncAllBtn:disabled {
+  background: rgba(212, 175, 55, 0.2);
+  color: #94a3b8;
+  border-color: rgba(212, 175, 55, 0.2);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 
 
 
