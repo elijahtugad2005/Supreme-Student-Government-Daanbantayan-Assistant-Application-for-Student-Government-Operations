@@ -16,6 +16,7 @@ import {
   canPreviewInline,
   formatBytes,
   formatDate,
+  MAX_FILE_BYTES,
 } from '../../utils/documentLabels';
 import {
   deleteDocument,
@@ -29,7 +30,7 @@ import {
   validateFile,
 } from '../../services/documentService';
 import auditService from '../../services/auditService';
-import { S, T, statusPill } from '../../utils/themeStyles';
+import { S, T, statusPill, statusBanner } from '../../utils/themeStyles';
 import { storageWarning } from '../../services/fileStore';
 import AiStatusBadge from './AiStatusBadge.jsx';
 import DocumentAnalysis from './DocumentAnalysis.jsx';
@@ -47,6 +48,7 @@ import {
   HiFolderOpen,
   HiSearch,
   HiPencil,
+  HiSparkles,
 } from 'react-icons/hi';
 
 const STATUS_TONE = {
@@ -1043,7 +1045,7 @@ const styles = {
   subtitle: { fontSize: '0.9rem', color: T.textSoft, marginTop: '0.3rem' },
 
   banner: (tone) => ({
-    ...statusBanner(tone),
+    ...(typeof statusBanner === 'function' ? statusBanner(tone) : {}),
     position: 'relative',
   }),
   storageNotice: {
