@@ -44,3 +44,12 @@ TELEGRAM_FACULTY_CHAT_ID=your_faculty_chat_id_here
 TELEGRAM_MAYORS_CHAT_ID=your_mayors_chat_id_here
 
 The real values must remain outside source control and must not be inspected by the coding agent.
+
+---
+
+# CAPSTONE & RESEARCH DOCUMENTATION RULES
+
+1. **Storage Isolation**: All research documents, capstone manuscripts, draft chapters, literature reviews, statistical analyses, and academic paperworks must reside exclusively inside the [`Paperworks/`](Paperworks/) directory.
+2. **Git Hygiene**: Never place manuscript drafts, academic notes, or external research repositories in the root directory or `src/`.
+3. **Primary Source Integrity**: All technical claims in the manuscript must cite and align with verified primary source files in `src/`, `backend/`, and `functions/`.
+

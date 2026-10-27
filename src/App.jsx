@@ -272,7 +272,21 @@ function App() {
         {/* 6. DOCUMENTS */}
         <Route path="/documents" element={
           <ProtectedRoute 
-            allowedRoles={['admin', 'secretary', 'representative', 'senator']}
+            allowedRoles={[
+              'admin',
+              'president',
+              'vice_president',
+              'secretary',
+              'executive_secretary',
+              'press_secretary',
+              'linkages_secretary',
+              'deputy_secretary',
+              'finance_secretary',
+              'auditor',
+              'budget_officer',
+              'representative',
+              'senator'
+            ]}
             requiredPermissions={['canExportData']}
             anyPermission={true}
             customAccessDenied={
