@@ -191,10 +191,28 @@ export const recordSectionCollection = async ({
   recorder,
 }) => {
   if (!roster?.rosterId) throw new Error('Choose a section with a verified roster.');
-  if (!recorder?.uid) throw new Error('You must be signed in to record a collection.');
+  const trimmedName = String(submittedByName || '').trim();
+  if (!trimmedName) {
+    throw new Error('Please enter your full name as the submitter.');
+  }
 
   const totals = computeTotals(roster.studentCount, contribution, beneficiaries);
   if (totals.enrolledCount === 0) throw new Error('That roster has no students enrolled.');
+
+  // Anti-Spam Failsafe: Check if an active collection for this section is already pending verification
+  const existingPendingQuery = query(
+    collection(db, COLLECTION_COLLECTION),
+    where('rosterId', '==', roster.rosterId),
+    where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
+    limit(1)
+  );
+  const existingPendingSnap = await getDocs(existingPendingQuery);
+  if (!existingPendingSnap.empty) {
+    const pendingDoc = existingPendingSnap.docs[0].data();
+    throw new Error(
+      `Section ${roster.section} already has an active submission (${pendingDoc.collectionId}) awaiting officer verification. Duplicate filings are locked until verified or settled.`
+    );
+  }
 
   // Detail is optional and may be partial, but it can never exceed the debt it
   // is describing.
@@ -211,6 +229,10 @@ export const recordSectionCollection = async ({
   const year = new Date().getFullYear();
   const collectionId = await allocateCollectionId(year);
 
+  const recordedUid = recorder?.uid || null;
+  const recordedName = recorder?.name || trimmedName;
+  const recordedRole = recorder?.role || 'guest';
+
   await setDoc(doc(db, COLLECTION_COLLECTION, collectionId), {
     collectionId,
     rosterId: roster.rosterId,
@@ -221,6 +243,7 @@ export const recordSectionCollection = async ({
     college: roster.college,
     yearLevel: roster.yearLevel ?? null,
     mayorName: roster.mayorName || 'No Mayor Assigned',
+    mayorUid: roster.mayorUid || null,
 
     ...totals,
 
@@ -230,10 +253,10 @@ export const recordSectionCollection = async ({
 
     // Who physically brought the money in, and who typed this in. Kept apart so
     // the audit can name both.
-    submittedByName: String(submittedByName).trim() || 'Not recorded',
-    recordedByUid: recorder.uid,
-    recordedByName: recorder.name,
-    recordedByRole: recorder.role,
+    submittedByName: trimmedName,
+    recordedByUid: recordedUid,
+    recordedByName: recordedName,
+    recordedByRole: recordedRole,
 
     status: DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION,
     submittedAt: serverTimestamp(),
@@ -246,7 +269,11 @@ export const recordSectionCollection = async ({
   await appendAudit({
     collectionId,
     action: 'collection_recorded',
-    actor: recorder,
+    actor: {
+      uid: recordedUid,
+      name: recordedName,
+      role: recordedRole,
+    },
     extra: {
       section: roster.section,
       sectionKey: roster.sectionKey,
@@ -479,11 +506,12 @@ export const listVerifiedRosters = async () => {
   );
 };
 
-export const listCollections = async ({ status, sectionKey } = {}) => {
+export const listCollections = async ({ status, sectionKey, recordedByUid } = {}) => {
   try {
     const clauses = [];
     if (status) clauses.push(where('status', '==', status));
     if (sectionKey) clauses.push(where('sectionKey', '==', sectionKey));
+    if (recordedByUid) clauses.push(where('recordedByUid', '==', recordedByUid));
     // No orderBy: a filter plus a sort on a second field would require a
     // composite index. The set is small, so it is sorted in memory.
     const snap = await getDocs(query(collection(db, COLLECTION_COLLECTION), ...clauses));
@@ -495,6 +523,28 @@ export const listCollections = async ({ status, sectionKey } = {}) => {
 
 export const listPendingCollections = () =>
   listCollections({ status: DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION });
+
+/**
+ * Check if a section roster already has an active pending collection awaiting verification.
+ * Anti-spam and duplicate-prevention failsafe.
+ */
+export const getActivePendingForRoster = async (rosterId) => {
+  if (!rosterId) return null;
+  try {
+    const q = query(
+      collection(db, COLLECTION_COLLECTION),
+      where('rosterId', '==', rosterId),
+      where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return { id: snap.docs[0].id, ...snap.docs[0].data() };
+  } catch (error) {
+    console.error('Failed to check active pending collection for roster:', error);
+    return null;
+  }
+};
 
 export const listRemittances = async ({ status } = {}) => {
   try {

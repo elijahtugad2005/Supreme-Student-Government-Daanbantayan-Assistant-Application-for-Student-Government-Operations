@@ -352,12 +352,17 @@ function App() {
         {/* 7b. DEATH AID COLLECTION & REMITTANCE */}
         <Route path="/death-aid" element={
           <ProtectedRoute
-            allowedRoles={['admin', 'secretary', 'finance_secretary', 'governor', 'senator', 'representative', 'member', 'guest']}
+            allowedRoles={[
+              'public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary',
+              'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary',
+              'auditor', 'budget_officer', 'governor', 'senator', 'representative', 'member', 'guest'
+            ]}
             requiredPermissions={['canSubmitRoster']}
+            allowGuest
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied
-                  message="Sign in with your Mayor or officer account to use Death Aid. Collections are tied to an account so the audit trail can name who submitted and who accepted the money."
+                  message="Enter your name and select a section to submit Death Aid contributions."
                   requiredPermissions={['canSubmitRoster']}
                   showUserInfo={true}
                 />

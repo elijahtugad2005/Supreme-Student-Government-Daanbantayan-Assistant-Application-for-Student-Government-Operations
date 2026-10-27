@@ -15,6 +15,7 @@ import {
   computeOutstanding,
   computeTotals,
   denyRemittance,
+  getActivePendingForRoster,
   listAuditLog,
   listCollections,
   listPendingCollections,
@@ -47,7 +48,7 @@ const formatDate = (value) => {
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
 };
 
-const TABS = [
+const OFFICER_TABS = [
   { id: 'record', label: 'Record Collection' },
   { id: 'pending', label: 'Pending Verification' },
   { id: 'confirmed', label: 'Confirmed' },
@@ -57,14 +58,31 @@ const TABS = [
   { id: 'audit', label: 'Audit Trail' },
 ];
 
+const SUBMITTER_TABS = [
+  { id: 'record', label: 'Submit Collection' },
+  { id: 'my_submissions', label: 'My Submissions' },
+  { id: 'confirmed', label: 'Confirmed Collections' },
+];
+
+const GUEST_TABS = [
+  { id: 'record', label: 'Submit Collection' },
+  { id: 'confirmed', label: 'Confirmed Collections' },
+];
+
 function DeathAid() {
   const { currentUser, userRole, userName } = useAuth();
   const isManager = canManageDeathAid({ role: userRole });
   const actor = {
-    uid: currentUser?.uid,
-    name: userName || currentUser?.displayName || 'Unknown',
-    role: userRole,
+    uid: currentUser?.uid || null,
+    name: userName || currentUser?.displayName || '',
+    role: userRole || 'guest',
   };
+
+  const tabs = isManager
+    ? OFFICER_TABS
+    : currentUser
+    ? SUBMITTER_TABS
+    : GUEST_TABS;
 
   const [tab, setTab] = useState('record');
   const [banner, setBanner] = useState(null);
@@ -94,39 +112,36 @@ function DeathAid() {
     };
   }, []);
 
-  if (!isManager) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <h2 style={styles.mainTitle}>Death Aid Collection</h2>
-        </div>
-        <div style={styles.notice}>
-          Recording a Death Aid collection is handled by SSG officers. Ask an officer to enter the
-          count for your section.
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={styles.headerTopRow}>
           <h2 style={styles.mainTitle}>Death Aid Collection</h2>
-          {pendingCount > 0 ? (
-            <div style={styles.headerPendingPill} title={`${pendingCount} pending verification`}>
-              <span style={styles.pulseDot} />
-              <span>{pendingCount} PENDING VERIFICATION</span>
-            </div>
+          {isManager ? (
+            pendingCount > 0 ? (
+              <div style={styles.headerPendingPill} title={`${pendingCount} pending verification`}>
+                <span style={styles.pulseDot} />
+                <span>{pendingCount} PENDING VERIFICATION</span>
+              </div>
+            ) : (
+              <div style={styles.headerSettledPill}>
+                <HiCheckCircle style={{ fontSize: '1.05rem' }} />
+                <span>REMITTANCES SETTLED</span>
+              </div>
+            )
           ) : (
-            <div style={styles.headerSettledPill}>
-              <HiCheckCircle style={{ fontSize: '1.05rem' }} />
-              <span>REMITTANCES SETTLED</span>
+            <div style={styles.headerSubmitterPill}>
+              <HiInformationCircle style={{ fontSize: '1.05rem', color: T.accent }} />
+              <span>
+                ROLE: {String(userRole || 'Guest').toUpperCase()} · SECTION SUBMITTER
+              </span>
             </div>
           )}
         </div>
         <p style={styles.headerSubtitle}>
-          Record what a section handed in, verify remittances, and track what is still owed.
+          {isManager
+            ? 'Record what a section handed in, verify remittances, and track what is still owed.'
+            : 'Submit your section collection count for verification and track officer remittance confirmation.'}
         </p>
       </div>
 
@@ -134,8 +149,8 @@ function DeathAid() {
         <div style={styles.banner(banner.type)}>{banner.message}</div>
       )}
 
-      {/* Global pending indicator banner if user is viewing other tabs */}
-      {pendingCount > 0 && tab !== 'pending' && (
+      {/* Global pending indicator banner for officers */}
+      {isManager && pendingCount > 0 && tab !== 'pending' && (
         <div style={styles.pendingActionAlert}>
           <div style={styles.pendingAlertContent}>
             <span style={styles.pendingAlertIcon}>⚠️</span>
@@ -155,7 +170,7 @@ function DeathAid() {
       )}
 
       <div style={styles.tabBar}>
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const isPendingTab = t.id === 'pending';
           const isActive = t.id === tab;
           return (
@@ -180,11 +195,12 @@ function DeathAid() {
         })}
       </div>
 
-      {tab === 'record' && <RecordView actor={actor} say={say} />}
-      {tab === 'pending' && <PendingView actor={actor} say={say} />}
+      {tab === 'record' && <RecordView actor={actor} say={say} isManager={isManager} />}
+      {tab === 'my_submissions' && <MySubmissionsView actor={actor} say={say} />}
+      {isManager && tab === 'pending' && <PendingView actor={actor} say={say} />}
       {tab === 'confirmed' && <StatusListView status={DEATH_AID_COLLECTION_STATUS.CONFIRMED} title="Confirmed Collections" say={say} />}
-      {tab === 'discrepancies' && <DiscrepancyView say={say} />}
-      {tab === 'denied' && (
+      {isManager && tab === 'discrepancies' && <DiscrepancyView say={say} />}
+      {isManager && tab === 'denied' && (
         <StatusListView
           status={DEATH_AID_COLLECTION_STATUS.DENIED}
           title="Denied / Voided Collections"
@@ -192,24 +208,36 @@ function DeathAid() {
           say={say}
         />
       )}
-      {tab === 'outstanding' && <OutstandingView say={say} />}
-      {tab === 'audit' && <AuditView say={say} />}
+      {isManager && tab === 'outstanding' && <OutstandingView say={say} />}
+      {isManager && tab === 'audit' && <AuditView say={say} />}
     </div>
   );
 }
 
 // ════════════════════════════════════════════════════════════
-// RECORD — officer picks the section and counts the beneficiaries
+// RECORD / SUBMIT — officer or mayor picks section & records collection
 // ════════════════════════════════════════════════════════════
-function RecordView({ actor, say }) {
+function RecordView({ actor, say, isManager = true }) {
   const [rosters, setRosters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rosterId, setRosterId] = useState('');
   const [contribution, setContribution] = useState('1');
   const [beneficiaries, setBeneficiaries] = useState('');
-  const [submittedByName, setSubmittedByName] = useState('');
+  const [submittedByName, setSubmittedByName] = useState(actor?.name || '');
   const [debtRecords, setDebtRecords] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [activePending, setActivePending] = useState(null);
+  const [checkingPending, setCheckingPending] = useState(false);
+
+  // Anti-Spam Rate-Limiting: 60-second cooldown countdown
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -227,6 +255,32 @@ function RecordView({ actor, say }) {
   }, [load]);
 
   const roster = rosters.find((r) => r.rosterId === rosterId) || null;
+  // Member integration: A member who submitted the roster is integrated as the Section Mayor
+  const isIntegratedMayor = Boolean(actor?.uid && roster?.mayorUid === actor.uid);
+
+  // Anti-Spam Failsafe: Check if chosen section already has an active pending collection
+  useEffect(() => {
+    if (!rosterId) {
+      setActivePending(null);
+      return;
+    }
+    let alive = true;
+    setCheckingPending(true);
+    getActivePendingForRoster(rosterId)
+      .then((pending) => {
+        if (alive) setActivePending(pending);
+      })
+      .catch((err) => {
+        console.error('Failed checking active pending collection for section:', err);
+      })
+      .finally(() => {
+        if (alive) setCheckingPending(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [rosterId]);
 
   const totals = useMemo(
     () => computeTotals(roster?.studentCount ?? 0, contribution, beneficiaries),
@@ -236,8 +290,6 @@ function RecordView({ actor, say }) {
   const pick = (id) => {
     setRosterId(id);
     const found = rosters.find((r) => r.rosterId === id);
-    // Enrolling the section's students as debt rows, pre-typed so the officer
-    // only has to correct the ones who actually paid.
     setDebtRecords(
       Array.from({ length: found?.studentCount ?? 0 }, (_, i) => ({
         studentName: found?.students?.[i]?.name || '',
@@ -246,6 +298,12 @@ function RecordView({ actor, say }) {
       }))
     );
     setBeneficiaries('');
+    // Auto-fill submitter name if integrated mayor or signed in, otherwise let guest type their name
+    if (actor?.uid && found?.mayorUid === actor.uid) {
+      setSubmittedByName(actor.name || found.mayorName || '');
+    } else if (actor?.name) {
+      setSubmittedByName(actor.name);
+    }
   };
 
   const addDebt = () =>
@@ -259,15 +317,36 @@ function RecordView({ actor, say }) {
 
   const removeDebt = (i) => setDebtRecords((prev) => prev.filter((_, idx) => idx !== i));
 
-  // Debt rows are trimmed to the number actually owed, so extra rows the officer
-  // added while counting never contradict the count.
   const effectiveDebts = debtRecords.slice(0, totals.debtCount);
 
+  // Validation: Section and Name MUST be indicated first
+  const hasIndicatedSectionAndName = Boolean(roster && submittedByName.trim());
+
   const handleSave = async () => {
-    if (!roster) return say('error', 'Choose a section first.');
+    if (!roster) return say('error', 'Select a section first.');
+    const trimmedName = submittedByName.trim();
+    if (!trimmedName) {
+      return say('error', 'Please enter your full name as the submitter.');
+    }
     if (beneficiaries === '' || Number.isNaN(Number(beneficiaries))) {
       return say('error', 'Enter how many beneficiaries handed in.');
     }
+    if (Number(beneficiaries) < 0) {
+      return say('error', 'Number of beneficiaries cannot be negative.');
+    }
+    if (Number(contribution) <= 0) {
+      return say('error', 'Contribution per student must be greater than zero.');
+    }
+    if (cooldown > 0) {
+      return say('error', `Rate limited: Please wait ${cooldown} seconds before submitting again.`);
+    }
+    if (activePending) {
+      return say(
+        'error',
+        `Section ${roster.section} already has an active submission (${activePending.collectionId}) awaiting officer verification.`
+      );
+    }
+
     setSaving(true);
     try {
       const id = await recordSectionCollection({
@@ -275,17 +354,24 @@ function RecordView({ actor, say }) {
         contribution: Number(contribution) || 0,
         beneficiaries: Number(beneficiaries),
         debtRecords: effectiveDebts,
-        submittedByName,
+        submittedByName: trimmedName,
         recorder: actor,
       });
+
       say(
         'success',
-        `${id} recorded: ${totals.beneficiaryCount} beneficiary(ies), ${peso(totals.collectedAmount)} collected, ${totals.debtCount} student(s) owing ${peso(totals.debtAmount)}.`
+        isManager
+          ? `${id} recorded: ${totals.beneficiaryCount} beneficiary(ies), ${peso(totals.collectedAmount)} collected, ${totals.debtCount} student(s) owing ${peso(totals.debtAmount)}.`
+          : `${id} submitted successfully! Please bring the collected cash (${peso(totals.collectedAmount)}) to an SSG officer to verify and complete the remittance.`
       );
+
+      // Start 60-second anti-spam cooldown timer
+      setCooldown(60);
       setRosterId('');
       setBeneficiaries('');
-      setSubmittedByName('');
+      setSubmittedByName(actor?.name || '');
       setDebtRecords([]);
+      setActivePending(null);
     } catch (error) {
       say('error', error.message);
     } finally {
@@ -295,7 +381,24 @@ function RecordView({ actor, say }) {
 
   return (
     <div style={styles.formWrapper}>
-      <h3 style={styles.sectionTitle}>Record Collection</h3>
+      <div style={styles.sectionHeaderRow}>
+        <h3 style={styles.sectionTitle}>
+          {isManager ? 'Record Collection' : 'Submit Section Collection'}
+        </h3>
+        {cooldown > 0 && (
+          <div style={styles.cooldownBadge}>
+            <HiClock style={{ fontSize: '1rem' }} />
+            <span>Anti-Spam Cooldown: {cooldown}s</span>
+          </div>
+        )}
+      </div>
+
+      {!isManager && (
+        <div style={styles.notice}>
+          <HiInformationCircle style={{ fontSize: '1.2rem', color: T.accent, verticalAlign: 'middle', marginRight: '0.4rem' }} />
+          <strong>Guests & Section Members:</strong> You can submit your section's contributions. Please indicate your <strong>Section</strong> and <strong>Submitter Full Name</strong> below first before entering student counts.
+        </div>
+      )}
 
       {loading ? (
         <p style={styles.helperText}>Loading sections…</p>
@@ -303,58 +406,149 @@ function RecordView({ actor, say }) {
         <p style={styles.helperText}>No verified rosters yet. A section needs one before its collection can be recorded.</p>
       ) : (
         <>
-          <div style={styles.formRow}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Section</label>
-              <select value={rosterId} onChange={(e) => pick(e.target.value)} style={styles.select}>
-                <option value="">Select a section</option>
-                {rosters.map((r) => (
-                  <option key={r.rosterId} value={r.rosterId}>
-                    {r.section} · {r.program} · {r.studentCount} enrolled
-                  </option>
-                ))}
-              </select>
+          {/* STEP 1: SECTION & SUBMITTER NAME (REQUIRED FIRST) */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <div style={styles.formRow}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>
+                  1. Select Section <span style={{ color: T.error }}>*</span>
+                </label>
+                <select value={rosterId} onChange={(e) => pick(e.target.value)} style={styles.select}>
+                  <option value="">-- Choose your section --</option>
+                  {rosters.map((r) => {
+                    const isMySection = actor?.uid && r.mayorUid === actor.uid;
+                    return (
+                      <option key={r.rosterId} value={r.rosterId}>
+                        {r.section} · {r.program} · {r.studentCount} enrolled
+                        {isMySection ? ' ★ (Your Section - Integrated Mayor)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>
+                  2. Submitter Full Name <span style={{ color: T.error }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={submittedByName}
+                  onChange={(e) => setSubmittedByName(e.target.value)}
+                  placeholder="Enter your first and last name"
+                  style={{
+                    ...styles.input,
+                    ...(!submittedByName.trim() ? styles.inputRequiredHighlight : {}),
+                  }}
+                />
+              </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Contribution per beneficiary (₱)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={contribution}
-                onChange={(e) => setContribution(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Beneficiaries who paid</label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={beneficiaries}
-                onChange={(e) => setBeneficiaries(e.target.value)}
-                placeholder="e.g., 39"
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Brought in by (optional)</label>
-              <input
-                type="text"
-                value={submittedByName}
-                onChange={(e) => setSubmittedByName(e.target.value)}
-                placeholder="Student's name"
-                style={styles.input}
-              />
-            </div>
+            {/* MAYOR & SUBMITTER NAME INDICATOR */}
+            {roster && (
+              isIntegratedMayor ? (
+                <div style={styles.mayorIntegratedCard}>
+                  <HiCheckCircle style={{ fontSize: '1.4rem', color: T.success, flexShrink: 0, marginTop: '0.1rem' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', color: T.success, fontSize: '0.92rem' }}>
+                      ⭐ Integrated Section Mayor: {actor.name || submittedByName} (Member Account)
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: T.text, marginTop: '0.25rem', lineHeight: '1.4' }}>
+                      You submitted the official roster for <strong>{roster.section}</strong>. As the designated Section Mayor, you have authority to submit Death Aid collections and modify this section's student list in the roster registry.
+                    </div>
+                    <div style={{ marginTop: '0.45rem' }}>
+                      <a
+                        href="/sections-contributions?tab=roster"
+                        style={styles.rosterLinkBtn}
+                      >
+                        Modify / View Class List in Sections & Rosters →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={styles.mayorIndicator}>
+                  <HiInformationCircle style={{ fontSize: '1.3rem', color: T.accent, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.85rem' }}>
+                      <strong>Section Mayor on file:</strong> {roster.mayorName || 'No mayor assigned'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: T.textMuted, marginTop: '0.2rem' }}>
+                      Submitting as:{' '}
+                      <strong>{submittedByName.trim() || '(Please enter your name above)'}</strong>{' '}
+                      ({actor.role === 'member' ? 'Member' : 'Guest / Student Submitter'})
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
           </div>
 
-          {roster && (
+          {/* STEP 1 GUIDANCE NOTICE IF SECTION OR NAME IS MISSING */}
+          {!hasIndicatedSectionAndName && (
+            <div style={styles.stepGuidanceBox}>
+              <HiInformationCircle style={{ fontSize: '1.3rem', color: T.accent, flexShrink: 0 }} />
+              <div>
+                <strong>Step 1 Required:</strong> Please select your <strong>Section</strong> and provide your{' '}
+                <strong>Submitter Full Name</strong> above to unlock the collection and payment details.
+              </div>
+            </div>
+          )}
+
+          {checkingPending && (
+            <p style={styles.helperText}>Checking section collection status…</p>
+          )}
+
+          {activePending && (
+            <div style={styles.antiSpamWarning}>
+              <HiBan style={{ fontSize: '1.5rem', color: T.warning, flexShrink: 0, marginTop: '0.15rem' }} />
+              <div>
+                <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: T.warning, marginBottom: '0.25rem' }}>
+                  Submission Locked: Active Collection Pending Verification
+                </div>
+                <div style={{ fontSize: '0.85rem', lineHeight: '1.5', color: T.text }}>
+                  Section <strong>{roster?.section}</strong> already has an active submission (
+                  <code style={{ color: T.accent, fontWeight: 'bold' }}>{activePending.collectionId}</code>
+                  ) filed by <strong>{activePending.recordedByName || activePending.submittedByName || 'Mayor'}</strong> on{' '}
+                  {formatDate(activePending.submittedAt)}.
+                </div>
+                <div style={{ fontSize: '0.8rem', color: T.textMuted, marginTop: '0.35rem' }}>
+                  To prevent duplicate filings and spam attacks, another collection cannot be submitted until an SSG officer verifies or settles this pending remittance.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: COLLECTION ARITHMETIC & BENEFICIARIES (VISIBLE ONCE SECTION & NAME ARE ENTERED) */}
+          {hasIndicatedSectionAndName && (
             <>
+              <div style={styles.formRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Contribution per beneficiary (₱)</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={contribution}
+                    onChange={(e) => setContribution(e.target.value)}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Beneficiaries who paid</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={beneficiaries}
+                    onChange={(e) => setBeneficiaries(e.target.value)}
+                    placeholder="e.g., 39"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+
               <div style={styles.summaryGrid}>
                 <SummaryTile label="Enrolled" value={String(totals.enrolledCount)} />
                 <SummaryTile label="Beneficiaries" value={String(totals.beneficiaryCount)} tone={T.success} />
@@ -398,8 +592,6 @@ function RecordView({ actor, say }) {
                     </thead>
                     <tbody>
                       {effectiveDebts.map((row, i) => (
-                        // Keyed by position: the row count changes as the
-                        // beneficiary count is edited.
                         <tr key={i} style={styles.tableRow}>
                           <td style={styles.tableCell}>
                             <input
@@ -449,11 +641,27 @@ function RecordView({ actor, say }) {
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={saving || !roster}
-                  style={{ ...styles.submitButton, ...(saving ? styles.disabled : {}) }}
+                  disabled={saving || !hasIndicatedSectionAndName || !!activePending || cooldown > 0}
+                  style={{
+                    ...styles.submitButton,
+                    ...(saving || !hasIndicatedSectionAndName || !!activePending || cooldown > 0 ? styles.disabled : {}),
+                  }}
                 >
-                  {saving ? 'Saving…' : 'Record Collection'}
+                  {saving
+                    ? 'Submitting Collection…'
+                    : cooldown > 0
+                    ? `Rate-Limited: Wait ${cooldown}s`
+                    : activePending
+                    ? 'Section Collection Already Pending'
+                    : isManager
+                    ? 'Record Collection'
+                    : 'Submit Collection for Verification'}
                 </button>
+                {cooldown > 0 && (
+                  <span style={styles.muted}>
+                    Anti-spam protection active. You can submit another collection in {cooldown}s.
+                  </span>
+                )}
               </div>
             </>
           )}
@@ -468,6 +676,172 @@ function SummaryTile({ label, value, tone }) {
     <div style={styles.summaryTile}>
       <span style={styles.summaryLabel}>{label}</span>
       <span style={{ ...styles.summaryValue, ...(tone ? { color: tone } : {}) }}>{value}</span>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// MY SUBMISSIONS — Member/Mayor view of submitted collections
+// ════════════════════════════════════════════════════════════
+function MySubmissionsView({ actor, say }) {
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!actor?.uid) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const records = await listCollections({ recordedByUid: actor.uid });
+      setSubmissions(records);
+    } catch (error) {
+      say('error', `Could not load your submissions: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [actor?.uid, say]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <div style={styles.formWrapper}>
+        <p style={styles.helperText}>Loading your section submissions…</p>
+      </div>
+    );
+  }
+
+  if (submissions.length === 0) {
+    return (
+      <div style={styles.formWrapper}>
+        <div style={styles.sectionHeaderRow}>
+          <h3 style={styles.sectionTitle}>My Section Submissions</h3>
+        </div>
+        <p style={styles.helperText}>
+          You have not submitted any section death aid collections yet. Go to the "Submit Collection"
+          tab to file your section's contributions.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.formWrapper}>
+      <div style={styles.sectionHeaderRow}>
+        <h3 style={styles.sectionTitle}>My Section Submissions</h3>
+        <span style={styles.badge}>{submissions.length} Total</span>
+      </div>
+      <p style={styles.helperText}>
+        Track the status of collections you submitted. Once physical cash is counted and received by
+        an SSG officer, the status automatically updates from Pending to Confirmed.
+      </p>
+
+      <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {submissions.map((sub) => {
+          const isPending = sub.status === DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION;
+          const isConfirmed = sub.status === DEATH_AID_COLLECTION_STATUS.CONFIRMED;
+          const isDiscrepancy = sub.status === DEATH_AID_COLLECTION_STATUS.DISCREPANCY;
+          const isDenied = sub.status === DEATH_AID_COLLECTION_STATUS.DENIED;
+
+          return (
+            <div key={sub.id || sub.collectionId} style={styles.submissionCard}>
+              <div style={styles.reviewHeader}>
+                <div>
+                  <h4 style={styles.reviewTitle}>
+                    {sub.section} · {sub.program}
+                  </h4>
+                  <p style={styles.muted}>
+                    ID: <code style={{ color: T.accent, fontWeight: 'bold' }}>{sub.collectionId}</code> · Filed on {formatDate(sub.submittedAt)}
+                  </p>
+                </div>
+                <div>
+                  {isPending && (
+                    <div style={styles.badgePendingAlert}>
+                      <span style={styles.pulseDot} />
+                      <span>PENDING OFFICER VERIFICATION</span>
+                    </div>
+                  )}
+                  {isConfirmed && (
+                    <div style={styles.statusPillBadge(T.success)}>
+                      <HiCheckCircle style={{ fontSize: '1rem' }} />
+                      <span>CONFIRMED & SETTLED</span>
+                    </div>
+                  )}
+                  {isDiscrepancy && (
+                    <div style={styles.statusPillBadge(T.warning)}>
+                      <HiExclamation style={{ fontSize: '1rem' }} />
+                      <span>DISCREPANCY NOTED</span>
+                    </div>
+                  )}
+                  {isDenied && (
+                    <div style={styles.statusPillBadge(T.error)}>
+                      <HiXCircle style={{ fontSize: '1rem' }} />
+                      <span>VOIDED / DENIED</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={styles.summaryGrid}>
+                <SummaryTile label="Beneficiaries Paid" value={`${sub.beneficiaryCount} / ${sub.enrolledCount}`} />
+                <SummaryTile label="Reported Amount" value={peso(sub.collectedAmount)} tone={T.accent} />
+                <SummaryTile
+                  label="Remittance Status"
+                  value={
+                    isConfirmed
+                      ? 'Verified'
+                      : isDiscrepancy
+                      ? `Recv: ${peso(sub.amountReceived)}`
+                      : isDenied
+                      ? 'Denied'
+                      : 'Awaiting Officer'
+                  }
+                  tone={isConfirmed ? T.success : isDenied ? T.error : T.warning}
+                />
+              </div>
+
+              {isPending && (
+                <div style={styles.pendingHintCard}>
+                  <HiInformationCircle style={{ fontSize: '1.2rem', color: T.warning, flexShrink: 0 }} />
+                  <div>
+                    <strong>Next Step:</strong> Bring the physical collected cash (
+                    <strong>{peso(sub.collectedAmount)}</strong>) to the SSG Treasurer or Secretary for
+                    verification and receipt confirmation.
+                  </div>
+                </div>
+              )}
+
+              {isDenied && sub.denialReason && (
+                <div style={styles.deniedNoticeBox}>
+                  <HiBan style={{ fontSize: '1.1rem', color: T.error, flexShrink: 0 }} />
+                  <div>
+                    <strong>Officer Denial Reason:</strong> {sub.denialReason}
+                    {sub.denialNote && (
+                      <div style={{ marginTop: '0.25rem', color: T.textMuted }}>
+                        Note: "{sub.denialNote}"
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isConfirmed && sub.confirmedByName && (
+                <div style={styles.confirmedNoticeBox}>
+                  <HiCheckCircle style={{ fontSize: '1.1rem', color: T.success, flexShrink: 0 }} />
+                  <div>
+                    Verified and confirmed by <strong>{sub.confirmedByName}</strong> on{' '}
+                    {formatDate(sub.confirmedAt)}.
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1972,6 +2346,148 @@ const styles = {
     padding: '1.1rem 1.5rem',
     borderTop: `1px solid ${T.borderSoft}`,
     backgroundColor: T.bgCard,
+  },
+  headerSubmitterPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    padding: '0.35rem 0.85rem',
+    borderRadius: '9999px',
+    fontSize: '0.74rem',
+    fontWeight: '700',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    color: T.accent,
+    border: `1px solid ${T.accent}`,
+  },
+  statusPillBadge: (color) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    padding: '0.25rem 0.65rem',
+    borderRadius: '9999px',
+    fontSize: '0.75rem',
+    fontWeight: '700',
+    backgroundColor: `${color}20`,
+    color: color,
+    border: `1px solid ${color}`,
+  }),
+  submissionCard: {
+    backgroundColor: T.bgTertiary,
+    borderRadius: '0.85rem',
+    padding: '1.25rem',
+    marginBottom: '1rem',
+    border: `1px solid ${T.borderSoft}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.8rem',
+  },
+  pendingHintCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    border: `1px solid ${T.warning}`,
+    fontSize: '0.85rem',
+    color: T.text,
+  },
+  deniedNoticeBox: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    border: `1px solid ${T.error}`,
+    fontSize: '0.85rem',
+    color: T.text,
+  },
+  confirmedNoticeBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    border: `1px solid ${T.success}`,
+    fontSize: '0.85rem',
+    color: T.text,
+  },
+  antiSpamWarning: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.85rem',
+    padding: '1rem 1.25rem',
+    borderRadius: '0.75rem',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    border: `1.5px solid ${T.warning}`,
+    color: T.text,
+    margin: '1rem 0',
+  },
+  cooldownBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    padding: '0.4rem 0.85rem',
+    borderRadius: '9999px',
+    fontSize: '0.82rem',
+    fontWeight: '700',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    color: T.error,
+    border: `1px solid ${T.error}`,
+  },
+  mayorIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.65rem',
+    padding: '0.65rem 0.95rem',
+    borderRadius: '0.5rem',
+    backgroundColor: T.bgTertiary,
+    border: `1px solid ${T.borderSoft}`,
+    fontSize: '0.85rem',
+    margin: '0.5rem 0 1rem 0',
+    color: T.text,
+  },
+  mayorIntegratedCard: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.85rem',
+    padding: '0.9rem 1.1rem',
+    borderRadius: '0.65rem',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    border: `1.5px solid ${T.success}`,
+    margin: '0.5rem 0 1.2rem 0',
+  },
+  rosterLinkBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    fontSize: '0.78rem',
+    fontWeight: '700',
+    color: T.accent,
+    textDecoration: 'none',
+    padding: '0.3rem 0.65rem',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    border: `1px solid ${T.accent}`,
+    transition: 'opacity 0.2s',
+  },
+  stepGuidanceBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.85rem 1.1rem',
+    borderRadius: '0.6rem',
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    border: `1px dashed ${T.accent}`,
+    color: T.text,
+    fontSize: '0.85rem',
+    margin: '1rem 0',
+  },
+  inputRequiredHighlight: {
+    borderColor: T.warning,
+    boxShadow: `0 0 0 2px rgba(245, 158, 11, 0.2)`,
   },
 };
 
