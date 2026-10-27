@@ -28,7 +28,7 @@ import {
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
-import { db } from '../firebase/firebaseConfig';
+import { db, auth } from '../firebase/firebaseConfig';
 import { fileStore, mongoStore, firebaseStore, localStore } from './fileStore';
 import {
   ACCEPTED_FORMATS,
@@ -400,8 +400,7 @@ export const deleteDocument = async (documentOrId) => {
       console.warn('[deleteDocument] Client deleteDoc failed, trying backend admin endpoint:', firestoreError.message);
       const backendUrl = import.meta.env.VITE_MONGODB_BACKEND_URL || 'http://localhost:3000';
       try {
-        const { auth } = await import('../firebase/firebaseConfig.js');
-        const token = await auth.currentUser?.getIdToken?.();
+        const token = await auth?.currentUser?.getIdToken?.();
         if (token) {
           const resp = await fetch(`${backendUrl}/api/documents/firestore/${docId}`, {
             method: 'DELETE',

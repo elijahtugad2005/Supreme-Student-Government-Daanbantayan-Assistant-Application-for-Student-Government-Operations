@@ -10,7 +10,6 @@ import {
   assertFails,
   assertSucceeds,
 } from '@firebase/rules-unit-testing';
-import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { readFileSync } from 'node:fs';
 
 const testEnv = await initializeTestEnvironment({

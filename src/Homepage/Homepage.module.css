@@ -254,8 +254,8 @@
   transform: translateZ(0);
 }
 
-.slideHero { background-image: url('/heroimage.jpg'); background-position: center 36%; animation-delay: 0s; }
-.slide1    { background-image: url('/CTU Cover.jpg'); animation-delay: 5s; }
+.slideHero { background-image: url('/CTU Cover.jpg'); background-position: center 36%; animation-delay: 0s; }
+.slide1    { background-image: url('/Announcement1.jpg'); animation-delay: 5s; }
 .slide2    { background-image: url('/achievement 1.jpg'); animation-delay: 10s; }
 .slide3    { background-image: url('/achievement 2.jpg'); animation-delay: 15s; }
 .slide4    { background-image: url('/achievement 5.jpg'); animation-delay: 20s; }

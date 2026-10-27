@@ -12,6 +12,9 @@
 
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../firebase/firebaseConfig';
+import { localStore } from './fileStore/localStore';
 import { GEMINI_LIMITS, recordUsage } from '../utils/aiCapacity';
 
 const FUNCTIONS_REGION = 'us-central1';
@@ -19,8 +22,7 @@ const BACKEND_URL = import.meta.env.VITE_MONGODB_BACKEND_URL || 'http://localhos
 
 const callBackendAi = async (name, data) => {
   try {
-    const { auth } = await import('../firebase/firebaseConfig.js');
-    const token = await auth.currentUser?.getIdToken?.();
+    const token = await auth?.currentUser?.getIdToken?.();
     const res = await fetch(`${BACKEND_URL}/api/ai/${name}`, {
       method: 'POST',
       headers: {
@@ -282,13 +284,10 @@ export const analyzeOne = async (documentId, options = {}) => {
     try {
       let inline = null;
       try {
-        const { doc, getDoc } = await import('firebase/firestore');
-        const { db } = await import('../firebase/firebaseConfig.js');
         const snap = await getDoc(doc(db, 'documents', documentId));
         if (snap.exists()) {
           const d = snap.data();
           if ((d.storageType === 'local' || !d.storageType) && d.storagePath) {
-            const { localStore } = await import('./fileStore/localStore.js');
             const blob = await localStore.get(d.storagePath);
             if (blob && blob.size <= MAX_INLINE_BYTES) {
               const base64 = await fileToBase64(blob);
@@ -359,9 +358,6 @@ export const recordSignature = async (documentId, index, signed, options = {}) =
     );
 
     // Direct Firestore update fallback (guarantees signatories can be signed in Vercel even without backend Firebase Admin setup)
-    const { doc, getDoc, updateDoc, serverTimestamp } = await import('firebase/firestore');
-    const { db, auth } = await import('../firebase/firebaseConfig.js');
-
     const docRef = doc(db, 'documents', documentId);
     const snap = await getDoc(docRef);
     if (!snap.exists()) throw new Error('Document not found');

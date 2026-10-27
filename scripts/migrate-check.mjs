@@ -14,11 +14,8 @@
  */
 import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { spawnSync } from 'node:child_process';
-import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { getApps, initializeApp } from 'firebase-admin/app';
-import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { getFirestore } from 'firebase-admin/firestore';
-import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { getStorage } from 'firebase-admin/storage';
 
 // Must be host:port with NO protocol — the admin SDK rejects "http://".

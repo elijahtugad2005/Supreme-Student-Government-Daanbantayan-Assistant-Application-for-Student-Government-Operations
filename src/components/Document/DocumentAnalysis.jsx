@@ -21,6 +21,7 @@ import {
   runAnalysisQueue,
   secondsUntilReset,
 } from '../../services/documentAiService';
+import { updateDocument } from '../../services/documentService';
 import { S, T, statusPill } from '../../utils/themeStyles';
 import stylesModule from './DocumentDashboard.module.css';
 import { HiSparkles, HiCheckCircle, HiX, HiPencil, HiClock, HiShieldCheck, HiExclamation, HiServer, HiLightningBolt } from 'react-icons/hi';
@@ -310,7 +311,6 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
       // Unticking all boxes means the administrator intentionally rejects all AI suggestions.
       // We must NEVER auto-select unselected fields.
       if (apply.length === 0) {
-        const { updateDocument } = await import('../../services/documentService.js');
         await updateDocument(document.id, {
           aiState: 'approved',
           verifiedFields: [],
@@ -337,7 +337,6 @@ export default function DocumentAnalysis({ document, labels, onMessage, autoAnal
       console.warn('Backend confirmation failed, applying direct update fallback:', error);
       // Direct update fallback via Firestore if callable fails
       try {
-        const { updateDocument } = await import('../../services/documentService.js');
         const updates = {
           aiState: 'approved',
           verifiedFields: apply,

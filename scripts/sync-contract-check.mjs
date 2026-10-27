@@ -16,9 +16,7 @@
  */
 import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { syncSourceToFirestore } from '../src/components/Data/sheetSyncService.js';
-import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { EMULATOR_BUCKET, EMULATOR_PROJECT } from './emulator-project.mjs';
 import { readFileSync } from 'node:fs';
 
 let failed = 0;
