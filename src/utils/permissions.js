@@ -133,6 +133,8 @@ export const ROLE_PERMISSIONS = {
       canViewAnalytics: true,
       canViewFinance: true,
       canEditFinance: true,
+      canApproveFinance: true,
+      canAuditFinance: true,
       canExportData: true,
       canSendNotifications: true,
       canConfigureSystem: true,
@@ -156,6 +158,8 @@ export const ROLE_PERMISSIONS = {
       canViewAnalytics: true,
       canViewFinance: true,     // Finance full
       canEditFinance: true,
+      canApproveFinance: true,
+      canAuditFinance: false,
       canExportData: true,      // Documents
       canSendNotifications: true,
       canConfigureSystem: false,
@@ -300,6 +304,8 @@ export const ROLE_PERMISSIONS = {
       canViewAnalytics: true,
       canViewFinance: true,     // Finance (Higher Access)
       canEditFinance: true,     // Edit Finance
+      canApproveFinance: true,  // Dual approval role
+      canAuditFinance: false,
       canExportData: true,      // Documents (Higher Access)
       canSendNotifications: false,
       canConfigureSystem: false,
@@ -323,6 +329,8 @@ export const ROLE_PERMISSIONS = {
       canViewAnalytics: true,
       canViewFinance: true,
       canEditFinance: true,
+      canApproveFinance: false,
+      canAuditFinance: true,    // Audit clearance authority
       canExportData: true,
       canSendNotifications: false,
       canConfigureSystem: false,
@@ -346,6 +354,8 @@ export const ROLE_PERMISSIONS = {
       canViewAnalytics: true,
       canViewFinance: true,
       canEditFinance: true,
+      canApproveFinance: true,  // Budget secretary role
+      canAuditFinance: false,
       canExportData: true,
       canSendNotifications: false,
       canConfigureSystem: false,
@@ -548,6 +558,8 @@ export const PERMISSION_CATALOG = [
     items: [
       { key: 'canViewFinance', label: 'View finance', hint: 'See income, dues and budgets' },
       { key: 'canEditFinance', label: 'Edit finance', hint: 'Record income, expenses and budgets' },
+      { key: 'canApproveFinance', label: 'Approve finance', hint: 'Approve budget allocations and supplier payments' },
+      { key: 'canAuditFinance', label: 'Audit finance clearance', hint: 'Perform audit reviews and clear pre-order batches' },
     ],
   },
   {

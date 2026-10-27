@@ -1487,4 +1487,143 @@
 :global(.theme-dark) .modalHeader h3 {
   font-family: 'Cinzel', Georgia, serif !important;
   color: #ffea9f !important;
-}
+}
+
+/* ─── Fund Source Badges & Filter Pills ─── */
+.kpiGold {
+  color: #eab308 !important;
+}
+
+.managerClassic .kpiGold,
+:global(.theme-dark) .kpiGold {
+  color: #f3d068 !important;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+}
+
+.fundFilterPills {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.fundFilterPill {
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.12));
+  color: var(--color-text-secondary, #94a3b8);
+  font-family: 'JetBrains Mono', -apple-system, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fundFilterPill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary, #ffffff);
+  transform: translateY(-1px);
+}
+
+.fundFilterPillActive {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.fundFilterPillActiveMaroon {
+  background: #8b1524 !important;
+  border-color: #8b1524 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(139, 21, 36, 0.4);
+}
+
+.managerClassic .fundFilterPillActiveMaroon,
+:global(.theme-dark) .fundFilterPillActiveMaroon {
+  background: linear-gradient(135deg, #7a121d, #42060c) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+}
+
+.fundFilterPillActiveGold {
+  background: #d4af37 !important;
+  border-color: #d4af37 !important;
+  color: #120305 !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);
+}
+
+.managerClassic .fundFilterPillActiveGold,
+:global(.theme-dark) .fundFilterPillActiveGold {
+  background: linear-gradient(135deg, #f3d068, #d4af37) !important;
+  border-color: #ffea9f !important;
+  color: #120305 !important;
+}
+
+.fsgBadge {
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #eab308;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  letter-spacing: 0.03em;
+}
+
+.managerClassic .fsgBadge,
+:global(.theme-dark) .fsgBadge {
+  background: rgba(60, 45, 10, 0.7);
+  border-color: rgba(212, 175, 55, 0.5);
+  color: #f3d068;
+}
+
+.fiscalBadge {
+  background: rgba(139, 21, 36, 0.15);
+  border: 1px solid rgba(139, 21, 36, 0.35);
+  color: #f87171;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  letter-spacing: 0.03em;
+}
+
+.managerClassic .fiscalBadge,
+:global(.theme-dark) .fiscalBadge {
+  background: rgba(84, 9, 18, 0.6);
+  border-color: rgba(212, 175, 55, 0.3);
+  color: #ffea9f;
+}
+
+.drawerFundGold {
+  color: #eab308 !important;
+  font-weight: 700;
+}
+
+.managerClassic .drawerFundGold,
+:global(.theme-dark) .drawerFundGold {
+  color: #f3d068 !important;
+}
+
+.drawerFundMaroon {
+  color: #f87171 !important;
+  font-weight: 700;
+}
+
+.managerClassic .drawerFundMaroon,
+:global(.theme-dark) .drawerFundMaroon {
+  color: #ffea9f !important;
+}
+

@@ -1429,4 +1429,251 @@
 :global(.theme-dark) .container .progressFill {
   box-shadow: 0 0 12px rgba(212, 175, 55, 0.35) !important;
   border-radius: 999px !important;
-}
+}
+
+/* ─── Fund Source Selector (Fiscal Year Budget vs FSG Remittance) ─── */
+.fundSourceWrapper {
+  background: var(--color-bg-primary, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.1));
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formClassic .fundSourceWrapper,
+:global(.theme-dark) .container .fundSourceWrapper {
+  background: rgba(18, 2, 5, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.fundSourceHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fundSourceTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formClassic .fundSourceTitle,
+:global(.theme-dark) .fundSourceTitle {
+  font-family: 'Cinzel', Georgia, serif;
+  color: #ffea9f;
+}
+
+.fundSourceHint {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.formClassic .fundSourceHint,
+:global(.theme-dark) .fundSourceHint {
+  color: #c9a9ad;
+}
+
+.fundSourceOptions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .fundSourceOptions {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.fundOptionCard {
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.02));
+  border: 2px solid var(--color-border-primary, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  outline: none;
+}
+
+.fundOptionCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.fundOptionActiveMaroon {
+  background: rgba(122, 18, 29, 0.2) !important;
+  border-color: #8b1524 !important;
+  box-shadow: 0 0 16px rgba(139, 21, 36, 0.3) !important;
+}
+
+.formClassic .fundOptionActiveMaroon,
+:global(.theme-dark) .fundOptionActiveMaroon {
+  background: linear-gradient(135deg, rgba(84, 9, 18, 0.6), rgba(30, 3, 7, 0.9)) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.25) !important;
+}
+
+.fundOptionActiveGold {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.25) !important;
+}
+
+.formClassic .fundOptionActiveGold,
+:global(.theme-dark) .fundOptionActiveGold {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(40, 25, 5, 0.85)) !important;
+  border-color: #f3d068 !important;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3) !important;
+}
+
+.fundOptionTop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fundOptionIconCircleMaroon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(139, 21, 36, 0.2);
+  color: #ff6b7d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.formClassic .fundOptionIconCircleMaroon,
+:global(.theme-dark) .fundOptionIconCircleMaroon {
+  background: rgba(84, 9, 18, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #ffea9f;
+}
+
+.fundOptionIconCircleGold {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.2);
+  color: #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.formClassic .fundOptionIconCircleGold,
+:global(.theme-dark) .fundOptionIconCircleGold {
+  background: rgba(60, 45, 10, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #f3d068;
+}
+
+.fundOptionInfo {
+  flex: 1;
+}
+
+.fundOptionName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+}
+
+.formClassic .fundOptionName,
+:global(.theme-dark) .fundOptionName {
+  font-family: 'Cinzel', Georgia, serif;
+  color: #ffea9f;
+}
+
+.fundOptionSub {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.formClassic .fundOptionSub,
+:global(.theme-dark) .fundOptionSub {
+  color: #c9a9ad;
+}
+
+.fundOptionActivePillMaroon {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: #8b1524;
+  color: #ffffff;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.formClassic .fundOptionActivePillMaroon,
+:global(.theme-dark) .fundOptionActivePillMaroon {
+  background: rgba(212, 175, 55, 0.2);
+  color: #d4af37;
+  border: 1px solid #d4af37;
+}
+
+.fundOptionActivePillGold {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: #d4af37;
+  color: #000000;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.fundOptionMetrics {
+  border-top: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.08));
+  padding-top: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.formClassic .fundOptionMetrics,
+:global(.theme-dark) .fundOptionMetrics {
+  border-top-color: rgba(212, 175, 55, 0.15);
+}
+
+.fundOptionMetricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fundOptionMetricLabel {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.fundOptionMetricVal {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+}
+
+.fundOptionSurplus {
+  color: #22c55e !important;
+}
+
+.fundOptionSurplusGold {
+  color: #eab308 !important;
+}
+

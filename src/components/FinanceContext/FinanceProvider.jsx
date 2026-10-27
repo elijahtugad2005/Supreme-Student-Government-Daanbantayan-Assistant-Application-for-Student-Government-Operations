@@ -1,23 +1,19 @@
 // context/FinanceContext.jsx
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { db } from '../../firebase/firebaseConfig';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  getDocs,
-  query,
-  orderBy,
-  serverTimestamp 
-} from 'firebase/firestore';
 import { useAuth } from '../AuthContext/AuthContext';
+import financeService from '../../services/financeService';
+import {
+  TOP_LEVEL_FUNDS,
+  TOP_LEVEL_FUND_LABELS,
+  TRANSACTION_TYPES,
+  TRANSACTION_STATUSES,
+  toCentavos,
+  fromCentavos,
+  formatPHP,
+} from '../../utils/financeConstants';
 
-// Create the context - THIS IS WHAT YOU NEED TO EXPORT
 const FinanceContext = createContext();
 
-// Custom hook to use finance context
 export const useFinance = () => {
   const context = useContext(FinanceContext);
   if (!context) {
@@ -26,347 +22,315 @@ export const useFinance = () => {
   return context;
 };
 
-// The provider component
 export const FinanceProvider = ({ children }) => {
-  const { userRole, userName } = useAuth();
-  
-  // State for budgets
-  const [budgets, setBudgets] = useState([]);
+  const { userRole, userName, currentUser } = useAuth();
+
+  // Redesigned Core State
+  const [fundAccounts, setFundAccounts] = useState([]);
+  const [budgetAllocations, setBudgetAllocations] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [preOrderBatches, setPreOrderBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // State for funds
+
+  // Backward-compatibility state for legacy views (BudgetAnalytics, etc.)
+  const [budgets, setBudgets] = useState([]);
   const [funds, setFunds] = useState({
     annualBudget: 0,
     incomeGenerated: 0,
     totalFunds: 0,
-    lastUpdated: null
+    lastUpdated: null,
   });
-  
-  // Statistics
   const [statistics, setStatistics] = useState({
     totalAllocated: 0,
     totalSpent: 0,
     totalRemaining: 0,
     budgetCount: 0,
     categories: {},
-    committees: {}
+    committees: {},
   });
 
-  // Fetch all budgets from Firestore
-  const fetchBudgets = useCallback(async () => {
+  // Calculate legacy compatible projections from allocations & fundAccounts
+  const computeProjections = useCallback((accounts, allocations) => {
+    let fiscalBalance = 0;
+    let igfBalance = 0;
+    let igpBalance = 0;
+    let fsgBalance = 0;
+
+    accounts.forEach((acc) => {
+      const bal = fromCentavos(acc.balanceCentavos || 0);
+      if (acc.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET) fiscalBalance += bal;
+      else if (acc.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE) fsgBalance += bal;
+      else if (acc.topLevelCategory === TOP_LEVEL_FUNDS.IGF) igfBalance += bal;
+      else if (acc.topLevelCategory === TOP_LEVEL_FUNDS.IGP) igpBalance += bal;
+    });
+
+    const totalFunds = fiscalBalance + fsgBalance + igfBalance + igpBalance;
+
+    setFunds({
+      annualBudget: fiscalBalance,
+      incomeGenerated: igfBalance + igpBalance,
+      fsgRemittance: fsgBalance,
+      totalFunds,
+      lastUpdated: new Date(),
+    });
+
+    // Map budgetAllocations to legacy budget format
+    const legacyBudgets = allocations.map((alloc) => {
+      const allocated = fromCentavos(alloc.approvedAmountCentavos || 0);
+      const spent = fromCentavos(alloc.spentAmountCentavos || 0);
+      const remaining = Math.max(0, allocated - spent);
+      let status = 'On Track';
+      if (spent >= allocated) status = 'Fully Spent';
+      else if (spent > allocated * 0.8) status = 'Almost Spent';
+
+      const fund = accounts.find((a) => a.id === alloc.fundAccountId);
+      const isFSG = alloc.fundAccountId === 'fund_fsg_remittance';
+
+      return {
+        id: alloc.id,
+        eventName: alloc.activityName || 'Unnamed Allocation',
+        allocated,
+        spent,
+        remaining,
+        category: alloc.category || 'Event',
+        committee: alloc.committee || 'General',
+        resolution: alloc.resolutionRef || '',
+        description: alloc.description || '',
+        receiptUrl: (alloc.supportingDocumentIds && alloc.supportingDocumentIds[0]) || '',
+        status,
+        fiscalYear: alloc.fiscalYear || new Date().getFullYear(),
+        fundAccountId: alloc.fundAccountId || 'fund_fiscal_year_budget',
+        fundName: fund ? fund.displayName : (isFSG ? 'FSG Remittance & Supplemental Fund' : 'SSG Fiscal Year Budget'),
+        fundCategory: fund ? fund.topLevelCategory : (isFSG ? TOP_LEVEL_FUNDS.FSG_REMITTANCE : TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET),
+        isFSG,
+        createdAt: alloc.createdAt?.toDate?.() || new Date(),
+        raw: alloc,
+      };
+    });
+
+    setBudgets(legacyBudgets);
+
+    // Compute stats
+    let totalAlloc = 0;
+    let totalSp = 0;
+    let fiscalAllocated = 0;
+    let fiscalSpent = 0;
+    let fsgAllocated = 0;
+    let fsgSpent = 0;
+    const catMap = {};
+    const comMap = {};
+
+    legacyBudgets.forEach((b) => {
+      totalAlloc += b.allocated;
+      totalSp += b.spent;
+      if (b.isFSG) {
+        fsgAllocated += b.allocated;
+        fsgSpent += b.spent;
+      } else {
+        fiscalAllocated += b.allocated;
+        fiscalSpent += b.spent;
+      }
+      catMap[b.category] = (catMap[b.category] || 0) + b.allocated;
+      comMap[b.committee] = (comMap[b.committee] || 0) + b.allocated;
+    });
+
+    setStatistics({
+      totalAllocated: totalAlloc,
+      totalSpent: totalSp,
+      totalRemaining: Math.max(0, totalAlloc - totalSp),
+      fiscalAllocated,
+      fiscalSpent,
+      fiscalRemaining: Math.max(0, fiscalAllocated - fiscalSpent),
+      fsgAllocated,
+      fsgSpent,
+      fsgRemaining: Math.max(0, fsgAllocated - fsgSpent),
+      budgetCount: legacyBudgets.length,
+      categories: catMap,
+      committees: comMap,
+    });
+  }, []);
+
+  // Fetch all redesigned data
+  const refreshFinanceData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const budgetsQuery = query(
-        collection(db, 'budgets'),
-        orderBy('createdAt', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(budgetsQuery);
-      const budgetList = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        budgetList.push({
-          id: doc.id,
-          ...data,
-          startDate: data.startDate?.toDate?.() || data.startDate || null,
-          endDate: data.endDate?.toDate?.() || data.endDate || null,
-          createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
-          updatedAt: data.updatedAt?.toDate?.() || data.updatedAt || new Date(),
-        });
-      });
-      
-      setBudgets(budgetList);
-      calculateStatistics(budgetList);
-      
+
+      // Ensure default 4 fund accounts exist
+      await financeService.ensureDefaultFundAccounts(currentUser?.uid, userName);
+
+      const [accounts, allocations, txList, batches] = await Promise.all([
+        financeService.getFundAccounts(),
+        financeService.getBudgetAllocations(),
+        financeService.getTransactions(100),
+        financeService.getPreOrderBatches(),
+      ]);
+
+      setFundAccounts(accounts);
+      setBudgetAllocations(allocations);
+      setTransactions(txList);
+      setPreOrderBatches(batches);
+
+      computeProjections(accounts, allocations);
     } catch (err) {
-      console.error('Error fetching budgets:', err);
-      setError('Failed to load budget data. Please try again.');
+      console.error('Error refreshing finance data:', err);
+      setError('Failed to load financial records. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser?.uid, userName, computeProjections]);
 
-  // Fetch funds data
-  const fetchFunds = useCallback(async () => {
-    try {
-      const fundsQuery = query(collection(db, 'funds'));
-      const querySnapshot = await getDocs(fundsQuery);
-      
-      if (!querySnapshot.empty) {
-        const docSnapshot = querySnapshot.docs[0];
-        const fundsData = docSnapshot.data();
-        setFunds({
-          annualBudget: fundsData.annualBudget || 0,
-          incomeGenerated: fundsData.incomeGenerated || 0,
-          totalFunds: fundsData.totalFunds || 0,
-          lastUpdated: fundsData.lastUpdated?.toDate?.() || fundsData.lastUpdated || null,
-          id: docSnapshot.id
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching funds:', err);
-    }
-  }, []);
+  // Initial load
+  useEffect(() => {
+    refreshFinanceData();
+  }, [refreshFinanceData]);
 
-  // Add a new budget
+  // Add a budget allocation
   const addBudget = async (budgetData) => {
     try {
-      setError(null);
-      
-      const budgetWithMetadata = {
-        ...budgetData,
-        createdBy: userName,
-        userRole: userRole,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        isActive: true
-      };
-      
-      const docRef = await addDoc(collection(db, 'budgets'), budgetWithMetadata);
-      const newBudget = {
-        id: docRef.id,
-        ...budgetWithMetadata,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      // Update local state
-      const updatedBudgets = [newBudget, ...budgets];
-      setBudgets(updatedBudgets);
-      calculateStatistics(updatedBudgets);
-      
-      return docRef.id;
-      
-    } catch (err) {
-      console.error('Error adding budget:', err);
-      setError('Failed to add budget. Please try again.');
-      throw err;
-    }
-  };
-
-  // Update existing budget
-  const updateBudget = async (budgetId, updatedData) => {
-    try {
-      setError(null);
-      
-      const budgetRef = doc(db, 'budgets', budgetId);
-      const updateData = {
-        ...updatedData,
-        updatedAt: serverTimestamp(),
-        updatedBy: userName
-      };
-      
-      await updateDoc(budgetRef, updateData);
-      
-      // Update local state
-      const updatedBudgets = budgets.map(budget => 
-        budget.id === budgetId 
-          ? { ...budget, ...updateData, updatedAt: new Date() }
-          : budget
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      // Map to budget allocation schema
+      const allocId = await financeService.createBudgetAllocation(
+        {
+          fundAccountId: budgetData.fundAccountId || 'fund_fiscal_year_budget',
+          activityName: budgetData.eventName || budgetData.activityName,
+          fiscalYear: budgetData.fiscalYear || new Date().getFullYear(),
+          approvedAmount: budgetData.allocatedAmount || budgetData.allocated || 0,
+          resolutionRef: budgetData.resolution || '',
+          category: budgetData.category || 'Event',
+          committee: budgetData.committee || 'General',
+          approvedLineItems: budgetData.approvedLineItems || [],
+          supportingDocumentIds: budgetData.receiptUrl ? [budgetData.receiptUrl] : [],
+        },
+        user
       );
-      
-      setBudgets(updatedBudgets);
-      calculateStatistics(updatedBudgets);
-      
-      return budgetId;
-      
-    } catch (err) {
-      console.error('Error updating budget:', err);
-      setError('Failed to update budget. Please try again.');
-      throw err;
-    }
-  };
 
-  // Delete budget
-  const deleteBudget = async (budgetId) => {
-    try {
-      setError(null);
-      
-      await deleteDoc(doc(db, 'budgets', budgetId));
-      
-      // Update local state
-      const updatedBudgets = budgets.filter(budget => budget.id !== budgetId);
-      setBudgets(updatedBudgets);
-      calculateStatistics(updatedBudgets);
-      
-    } catch (err) {
-      console.error('Error deleting budget:', err);
-      setError('Failed to delete budget. Please try again.');
-      throw err;
-    }
-  };
-
-  // Update funds
-  const updateFunds = async (fundsData) => {
-    try {
-      setError(null);
-      
-      let fundsRef;
-      const fundsQuery = query(collection(db, 'funds'));
-      const querySnapshot = await getDocs(fundsQuery);
-      
-      const updatedFundsData = {
-        ...fundsData,
-        lastUpdated: serverTimestamp(),
-        updatedBy: userName
-      };
-      
-      if (querySnapshot.empty) {
-        // Create new funds document
-        const docRef = await addDoc(collection(db, 'funds'), updatedFundsData);
-        fundsRef = { id: docRef.id, ...updatedFundsData };
-      } else {
-        // Update existing funds document
-        const docSnapshot = querySnapshot.docs[0];
-        fundsRef = doc(db, 'funds', docSnapshot.id);
-        await updateDoc(fundsRef, updatedFundsData);
-        fundsRef = { id: docSnapshot.id, ...updatedFundsData };
+      // If initial spent amount was specified, record transaction
+      const initialSpent = Number(budgetData.spentAmount || budgetData.spent || 0);
+      if (initialSpent > 0) {
+        await financeService.recordTransaction(
+          {
+            fundAccountId: budgetData.fundAccountId || 'fund_fiscal_year_budget',
+            transactionType: TRANSACTION_TYPES.EXPENSE,
+            expensePurpose: 'Event Itemized Expense',
+            amount: initialSpent,
+            budgetAllocationId: allocId,
+            resolutionRef: budgetData.resolution || '',
+            description: `Initial recorded expense for ${budgetData.eventName}`,
+            status: TRANSACTION_STATUSES.POSTED,
+          },
+          user
+        );
       }
-      
-      setFunds({
-        annualBudget: fundsData.annualBudget || 0,
-        incomeGenerated: fundsData.incomeGenerated || 0,
-        totalFunds: fundsData.totalFunds || 0,
-        lastUpdated: new Date(),
-        ...fundsRef
-      });
-      
+
+      await refreshFinanceData();
+      return allocId;
     } catch (err) {
-      console.error('Error updating funds:', err);
-      setError('Failed to update funds. Please try again.');
+      console.error('Error adding budget allocation:', err);
+      setError(err.message || 'Failed to add budget allocation.');
       throw err;
     }
   };
 
-  // Calculate statistics from budgets
-  const calculateStatistics = (budgetList) => {
-    const stats = {
-      totalAllocated: 0,
-      totalSpent: 0,
-      totalRemaining: 0,
-      budgetCount: budgetList.length,
-      categories: {},
-      committees: {},
-      statusCount: {
-        'Not Started': 0,
-        'On Track': 0,
-        'In Progress': 0,
-        'Almost Spent': 0,
-        'Fully Spent': 0,
-        'Over Budget': 0
-      }
-    };
-
-    budgetList.forEach(budget => {
-      stats.totalAllocated += budget.allocated || 0;
-      stats.totalSpent += budget.spent || 0;
-      stats.totalRemaining += budget.remaining || 0;
-      
-      // Count by category
-      const category = budget.category || 'Uncategorized';
-      stats.categories[category] = (stats.categories[category] || 0) + 1;
-      
-      // Count by committee
-      const committee = budget.committee || 'General';
-      stats.committees[committee] = (stats.committees[committee] || 0) + 1;
-      
-      // Count by status
-      const status = budget.status || 'Not Started';
-      stats.statusCount[status] = (stats.statusCount[status] || 0) + 1;
-    });
-
-    setStatistics(stats);
+  // Update a budget allocation
+  const updateBudget = async (id, budgetData) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      await financeService.updateBudgetAllocation(id, budgetData, user);
+      await refreshFinanceData();
+      return id;
+    } catch (err) {
+      console.error('Error updating budget allocation:', err);
+      setError(err.message || 'Failed to update budget allocation.');
+      throw err;
+    }
   };
 
-  // Get budget by ID
-  const getBudgetById = (budgetId) => {
-    return budgets.find(budget => budget.id === budgetId);
+  // Delete a budget allocation
+  const deleteBudget = async (id) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      await financeService.deleteBudgetAllocation(id, user);
+      await refreshFinanceData();
+      return id;
+    } catch (err) {
+      console.error('Error deleting budget allocation:', err);
+      setError(err.message || 'Failed to delete budget allocation.');
+      throw err;
+    }
   };
 
-  // Get budgets by category
-  const getBudgetsByCategory = (category) => {
-    return budgets.filter(budget => budget.category === category);
+  // Record a transaction
+  const recordTransaction = async (txData) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      const res = await financeService.recordTransaction(txData, user);
+      await refreshFinanceData();
+      return res;
+    } catch (err) {
+      console.error('Error recording transaction:', err);
+      throw err;
+    }
   };
 
-  // Get budgets by committee
-  const getBudgetsByCommittee = (committee) => {
-    return budgets.filter(budget => budget.committee === committee);
+  // Reverse transaction
+  const reverseTransaction = async (txId, reason) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      const res = await financeService.reverseTransaction(txId, reason, user);
+      await refreshFinanceData();
+      return res;
+    } catch (err) {
+      console.error('Error reversing transaction:', err);
+      throw err;
+    }
   };
 
-  // Get budgets by status
-  const getBudgetsByStatus = (status) => {
-    return budgets.filter(budget => budget.status === status);
+  // Clean legacy test records helper
+  const cleanLegacyTestRecords = async () => {
+    try {
+      const res = await financeService.cleanLegacyTestRecords();
+      await refreshFinanceData();
+      return res;
+    } catch (err) {
+      console.error('Error cleaning legacy records:', err);
+      throw err;
+    }
   };
-
-  // Get recent budgets
-  const getRecentBudgets = (limit = 5) => {
-    return budgets.slice(0, limit);
-  };
-
-  // Calculate fund utilization percentage
-  const getFundUtilizationPercentage = () => {
-    if (funds.totalFunds === 0) return 0;
-    return (statistics.totalAllocated / funds.totalFunds) * 100;
-  };
-
-  // Get available funds (total funds minus allocated)
-  const getAvailableFunds = () => {
-    return funds.totalFunds - statistics.totalAllocated;
-  };
-
-  // Initialize data fetching
-  useEffect(() => {
-    fetchBudgets();
-    fetchFunds();
-  }, [fetchBudgets, fetchFunds]);
 
   const value = {
-    // State
+    // Redesigned entities
+    fundAccounts,
+    budgetAllocations,
+    transactions,
+    preOrderBatches,
+    refreshFinanceData,
+    recordTransaction,
+    reverseTransaction,
+    cleanLegacyTestRecords,
+
+    // Backward-compatible properties & operations
     budgets,
     funds,
     statistics,
     loading,
     error,
-    
-    // Budget CRUD operations
     addBudget,
     updateBudget,
     deleteBudget,
-    fetchBudgets,
-    
-    // Funds operations
-    updateFunds,
-    fetchFunds,
-    
-    // Getter functions
-    getBudgetById,
-    getBudgetsByCategory,
-    getBudgetsByCommittee,
-    getBudgetsByStatus,
-    getRecentBudgets,
-    
-    // Calculation functions
-    getFundUtilizationPercentage,
-    getAvailableFunds,
-    
-    // Helper for BudgetForm compatibility
-    updateBudgetStats: (newBudget) => {
-      const updatedBudgets = [newBudget, ...budgets];
-      setBudgets(updatedBudgets);
-      calculateStatistics(updatedBudgets);
-    }
+    fetchBudgets: refreshFinanceData,
+    fetchFunds: refreshFinanceData,
+    getFundUtilizationPercentage: () => {
+      if (!funds.totalFunds) return 0;
+      return (statistics.totalAllocated / funds.totalFunds) * 100;
+    },
+    getAvailableFunds: () => {
+      return funds.totalFunds - statistics.totalAllocated;
+    },
   };
 
-  return (
-    <FinanceContext.Provider value={value}>
-      {children}
-    </FinanceContext.Provider>
-  );
+  return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 };
 
-// Export the context itself if needed for useContext
-export  default { FinanceContext };
+export default { FinanceContext };

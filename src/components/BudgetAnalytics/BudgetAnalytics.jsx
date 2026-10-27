@@ -26,6 +26,7 @@ const BudgetAnalytics = () => {
   const { theme, isLight } = useTheme();
   const isClassic = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterFund, setFilterFund] = useState('All');
   const [filterCommittee, setFilterCommittee] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [copiedId, setCopiedId] = useState(null);
@@ -71,9 +72,11 @@ const BudgetAnalytics = () => {
                             budget.category?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCommittee = filterCommittee === 'All' || budget.committee === filterCommittee;
       const matchesStatus = filterStatus === 'All' || budget.status === filterStatus;
-      return matchesSearch && matchesCommittee && matchesStatus;
+      const isFSG = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
+      const matchesFund = filterFund === 'All' || (filterFund === 'fund_fsg_remittance' ? isFSG : !isFSG);
+      return matchesSearch && matchesCommittee && matchesStatus && matchesFund;
     });
-  }, [budgets, searchTerm, filterCommittee, filterStatus]);
+  }, [budgets, searchTerm, filterCommittee, filterStatus, filterFund]);
 
   // --- Helpers ---
   const formatCurrency = (val) => `₱${(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -89,18 +92,20 @@ const BudgetAnalytics = () => {
   };
 
   const copyBudgetDetails = (budget) => {
-    const text = `Project: ${budget.eventName} (${budget.resolution || 'N/A'})\nCommittee: ${budget.committee}\nAllocated: ${formatCurrency(budget.allocated)}\nSpent: ${formatCurrency(budget.spent)}\nRemaining: ${formatCurrency(budget.remaining)}\nStatus: ${budget.status}`;
+    const isFSG = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
+    const text = `Project: ${budget.eventName} (${budget.resolution || 'N/A'})\nFund Source: ${isFSG ? 'FSG Remittance' : 'Fiscal Year Budget'}\nCommittee: ${budget.committee}\nAllocated: ${formatCurrency(budget.allocated)}\nSpent: ${formatCurrency(budget.spent)}\nRemaining: ${formatCurrency(budget.remaining)}\nStatus: ${budget.status}`;
     navigator.clipboard.writeText(text);
     setCopiedId(budget.id);
     setTimeout(() => setCopiedId(null), 1500);
   };
 
   const exportToCSV = () => {
-    const headers = ['Event Name', 'Category', 'Committee', 'Allocated', 'Spent', 'Remaining', 'Status'];
+    const headers = ['Event Name', 'Fund Source', 'Category', 'Committee', 'Allocated', 'Spent', 'Remaining', 'Status'];
     const csvContent = [
       headers.join(','),
       ...filteredBudgets.map(b => [
         `"${b.eventName}"`,
+        `"${b.fundAccountId === 'fund_fsg_remittance' || b.isFSG ? 'FSG Remittance' : 'Fiscal Year Budget'}"`,
         b.category,
         b.committee,
         b.allocated,
@@ -167,6 +172,26 @@ const BudgetAnalytics = () => {
           </span>
           <span className={styles.statTrend}>
             {statistics.budgetCount} total budgets created
+          </span>
+        </div>
+        <div className={styles.statCard}>
+          <HiCurrencyDollar style={{fontSize: '2rem', color: isLight ? '#8b1524' : '#f87171', marginBottom: '0.5rem'}} />
+          <span className={styles.statLabel}>Fiscal Year Budget Alloc</span>
+          <span className={styles.statValue}>
+            {formatCurrency(statistics.fiscalAllocated || 0)}
+          </span>
+          <span className={styles.statTrend}>
+            Annual Institutional Appropriations
+          </span>
+        </div>
+        <div className={styles.statCard}>
+          <HiCurrencyDollar style={{fontSize: '2rem', color: '#d4af37', marginBottom: '0.5rem'}} />
+          <span className={styles.statLabel}>FSG Remittance Alloc</span>
+          <span className={styles.statValue} style={{ color: '#d4af37' }}>
+            {formatCurrency(statistics.fsgAllocated || 0)}
+          </span>
+          <span className={styles.statTrend}>
+            Federation Remittance & Backup
           </span>
         </div>
         <div className={styles.statCard}>
@@ -423,6 +448,17 @@ const BudgetAnalytics = () => {
 
             <select 
                 className={styles.filterSelect} 
+                value={filterFund}
+                onChange={(e) => setFilterFund(e.target.value)}
+                aria-label="Filter by Fund Source"
+            >
+                <option value="All">All Fund Sources</option>
+                <option value="fund_fiscal_year_budget">🏛️ Fiscal Year Budget</option>
+                <option value="fund_fsg_remittance">🤝 FSG Remittance</option>
+            </select>
+
+            <select 
+                className={styles.filterSelect} 
                 value={filterCommittee}
                 onChange={(e) => setFilterCommittee(e.target.value)}
             >
@@ -461,45 +497,57 @@ const BudgetAnalytics = () => {
             </thead>
             <tbody>
               {filteredBudgets.length > 0 ? (
-                filteredBudgets.map((budget) => (
-                  <tr key={budget.id}>
-                    <td>
+                filteredBudgets.map((budget) => {
+                  const isFSGBudget = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
+                  return (
+                    <tr key={budget.id}>
+                      <td>
                         <div className={styles.projectName}>{budget.eventName}</div>
-                        <div className={styles.projectResolution}>{budget.resolution || 'RES-NONE'}</div>
-                    </td>
-                    <td>
-                      <span className={styles.committeeBadge}>{budget.committee}</span>
-                    </td>
-                    <td className={styles.monoSums}>{formatCurrency(budget.allocated)}</td>
-                    <td className={styles.monoSpent}>{formatCurrency(budget.spent)}</td>
-                    <td>
-                      <span className={`${styles.statusBadge} ${getStatusClass(budget.status)}`}>
-                        {budget.status}
-                      </span>
-                    </td>
-                    <td className={styles.monoDate}>{budget.createdAt ? new Date(budget.createdAt).toLocaleDateString() : '-'}</td>
-                    <td style={{textAlign: 'center'}}>
-                      <button 
-                        type="button"
-                        className={styles.copyRowBtn}
-                        onClick={() => copyBudgetDetails(budget)}
-                        title="Copy row breakdown to clipboard"
-                      >
-                        {copiedId === budget.id ? (
-                          <>
-                            <HiCheck size={14} style={{color: '#16a34a'}} />
-                            <span style={{color: '#16a34a'}}>COPIED</span>
-                          </>
-                        ) : (
-                          <>
-                            <HiClipboardCopy size={14} />
-                            <span>COPY</span>
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        <div className={styles.projectResolution}>
+                          {budget.resolution || 'RES-NONE'} •{' '}
+                          <span style={{ 
+                            color: isFSGBudget ? '#eab308' : '#3b82f6', 
+                            fontWeight: 700, 
+                            fontSize: '0.78rem' 
+                          }}>
+                            {isFSGBudget ? '🤝 FSG Remittance' : '🏛️ Fiscal Budget'}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={styles.committeeBadge}>{budget.committee}</span>
+                      </td>
+                      <td className={styles.monoSums}>{formatCurrency(budget.allocated)}</td>
+                      <td className={styles.monoSpent}>{formatCurrency(budget.spent)}</td>
+                      <td>
+                        <span className={`${styles.statusBadge} ${getStatusClass(budget.status)}`}>
+                          {budget.status}
+                        </span>
+                      </td>
+                      <td className={styles.monoDate}>{budget.createdAt ? new Date(budget.createdAt).toLocaleDateString() : '-'}</td>
+                      <td style={{textAlign: 'center'}}>
+                        <button 
+                          type="button"
+                          className={styles.copyRowBtn}
+                          onClick={() => copyBudgetDetails(budget)}
+                          title="Copy row breakdown to clipboard"
+                        >
+                          {copiedId === budget.id ? (
+                            <>
+                              <HiCheck size={14} style={{color: '#16a34a'}} />
+                              <span style={{color: '#16a34a'}}>COPIED</span>
+                            </>
+                          ) : (
+                            <>
+                              <HiClipboardCopy size={14} />
+                              <span>COPY</span>
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan="7" className={styles.emptyTableTd}>
@@ -507,7 +555,7 @@ const BudgetAnalytics = () => {
                     <button 
                       type="button" 
                       className={styles.resetFiltersBtn}
-                      onClick={() => { setSearchTerm(''); setFilterCommittee('All'); setFilterStatus('All'); }}
+                      onClick={() => { setSearchTerm(''); setFilterFund('All'); setFilterCommittee('All'); setFilterStatus('All'); }}
                     >
                       RESET FILTERS
                     </button>

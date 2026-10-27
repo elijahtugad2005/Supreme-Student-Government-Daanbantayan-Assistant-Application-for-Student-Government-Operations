@@ -22,8 +22,10 @@ import {
   HiPlus,
   HiTrash,
   HiInformationCircle,
-  HiRefresh
+  HiRefresh,
+  HiOfficeBuilding
 } from 'react-icons/hi';
+import { fromCentavos } from '../../utils/financeConstants.js';
 
 const QUICK_PRESETS = [
   { label: '₱5,000', value: 5000 },
@@ -33,21 +35,29 @@ const QUICK_PRESETS = [
   { label: '₱100,000', value: 100000 },
 ];
 
-const RESOLUTION_TEMPLATES = [
+const FISCAL_RESOLUTION_TEMPLATES = [
   'General Student Assembly Assembly Res.',
   'Executive Council Resolution No.',
-  'Special Project Appropriations Res.',
-  'Emergency Contingency Release Res.'
+  'Annual Fiscal Appropriations Res.',
+  'Special Project Appropriations Res.'
 ];
 
-const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
+const FSG_RESOLUTION_TEMPLATES = [
+  'FSG Remittance Sub-Allocation Res.',
+  'Federation Supplemental Remittance Res. No.',
+  'FSG Emergency / Relief Grant Res.',
+  'FSG Federation Activity Sub-Allocation Res.'
+];
+
+const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_year_budget', onSuccess = () => {} }) => {
   const { userName, userRole, currentUser } = useAuth();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
-  const { addBudget, updateBudget, funds, statistics } = useFinance();
+  const { addBudget, updateBudget, funds, statistics, fundAccounts = [] } = useFinance();
   
   // Form state
   const [formData, setFormData] = useState({
+    fundAccountId: editingBudget?.fundAccountId || defaultFundAccountId || 'fund_fiscal_year_budget',
     eventName: '',
     allocatedAmount: '',
     spentAmount: '',
@@ -97,15 +107,30 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
     'Secretariat'
   ]);
 
-  // Overall treasury context: total unallocated / free treasury funds
-  const totalTreasuryFunds = funds?.totalFunds || funds?.annualBudget || 0;
-  const currentTotalAllocated = statistics?.totalAllocated || 0;
-  const unallocatedTreasury = Math.max(0, totalTreasuryFunds - currentTotalAllocated);
+  // Overall treasury context: fund accounts calculations
+  const fiscalAccount = fundAccounts.find((a) => a.id === 'fund_fiscal_year_budget');
+  const fsgAccount = fundAccounts.find((a) => a.id === 'fund_fsg_remittance');
+
+  const fiscalBalance = Math.max(fromCentavos(fiscalAccount?.balanceCentavos || 0), funds?.annualBudget || 0);
+  const fsgBalance = Math.max(fromCentavos(fsgAccount?.balanceCentavos || 0), funds?.fsgRemittance || 0);
+
+  const fiscalAllocated = statistics?.fiscalAllocated || 0;
+  const fsgAllocated = statistics?.fsgAllocated || 0;
+
+  const fiscalAvailable = Math.max(0, fiscalBalance - fiscalAllocated);
+  const fsgAvailable = Math.max(0, fsgBalance - fsgAllocated);
+
+  const isFSGSelected = formData.fundAccountId === 'fund_fsg_remittance';
+  const activeResolutionTemplates = isFSGSelected ? FSG_RESOLUTION_TEMPLATES : FISCAL_RESOLUTION_TEMPLATES;
+  const selectedFundAvailable = isFSGSelected ? fsgAvailable : fiscalAvailable;
+  const selectedFundBalance = isFSGSelected ? fsgBalance : fiscalBalance;
+  const selectedFundName = isFSGSelected ? 'FSG Remittance & Supplemental Fund' : 'SSG Fiscal Year Budget';
 
   // Prefill form if editing
   useEffect(() => {
     if (editingBudget) {
       setFormData({
+        fundAccountId: editingBudget.fundAccountId || editingBudget.raw?.fundAccountId || 'fund_fiscal_year_budget',
         eventName: editingBudget.eventName || '',
         allocatedAmount: editingBudget.allocated || '',
         spentAmount: editingBudget.spent || 0,
@@ -118,8 +143,13 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
         startDate: editingBudget.startDate || '',
         endDate: editingBudget.endDate || '',
       });
+    } else if (defaultFundAccountId) {
+      setFormData(prev => ({
+        ...prev,
+        fundAccountId: defaultFundAccountId,
+      }));
     }
-  }, [editingBudget]);
+  }, [editingBudget, defaultFundAccountId]);
 
   // Calculate remaining amount
   const calculateRemaining = () => {
@@ -270,6 +300,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
       const status = determineStatus();
 
       const budgetData = {
+        fundAccountId: formData.fundAccountId || 'fund_fiscal_year_budget',
         eventName: formData.eventName.trim(),
         allocated,
         spent,
@@ -297,14 +328,16 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           amount: editingBudget.allocated,
           category: editingBudget.category,
           committee: editingBudget.committee,
-          resolution: editingBudget.resolution
+          resolution: editingBudget.resolution,
+          fundAccountId: editingBudget.fundAccountId,
         }, {
           id: editingBudget.id,
           title: budgetData.eventName,
           amount: budgetData.allocated,
           category: budgetData.category,
           committee: budgetData.committee,
-          resolution: budgetData.resolution
+          resolution: budgetData.resolution,
+          fundAccountId: budgetData.fundAccountId,
         });
 
         // Update existing budget
@@ -320,13 +353,15 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           amount: budgetData.allocated,
           category: budgetData.category,
           committee: budgetData.committee,
-          description: budgetData.description
+          description: budgetData.description,
+          fundAccountId: budgetData.fundAccountId,
         });
       }
 
       // Reset form if not editing
       if (!editingBudget) {
         setFormData({
+          fundAccountId: 'fund_fiscal_year_budget',
           eventName: '',
           allocatedAmount: '',
           spentAmount: '',
@@ -396,7 +431,7 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
   };
 
   const requestedAmount = parseFloat(formData.allocatedAmount) || 0;
-  const isExceedingTreasury = totalTreasuryFunds > 0 && requestedAmount > unallocatedTreasury && !editingBudget;
+  const isExceedingSelectedFund = selectedFundBalance > 0 && requestedAmount > selectedFundAvailable && !editingBudget;
 
   return (
     <div className={`${styles.container} ${isClassic ? styles.formClassic : ''}`}>
@@ -421,23 +456,108 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           </div>
         )}
 
-        {/* Treasury Health & Context Bar (Quality of Life) */}
-        {totalTreasuryFunds > 0 && (
-          <div className={styles.treasuryContextBanner}>
-            <div className={styles.treasuryInfo}>
-              <HiInformationCircle className={styles.treasuryIcon} />
-              <div>
-                <span className={styles.treasuryLabel}>Unallocated Campus Treasury:</span>
-                <span className={styles.treasuryValue}>₱{unallocatedTreasury.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            {isExceedingTreasury && (
-              <span className={styles.treasuryWarning}>
-                ⚠️ Exceeds unallocated balance by ₱{(requestedAmount - unallocatedTreasury).toLocaleString()}
-              </span>
-            )}
+        {/* Fund Source Selection (Fiscal Year Budget vs FSG Remittance) */}
+        <div className={styles.fundSourceWrapper}>
+          <div className={styles.fundSourceHeader}>
+            <label className={styles.fundSourceTitle}>
+              <HiOfficeBuilding className={styles.labelIcon} />
+              Appropriation Fund Source *
+            </label>
+            <span className={styles.fundSourceHint}>
+              Select whether this allocation draws from the official Fiscal Year Budget or the FSG Remittance
+            </span>
           </div>
-        )}
+
+          <div className={styles.fundSourceOptions}>
+            {/* Fiscal Year Budget Option */}
+            <button
+              type="button"
+              className={`${styles.fundOptionCard} ${formData.fundAccountId === 'fund_fiscal_year_budget' ? styles.fundOptionActiveMaroon : ''}`}
+              onClick={() => {
+                setFormData(prev => ({ ...prev, fundAccountId: 'fund_fiscal_year_budget' }));
+              }}
+            >
+              <div className={styles.fundOptionTop}>
+                <div className={styles.fundOptionIconCircleMaroon}>
+                  <HiOfficeBuilding size={20} />
+                </div>
+                <div className={styles.fundOptionInfo}>
+                  <div className={styles.fundOptionName}>SSG Fiscal Year Budget</div>
+                  <div className={styles.fundOptionSub}>Annual General Appropriations</div>
+                </div>
+                {formData.fundAccountId === 'fund_fiscal_year_budget' && (
+                  <span className={styles.fundOptionActivePillMaroon}>Selected</span>
+                )}
+              </div>
+              <div className={styles.fundOptionMetrics}>
+                <div className={styles.fundOptionMetricItem}>
+                  <span className={styles.fundOptionMetricLabel}>Fund Balance:</span>
+                  <span className={styles.fundOptionMetricVal}>₱{fiscalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className={styles.fundOptionMetricItem}>
+                  <span className={styles.fundOptionMetricLabel}>Available Surplus:</span>
+                  <span className={`${styles.fundOptionMetricVal} ${styles.fundOptionSurplus}`}>
+                    ₱{fiscalAvailable.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* FSG Remittance Option */}
+            <button
+              type="button"
+              className={`${styles.fundOptionCard} ${formData.fundAccountId === 'fund_fsg_remittance' ? styles.fundOptionActiveGold : ''}`}
+              onClick={() => {
+                setFormData(prev => ({ ...prev, fundAccountId: 'fund_fsg_remittance' }));
+              }}
+            >
+              <div className={styles.fundOptionTop}>
+                <div className={styles.fundOptionIconCircleGold}>
+                  <HiUserGroup size={20} />
+                </div>
+                <div className={styles.fundOptionInfo}>
+                  <div className={styles.fundOptionName}>FSG Remittance Fund</div>
+                  <div className={styles.fundOptionSub}>Federation Remittance & Backup Allocations</div>
+                </div>
+                {formData.fundAccountId === 'fund_fsg_remittance' && (
+                  <span className={styles.fundOptionActivePillGold}>Selected</span>
+                )}
+              </div>
+              <div className={styles.fundOptionMetrics}>
+                <div className={styles.fundOptionMetricItem}>
+                  <span className={styles.fundOptionMetricLabel}>Fund Balance:</span>
+                  <span className={styles.fundOptionMetricVal}>₱{fsgBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className={styles.fundOptionMetricItem}>
+                  <span className={styles.fundOptionMetricLabel}>Available Surplus:</span>
+                  <span className={`${styles.fundOptionMetricVal} ${styles.fundOptionSurplusGold}`}>
+                    ₱{fsgAvailable.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Selected Fund Context & Health Notice */}
+        <div className={styles.treasuryContextBanner}>
+          <div className={styles.treasuryInfo}>
+            <HiInformationCircle className={styles.treasuryIcon} />
+            <div>
+              <span className={styles.treasuryLabel}>
+                Allocating from <strong>{selectedFundName}</strong>:
+              </span>
+              <span className={styles.treasuryValue}>
+                ₱{selectedFundAvailable.toLocaleString(undefined, { minimumFractionDigits: 2 })} unallocated surplus
+              </span>
+            </div>
+          </div>
+          {isExceedingSelectedFund && (
+            <span className={styles.treasuryWarning}>
+              ⚠️ Exceeds fund surplus by ₱{(requestedAmount - selectedFundAvailable).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </span>
+          )}
+        </div>
 
         {/* Real-time Dynamic Metrics Card */}
         <div className={styles.previewCard}>
@@ -757,15 +877,17 @@ const BudgetForm = ({ editingBudget = null, onSuccess = () => {} }) => {
           />
           {/* Quick Resolution Templates (QoL) */}
           <div className={styles.templatePills}>
-            <span className={styles.templatePillsLabel}>Insert Template:</span>
-            {RESOLUTION_TEMPLATES.map((tmpl, idx) => (
+            <span className={styles.templatePillsLabel}>
+              {isFSGSelected ? 'FSG Templates:' : 'Fiscal Templates:'}
+            </span>
+            {activeResolutionTemplates.map((tmpl, idx) => (
               <button
                 key={idx}
                 type="button"
                 className={styles.templatePillBtn}
                 onClick={() => handleResolutionTemplate(tmpl)}
               >
-                + {tmpl.split(' ')[0]}
+                + {tmpl.split(' ')[0]} {tmpl.split(' ')[1] || ''}
               </button>
             ))}
           </div>

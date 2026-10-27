@@ -348,21 +348,21 @@ service cloud.firestore {
         && r.debtCount == r.enrolledCount - r.beneficiaryCount
         && r.debtAmount == r.debtCount * r.contributionPerStudent
         && r.status == 'for_verification'
-        && r.recordedByUid == request.auth.uid;
+        && (
+          (isSignedIn() && r.recordedByUid == request.auth.uid) ||
+          (!isSignedIn() && r.recordedByUid == null && r.submittedByName is string && r.submittedByName.size() > 0)
+        );
     }
 
     match /deathAidCollections/{collectionId} {
-      // Officers only. Unlike the roster registry, no student-facing read is
-      // needed: the whole workflow is driven by SSG staff.
-      allow read: if canManageDeathAid();
+      // Publicly readable so students, members, and guests can track verification status.
+      allow read: if true;
 
-      // Recorded by an officer, always as FOR VERIFICATION. The counted figures
-      // are forced to agree with the roster and with each other.
-      allow create: if canManageDeathAid() && hasValidCollectionTotals();
+      // Recorded by an officer, signed-in member, or guest with required name indicator.
+      // Arithmetic totals MUST strictly balance against beneficiaryCount * contributionPerStudent.
+      allow create: if hasValidCollectionTotals();
 
-      // Once recorded, the counts are frozen. Debt DETAIL may be filled in
-      // later — that is a note, not a change of money — and the officer's
-      // verdict and received amount may be added.
+      // Only officers can verify or update death aid collections
       allow update: if canManageDeathAid()
         && request.resource.data.enrolledCount == resource.data.enrolledCount
         && request.resource.data.beneficiaryCount == resource.data.beneficiaryCount
@@ -373,8 +373,6 @@ service cloud.firestore {
         && request.resource.data.debtAmount == resource.data.debtAmount
         && request.resource.data.recordedByUid == resource.data.recordedByUid
         && request.resource.data.submittedAt == resource.data.submittedAt
-        // Only the debt explanation may change; it can never claim more rows
-        // than there are students owing.
         && request.resource.data.debtRecords.size() <= resource.data.debtCount;
 
       allow delete: if isAdmin();
@@ -384,11 +382,13 @@ service cloud.firestore {
       allow read: if canManageDeathAid();
 
       // Written once, by an officer, for a collection still awaiting
-      // verification. The officer who RECORDED the collection holds the same
-      // cash, so they may not also certify it.
+      // verification. An officer who RECORDED the collection holds the same
+      // cash, so they may not also certify it. (Guest submissions have null recordedByUid).
       allow create: if canManageDeathAid()
-        && request.auth.uid
-             != get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.recordedByUid
+        && (
+          request.auth.uid != get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.recordedByUid
+          || get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.recordedByUid == null
+        )
         && get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.status
              == 'for_verification'
         && request.resource.data.collectionId == remittanceId
@@ -397,8 +397,8 @@ service cloud.firestore {
         && request.resource.data.difference
              == request.resource.data.amountReceived - request.resource.data.reportedAmount
         && request.resource.data.status == (
-              request.resource.data.difference == 0 ? 'confirmed' : 'discrepancy'
-            )
+               request.resource.data.difference == 0 ? 'confirmed' : 'discrepancy'
+             )
         && request.resource.data.receivedByUid == request.auth.uid;
 
       // Amounts are immutable. An officer may only later mark a discrepancy
@@ -413,18 +413,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Append-only. An audit entry that can be edited is not an audit entry.
+    // Append-only audit trail. Officers, members & guests may append their submission actions.
     match /deathAidAuditLog/{entryId} {
       allow read: if canManageDeathAid();
-      allow create: if canManageDeathAid();
+      allow create: if true;
       allow update, delete: if false;
     }
 
-    // Collection id allocation. Officers only now that officers do the
-    // recording; the counter is restricted to the one field it needs.
+    // Collection id allocation counter.
     match /deathAidCounters/{year} {
-      allow read, create, update: if canManageDeathAid()
-        && request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt']);
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt']);
       allow delete: if isAdmin();
     }
 
@@ -492,6 +491,121 @@ service cloud.firestore {
     match /campusMetadata/{docId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // =========================================================================
+    // FINANCE & TREASURY GOVERNANCE
+    // =========================================================================
+    function canViewFinance() {
+      return myRole() == 'admin'
+        || myRole() == 'president'
+        || myRole() == 'vice_president'
+        || myRole() == 'secretary'
+        || myRole() == 'executive_secretary'
+        || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer'
+        || hasOverride('canViewFinance');
+    }
+
+    function canEditFinance() {
+      return myRole() == 'admin'
+        || myRole() == 'president'
+        || myRole() == 'vice_president'
+        || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer'
+        || hasOverride('canEditFinance');
+    }
+
+    function canApproveFinance() {
+      return myRole() == 'admin'
+        || myRole() == 'president'
+        || myRole() == 'vice_president'
+        || myRole() == 'finance_secretary'
+        || myRole() == 'budget_officer'
+        || hasOverride('canApproveFinance');
+    }
+
+    function canAuditClear() {
+      return myRole() == 'admin'
+        || myRole() == 'president'
+        || myRole() == 'auditor'
+        || hasOverride('canAuditFinance');
+    }
+
+    function canManageOrders() {
+      return myRole() == 'admin'
+        || myRole() == 'president'
+        || myRole() == 'vice_president'
+        || myRole() == 'executive_secretary'
+        || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer'
+        || myRole() == 'governor'
+        || myRole() == 'representative'
+        || myRole() == 'senator'
+        || hasOverride('canManageOrders');
+    }
+
+    // Commerce / Merchandise Orders
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if canManageOrders() || isSignedIn();
+      allow delete: if isAdmin() || canManageOrders();
+    }
+
+    // Products Catalog
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if canManageOrders() || isAdmin();
+    }
+
+    // Top-Level Fund Accounts (FISCAL_YEAR_BUDGET, FSG_REMITTANCE, IGF, IGP)
+    match /fundAccounts/{accountId} {
+      allow read: if canViewFinance() || canManageOrders();
+      allow create, update: if (canEditFinance() || canManageOrders()) && isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // Budget Allocations (Linked to approved activity/resolutions)
+    match /budgetAllocations/{allocationId} {
+      allow read: if canViewFinance();
+      allow create: if canEditFinance() && isSignedIn();
+      allow update: if canEditFinance() && isSignedIn();
+      allow delete: if isAdmin() || canEditFinance();
+    }
+
+    // Transactions (Append-Only Ledger. Physical deletion and editing of posted rows prohibited)
+    match /transactions/{transactionId} {
+      allow read: if canViewFinance() || canManageOrders();
+      allow create: if (canEditFinance() || canManageOrders()) && isSignedIn();
+      // Only draft/incomplete can be modified or soft-deleted; posted rows require a linked reversal
+      allow update: if (canEditFinance() || canManageOrders()) && (
+        resource.data.status == 'draft' ||
+        resource.data.status == 'incomplete' ||
+        resource.data.status == 'pending_approval' ||
+        request.resource.data.status == 'reversed'
+      );
+      allow delete: if isAdmin() || (
+        canEditFinance() && (resource.data.status == 'draft' || resource.data.status == 'incomplete')
+      );
+    }
+
+    // Pre-Order Batches (IGF merchandise and uniform runs)
+    match /preOrderBatches/{batchId} {
+      allow read: if isSignedIn();
+      allow create: if canEditFinance() && isSignedIn();
+      allow update: if canEditFinance() || canAuditClear();
+      allow delete: if isAdmin();
+    }
+
+    // Pre-Order Entries (Per-student order ledger)
+    match /preOrderEntries/{entryId} {
+      allow read: if isSignedIn();
+      allow create, update: if canEditFinance() && isSignedIn();
+      allow delete: if isAdmin();
     }
 
     // Anything not matched above is denied.

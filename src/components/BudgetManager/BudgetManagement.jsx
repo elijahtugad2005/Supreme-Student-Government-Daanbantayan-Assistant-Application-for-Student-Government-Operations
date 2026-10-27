@@ -36,6 +36,7 @@ const BudgetManager = () => {
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterFund, setFilterFund] = useState('All'); // 'All' | 'fund_fiscal_year_budget' | 'fund_fsg_remittance'
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterCommittee, setFilterCommittee] = useState('All');
@@ -50,6 +51,17 @@ const BudgetManager = () => {
   // State for Delete Confirmation Modal
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, budget: null });
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fund counters
+  const { fiscalCount, fsgCount } = useMemo(() => {
+    let fiscal = 0;
+    let fsg = 0;
+    budgets.forEach(b => {
+      if (b.fundAccountId === 'fund_fsg_remittance' || b.isFSG) fsg++;
+      else fiscal++;
+    });
+    return { fiscalCount: fiscal, fsgCount: fsg };
+  }, [budgets]);
 
   // Extract unique categories & committees for filter pills
   const categoriesList = useMemo(() => {
@@ -78,8 +90,12 @@ const BudgetManager = () => {
       const matchesStatus = filterStatus === 'All' || b.status === filterStatus;
       const matchesCategory = filterCategory === 'All' || b.category === filterCategory;
       const matchesCommittee = filterCommittee === 'All' || b.committee === filterCommittee;
+      const isFSG = b.fundAccountId === 'fund_fsg_remittance' || b.isFSG;
+      const matchesFund = 
+        filterFund === 'All' ||
+        (filterFund === 'fund_fsg_remittance' ? isFSG : !isFSG);
       
-      return matchesSearch && matchesStatus && matchesCategory && matchesCommittee;
+      return matchesSearch && matchesStatus && matchesCategory && matchesCommittee && matchesFund;
     });
 
     // Sort results
@@ -114,17 +130,26 @@ const BudgetManager = () => {
     });
 
     return result;
-  }, [budgets, searchTerm, filterStatus, filterCategory, filterCommittee, sortBy, sortOrder]);
+  }, [budgets, searchTerm, filterFund, filterStatus, filterCategory, filterCommittee, sortBy, sortOrder]);
 
   // Real-time aggregate KPIs for the current filtered view
   const aggregateMetrics = useMemo(() => {
     let totalAlloc = 0;
     let totalSpent = 0;
+    let fiscalAlloc = 0;
+    let fsgAlloc = 0;
     let overBudgetCount = 0;
 
     filteredBudgets.forEach(b => {
-      totalAlloc += parseFloat(b.allocated) || 0;
-      totalSpent += parseFloat(b.spent) || 0;
+      const alloc = parseFloat(b.allocated) || 0;
+      const sp = parseFloat(b.spent) || 0;
+      totalAlloc += alloc;
+      totalSpent += sp;
+      if (b.fundAccountId === 'fund_fsg_remittance' || b.isFSG) {
+        fsgAlloc += alloc;
+      } else {
+        fiscalAlloc += alloc;
+      }
       if (b.status === 'Over Budget') overBudgetCount++;
     });
 
@@ -134,6 +159,8 @@ const BudgetManager = () => {
     return {
       totalAlloc,
       totalSpent,
+      fiscalAlloc,
+      fsgAlloc,
       remaining,
       burnRate,
       overBudgetCount
@@ -147,6 +174,7 @@ const BudgetManager = () => {
     const headers = [
       'ID',
       'Event / Project Title',
+      'Fund Source',
       'Resolution No.',
       'Category',
       'Committee',
@@ -162,6 +190,7 @@ const BudgetManager = () => {
     const rows = filteredBudgets.map(b => [
       `"${b.id || ''}"`,
       `"${(b.eventName || '').replace(/"/g, '""')}"`,
+      `"${b.fundAccountId === 'fund_fsg_remittance' || b.isFSG ? 'FSG Remittance' : 'Fiscal Year Budget'}"`,
       `"${(b.resolution || '').replace(/"/g, '""')}"`,
       `"${b.category || ''}"`,
       `"${b.committee || ''}"`,
@@ -313,6 +342,14 @@ const BudgetManager = () => {
           <span className={styles.kpiValue}>₱{aggregateMetrics.totalAlloc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div className={styles.kpiCard}>
+          <span className={styles.kpiLabel}>Fiscal Year Budget Alloc</span>
+          <span className={styles.kpiValue}>₱{aggregateMetrics.fiscalAlloc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+        <div className={styles.kpiCard}>
+          <span className={styles.kpiLabel}>FSG Remittance Alloc</span>
+          <span className={`${styles.kpiValue} ${styles.kpiGold}`}>₱{aggregateMetrics.fsgAlloc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+        <div className={styles.kpiCard}>
           <span className={styles.kpiLabel}>Actual Disbursed</span>
           <span className={styles.kpiValue}>₱{aggregateMetrics.totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
@@ -322,10 +359,31 @@ const BudgetManager = () => {
             ₱{aggregateMetrics.remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
-        <div className={styles.kpiCard}>
-          <span className={styles.kpiLabel}>Burn Rate</span>
-          <span className={styles.kpiValue}>{aggregateMetrics.burnRate.toFixed(1)}%</span>
-        </div>
+      </div>
+
+      {/* Fund Source Quick-Filter Segmented Bar */}
+      <div className={styles.fundFilterPills}>
+        <button
+          type="button"
+          className={`${styles.fundFilterPill} ${filterFund === 'All' ? styles.fundFilterPillActive : ''}`}
+          onClick={() => setFilterFund('All')}
+        >
+          All Fund Sources ({budgets.length})
+        </button>
+        <button
+          type="button"
+          className={`${styles.fundFilterPill} ${filterFund === 'fund_fiscal_year_budget' ? styles.fundFilterPillActiveMaroon : ''}`}
+          onClick={() => setFilterFund('fund_fiscal_year_budget')}
+        >
+          🏛️ Fiscal Year Budget ({fiscalCount})
+        </button>
+        <button
+          type="button"
+          className={`${styles.fundFilterPill} ${filterFund === 'fund_fsg_remittance' ? styles.fundFilterPillActiveGold : ''}`}
+          onClick={() => setFilterFund('fund_fsg_remittance')}
+        >
+          🤝 FSG Remittance ({fsgCount})
+        </button>
       </div>
 
       {/* Search and Filters Bar */}
@@ -439,11 +497,12 @@ const BudgetManager = () => {
           <div>
             Showing <strong>{filteredBudgets.length}</strong> of <strong>{budgets.length}</strong> recorded budget logs
           </div>
-          {(searchTerm || filterStatus !== 'All' || filterCategory !== 'All' || filterCommittee !== 'All') && (
+          {(searchTerm || filterFund !== 'All' || filterStatus !== 'All' || filterCategory !== 'All' || filterCommittee !== 'All') && (
             <button 
               className={styles.clearFilters}
               onClick={() => {
                 setSearchTerm('');
+                setFilterFund('All');
                 setFilterStatus('All');
                 setFilterCategory('All');
                 setFilterCommittee('All');
@@ -469,6 +528,7 @@ const BudgetManager = () => {
             const remaining = allocated - spent;
             const progress = allocated > 0 ? Math.min((spent / allocated) * 100, 100) : 0;
             const isExpanded = expandedRowId === budget.id;
+            const isFSGBudget = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
 
             return (
               <div key={budget.id} className={`${styles.budgetCard} ${isExpanded ? styles.budgetCardExpanded : ''}`}>
@@ -483,8 +543,13 @@ const BudgetManager = () => {
                     </span>
                   </div>
 
-                  {/* Column 2: Category & Committee Badge */}
+                  {/* Column 2: Fund Source, Category & Committee Badges */}
                   <div className={styles.cardMeta}>
+                    {isFSGBudget ? (
+                      <span className={styles.fsgBadge}>🤝 FSG Remittance</span>
+                    ) : (
+                      <span className={styles.fiscalBadge}>🏛️ Fiscal Budget</span>
+                    )}
                     <span className={styles.categoryBadge}>{budget.category || 'General'}</span>
                     <span className={styles.committeeLabel}>{budget.committee || 'General'}</span>
                   </div>
@@ -555,13 +620,19 @@ const BudgetManager = () => {
                   <div className={styles.detailsDrawer}>
                     <div className={styles.drawerGrid}>
                       <div className={styles.drawerItem}>
+                        <span className={styles.drawerLabel}>Appropriation Fund Source</span>
+                        <span className={`${styles.drawerValue} ${isFSGBudget ? styles.drawerFundGold : styles.drawerFundMaroon}`}>
+                          {isFSGBudget ? '🤝 FSG Remittance & Supplemental Fund' : '🏛️ SSG Fiscal Year Budget'}
+                        </span>
+                      </div>
+                      <div className={styles.drawerItem}>
                         <span className={styles.drawerLabel}>Remaining Balance</span>
                         <span className={`${styles.drawerValue} ${remaining < 0 ? styles.negativeValue : ''}`}>
                           ₱{remaining.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className={styles.drawerItem}>
-                        <span className={styles.drawerLabel}>Fiscal Fiscal Year</span>
+                        <span className={styles.drawerLabel}>Fiscal Year</span>
                         <span className={styles.drawerValue}>{budget.fiscalYear || 'Current'}</span>
                       </div>
                       <div className={styles.drawerItem}>

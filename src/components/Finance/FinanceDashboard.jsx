@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import BudgetManager from '../BudgetManager/BudgetManagement.jsx';
 import BudgetAnalytics from '../BudgetAnalytics/BudgetAnalytics.jsx';
-import BudgetForm from '../BudgetForm/BudgetForm.jsx';
+import FundGovernance from './FundGovernance.jsx';
+import PreOrderBatchManager from './PreOrderBatchManager.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
 import { 
   BarChart3, 
-  PlusCircle, 
   FileSpreadsheet, 
   ShieldAlert, 
-  Sparkles,
-  PieChart,
-  Wallet
+  Wallet, 
+  Coins, 
+  PackageCheck 
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './FinanceDashboard.module.css';
@@ -18,19 +18,16 @@ import styles from './FinanceDashboard.module.css';
 /**
  * @component
  * @description Financial Control Center with tabbed navigation:
+ * - Fund Accounts, Budget Allocations & Ledger (FundGovernance)
+ * - Pre-Order Procurement Batches (PreOrderBatchManager)
  * - Budget Details & Analytics (BudgetAnalytics)
- * - New Budget Allocation (BudgetForm)
- * - Manage Budget Logs (BudgetManager)
- *
- * Access levels:
- *  - admin / finance_secretary: full access (analytics, allocation form, and log manager)
- *  - secretary / view-only: analytics tab only
+ * - Manage Budget Allocations (BudgetManager)
  */
 const FinanceDashboard = () => {
   const { canEditFinance } = usePermissions();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
-  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'allocation' | 'logs'
+  const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'batches' | 'analytics' | 'logs'
 
   return (
     <div className={`${styles.financeDashboardContainer} ${isClassic ? styles.financeClassic : ''}`}>
@@ -51,12 +48,30 @@ const FinanceDashboard = () => {
 
         <h1 className={styles.mainTitle}>Financial Control Center</h1>
         <p className={styles.subtitle}>
-          Visualize fiscal telemetry, allocate institutional funds, and audit real-time budgetary transactions.
+          Track institutional funds, allocate fiscal & FSG budgets, restrict disbursements by policy, manage pre-orders, and audit real-time ledger entries.
         </p>
       </header>
 
       {/* Tab Navigation Surface */}
       <nav className={styles.tabNavigation} aria-label="Financial Control Center Tabs">
+        <button
+          type="button"
+          className={`${styles.tabButton} ${activeTab === 'funds' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('funds')}
+        >
+          <Coins size={17} className={styles.tabIcon} />
+          <span className={styles.tabLabel}>Fund Accounts & Ledger</span>
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.tabButton} ${activeTab === 'batches' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('batches')}
+        >
+          <PackageCheck size={17} className={styles.tabIcon} />
+          <span className={styles.tabLabel}>IGF Pre-Order Batches</span>
+        </button>
+
         <button
           type="button"
           className={`${styles.tabButton} ${activeTab === 'analytics' ? styles.tabActive : ''}`}
@@ -67,39 +82,34 @@ const FinanceDashboard = () => {
         </button>
 
         {canEditFinance && (
-          <>
-            <button
-              type="button"
-              className={`${styles.tabButton} ${activeTab === 'allocation' ? styles.tabActive : ''}`}
-              onClick={() => setActiveTab('allocation')}
-            >
-              <PlusCircle size={17} className={styles.tabIcon} />
-              <span className={styles.tabLabel}>New Budget Allocation</span>
-            </button>
-
-            <button
-              type="button"
-              className={`${styles.tabButton} ${activeTab === 'logs' ? styles.tabActive : ''}`}
-              onClick={() => setActiveTab('logs')}
-            >
-              <FileSpreadsheet size={17} className={styles.tabIcon} />
-              <span className={styles.tabLabel}>Manage Budget Logs</span>
-            </button>
-          </>
+          <button
+            type="button"
+            className={`${styles.tabButton} ${activeTab === 'logs' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('logs')}
+          >
+            <FileSpreadsheet size={17} className={styles.tabIcon} />
+            <span className={styles.tabLabel}>Manage Budget Allocations</span>
+          </button>
         )}
       </nav>
 
       {/* Tab Content Panes */}
       <main className={styles.tabContentArea}>
-        {activeTab === 'analytics' && (
-          <section className={styles.tabPane} key="analytics">
-            <BudgetAnalytics />
+        {activeTab === 'funds' && (
+          <section className={styles.tabPane} key="funds">
+            <FundGovernance />
           </section>
         )}
 
-        {canEditFinance && activeTab === 'allocation' && (
-          <section className={styles.tabPane} key="allocation">
-            <BudgetForm onSuccess={() => setActiveTab('logs')} />
+        {activeTab === 'batches' && (
+          <section className={styles.tabPane} key="batches">
+            <PreOrderBatchManager />
+          </section>
+        )}
+
+        {activeTab === 'analytics' && (
+          <section className={styles.tabPane} key="analytics">
+            <BudgetAnalytics />
           </section>
         )}
 
