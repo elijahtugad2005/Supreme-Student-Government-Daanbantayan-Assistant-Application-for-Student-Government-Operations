@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  onSnapshot, 
+  getDocs, 
+  query, 
+  where, 
+  serverTimestamp 
+} from 'firebase/firestore';
 import { useAuth } from '../AuthContext/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import auditService from '../../services/auditService';
@@ -436,7 +447,13 @@ function ProductTableView({ products, onEdit, onDelete, onNewProduct, loading })
                       onError={(e) => { e.target.src = 'https://via.placeholder.com/48'; }}
                     />
                   </td>
-                  <td className={styles.tableProductName}>{product.productName}</td>
+                  <td className={styles.tableProductName}>
+                    <div>{product.productName}</div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.68rem', color: '#059669', fontWeight: 600, marginTop: '3px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                      IGF Inventory Synced ({product.category || 'Office Supplies'})
+                    </div>
+                  </td>
                   <td className={styles.tablePrice}>₱{product.price?.toFixed(2)}</td>
                   <td>
                     {product.stockAvailable === 0 ? (
@@ -466,7 +483,10 @@ function ProductTableView({ products, onEdit, onDelete, onNewProduct, loading })
                         </svg>
                         Edit
                       </button>
-                      <button className={styles.tableDeleteBtn} onClick={() => onDelete(product.docId, product.productName)}>
+                      <button 
+                        className={styles.tableDeleteBtn} 
+                        onClick={() => onDelete(product.docId, product.productName, product.productId, product.linkedInventoryId)}
+                      >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                         </svg>
@@ -542,17 +562,22 @@ function ProductManagement() {
   // Product form data
   const [productData, setProductData] = useState({
     productName: '',
+    category: 'Office Supplies',
+    storageLocation: 'SSG Storage Cabinet B',
+    unit: 'pcs',
     stockAvailable: 0,
     hasVariations: false,
     sizeOptions: [],
     colorVariations: [],
-    customVariations: [], // NEW: Array of {type: string, options: [{name: string, image: string, stock: number}]}
+    customVariations: [], // Array of {type: string, options: [{name: string, image: string, stock: number}]}
     description: '',
     supplier: '',
     price: 0,
     imageFile: null,
     imagePath: '',
     imageBase64: '',
+    linkedInventoryId: '',
+    fundSource: 'IGF',
   });
 
   // Products list from Firebase
@@ -620,16 +645,21 @@ function ProductManagement() {
   const resetForm = () => {
     setProductData({
       productName: '',
+      category: 'Office Supplies',
+      storageLocation: 'SSG Storage Cabinet B',
+      unit: 'pcs',
       stockAvailable: 0,
       hasVariations: false,
       sizeOptions: [],
       colorVariations: [],
-      customVariations: [], // NEW
+      customVariations: [],
       description: '',
       price: 0,
       supplier: '',
       imageFile: null,
       imageBase64: '',
+      linkedInventoryId: '',
+      fundSource: 'IGF',
     });
     setImagePreview(null);
     setEditingProductId(null);
@@ -649,17 +679,22 @@ function ProductManagement() {
   const handleEditClick = (product) => {
     setEditingProductId(product.docId);
     setProductData({
-      productName: product.productName,
-      stockAvailable: product.stockAvailable,
-      hasVariations: product.hasVariations,
-      description: product.description,
-      price: product.price,
-      supplier: product.supplier,
+      productName: product.productName || '',
+      category: product.category || 'Office Supplies',
+      storageLocation: product.storageLocation || 'SSG Storage Cabinet B',
+      unit: product.unit || 'pcs',
+      stockAvailable: product.stockAvailable ?? 0,
+      hasVariations: !!product.hasVariations,
+      description: product.description || '',
+      price: product.price ?? 0,
+      supplier: product.supplier || '',
       sizeOptions: product.sizeOptions || [],
       colorVariations: product.colorVariations || [],
-      customVariations: product.customVariations || [], // NEW
+      customVariations: product.customVariations || [],
       imageBase64: product.imageBase64 || '',
       productId: product.productId,
+      linkedInventoryId: product.linkedInventoryId || '',
+      fundSource: product.fundSource || 'IGF',
       imageFile: null,
     });
     setImagePreview(product.imageBase64 || null);
@@ -668,7 +703,7 @@ function ProductManagement() {
   };
 
   // ======================================
-  // HANDLE ADD PRODUCT (Firebase)
+  // HANDLE ADD PRODUCT (Firebase & Inventory Sync)
   // ======================================
   const handleAddProduct = async (e) => {
     e.preventDefault();
@@ -676,24 +711,66 @@ function ProductManagement() {
     setLoading(true);
     try {
       const productId = generateProductId();
+      const stock = parseInt(productData.stockAvailable) || 0;
+      const price = parseFloat(productData.price) || 0;
+      const category = productData.category || 'Office Supplies';
+      const storageLocation = productData.storageLocation?.trim() || 'SSG Storage Cabinet B';
+      const unit = productData.unit || 'pcs';
+      const performer = userName || currentUser?.displayName || currentUser?.email || 'Authorized Officer';
+
+      // 1. Create corresponding inventory record under Income Generated Funds (IGF)
+      const invDocRef = await addDoc(collection(db, 'inventory'), {
+        name: productData.productName.trim(),
+        category,
+        quantity: stock,
+        minQuantity: 5,
+        amount: price,
+        storageLocation,
+        unit,
+        description: productData.description.trim(),
+        supplier: productData.supplier.trim(),
+        imageBase64: productData.imageBase64 || '',
+        fundSource: 'IGF',
+        source: 'Product Management (IGF)',
+        linkedProductId: productId,
+        lastUpdatedBy: performer,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 2. Create product in products collection with linked inventory ID
       const newProduct = {
         productId,
-        productName: productData.productName,
-        stockAvailable: parseInt(productData.stockAvailable),
+        linkedInventoryId: invDocRef.id,
+        fundSource: 'IGF',
+        category,
+        storageLocation,
+        unit,
+        productName: productData.productName.trim(),
+        stockAvailable: stock,
         hasVariations: productData.hasVariations,
         sizeOptions: productData.hasVariations ? productData.sizeOptions : [],
         colorVariations: productData.hasVariations ? productData.colorVariations : [],
-        customVariations: productData.hasVariations ? productData.customVariations : [], // NEW
-        description: productData.description,
-        price: parseFloat(productData.price),
-        supplier: productData.supplier,
+        customVariations: productData.hasVariations ? productData.customVariations : [],
+        description: productData.description.trim(),
+        price,
+        supplier: productData.supplier.trim(),
         imageUrl: productData.imageBase64 || '/products/default.jpg',
         imageBase64: productData.imageBase64 || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       await addDoc(collection(db, 'products'), newProduct);
-      showNotification(`Product "${productData.productName}" added successfully!`, 'success');
+
+      // 3. Log Audit Trail for both Catalog and Inventory Register
+      await auditService.logInventoryAdd(
+        performer,
+        productData.productName.trim(),
+        stock,
+        category
+      );
+
+      showNotification(`Product "${productData.productName}" added and synced to Inventory Register!`, 'success');
       resetForm();
       setIsPanelOpen(false);
     } catch (error) {
@@ -705,7 +782,7 @@ function ProductManagement() {
   };
 
   // ======================================
-  // HANDLE UPDATE PRODUCT (Firebase)
+  // HANDLE UPDATE PRODUCT (Firebase & Inventory Sync)
   // ======================================
   const handleUpdateProduct = async (e) => {
     e.preventDefault();
@@ -713,22 +790,88 @@ function ProductManagement() {
     setLoading(true);
     try {
       const productRef = doc(db, 'products', editingProductId);
+      const stock = parseInt(productData.stockAvailable) || 0;
+      const price = parseFloat(productData.price) || 0;
+      const category = productData.category || 'Office Supplies';
+      const storageLocation = productData.storageLocation?.trim() || 'SSG Storage Cabinet B';
+      const unit = productData.unit || 'pcs';
+      const performer = userName || currentUser?.displayName || currentUser?.email || 'Authorized Officer';
+
+      let linkedInventoryId = productData.linkedInventoryId;
+
+      const invData = {
+        name: productData.productName.trim(),
+        category,
+        quantity: stock,
+        amount: price,
+        storageLocation,
+        unit,
+        description: productData.description.trim(),
+        supplier: productData.supplier.trim(),
+        imageBase64: productData.imageBase64 || '/products/default.jpg',
+        fundSource: 'IGF',
+        source: 'Product Management (IGF)',
+        linkedProductId: productData.productId,
+        lastUpdatedBy: performer,
+        updatedAt: serverTimestamp(),
+      };
+
+      // Update existing or upsert linked inventory document
+      if (linkedInventoryId) {
+        try {
+          await updateDoc(doc(db, 'inventory', linkedInventoryId), invData);
+        } catch (invErr) {
+          console.warn('Direct linked inventory update error, falling back to lookup:', invErr);
+          linkedInventoryId = null;
+        }
+      }
+
+      if (!linkedInventoryId && productData.productId) {
+        const invQuery = query(collection(db, 'inventory'), where('linkedProductId', '==', productData.productId));
+        const invSnap = await getDocs(invQuery);
+        if (!invSnap.empty) {
+          linkedInventoryId = invSnap.docs[0].id;
+          await updateDoc(doc(db, 'inventory', linkedInventoryId), invData);
+        } else {
+          // If not present in inventory, register it now
+          const newInv = await addDoc(collection(db, 'inventory'), {
+            ...invData,
+            minQuantity: 5,
+            createdAt: serverTimestamp(),
+          });
+          linkedInventoryId = newInv.id;
+        }
+      }
+
       const updatedProduct = {
-        productName: productData.productName,
-        stockAvailable: parseInt(productData.stockAvailable),
+        productName: productData.productName.trim(),
+        category,
+        storageLocation,
+        unit,
+        linkedInventoryId: linkedInventoryId || '',
+        stockAvailable: stock,
         hasVariations: productData.hasVariations,
         sizeOptions: productData.hasVariations ? productData.sizeOptions : [],
         colorVariations: productData.hasVariations ? productData.colorVariations : [],
-        customVariations: productData.hasVariations ? productData.customVariations : [], // NEW
-        description: productData.description,
-        price: parseFloat(productData.price),
-        supplier: productData.supplier,
+        customVariations: productData.hasVariations ? productData.customVariations : [],
+        description: productData.description.trim(),
+        price,
+        supplier: productData.supplier.trim(),
         imageUrl: productData.imageBase64 || '/products/default.jpg',
         imageBase64: productData.imageBase64 || '/products/default.jpg',
         updatedAt: new Date().toISOString(),
       };
+
       await updateDoc(productRef, updatedProduct);
-      showNotification('Product updated successfully!', 'success');
+
+      // Audit Trail for Inventory sync
+      await auditService.logInventoryUpdate(
+        performer,
+        productData.productName.trim(),
+        `Synchronized stock (${stock} units) and details via Product Management (IGF)`
+      );
+
+      showNotification('Product and Inventory record updated successfully!', 'success');
       resetForm();
       setIsPanelOpen(false);
     } catch (error) {
@@ -740,23 +883,40 @@ function ProductManagement() {
   };
 
   // ======================================
-  // HANDLE DELETE PRODUCT (Firebase)
+  // HANDLE DELETE PRODUCT (Firebase & Inventory Clean)
   // ======================================
-  const handleDeleteProduct = async (docId, productName) => {
+  const handleDeleteProduct = async (docId, productName, productId, linkedInventoryId) => {
     if (!canDeleteCommerce) {
       showNotification('Security clearance required: Only Finance Secretary, Executive Secretary, President, VP, or Admin can delete products from Commerce Hub.', 'error');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete "${productName}"?\n\nThis action cannot be undone.`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${productName}"?\n\nThis will also remove its corresponding record from the Inventory register.`)) return;
     try {
+      // 1. Delete product document
       await deleteDoc(doc(db, 'products', docId));
 
-      // Audit Trail: Log Commerce Deletion (CDL) - Zero UID
-      const performer = userName || currentUser?.displayName || currentUser?.email || 'Authorized Officer';
-      await auditService.logCommerceDelete(performer, productName, 'Product Catalog');
+      // 2. Delete linked inventory item if present
+      if (linkedInventoryId) {
+        try {
+          await deleteDoc(doc(db, 'inventory', linkedInventoryId));
+        } catch (e) {
+          console.warn('Error deleting linked inventory document:', e);
+        }
+      } else if (productId) {
+        const invQuery = query(collection(db, 'inventory'), where('linkedProductId', '==', productId));
+        const invSnap = await getDocs(invQuery);
+        for (const d of invSnap.docs) {
+          await deleteDoc(doc(db, 'inventory', d.id));
+        }
+      }
 
-      showNotification(`Product "${productName}" deleted successfully!`, 'success');
+      // 3. Audit Trail: Log Commerce Deletion and Inventory Deletion
+      const performer = userName || currentUser?.displayName || currentUser?.email || 'Authorized Officer';
+      await auditService.logCommerceDelete(performer, productName, 'Product Catalog (IGF)');
+      await auditService.logInventoryDelete(performer, productName);
+
+      showNotification(`Product "${productName}" and inventory record deleted successfully!`, 'success');
     } catch (error) {
       console.error('Error deleting product:', error);
       showNotification('Error deleting product. Please try again.', 'error');

@@ -9,6 +9,7 @@ import {
   deleteDoc, 
   getDocs,
   query,
+  where,
   orderBy,
   serverTimestamp 
 } from 'firebase/firestore';
@@ -25,7 +26,8 @@ export function InventoryProvider({ children }) {
     'Electronic Equipment',
     'Furniture',
     'Tools',
-    'Consumables'
+    'Consumables',
+    'Merchandise'
   ]);
   const [loading, setLoading] = useState(false);
   const [borrowedItems, setBorrowedItems] = useState([]);
@@ -88,6 +90,26 @@ export function InventoryProvider({ children }) {
         ...updatedData,
         updatedAt: serverTimestamp(),
       });
+
+      // Synchronize with linked product in Product Management if applicable
+      const currentItem = inventory.find(i => i.id === itemId);
+      const linkedProductId = updatedData.linkedProductId || currentItem?.linkedProductId;
+      if (linkedProductId) {
+        try {
+          const prodQ = query(collection(db, 'products'), where('productId', '==', linkedProductId));
+          const prodSnap = await getDocs(prodQ);
+          if (!prodSnap.empty) {
+            const prodUpdate = { updatedAt: new Date().toISOString() };
+            if (updatedData.quantity !== undefined) prodUpdate.stockAvailable = updatedData.quantity;
+            if (updatedData.amount !== undefined) prodUpdate.price = updatedData.amount;
+            if (updatedData.name !== undefined) prodUpdate.productName = updatedData.name;
+            await updateDoc(doc(db, 'products', prodSnap.docs[0].id), prodUpdate);
+          }
+        } catch (syncErr) {
+          console.warn('Sync inventory update to product error:', syncErr);
+        }
+      }
+
       await fetchInventory(); // Refresh the list
     } catch (error) {
       console.error('Error updating inventory:', error);
@@ -120,10 +142,26 @@ export function InventoryProvider({ children }) {
       const itemRef = doc(db, 'inventory', borrowData.itemId);
       const item = inventory.find(i => i.id === borrowData.itemId);
       if (item) {
-        const newQuantity = item.quantity - borrowData.quantityBorrowed;
+        const newQuantity = Math.max(0, item.quantity - borrowData.quantityBorrowed);
         await updateDoc(itemRef, {
           quantity: newQuantity
         });
+
+        // Sync with linked Product in Commerce / Product Management
+        if (item.linkedProductId) {
+          try {
+            const prodQ = query(collection(db, 'products'), where('productId', '==', item.linkedProductId));
+            const prodSnap = await getDocs(prodQ);
+            if (!prodSnap.empty) {
+              await updateDoc(doc(db, 'products', prodSnap.docs[0].id), {
+                stockAvailable: newQuantity,
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          } catch (syncErr) {
+            console.warn('Sync borrowed quantity to product error:', syncErr);
+          }
+        }
       }
       
       await fetchInventory();
@@ -157,6 +195,22 @@ export function InventoryProvider({ children }) {
           await updateDoc(itemRef, {
             quantity: newQuantity
           });
+
+          // Sync return with linked Product in Commerce / Product Management
+          if (item.linkedProductId) {
+            try {
+              const prodQ = query(collection(db, 'products'), where('productId', '==', item.linkedProductId));
+              const prodSnap = await getDocs(prodQ);
+              if (!prodSnap.empty) {
+                await updateDoc(doc(db, 'products', prodSnap.docs[0].id), {
+                  stockAvailable: newQuantity,
+                  updatedAt: new Date().toISOString(),
+                });
+              }
+            } catch (syncErr) {
+              console.warn('Sync returned quantity to product error:', syncErr);
+            }
+          }
         }
       }
       

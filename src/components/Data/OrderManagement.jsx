@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../../firebase/firebaseConfig.js';
-import { collection, onSnapshot, deleteDoc, doc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { 
+  collection, 
+  onSnapshot, 
+  deleteDoc, 
+  doc, 
+  updateDoc, 
+  getDocs, 
+  getDoc,
+  addDoc,
+  query,
+  where,
+  serverTimestamp,
+  writeBatch 
+} from 'firebase/firestore';
+import auditService from '../../services/auditService.js';
 import { 
   Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, 
   Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet, 
@@ -93,12 +107,15 @@ function OrderManagement() {
           ...doc.data(),
         }));
         
-        // Sort by date (newest first)
-        ordersData.sort((a, b) => {
-          const dateA = a.dateOrdered?.toDate?.() || new Date(a.createdAt);
-          const dateB = b.dateOrdered?.toDate?.() || new Date(b.createdAt);
-          return dateB - dateA;
-        });
+        // Sort by date (newest first) with robust type handling
+        const getOrderTimestamp = (o) => {
+          if (o.dateOrdered?.toDate) return o.dateOrdered.toDate().getTime();
+          if (o.dateOrdered) return new Date(o.dateOrdered).getTime() || 0;
+          if (o.createdAt?.toDate) return o.createdAt.toDate().getTime();
+          if (o.createdAt) return new Date(o.createdAt).getTime() || 0;
+          return 0;
+        };
+        ordersData.sort((a, b) => getOrderTimestamp(b) - getOrderTimestamp(a));
 
         setOrders(ordersData);
         setLoading(false);
@@ -133,139 +150,266 @@ function OrderManagement() {
   }, []);
 
   // ========================================
+  // INVENTORY & PRODUCT MANAGEMENT STOCK SYNC
+  // Decreases stock across Product Catalog and Inventory Register when claimed
+  // Restores stock when an order is unclaimed or cancelled
+  // ========================================
+  const syncOrderStockDeduction = async ({ order, deduct = true }) => {
+    const productId = order.productInfo?.productId;
+    const productName = order.productInfo?.productName?.trim();
+    const quantity = parseInt(order.productInfo?.quantity || order.quantity) || 1;
+
+    if (quantity <= 0) return { success: true };
+
+    try {
+      // 1. Find product in `products` collection
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      let productDoc = null;
+
+      if (productId) {
+        productDoc = productsSnapshot.docs.find(d => d.data().productId === productId);
+      }
+      if (!productDoc && productName) {
+        const targetName = productName.toLowerCase();
+        productDoc = productsSnapshot.docs.find(d => {
+          const pName = (d.data().productName || '').toLowerCase();
+          return pName === targetName || pName.includes(targetName) || targetName.includes(pName);
+        });
+      }
+
+      const performer = userName || currentUser?.displayName || currentUser?.email || 'Commerce Hub Officer';
+
+      if (productDoc) {
+        const prodData = productDoc.data();
+        const currentProdStock = parseInt(prodData.stockAvailable) || 0;
+        const newProdStock = deduct 
+          ? Math.max(0, currentProdStock - quantity)
+          : currentProdStock + quantity;
+
+        await updateDoc(doc(db, 'products', productDoc.id), {
+          stockAvailable: newProdStock,
+          updatedAt: new Date().toISOString(),
+        });
+
+        // 2. Find and update linked inventory item in `inventory` collection
+        let invDoc = null;
+        if (prodData.linkedInventoryId) {
+          try {
+            const directSnap = await getDoc(doc(db, 'inventory', prodData.linkedInventoryId));
+            if (directSnap.exists()) {
+              invDoc = directSnap;
+            }
+          } catch (e) {
+            console.warn('Error reading linked inventory item by ID:', e);
+          }
+        }
+
+        if (!invDoc && prodData.productId) {
+          const invQ = query(collection(db, 'inventory'), where('linkedProductId', '==', prodData.productId));
+          const invSnap = await getDocs(invQ);
+          if (!invSnap.empty) {
+            invDoc = invSnap.docs[0];
+          }
+        }
+
+        if (!invDoc) {
+          const invNameQ = query(collection(db, 'inventory'), where('name', '==', prodData.productName));
+          const invNameSnap = await getDocs(invNameQ);
+          if (!invNameSnap.empty) {
+            invDoc = invNameSnap.docs[0];
+          }
+        }
+
+        if (invDoc) {
+          const currentInvStock = parseInt(invDoc.data().quantity) || 0;
+          const newInvStock = deduct
+            ? Math.max(0, currentInvStock - quantity)
+            : currentInvStock + quantity;
+
+          await updateDoc(doc(db, 'inventory', invDoc.id), {
+            quantity: newInvStock,
+            updatedAt: serverTimestamp(),
+            lastUpdatedBy: performer,
+          });
+
+          await auditService.logInventoryUpdate(
+            performer,
+            invDoc.data().name,
+            deduct
+              ? `Order #${order.orderId} claimed: deducted ${quantity} units from stock (New Stock: ${newInvStock})`
+              : `Order #${order.orderId} claim cancelled: restored ${quantity} units to stock (New Stock: ${newInvStock})`
+          );
+        } else if (deduct) {
+          // If product exists in products but not yet in inventory, auto-create inventory item under IGF
+          const newInvRef = await addDoc(collection(db, 'inventory'), {
+            name: prodData.productName,
+            category: prodData.category || 'Merchandise',
+            quantity: newProdStock,
+            minQuantity: 5,
+            amount: parseFloat(prodData.price) || 0,
+            storageLocation: prodData.storageLocation || 'SSG Supply Office',
+            unit: prodData.unit || 'pcs',
+            description: prodData.description || '',
+            supplier: prodData.supplier || 'SSG Operations',
+            imageBase64: prodData.imageBase64 || '',
+            fundSource: 'IGF',
+            source: 'Product Management (IGF)',
+            linkedProductId: prodData.productId || null,
+            lastUpdatedBy: performer,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+
+          await updateDoc(doc(db, 'products', productDoc.id), {
+            linkedInventoryId: newInvRef.id,
+            category: prodData.category || 'Merchandise',
+            fundSource: 'IGF',
+          });
+
+          await auditService.logInventoryAdd(
+            performer,
+            prodData.productName,
+            newProdStock,
+            prodData.category || 'Merchandise'
+          );
+        }
+
+        return { 
+          success: true, 
+          productId: prodData.productId, 
+          newProdStock, 
+          inventoryId: invDoc?.id 
+        };
+      } else if (productName) {
+        // Fallback: search directly in inventory if product wasn't cataloged yet
+        const invNameQ = query(collection(db, 'inventory'), where('name', '==', productName));
+        const invNameSnap = await getDocs(invNameQ);
+        if (!invNameSnap.empty) {
+          const invDoc = invNameSnap.docs[0];
+          const currentInvStock = parseInt(invDoc.data().quantity) || 0;
+          const newInvStock = deduct ? Math.max(0, currentInvStock - quantity) : currentInvStock + quantity;
+          await updateDoc(doc(db, 'inventory', invDoc.id), {
+            quantity: newInvStock,
+            updatedAt: serverTimestamp(),
+            lastUpdatedBy: performer,
+          });
+          await auditService.logInventoryUpdate(
+            performer,
+            invDoc.data().name,
+            deduct
+              ? `Order #${order.orderId} claimed: deducted ${quantity} units from stock (New Stock: ${newInvStock})`
+              : `Order #${order.orderId} claim cancelled: restored ${quantity} units to stock (New Stock: ${newInvStock})`
+          );
+          return { success: true, inventoryId: invDoc.id };
+        }
+        return { success: false, reason: 'Product not found in catalog or inventory register' };
+      }
+      return { success: false, reason: 'No product information specified on order' };
+    } catch (err) {
+      console.error('Error synchronizing order stock deduction:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // ========================================
   // UPDATE ORDER STATUS
   // ========================================
   const updateOrderStatus = async (docId, newStatus, order) => {
-    // Show loading toast (optional)
     showToast(`Updating order ${order.orderId}...`, 'info');
 
     try {
       const oldStatus = order.orderStatus;
-      
-      // Handle stock deduction when order is marked as Completed
-      if (newStatus === 'Completed' && oldStatus !== 'Completed' && oldStatus !== 'Cancelled') {
-        // Deduct stock when completing an order
-        const productId = order.productInfo?.productId;
-        const quantity = order.productInfo?.quantity || 0;
+      const isClaimAction = newStatus === 'Claimed' || newStatus === 'Completed';
+      const isOnlinePaid = newStatus === 'Online Paid' || newStatus === 'Paid';
+      const wasClaimAction = oldStatus === 'Claimed' || oldStatus === 'Completed' || order.claimed || order.stockClaimDeducted;
+      const isReturned = newStatus === 'Returned';
+      const isPending = newStatus === 'Pending';
+      const isCancelled = newStatus === 'Cancelled';
 
-        if (productId && quantity > 0) {
-          // Find the product document
-          const productsSnapshot = await getDocs(collection(db, 'products'));
-          const productDoc = productsSnapshot.docs.find(
-            doc => doc.data().productId === productId
-          );
-
-          if (productDoc) {
-            const currentStock = productDoc.data().stockAvailable || 0;
-            const newStock = currentStock - quantity; // Deduct stock
-
-            if (newStock < 0) {
-              showToast(`Cannot complete order: Insufficient stock!`, 'error');
-              return;
-            }
-
-            await updateDoc(doc(db, 'products', productDoc.id), {
-              stockAvailable: newStock,
-              updatedAt: new Date().toISOString(),
-            });
-          }
-        }
+      // 1. Stock handling:
+      // When Claimed/Completed: deduct stock from Product Catalog and Inventory Register
+      if (isClaimAction && !order.stockClaimDeducted) {
+        await syncOrderStockDeduction({ order, deduct: true });
       }
 
-      // Handle stock restoration when order is cancelled
-      if (newStatus === 'Cancelled' && oldStatus !== 'Cancelled') {
-        // Only restore stock if order was already completed
-        if (oldStatus === 'Completed') {
-          const productId = order.productInfo?.productId;
-          const quantity = order.productInfo?.quantity || 0;
-
-          if (productId && quantity > 0) {
-            // Find the product document
-            const productsSnapshot = await getDocs(collection(db, 'products'));
-            const productDoc = productsSnapshot.docs.find(
-              doc => doc.data().productId === productId
-            );
-
-            if (productDoc) {
-              const currentStock = productDoc.data().stockAvailable || 0;
-              const newStock = currentStock + quantity; // Restore stock
-
-              await updateDoc(doc(db, 'products', productDoc.id), {
-                stockAvailable: newStock,
-                updatedAt: new Date().toISOString(),
-              });
-            }
-          }
-        }
+      // When moved to Pending, Online Paid (unclaimed), or Cancelled from a claimed state: restore stock
+      if ((isCancelled || isPending || (isOnlinePaid && wasClaimAction)) && order.stockClaimDeducted) {
+        await syncOrderStockDeduction({ order, deduct: false });
       }
 
-      // Handle stock restoration when changing from Completed to another status
-      if (oldStatus === 'Completed' && newStatus !== 'Completed' && newStatus !== 'Cancelled') {
-        // Restore stock when un-completing an order
-        const productId = order.productInfo?.productId;
-        const quantity = order.productInfo?.quantity || 0;
-
-        if (productId && quantity > 0) {
-          // Find the product document
-          const productsSnapshot = await getDocs(collection(db, 'products'));
-          const productDoc = productsSnapshot.docs.find(
-            doc => doc.data().productId === productId
-          );
-
-          if (productDoc) {
-            const currentStock = productDoc.data().stockAvailable || 0;
-            const newStock = currentStock + quantity; // Restore stock
-
-            await updateDoc(doc(db, 'products', productDoc.id), {
-              stockAvailable: newStock,
-              updatedAt: new Date().toISOString(),
-            });
-          }
-        }
+      // When Returned (defective/bad product):
+      // Do NOT return bad/defective items into sellable inventory. Log an audit trail entry for quarantine.
+      if (isReturned) {
+        const performer = userName || currentUser?.displayName || currentUser?.email || 'Commerce Hub Officer';
+        await auditService.logInventoryUpdate(
+          performer,
+          order.productInfo?.productName || 'Merchandise Item',
+          `Order #${order.orderId} returned (bad product): quarantined defective item (revenue reversed from IGF)`
+        );
       }
 
-      // Update order status
-      await updateDoc(doc(db, 'orders', docId), {
-        orderStatus: newStatus,
-        updatedAt: new Date().toISOString()
-      });
-
-      // IGF Integration: When order is marked Completed or Paid, auto-sync merchandise proceeds to IGF
-      if ((newStatus === 'Completed' || newStatus === 'Paid') && !order.igfSynced) {
+      // 2. IGF Revenue Integration:
+      // When Claimed/Completed or Online Paid: proceeds must be recorded into IGF Ledger
+      // CRITICAL PRE-EMPTION: If an order was Online Paid or already has an active IGF sync record,
+      // completing/claiming it ONLY deducts stock — IGF is NOT re-credited so it won't have duplicate records.
+      const isAlreadyInIGF = order.igfSynced === true && !order.igfReversed;
+      let igfSynced = order.igfSynced;
+      if ((isClaimAction || isOnlinePaid) && !isAlreadyInIGF) {
         try {
           await financeService.syncOrderRevenueToIGF({
             order: { ...order, docId, orderStatus: newStatus },
             user: currentUser,
             notes: `Merchandise order #${order.orderId} status set to ${newStatus}`
           });
+          igfSynced = true;
         } catch (syncErr) {
           console.warn('Auto IGF sync notice:', syncErr);
         }
       }
 
-      // If an order that was synced to IGF is Cancelled, reverse the revenue from IGF ledger
-      if (newStatus === 'Cancelled' && order.igfSynced) {
+      // When Cancelled, Pending (Cash on Arrival), or Returned (bad product refund):
+      // Reverse proceeds from IGF Ledger if it had synced
+      if ((isCancelled || isPending || isReturned) && order.igfSynced) {
         try {
           await financeService.reverseOrderRevenueFromIGF({
             order: { ...order, docId },
             user: currentUser,
-            reason: 'Order cancelled by officer'
+            reason: isReturned
+              ? `Order #${order.orderId} returned (bad/defective product refund)`
+              : `Order #${order.orderId} moved to ${newStatus} by officer`
           });
+          igfSynced = false;
         } catch (revErr) {
           console.warn('Auto IGF reversal notice:', revErr);
         }
       }
-      
-      // Show success state
-      showToast(`Order status updated to ${newStatus}`, 'success');
-      
+
+      // 3. Update order status in Firestore
+      await updateDoc(doc(db, 'orders', docId), {
+        orderStatus: newStatus,
+        claimed: isClaimAction,
+        stockClaimDeducted: isClaimAction,
+        igfSynced: igfSynced ?? false,
+        returnedAt: isReturned ? new Date().toISOString() : (order.returnedAt || null),
+        updatedAt: new Date().toISOString()
+      });
+
+      const detailMsg = isClaimAction
+        ? (isAlreadyInIGF || wasOnlinePaid
+            ? ' (Completed: stock decreased; IGF already recorded upon online payment)'
+            : ' (Paid & Claimed: stock deducted & IGF synced)')
+        : isOnlinePaid
+          ? ' (Paid Online: proceeds in IGF, awaiting pickup)'
+          : isReturned
+            ? ' (Returned: defective product logged & IGF refunded)'
+            : isPending
+              ? ' (Cash on Arrival: awaiting payment on claim)'
+              : '';
+
+      showToast(`Order #${order.orderId} status updated to ${newStatus}${detailMsg}.`, 'success');
     } catch (error) {
       console.error('Error updating order status:', error);
-      
-      // Show error state
-      showToast('Failed to update order status. Please try again.', 'error');
-      
-      // No auto‑close needed for toast (handled in showToast)
+      showToast('Error updating order status: ' + error.message, 'error');
     }
   };
 
@@ -334,19 +478,28 @@ function OrderManagement() {
     }
 
     for (const order of ordersToDelete) {
-      // Restore stock if order was completed
-      if (order.orderStatus === 'Completed' && productsSnapshot) {
-        const productId = order.productInfo?.productId;
-        const quantity = order.productInfo?.quantity || 0;
-        if (productId && quantity > 0) {
-          const productDoc = productsSnapshot.docs.find(doc => doc.data().productId === productId);
-          if (productDoc) {
-            const currentStock = productDoc.data().stockAvailable || 0;
-            const newStock = currentStock + quantity;
-            await updateDoc(doc(db, 'products', productDoc.id), { stockAvailable: newStock, updatedAt: new Date().toISOString() });
-          }
+      // Restore stock across products and inventory if order had deducted stock
+      if (order.stockClaimDeducted || order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Claimed') {
+        try {
+          await syncOrderStockDeduction({ order, deduct: false });
+        } catch (stockErr) {
+          console.warn('Error restoring stock on bulk delete:', stockErr);
         }
       }
+
+      // Reverse revenue from IGF ledger if it was synced
+      if (order.igfSynced) {
+        try {
+          await financeService.reverseOrderRevenueFromIGF({
+            order,
+            user: currentUser,
+            reason: `Order #${order.orderId} bulk deleted by officer`
+          });
+        } catch (revErr) {
+          console.warn('Error reversing IGF revenue on bulk delete:', revErr);
+        }
+      }
+
       // Queue order deletion
       const orderRef = doc(db, 'orders', order.docId);
       batch.delete(orderRef);
@@ -357,18 +510,11 @@ function OrderManagement() {
     showToast(`${ordersToDelete.length} order(s) deleted successfully.`, 'success');
   };
 
-  // Delete all orders instantly
-  const handleDeleteAllOrders = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, 'orders'));
-      const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(doc(db, 'orders', docSnap.id)));
-      await Promise.all(deletePromises);
-      // Clear local state
-      setOrders([]);
-      setSelectedOrders([]);
-    } catch (error) {
-      console.error('Error deleting all orders:', error);
-    }
+  // Delete all orders safely via the confirmation modal with full stock restoration & IGF reversal
+  const handleDeleteAllOrders = () => {
+    if (orders.length === 0) return;
+    setSelectedOrders(orders.map((o) => o.docId));
+    setBulkDeleteModal(true);
   };
 
 
@@ -390,32 +536,91 @@ function OrderManagement() {
   };
 
   const toggleClaimStatus = async (order) => {
-    const newClaimed = !(order.claimed ?? false);
-    const newStatus = newClaimed ? 'Claimed' : 'Unclaimed';
+    const isCurrentlyClaimed = order.claimed === true || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed';
+    const newClaimed = !isCurrentlyClaimed;
+    const isOnlinePayment = order.paymentInfo?.paymentMethod === 'Online' || order.orderStatus === 'Online Paid';
+    const newStatus = newClaimed ? 'Claimed' : (isOnlinePayment ? 'Online Paid' : 'Pending');
+    showToast(`${newClaimed ? 'Claiming' : 'Unclaiming'} order ${order.orderId}...`, 'info');
+
     try {
-      await updateDoc(doc(db, 'orders', order.docId), {
-        claimed: newClaimed,
-        orderStatus: newStatus,
-        updatedAt: new Date().toISOString(),
-      });
+      if (newClaimed) {
+        // 1. Deduct stock from Product Management and Inventory Management
+        await syncOrderStockDeduction({ order, deduct: true });
 
-      // Auto-sync to IGF when marked claimed if not already synced
-      if (newClaimed && !order.igfSynced) {
-        try {
-          await financeService.syncOrderRevenueToIGF({
-            order: { ...order, claimed: true, orderStatus: 'Claimed' },
-            user: currentUser,
-            notes: `Merchandise order #${order.orderId} claimed by student`
-          });
-        } catch (syncErr) {
-          console.warn('IGF sync on claim notice:', syncErr);
+        // 2. Sync proceeds to IGF Ledger
+        // When Online Paid: money was already recorded in IGF upon payment, so ONLY stock changes on claim/completion (no duplicate IGF entry)
+        let igfSynced = order.igfSynced;
+        const alreadyInIGF = order.igfSynced === true || Boolean(order.igfTxRef);
+        if (!alreadyInIGF && !isOnlinePayment) {
+          try {
+            await financeService.syncOrderRevenueToIGF({
+              order: { ...order, claimed: true, orderStatus: 'Claimed' },
+              user: currentUser,
+              notes: `Merchandise order #${order.orderId} claimed by student`
+            });
+            igfSynced = true;
+          } catch (syncErr) {
+            console.warn('IGF sync on claim notice:', syncErr);
+          }
         }
-      }
 
-      showToast(`Order ${order.orderId} marked as ${newStatus}${newClaimed ? ' & synced to IGF' : ''}.`, 'success');
+        // 3. Update order in Firestore
+        await updateDoc(doc(db, 'orders', order.docId), {
+          claimed: true,
+          orderStatus: 'Claimed',
+          claimedAt: new Date().toISOString(),
+          claimedBy: userName || currentUser?.displayName || currentUser?.email || 'Officer',
+          stockClaimDeducted: true,
+          igfSynced: igfSynced ?? false,
+          updatedAt: new Date().toISOString(),
+        });
+
+        const claimMsg = (isOnlinePayment || alreadyInIGF)
+          ? `Order #${order.orderId} completed: stock deducted from inventory (IGF revenue was already recorded upon online payment).`
+          : `Order #${order.orderId} claimed: status updated to Claimed & synced to Inventory/IGF!`;
+
+        showToast(claimMsg, 'success');
+      } else {
+        // Unclaiming: Restore stock
+        if (order.stockClaimDeducted) {
+          await syncOrderStockDeduction({ order, deduct: false });
+        }
+
+        // Reversal of IGF revenue: only reverse if it was a Cash order returning to Pending.
+        // Online Paid orders keep their IGF balance since payment was already received online.
+        let igfSynced = order.igfSynced;
+        if (order.igfSynced && !isOnlinePayment) {
+          try {
+            await financeService.reverseOrderRevenueFromIGF({
+              order: { ...order, docId: order.docId },
+              user: currentUser,
+              reason: `Order #${order.orderId} unclaim returned to Pending by officer`
+            });
+            igfSynced = false;
+          } catch (revErr) {
+            console.warn('IGF reversal notice:', revErr);
+          }
+        }
+
+        // Update order in Firestore
+        await updateDoc(doc(db, 'orders', order.docId), {
+          claimed: false,
+          orderStatus: newStatus,
+          stockClaimDeducted: false,
+          unclaimedAt: new Date().toISOString(),
+          igfSynced: igfSynced ?? false,
+          updatedAt: new Date().toISOString(),
+        });
+
+        const unclaimMsg = isOnlinePayment
+          ? `Order #${order.orderId} unclaimed: status returned to Online Paid (awaiting pickup; IGF retained).`
+          : `Order #${order.orderId} unclaimed: status returned to Pending (stock restored; IGF reversed).`;
+
+        showToast(unclaimMsg, 'info');
+      }
     } catch (err) {
       console.error('Error toggling claim status:', err);
-      showToast('Failed to update claim status.', 'error');
+      showToast('Failed to update claim status: ' + err.message, 'error');
     }
   };
 
@@ -427,7 +632,23 @@ function OrderManagement() {
 
     // Filter by status
     if (statusFilter !== 'All') {
-      result = result.filter(order => order.orderStatus === statusFilter);
+      result = result.filter(order => {
+        const rawStatus = (order.orderStatus || '').toUpperCase();
+        const isClaimed = order.claimed === true || rawStatus === 'CLAIMED' || order.orderStatus === 'Completed';
+        const isOnlinePaid = !isClaimed && (rawStatus === 'ONLINE PAID' || rawStatus === 'PAID');
+        const isReturned = rawStatus === 'RETURNED';
+        const isCancelled = rawStatus === 'CANCELLED';
+        const isPending = !isClaimed && !isOnlinePaid && !isReturned && !isCancelled;
+
+        if (statusFilter === 'Claimed') return isClaimed;
+        if (statusFilter === 'Completed') return order.orderStatus === 'Completed' || isClaimed;
+        if (statusFilter === 'Online Paid' || statusFilter === 'Paid') return isOnlinePaid;
+        if (statusFilter === 'Pending') return isPending;
+        if (statusFilter === 'Returned') return isReturned;
+        if (statusFilter === 'Cancelled') return isCancelled;
+        if (statusFilter === 'Unclaimed') return !isClaimed && !isCancelled && !isReturned;
+        return order.orderStatus === statusFilter;
+      });
     }
 
     // Filter by payment method
@@ -451,14 +672,25 @@ function OrderManagement() {
   // STATISTICS CALCULATION
   // ========================================
   const getStatistics = () => {
-    const claimedOrders = orders.filter(o => o.claimed || o.orderStatus === 'Claimed');
-    const unclaimedOrders = orders.filter(o => !o.claimed && o.orderStatus !== 'Claimed');
+    const claimedOrders = orders.filter(o => o.claimed || o.orderStatus?.toUpperCase() === 'CLAIMED' || o.orderStatus === 'Claimed' || o.orderStatus === 'Completed');
+    const onlinePaidOrders = orders.filter(o => !o.claimed && (o.orderStatus === 'Online Paid' || o.orderStatus === 'Paid' || o.orderStatus?.toUpperCase() === 'ONLINE PAID'));
+    const pendingOrders = orders.filter(o => !o.claimed && (o.orderStatus === 'Pending' || o.orderStatus?.toUpperCase() === 'UNCLAIMED' || (!o.orderStatus && o.orderStatus !== 'Online Paid')));
+    const returnedOrders = orders.filter(o => o.orderStatus?.toUpperCase() === 'RETURNED' || o.orderStatus === 'Returned');
+    const unclaimedOrders = orders.filter(o => !o.claimed && o.orderStatus !== 'Claimed' && o.orderStatus !== 'Completed');
+
+    // Revenue includes all collected funds: Claimed/Completed orders + Online Paid orders
+    const claimedRevenue = claimedOrders.reduce((sum, order) => sum + (order.productInfo?.totalPrice || 0), 0);
+    const onlinePaidRevenue = onlinePaidOrders.reduce((sum, order) => sum + (order.productInfo?.totalPrice || 0), 0);
+    const totalRevenue = claimedRevenue + onlinePaidRevenue;
 
     return {
       total: orders.length,
       claimed: claimedOrders.length,
+      onlinePaid: onlinePaidOrders.length,
+      pending: pendingOrders.length,
+      returned: returnedOrders.length,
       unclaimed: unclaimedOrders.length,
-      totalRevenue: claimedOrders.reduce((sum, order) => sum + (order.productInfo?.totalPrice || 0), 0),
+      totalRevenue,
     };
   };
 
@@ -471,7 +703,9 @@ function OrderManagement() {
     const igfBalance = fromCentavos(igfAccount?.balanceCentavos || 0);
 
     const settledOrders = orders.filter(
-      (o) => o.orderStatus !== 'Cancelled' && (o.claimed || o.orderStatus === 'Completed' || o.orderStatus === 'Paid')
+      (o) => o.orderStatus !== 'Cancelled' && 
+             o.orderStatus !== 'Returned' && 
+             (o.claimed || o.orderStatus === 'Completed' || o.orderStatus === 'Paid' || o.orderStatus === 'Online Paid' || o.orderStatus?.toUpperCase() === 'CLAIMED')
     );
     const settledRevenue = settledOrders.reduce((sum, o) => {
       const val = Number(o.productInfo?.totalPrice || o.totalPrice) || 0;
@@ -581,38 +815,32 @@ function OrderManagement() {
 
 
     try {
-      // Restore stock ONLY if order was Completed (stock was already deducted)
-      if (order.orderStatus === 'Completed') {
-        const productId = order.productInfo?.productId;
-        const quantity = order.productInfo?.quantity || 0;
+      // Restore stock across Product Catalog and Inventory if order had deducted stock
+      if (order.stockClaimDeducted || order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Claimed') {
+        try {
+          await syncOrderStockDeduction({ order, deduct: false });
+        } catch (stockErr) {
+          console.warn('Error restoring stock on order delete:', stockErr);
+        }
+      }
 
-        if (productId && quantity > 0) {
-          // Find the product document
-          const productsSnapshot = await getDocs(collection(db, 'products'));
-          const productDoc = productsSnapshot.docs.find(
-            doc => doc.data().productId === productId
-          );
-
-          if (productDoc) {
-            const currentStock = productDoc.data().stockAvailable || 0;
-            const newStock = currentStock + quantity; // Restore stock
-
-            await updateDoc(doc(db, 'products', productDoc.id), {
-              stockAvailable: newStock,
-              updatedAt: new Date().toISOString(),
-            });
-          }
+      // Reverse revenue from IGF ledger if it was synced
+      if (order.igfSynced) {
+        try {
+          await financeService.reverseOrderRevenueFromIGF({
+            order: { ...order, docId },
+            user: currentUser,
+            reason: `Order #${orderId} deleted by officer`
+          });
+        } catch (revErr) {
+          console.warn('Error reversing IGF revenue on delete:', revErr);
         }
       }
 
       // Delete the order
       await deleteDoc(doc(db, 'orders', docId));
 
-      if (order.orderStatus === 'Completed') {
-        showToast('Order deleted. Stock has been restored.', 'success');
-      } else {
-        showToast('Order deleted successfully.', 'success');
-      }
+      showToast(`Order #${orderId} deleted. Stock restored to Inventory and Product Management.`, 'success');
     } catch (error) {
       console.error('Error deleting order:', error);
       showToast('Error deleting order. Please try again.', 'error');
@@ -645,27 +873,33 @@ function OrderManagement() {
   // GET STATUS STYLE
   // ========================================
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pending': return '#fff3cd';
-      case 'Paid': return '#d1e7dd';
-      case 'Ongoing': return '#cfe2ff';
-      case 'Completed': return '#d1e7dd';
-      case 'Claimed': return '#d1e7dd';
-      case 'Unclaimed': return '#fff3cd';
-      case 'Cancelled': return '#f8d7da';
+    const s = (status || '').toUpperCase();
+    switch (s) {
+      case 'PENDING': return '#fff3cd'; // Amber: Cash on Arrival/Claiming (Unpaid)
+      case 'ONLINE PAID':
+      case 'PAID': return '#cfe2ff'; // Soft Blue: Paid Online, awaiting claim
+      case 'ONGOING': return '#e0e7ff';
+      case 'COMPLETED':
+      case 'CLAIMED': return '#d1e7dd'; // Emerald Green: Paid & Claimed
+      case 'RETURNED': return '#f3e8ff'; // Purple: Defective/Bad product returned
+      case 'UNCLAIMED': return '#fff3cd';
+      case 'CANCELLED': return '#f8d7da'; // Red: Cancelled
       default: return '#e2e3e5';
     }
   };
 
   const getStatusTextColor = (status) => {
-    switch (status) {
-      case 'Pending': return '#856404';
-      case 'Paid': return '#0f5132';
-      case 'Ongoing': return '#084298';
-      case 'Completed': return '#0f5132';
-      case 'Claimed': return '#0f5132';
-      case 'Unclaimed': return '#856404';
-      case 'Cancelled': return '#842029';
+    const s = (status || '').toUpperCase();
+    switch (s) {
+      case 'PENDING': return '#856404'; // Deep Amber
+      case 'ONLINE PAID':
+      case 'PAID': return '#084298'; // Deep Blue
+      case 'ONGOING': return '#3730a3';
+      case 'COMPLETED':
+      case 'CLAIMED': return '#0f5132'; // Deep Green
+      case 'RETURNED': return '#6b21a8'; // Deep Purple
+      case 'UNCLAIMED': return '#856404';
+      case 'CANCELLED': return '#842029'; // Deep Red
       default: return '#41464b';
     }
   };
@@ -693,15 +927,17 @@ function OrderManagement() {
   // GET STATUS CHIP COLOR (mobile dark theme)
   // ========================================
   const getMobileStatusStyle = (status) => {
-    switch (status) {
-      case 'Pending':    return { bg: 'rgba(234,179,8,0.15)',   color: '#fbbf24', border: 'rgba(234,179,8,0.3)' };
-      case 'Paid':       return { bg: 'rgba(16,185,129,0.15)',  color: '#34d399', border: 'rgba(16,185,129,0.3)' };
-      case 'Ongoing':    return { bg: 'rgba(59,130,246,0.15)',  color: '#60a5fa', border: 'rgba(59,130,246,0.3)' };
-      case 'Completed':  return { bg: 'rgba(16,185,129,0.15)',  color: '#34d399', border: 'rgba(16,185,129,0.3)' };
-      case 'Claimed':    return { bg: 'rgba(16,185,129,0.2)',   color: '#6ee7b7', border: 'rgba(16,185,129,0.4)' };
-      case 'Unclaimed':  return { bg: 'rgba(234,179,8,0.15)',   color: '#fbbf24', border: 'rgba(234,179,8,0.3)' };
-      case 'Cancelled':  return { bg: 'rgba(239,68,68,0.15)',   color: '#f87171', border: 'rgba(239,68,68,0.3)' };
-      default:           return { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: 'rgba(148,163,184,0.3)' };
+    switch (status?.toUpperCase()) {
+      case 'PENDING':      return { bg: 'rgba(234,179,8,0.15)',   color: '#fbbf24', border: 'rgba(234,179,8,0.3)' };
+      case 'ONLINE PAID':
+      case 'PAID':         return { bg: 'rgba(59,130,246,0.15)',  color: '#60a5fa', border: 'rgba(59,130,246,0.3)' };
+      case 'ONGOING':      return { bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', border: 'rgba(99,102,241,0.3)' };
+      case 'COMPLETED':    return { bg: 'rgba(16,185,129,0.15)',  color: '#34d399', border: 'rgba(16,185,129,0.3)' };
+      case 'CLAIMED':      return { bg: 'rgba(16,185,129,0.2)',   color: '#6ee7b7', border: 'rgba(16,185,129,0.4)' };
+      case 'RETURNED':     return { bg: 'rgba(168,85,247,0.18)',  color: '#c084fc', border: 'rgba(168,85,247,0.35)' };
+      case 'UNCLAIMED':    return { bg: 'rgba(234,179,8,0.15)',   color: '#fbbf24', border: 'rgba(234,179,8,0.3)' };
+      case 'CANCELLED':    return { bg: 'rgba(239,68,68,0.15)',   color: '#f87171', border: 'rgba(239,68,68,0.3)' };
+      default:             return { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: 'rgba(148,163,184,0.3)' };
     }
   };
 
@@ -709,7 +945,7 @@ function OrderManagement() {
   // RENDER MOBILE ORDERS VIEW
   // ========================================
   const renderMobileOrdersView = () => {
-    const STATUS_FILTERS = ['All', 'Pending', 'Paid', 'Ongoing', 'Completed', 'Claimed', 'Unclaimed', 'Cancelled'];
+    const STATUS_FILTERS = ['All', 'Pending', 'Online Paid', 'Claimed', 'Completed', 'Returned', 'Cancelled'];
 
     return (
       <div className={styles.mobileOrdersView}>
@@ -864,8 +1100,11 @@ function OrderManagement() {
             {paginatedOrders.map((order) => {
               const isExpanded = expandedOrderId === order.docId;
               const isSelected = selectedOrders.includes(order.docId);
-              const statusStyle = getMobileStatusStyle(order.orderStatus);
-              const claimStyle = getMobileStatusStyle(order.claimed ? 'Claimed' : 'Unclaimed');
+              const isClaimed = order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED';
+              const displayStatus = isClaimed
+                ? 'Claimed'
+                : (order.orderStatus?.toUpperCase() === 'UNCLAIMED' ? 'Pending' : (order.orderStatus || 'Pending'));
+              const statusStyle = getMobileStatusStyle(displayStatus);
 
               return (
                 <div
@@ -898,7 +1137,7 @@ function OrderManagement() {
                           className={styles.mobileStatusPill}
                           style={{ background: statusStyle.bg, color: statusStyle.color, borderColor: statusStyle.border }}
                         >
-                          {order.orderStatus}
+                          {displayStatus}
                         </span>
                       </div>
                       <div className={styles.mobileCardBottomRow}>
@@ -907,15 +1146,15 @@ function OrderManagement() {
                       </div>
                       <div className={styles.mobileCardMeta}>
                         <span className={styles.mobileProductName}>{order.productInfo?.productName}</span>
-                        <span
-                          className={styles.mobileClaimPill}
-                          style={{ background: claimStyle.bg, color: claimStyle.color }}
-                        >
-                          {order.claimed ? '✓ Claimed' : '○ Unclaimed'}
-                        </span>
                         {order.igfSynced && (
                           <span className={styles.igfBadgeSynced} style={{ padding: '0.15rem 0.45rem', fontSize: '0.68rem' }}>
                             <ShieldCheck size={11} /> IGF Synced
+                          </span>
+                        )}
+                        {order.stockClaimDeducted && (
+                          <span style={{ fontSize: '0.66rem', color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }}></span>
+                            Stock Synced
                           </span>
                         )}
                       </div>
@@ -1007,13 +1246,22 @@ function OrderManagement() {
                           <select
                             className={styles.statusSelect}
                             style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem' }}
-                            value={order.orderStatus}
+                            value={
+                              order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED'
+                                ? 'Claimed'
+                                : (order.orderStatus === 'Online Paid' || order.orderStatus === 'Paid' || order.orderStatus?.toUpperCase() === 'ONLINE PAID'
+                                    ? 'Online Paid'
+                                    : (order.orderStatus === 'Returned' || order.orderStatus?.toUpperCase() === 'RETURNED'
+                                        ? 'Returned'
+                                        : (order.orderStatus?.toUpperCase() === 'UNCLAIMED' ? 'Pending' : (order.orderStatus || 'Pending'))))
+                            }
                             onChange={(e) => handleStatusChange(order, e.target.value)}
                           >
-                            <option value="Pending">Pending</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Ongoing">Ongoing</option>
+                            <option value="Pending">Pending (Cash on Arrival)</option>
+                            <option value="Online Paid">Online Paid (Unclaimed)</option>
+                            <option value="Claimed">Claimed (Paid & Fulfilled)</option>
                             <option value="Completed">Completed</option>
+                            <option value="Returned">Returned (Bad Product)</option>
                             <option value="Cancelled">Cancelled</option>
                           </select>
                         </div>
@@ -1022,13 +1270,13 @@ function OrderManagement() {
                       {/* Action Buttons */}
                       <div className={styles.mobileCardActions}>
                         <button
-                          className={`${styles.mobileActionBtn} ${order.claimed ? styles.mobileActionBtnAmber : styles.mobileActionBtnGreen}`}
+                          className={`${styles.mobileActionBtn} ${isClaimed ? styles.mobileActionBtnAmber : styles.mobileActionBtnGreen}`}
                           onClick={() => toggleClaimStatus(order)}
                         >
-                          {order.claimed ? <X size={15} /> : <CheckCircle size={15} />}
-                          {order.claimed ? 'Unclaim' : 'Mark Claimed'}
+                          {isClaimed ? <X size={15} /> : <CheckCircle size={15} />}
+                          {isClaimed ? 'Unclaim' : 'Mark Claimed'}
                         </button>
-                        {!order.igfSynced && (order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Paid') && order.orderStatus !== 'Cancelled' && (
+                        {!order.igfSynced && (isClaimed || order.orderStatus === 'Completed' || order.orderStatus === 'Paid' || order.orderStatus === 'Online Paid') && order.orderStatus !== 'Cancelled' && order.orderStatus !== 'Returned' && (
                           <button
                             type="button"
                             className={styles.mobileActionBtn}
@@ -1273,12 +1521,11 @@ function OrderManagement() {
             className={styles.filterSelect}
           >
             <option value="All">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-            <option value="Ongoing">Ongoing</option>
+            <option value="Pending">Pending (Cash on Arrival)</option>
+            <option value="Online Paid">Online Paid (Unclaimed)</option>
+            <option value="Claimed">Claimed (Fulfilled)</option>
             <option value="Completed">Completed</option>
-            <option value="Claimed">Claimed</option>
-            <option value="Unclaimed">Unclaimed</option>
+            <option value="Returned">Returned (Bad Product)</option>
             <option value="Cancelled">Cancelled</option>
           </select>
 
@@ -1404,30 +1651,40 @@ function OrderManagement() {
                     </td>
                     <td data-label="Total" className={styles.priceCell}>₱{order.productInfo?.totalPrice?.toFixed(2)}</td>
                     <td data-label="Status">
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        <select
-                          className={styles.statusSelect}
-                          value={order.orderStatus}
-                          onChange={(e) => handleStatusChange(order, e.target.value)}
-                          title="Change Order Status"
-                          style={{
-                            backgroundColor: getStatusColor(order.orderStatus),
-                            color: getStatusTextColor(order.orderStatus),
-                            borderColor: 'transparent'
-                          }}
-                        >
-                          <option value="Pending" style={{ background: '#fff', color: '#1f2937' }}>Pending</option>
-                          <option value="Paid" style={{ background: '#fff', color: '#1f2937' }}>Paid</option>
-                          <option value="Ongoing" style={{ background: '#fff', color: '#1f2937' }}>Ongoing</option>
-                          <option value="Completed" style={{ background: '#fff', color: '#1f2937' }}>Completed</option>
-                          <option value="Cancelled" style={{ background: '#fff', color: '#1f2937' }}>Cancelled</option>
-                        </select>
-                        <span 
-                          className={order.claimed ? styles.claimBadgeClaimed : styles.claimBadgeUnclaimed}
-                        >
-                          {order.claimed ? "Claimed" : "Unclaimed"}
-                        </span>
-                      </div>
+                      <select
+                        className={styles.statusSelect}
+                        value={
+                          order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED'
+                            ? 'Claimed'
+                            : (order.orderStatus === 'Online Paid' || order.orderStatus === 'Paid' || order.orderStatus?.toUpperCase() === 'ONLINE PAID'
+                                ? 'Online Paid'
+                                : (order.orderStatus === 'Returned' || order.orderStatus?.toUpperCase() === 'RETURNED'
+                                    ? 'Returned'
+                                    : (order.orderStatus?.toUpperCase() === 'UNCLAIMED' ? 'Pending' : (order.orderStatus || 'Pending'))))
+                        }
+                        onChange={(e) => handleStatusChange(order, e.target.value)}
+                        title="Change Order Status"
+                        style={{
+                          backgroundColor: getStatusColor(
+                            order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' 
+                              ? 'Claimed' 
+                              : (order.orderStatus === 'Paid' ? 'Online Paid' : (order.orderStatus || 'Pending'))
+                          ),
+                          color: getStatusTextColor(
+                            order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' 
+                              ? 'Claimed' 
+                              : (order.orderStatus === 'Paid' ? 'Online Paid' : (order.orderStatus || 'Pending'))
+                          ),
+                          borderColor: 'transparent'
+                        }}
+                      >
+                        <option value="Pending" style={{ background: '#fff', color: '#1f2937' }}>Pending (Cash on Arrival)</option>
+                        <option value="Online Paid" style={{ background: '#fff', color: '#1f2937' }}>Online Paid (Unclaimed)</option>
+                        <option value="Claimed" style={{ background: '#fff', color: '#1f2937' }}>Claimed (Paid & Fulfilled)</option>
+                        <option value="Completed" style={{ background: '#fff', color: '#1f2937' }}>Completed</option>
+                        <option value="Returned" style={{ background: '#fff', color: '#1f2937' }}>Returned (Bad Product)</option>
+                        <option value="Cancelled" style={{ background: '#fff', color: '#1f2937' }}>Cancelled</option>
+                      </select>
                     </td>
                     <td data-label="Payment">
                       <span className={styles.paymentBadge}>
@@ -1440,7 +1697,7 @@ function OrderManagement() {
                           <ShieldCheck size={13} />
                           <span>IGF Synced</span>
                         </span>
-                      ) : (order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Paid') && order.orderStatus !== 'Cancelled' ? (
+                      ) : (order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Paid' || order.orderStatus === 'Online Paid' || order.orderStatus?.toUpperCase() === 'CLAIMED') && order.orderStatus !== 'Cancelled' && order.orderStatus !== 'Returned' ? (
                         <button
                           type="button"
                           className={styles.igfSyncRowBtn}
@@ -1461,10 +1718,10 @@ function OrderManagement() {
                         <button
                           className={styles.claimBtn}
                           onClick={() => toggleClaimStatus(order)}
-                          title={order.claimed ? "Mark as Unclaimed" : "Mark as Claimed"}
+                          title={(order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed') ? "Mark as Unclaimed" : "Mark as Claimed"}
                         >
-                          {order.claimed ? <X size={14} /> : <CheckCircle size={14} />}
-                          {order.claimed ? "Unclaim" : "Claim"}
+                          {(order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed') ? <X size={14} /> : <CheckCircle size={14} />}
+                          {(order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed') ? "Unclaim" : "Claim"}
                         </button>
                         <button
                           className={styles.tableEditBtn}
@@ -1612,6 +1869,32 @@ function OrderManagement() {
             <p className={styles.confirmModalMessage}>
               Change order <strong>{confirmModal.orderId}</strong> status to <strong className={styles.confirmStatusBadge}>{confirmModal.newStatus}</strong>?
             </p>
+            <div style={{
+              margin: '0.85rem 0',
+              padding: '0.65rem 0.85rem',
+              borderRadius: '8px',
+              fontSize: '0.82rem',
+              lineHeight: '1.45',
+              textAlign: 'left',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              {confirmModal.newStatus === 'Claimed' || confirmModal.newStatus === 'Completed' ? (
+                confirmModal.currentStatus === 'Online Paid' || confirmModal.order?.paymentInfo?.paymentMethod === 'Online' ? (
+                  <span>📦 <strong>Online Paid Order Completed:</strong> Only the physical inventory & product stock will decrease. The IGF Ledger is <strong>not</strong> re-credited, preventing duplicate records.</span>
+                ) : (
+                  <span>📦 <strong>Cash Order Paid & Claimed:</strong> Stock will be decreased in Inventory/Products and cash proceeds recorded in the IGF Ledger.</span>
+                )
+              ) : confirmModal.newStatus === 'Online Paid' ? (
+                <span>💳 <strong>Paid Online (Unclaimed):</strong> Payment is received and recorded in IGF Ledger. Stock remains available/reserved until student pickup.</span>
+              ) : confirmModal.newStatus === 'Pending' ? (
+                <span>⏳ <strong>Cash on Arrival/Claiming:</strong> Unpaid and unclaimed. Stock remains in inventory, and any previous IGF credit is reversed.</span>
+              ) : confirmModal.newStatus === 'Returned' ? (
+                <span>↩️ <strong>Defective Product Returned:</strong> Returned due to bad product. Proceeds will be reversed/refunded from IGF Ledger, and the item logged as a defective return.</span>
+              ) : confirmModal.newStatus === 'Cancelled' ? (
+                <span>❌ <strong>Order Cancelled:</strong> Reserved stock is restored, and any credited IGF revenue is reversed.</span>
+              ) : null}
+            </div>
             <div className={styles.confirmModalActions}>
               <button 
                 className={styles.confirmCancelBtn}

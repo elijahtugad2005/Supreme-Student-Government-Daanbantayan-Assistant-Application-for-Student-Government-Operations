@@ -323,6 +323,60 @@ function ProductFormPanelEnhanced({
               />
             </div>
 
+            {/* Inventory Integration Category & Storage (IGF) */}
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Inventory Category (IGF) <span className={styles.required}>*</span>
+                </label>
+                <select
+                  name="category"
+                  value={productData.category || 'Office Supplies'}
+                  onChange={handleChange}
+                  className={styles.select}
+                  required
+                >
+                  <option value="Office Supplies">Office Supplies (Papers, Pens, Staplers)</option>
+                  <option value="Consumables">Consumables (Ink, Toner, Tape)</option>
+                  <option value="Merchandise">Merchandise (Lanyards, Uniforms, Shirts)</option>
+                  <option value="Tools">Tools (Scissors, Hole Punches)</option>
+                  <option value="Event Materials">Event Materials</option>
+                  <option value="Electronic Equipment">Electronic Equipment</option>
+                  <option value="Furniture">Furniture</option>
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Storage Location
+                </label>
+                <input
+                  type="text"
+                  name="storageLocation"
+                  value={productData.storageLocation || ''}
+                  onChange={handleChange}
+                  placeholder="e.g. SSG Storage Cabinet B / Supply Box"
+                  className={styles.input}
+                />
+              </div>
+            </div>
+
+            {/* IGF Inventory Sync Banner */}
+            <div style={{
+              background: 'rgba(217, 119, 6, 0.08)',
+              border: '1px solid rgba(217, 119, 6, 0.3)',
+              borderRadius: '8px',
+              padding: '0.65rem 0.85rem',
+              fontSize: '0.78rem',
+              color: '#d97706',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem'
+            }}>
+              <span>📦</span>
+              <span><strong>Inventory Sync Active:</strong> Stock quantity will be automatically cataloged into <strong>Inventory Management</strong> under Income Generated Funds (IGF).</span>
+            </div>
+
             {/* Description */}
             <div className={styles.formGroup}>
               <label className={styles.label}>

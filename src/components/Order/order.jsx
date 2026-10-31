@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, addDoc, onSnapshot, Timestamp, doc, updateDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import financeService from '../../services/financeService';
 import { 
   User, 
   CreditCard, 
@@ -259,7 +260,7 @@ function Order(props) {
           onlinePaymentType: formData.paymentMethod === 'Online' ? formData.onlinePaymentType : null,
           referenceNumber: formData.paymentMethod === 'Online' ? formData.referenceNumber.trim() : null,
         },
-        orderStatus: editingOrder ? editingOrder.orderStatus : 'Pending',
+        orderStatus: editingOrder ? editingOrder.orderStatus : (formData.paymentMethod === 'Online' ? 'Online Paid' : 'Pending'),
         dateOrdered: editingOrder ? editingOrder.dateOrdered : Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -308,8 +309,26 @@ function Order(props) {
         }
 
         orderData.createdAt = Timestamp.now();
-        await addDoc(collection(db, 'orders'), orderData);
+        const newOrderRef = await addDoc(collection(db, 'orders'), orderData);
         
+        // If paid online, automatically synchronize merchandise revenue directly into IGF ledger
+        if (formData.paymentMethod === 'Online') {
+          try {
+            await financeService.syncOrderRevenueToIGF({
+              order: {
+                ...orderData,
+                docId: newOrderRef.id,
+                id: newOrderRef.id,
+                orderId,
+              },
+              user: { uid: 'student-portal', displayName: formData.fullName || 'Student Customer' },
+              notes: `Online checkout order #${orderId} (GCash/Online Ref: ${formData.referenceNumber || 'N/A'})`
+            });
+          } catch (igfErr) {
+            console.warn('Auto IGF sync notice on checkout:', igfErr);
+          }
+        }
+
         setGeneratedOrderId(orderId);
         setSubmitSuccess(true);
       }

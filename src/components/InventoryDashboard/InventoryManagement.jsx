@@ -701,7 +701,24 @@ const InventoryRow = memo(function InventoryRow({
     <tr className={isLow ? styles.lowStockRow : isOut ? styles.outOfStockRow : ''}>
       <td>
         <div className={styles.itemNameWrapper}>
-          <span className={styles.itemNameText}>{item.name}</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span className={styles.itemNameText}>{item.name}</span>
+            {(item.fundSource === 'IGF' || item.source?.includes('IGF') || item.linkedProductId) && (
+              <span style={{
+                fontSize: '0.66rem',
+                fontWeight: 700,
+                color: '#d97706',
+                background: 'rgba(217, 119, 6, 0.12)',
+                border: '1px solid rgba(217, 119, 6, 0.3)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                letterSpacing: '0.03em',
+                lineHeight: '1.2'
+              }}>
+                IGF FUND
+              </span>
+            )}
+          </div>
           {item.description && (
             <span className={styles.itemDescriptionText}>
               {item.description}
