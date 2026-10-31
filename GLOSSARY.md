@@ -36,6 +36,18 @@ _Avoid_: Log entry, budget row
 An authorized compensating transaction linked to a previously posted entry to negate its financial effect without physically deleting history.
 _Avoid_: Void, delete transaction
 
+**PPMP (Project Procurement Management Plan)**:
+The master operational procurement schedule prepared by the SSG for the entire academic year or officer term, itemizing planned expenditures across events, capital projects, and administrative materials against the university's fiscal appropriation.
+_Avoid_: Shopping list, procurement spreadsheet, event budget sheet
+
+**University Fiscal Appropriation**:
+The total annual budget ceiling formally designated by the university administration to the SSG for the active fiscal year, serving as the top-level parent ceiling from which all PPMP line items and cash tranches are drawn.
+_Avoid_: School allowance, university check, general pot
+
+**PPMP Lifecycle Status**:
+The real-time expenditure state of a planned PPMP allocation: Fresh (unreleased/untouched in treasury), Partially Used (active disbursements underway), or Depleted (expended to the exact planned estimate and liquidated).
+_Avoid_: Progress tag, color code, task status
+
 **Pre-Order Batch**:
 A lifecycle-managed procurement run for student merchandise requiring quote approval, collection tracking, dual-officer supplier payment approval, and audit clearance.
 _Avoid_: Product campaign, order group

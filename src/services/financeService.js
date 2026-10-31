@@ -25,6 +25,10 @@ import {
   TRANSACTION_TYPES,
   TRANSACTION_STATUSES,
   EXPENSE_PURPOSES,
+  PROCUREMENT_TYPES,
+  PPMP_STATUSES,
+  getPPMPStatus,
+  getUtilizationRate,
   toCentavos,
   fromCentavos,
 } from '../utils/financeConstants';
@@ -76,9 +80,11 @@ export const financeService = {
         subcategory: 'Annual General Appropriations',
         fiscalYear: new Date().getFullYear(),
         holdingType: 'bank',
-        bankAccountReference: 'LandBank ****4821',
+        bankAccountReference: 'BDO Institutional Account ****2005',
         status: 'active',
         balanceCentavos: 0,
+        appropriatedCeilingCentavos: 0,
+        appropriationResolutionRef: '',
       },
       {
         id: 'fund_fsg_remittance',
@@ -87,7 +93,7 @@ export const financeService = {
         subcategory: 'Federation Remittance Backup',
         fiscalYear: new Date().getFullYear(),
         holdingType: 'bank',
-        bankAccountReference: 'LandBank ****4821 (Sub-Treasury)',
+        bankAccountReference: 'BDO Institutional Account ****2005 (Sub-Treasury)',
         status: 'active',
         balanceCentavos: 0,
       },
@@ -130,8 +136,83 @@ export const financeService = {
             updatedAt: serverTimestamp(),
           });
         });
+      } else {
+        // Graceful migration: Update LandBank to BDO if detected, ensure ceiling fields exist
+        const current = existingMap.get(acc.id);
+        const updates = {};
+        if (current.bankAccountReference && current.bankAccountReference.includes('LandBank')) {
+          updates.bankAccountReference = acc.bankAccountReference;
+        }
+        if (acc.id === 'fund_fiscal_year_budget' && current.appropriatedCeilingCentavos === undefined) {
+          updates.appropriatedCeilingCentavos = 0;
+          updates.appropriationResolutionRef = '';
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateDoc(doc(db, COLLECTIONS.FUND_ACCOUNTS, acc.id), {
+            ...updates,
+            updatedAt: serverTimestamp(),
+          });
+        }
       }
     }
+  },
+
+  /**
+   * Update Fiscal Budget (serves as unified primary balance and PPMP ceiling)
+   */
+  async updateFiscalBudget(fundAccountId = 'fund_fiscal_year_budget', budgetData, user) {
+    const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
+    const { budgetAmount, ceilingAmount, resolutionRef, bankAccountReference, note } = budgetData;
+    const finalAmount = budgetAmount !== undefined ? budgetAmount : ceilingAmount;
+    const amountCentavos = toCentavos(finalAmount);
+
+    const patch = {
+      balanceCentavos: amountCentavos,
+      appropriatedCeilingCentavos: amountCentavos, // Unified: primary balance and ceiling are identical
+      lastBudgetUpdateNote: note || 'Secretariat Fiscal Budget Calibration',
+      updatedAt: serverTimestamp(),
+      updatedBy: user?.userName || user?.displayName || 'Authorized Secretary',
+      updatedById: user?.uid || 'officer',
+    };
+    if (resolutionRef !== undefined) {
+      patch.appropriationResolutionRef = resolutionRef;
+    }
+    if (bankAccountReference !== undefined && bankAccountReference.trim() !== '') {
+      patch.bankAccountReference = bankAccountReference.trim();
+    }
+    await updateDoc(fundRef, patch);
+    return true;
+  },
+
+  /**
+   * Update Fund Balance (for non-fiscal funds e.g. FSG, IGF, IGP)
+   */
+  async updateFundBalance(fundAccountId, balanceAmount, user, reason = '') {
+    const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
+    const amountCentavos = toCentavos(balanceAmount);
+    const patch = {
+      balanceCentavos: amountCentavos,
+      lastReconciliationReason: reason || 'Secretariat Fund Balance Calibration',
+      updatedAt: serverTimestamp(),
+      updatedBy: user?.userName || user?.displayName || 'Authorized Secretary',
+      updatedById: user?.uid || 'officer',
+    };
+    if (fundAccountId === 'fund_fiscal_year_budget') {
+      patch.appropriatedCeilingCentavos = amountCentavos;
+    }
+    await updateDoc(fundRef, patch);
+    return true;
+  },
+
+  /**
+   * Backward-compatible aliases
+   */
+  async updateFiscalCeiling(fundAccountId = 'fund_fiscal_year_budget', ceilingData, user) {
+    return this.updateFiscalBudget(fundAccountId, ceilingData, user);
+  },
+
+  async updateFundHoldingBalance(fundAccountId = 'fund_fiscal_year_budget', balanceAmount, user, reason = '') {
+    return this.updateFundBalance(fundAccountId, balanceAmount, user, reason);
   },
 
   /**
@@ -173,28 +254,88 @@ export const financeService = {
       resolutionRef,
       supportingDocumentIds = [],
       category = 'Event',
+      procurementType = PROCUREMENT_TYPES.EVENT,
       committee = 'General',
     } = allocationData;
 
     const amountCentavos = toCentavos(approvedAmount);
+
+    // Normalize sub-line items with integer centavos and initial fresh status
+    const normalizedLineItems = (approvedLineItems || []).map((li, index) => {
+      const unitCost = Number(li.unitCost || li.unitPrice || 0);
+      const qty = Number(li.quantity || 1);
+      const planned = li.plannedCentavos !== undefined
+        ? Number(li.plannedCentavos)
+        : (li.plannedAmount !== undefined ? toCentavos(li.plannedAmount) : toCentavos(qty * unitCost));
+      const spent = Number(li.spentCentavos || 0);
+
+      return {
+        id: li.id || `line_${Date.now()}_${index}`,
+        name: (li.name || li.title || li.description || `Item ${index + 1}`).trim(),
+        quantity: qty,
+        unitCostCentavos: toCentavos(unitCost),
+        plannedCentavos: planned,
+        spentCentavos: spent,
+        status: getPPMPStatus(spent, planned),
+        notes: li.notes || '',
+      };
+    });
+
+    const determinedProcurementType =
+      procurementType ||
+      (category === 'Project'
+        ? PROCUREMENT_TYPES.PROJECT
+        : ['Supplies', 'Printing', 'Equipment', 'Material'].includes(category)
+        ? PROCUREMENT_TYPES.MATERIAL_SUPPLY
+        : PROCUREMENT_TYPES.EVENT);
+
+    // Rule: Total planned estimations cannot exceed the initial Fiscal Budget or FSG pool
+    if (fundAccountId) {
+      const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
+      const fundSnap = await getDoc(fundRef);
+      if (fundSnap.exists()) {
+        const fund = fundSnap.data();
+        const isFiscal = fundAccountId === 'fund_fiscal_year_budget';
+        const budgetBaseCentavos = isFiscal
+          ? (fund.appropriatedCeilingCentavos || fund.balanceCentavos || 0)
+          : (fund.balanceCentavos || 0);
+
+        if (budgetBaseCentavos > 0) {
+          const allocSnap = await getDocs(
+            query(collection(db, COLLECTIONS.BUDGET_ALLOCATIONS), where('fundAccountId', '==', fundAccountId))
+          );
+          const currentTotalAllocated = allocSnap.docs.reduce(
+            (sum, d) => sum + (d.data().approvedAmountCentavos || 0),
+            0
+          );
+          if (currentTotalAllocated + amountCentavos > budgetBaseCentavos) {
+            const availableCentavos = Math.max(0, budgetBaseCentavos - currentTotalAllocated);
+            throw new Error(
+              `Allocation rejected: Total planned allocations (${formatPHP(currentTotalAllocated + amountCentavos, true)}) would exceed the initial budget (${formatPHP(budgetBaseCentavos, true)}). Available surplus: ${formatPHP(availableCentavos, true)}.`
+            );
+          }
+        }
+      }
+    }
 
     const docRef = await addDoc(collection(db, COLLECTIONS.BUDGET_ALLOCATIONS), {
       fundAccountId,
       activityName,
       fiscalYear,
       category,
+      procurementType: determinedProcurementType,
       committee,
       approvedAmountCentavos: amountCentavos,
       spentAmountCentavos: 0,
       committedAmountCentavos: 0,
-      approvedLineItems,
+      approvedLineItems: normalizedLineItems,
       resolutionRef,
       supportingDocumentIds,
       approvedBy: user.userName || user.displayName || 'Authorized Officer',
       approvedById: user.uid,
       approvedAt: serverTimestamp(),
       createdAt: serverTimestamp(),
-      status: 'approved',
+      status: allocationData.status === 'draft' ? 'draft' : 'approved',
       revisionHistory: [],
     });
 
@@ -219,10 +360,12 @@ export const financeService = {
     };
 
     if (updateData.fundAccountId) patch.fundAccountId = updateData.fundAccountId;
+    if (updateData.status) patch.status = updateData.status;
     if (updateData.activityName !== undefined) patch.activityName = updateData.activityName;
     if (updateData.eventName !== undefined) patch.activityName = updateData.eventName;
     if (updateData.fiscalYear !== undefined) patch.fiscalYear = Number(updateData.fiscalYear);
     if (updateData.category !== undefined) patch.category = updateData.category;
+    if (updateData.procurementType !== undefined) patch.procurementType = updateData.procurementType;
     if (updateData.committee !== undefined) patch.committee = updateData.committee;
     if (updateData.resolution !== undefined) patch.resolutionRef = updateData.resolution;
     if (updateData.resolutionRef !== undefined) patch.resolutionRef = updateData.resolutionRef;
@@ -233,13 +376,76 @@ export const financeService = {
     if (updateData.allocatedAmount !== undefined || updateData.allocated !== undefined) {
       const amt = updateData.allocatedAmount !== undefined ? updateData.allocatedAmount : updateData.allocated;
       patch.approvedAmountCentavos = toCentavos(amt);
+
+      const targetFundId = patch.fundAccountId || current.fundAccountId;
+      if (targetFundId) {
+        const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, targetFundId);
+        const fundSnap = await getDoc(fundRef);
+        if (fundSnap.exists()) {
+          const fund = fundSnap.data();
+          const isFiscal = targetFundId === 'fund_fiscal_year_budget';
+          const budgetBaseCentavos = isFiscal
+            ? (fund.appropriatedCeilingCentavos || fund.balanceCentavos || 0)
+            : (fund.balanceCentavos || 0);
+
+          if (budgetBaseCentavos > 0) {
+            const allocSnap = await getDocs(
+              query(collection(db, COLLECTIONS.BUDGET_ALLOCATIONS), where('fundAccountId', '==', targetFundId))
+            );
+            const otherAllocationsTotal = allocSnap.docs
+              .filter((d) => d.id !== allocationId)
+              .reduce((sum, d) => sum + (d.data().approvedAmountCentavos || 0), 0);
+
+            if (otherAllocationsTotal + patch.approvedAmountCentavos > budgetBaseCentavos) {
+              const availableCentavos = Math.max(0, budgetBaseCentavos - otherAllocationsTotal);
+              throw new Error(
+                `Update rejected: Total planned allocations (${formatPHP(otherAllocationsTotal + patch.approvedAmountCentavos, true)}) would exceed the initial budget (${formatPHP(budgetBaseCentavos, true)}). Available surplus: ${formatPHP(availableCentavos, true)}.`
+              );
+            }
+          }
+        }
+      }
     }
+    if (updateData.approvedLineItems !== undefined) {
+      patch.approvedLineItems = (updateData.approvedLineItems || []).map((li, index) => {
+        const unitCost = Number(li.unitCost || li.unitPrice || fromCentavos(li.unitCostCentavos || 0));
+        const qty = Number(li.quantity || 1);
+        const planned = li.plannedCentavos !== undefined
+          ? Number(li.plannedCentavos)
+          : (li.plannedAmount !== undefined ? toCentavos(li.plannedAmount) : toCentavos(qty * unitCost));
+
+        const incomingSpent = li.spentCentavos !== undefined
+          ? Number(li.spentCentavos)
+          : (li.spentAmount !== undefined ? toCentavos(li.spentAmount) : (li.spent !== undefined ? toCentavos(li.spent) : null));
+
+        const existingLine = (current.approvedLineItems || []).find((c) => c.id === li.id);
+        const spent = incomingSpent !== null
+          ? incomingSpent
+          : (existingLine?.spentCentavos || 0);
+
+        return {
+          id: li.id || `line_${Date.now()}_${index}`,
+          name: (li.name || li.title || li.description || `Item ${index + 1}`).trim(),
+          quantity: qty,
+          unitCostCentavos: toCentavos(unitCost),
+          plannedCentavos: planned,
+          spentCentavos: spent,
+          status: getPPMPStatus(spent, planned),
+          notes: li.notes || '',
+        };
+      });
+
+      if (updateData.spentAmount === undefined && updateData.spent === undefined) {
+        const lineItemsSpentTotal = patch.approvedLineItems.reduce((acc, it) => acc + (it.spentCentavos || 0), 0);
+        if (lineItemsSpentTotal > 0) {
+          patch.spentAmountCentavos = lineItemsSpentTotal;
+        }
+      }
+    }
+
     if (updateData.spentAmount !== undefined || updateData.spent !== undefined) {
       const spent = updateData.spentAmount !== undefined ? updateData.spentAmount : updateData.spent;
       patch.spentAmountCentavos = toCentavos(spent);
-    }
-    if (updateData.approvedLineItems !== undefined) {
-      patch.approvedLineItems = updateData.approvedLineItems;
     }
 
     // Append to revision history for governance tracking
@@ -265,12 +471,14 @@ export const financeService = {
     if (!snap.exists()) {
       return true;
     }
-    // Check if there are transactions attached to preserve audit integrity
+    const data = snap.data();
+    // Check if there are transactions attached OR recorded spent funds to preserve audit integrity
     const txSnap = await getDocs(
       query(collection(db, COLLECTIONS.TRANSACTIONS), where('budgetAllocationId', '==', allocationId))
     );
-    if (!txSnap.empty) {
-      // If transactions exist, soft delete/archive to protect audit trail
+    const hasSpent = (data.spentAmountCentavos || 0) > 0 || (data.spent || 0) > 0;
+    if (!txSnap.empty || hasSpent) {
+      // If transactions or spent disbursements exist, soft delete/archive to protect audit trail
       await updateDoc(allocRef, {
         status: 'archived',
         isActive: false,
@@ -281,6 +489,25 @@ export const financeService = {
     } else {
       await deleteDoc(allocRef);
     }
+    return true;
+  },
+
+  /**
+   * Restore an archived budget allocation
+   */
+  async restoreBudgetAllocation(allocationId, user) {
+    const allocRef = doc(db, COLLECTIONS.BUDGET_ALLOCATIONS, allocationId);
+    const snap = await getDoc(allocRef);
+    if (!snap.exists()) {
+      throw new Error('Budget allocation not found.');
+    }
+    await updateDoc(allocRef, {
+      status: 'approved',
+      isActive: true,
+      restoredAt: serverTimestamp(),
+      restoredBy: user?.userName || user?.displayName || 'Authorized Officer',
+      restoredById: user?.uid || 'officer',
+    });
     return true;
   },
 
@@ -296,6 +523,7 @@ export const financeService = {
       payeeOrPayer = '',
       description = '',
       budgetAllocationId = null,
+      lineItemId = null,
       resolutionRef = '',
       receiptUrl = '',
       supportingDocumentIds = [],
@@ -333,6 +561,16 @@ export const financeService = {
         }
       }
 
+      let remainingLineItemCentavos = undefined;
+      if (lineItemId && allocationData && Array.isArray(allocationData.approvedLineItems)) {
+        const targetItem = allocationData.approvedLineItems.find((li) => li.id === lineItemId);
+        if (targetItem) {
+          const planned = targetItem.plannedCentavos || toCentavos(targetItem.plannedAmount || targetItem.estimatedCost || 0);
+          const spent = targetItem.spentCentavos || 0;
+          remainingLineItemCentavos = Math.max(0, planned - spent);
+        }
+      }
+
       // 3. Shared Validation Rules
       const validation = validateTransactionRules({
         fundCategory: fundData.topLevelCategory,
@@ -340,12 +578,15 @@ export const financeService = {
         expensePurpose,
         amountCentavos,
         allocationId: budgetAllocationId,
+        allocationStatus: allocationData?.status || 'approved',
+        lineItemId,
         resolutionRef: resolutionRef || allocationData?.resolutionRef,
         supportingDocumentIds,
         receiptUrl,
         custodianUserId,
         availableBalanceCentavos: fundData.balanceCentavos || 0,
         availableAllocationCentavos: remainingAllocCentavos,
+        availableLineItemCentavos: remainingLineItemCentavos,
       });
 
       if (!validation.isValid && status === TRANSACTION_STATUSES.POSTED) {
@@ -366,6 +607,7 @@ export const financeService = {
         payeeOrPayer,
         description,
         budgetAllocationId,
+        lineItemId: lineItemId || null,
         resolutionRef: resolutionRef || allocationData?.resolutionRef || null,
         receiptUrl,
         supportingDocumentIds,
@@ -404,13 +646,31 @@ export const financeService = {
           updatedAt: serverTimestamp(),
         });
 
-        // Update allocation spent if applicable
+        // Update allocation and sub-line item spent if applicable
         if (allocRef && allocationData) {
           const newSpent = (allocationData.spentAmountCentavos || 0) + amountCentavos;
-          transaction.update(allocRef, {
+          const allocUpdates = {
             spentAmountCentavos: newSpent,
             updatedAt: serverTimestamp(),
-          });
+          };
+
+          // If lineItemId was specified, update that specific line item's spent and status
+          if (lineItemId && Array.isArray(allocationData.approvedLineItems)) {
+            allocUpdates.approvedLineItems = allocationData.approvedLineItems.map((li) => {
+              if (li.id === lineItemId) {
+                const itemPlanned = li.plannedCentavos || toCentavos(li.plannedAmount || li.estimatedCost || 0);
+                const itemSpent = (li.spentCentavos || 0) + amountCentavos;
+                return {
+                  ...li,
+                  spentCentavos: itemSpent,
+                  status: getPPMPStatus(itemSpent, itemPlanned),
+                };
+              }
+              return li;
+            });
+          }
+
+          transaction.update(allocRef, allocUpdates);
         }
 
         // If transfer, atomically credit destination account
@@ -495,16 +755,34 @@ export const financeService = {
         updatedAt: serverTimestamp(),
       });
 
-      // 4. Update Allocation spent if applicable
+      // 4. Update Allocation spent and line item spent if applicable
       if (orig.budgetAllocationId) {
         const allocRef = doc(db, COLLECTIONS.BUDGET_ALLOCATIONS, orig.budgetAllocationId);
         const allocSnap = await transaction.get(allocRef);
         if (allocSnap.exists()) {
           const allocData = allocSnap.data();
-          transaction.update(allocRef, {
-            spentAmountCentavos: Math.max(0, (allocData.spentAmountCentavos || 0) - orig.amountCentavos),
+          const newSpent = Math.max(0, (allocData.spentAmountCentavos || 0) - orig.amountCentavos);
+          const allocUpdates = {
+            spentAmountCentavos: newSpent,
             updatedAt: serverTimestamp(),
-          });
+          };
+
+          if (orig.lineItemId && Array.isArray(allocData.approvedLineItems)) {
+            allocUpdates.approvedLineItems = allocData.approvedLineItems.map((li) => {
+              if (li.id === orig.lineItemId) {
+                const itemPlanned = li.plannedCentavos || toCentavos(li.plannedAmount || li.estimatedCost || 0);
+                const itemSpent = Math.max(0, (li.spentCentavos || 0) - orig.amountCentavos);
+                return {
+                  ...li,
+                  spentCentavos: itemSpent,
+                  status: getPPMPStatus(itemSpent, itemPlanned),
+                };
+              }
+              return li;
+            });
+          }
+
+          transaction.update(allocRef, allocUpdates);
         }
       }
 
@@ -684,11 +962,34 @@ export const financeService = {
     const amountCentavos = toCentavos(rawAmount);
 
     if (amountCentavos <= 0) {
-      throw new Error('Order total revenue must be greater than zero.');
+      const orderRef = doc(db, 'orders', order.docId || order.id);
+      await updateDoc(orderRef, {
+        igfSynced: true,
+        igfSyncedAt: new Date().toISOString(),
+        igfAmountCentavos: 0,
+        updatedAt: new Date().toISOString(),
+      });
+      return { success: true, refNumber: 'IGF-ORD-FREE', amountCentavos: 0, zeroRevenue: true };
     }
 
     return await runTransaction(db, async (transaction) => {
-      // 1. Fetch or initialize IGF fund account
+      // 1. Transaction-level idempotency lock on order document
+      const orderDocId = order.docId || order.id;
+      const orderRef = doc(db, 'orders', orderDocId);
+      const orderSnap = await transaction.get(orderRef);
+      if (orderSnap.exists()) {
+        const orderData = orderSnap.data();
+        if (orderData.igfSynced === true && !orderData.igfReversed) {
+          return {
+            success: true,
+            alreadySynced: true,
+            refNumber: orderData.igfTxRef || order.igfTxRef,
+            amountCentavos: orderData.igfAmountCentavos || amountCentavos,
+          };
+        }
+      }
+
+      // 2. Fetch or initialize IGF fund account
       const igfRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, 'fund_igf_main');
       const igfSnap = await transaction.get(igfRef);
 
@@ -712,9 +1013,11 @@ export const financeService = {
         currentBalanceCentavos = igfSnap.data().balanceCentavos || 0;
       }
 
-      // 2. Create append-only collection transaction
+      // 3. Create append-only collection transaction with collision-free unique reference
       const txRef = doc(collection(db, COLLECTIONS.TRANSACTIONS));
-      const refNumber = `IGF-ORD-${order.orderId || Date.now().toString().slice(-6)}`;
+      const safeOrderId = (order.orderId || 'ORD').trim();
+      const docSuffix = orderDocId ? orderDocId.slice(-6).toUpperCase() : Date.now().toString().slice(-6);
+      const refNumber = `IGF-ORD-${safeOrderId}-${docSuffix}`;
       const pName = order.productInfo?.productName || order.productName || 'SSG Merchandise';
       const qty = order.productInfo?.quantity || order.quantity || 1;
       const customer = order.customerInfo?.fullName || order.customerName || 'Customer';
@@ -730,7 +1033,7 @@ export const financeService = {
         description: `Merchandise Sales Revenue: ${order.orderId} - ${pName} (x${qty})`,
         source: 'MERCHANDISE_ORDER',
         orderId: order.orderId,
-        orderDocId: order.docId || order.id,
+        orderDocId,
         notes: notes || 'Merchandise profit credited to Income Generated Funds (IGF)',
         createdById: user?.uid || 'order-system',
         createdBy: user?.userName || user?.displayName || 'Order Management',
@@ -741,17 +1044,17 @@ export const financeService = {
 
       transaction.set(txRef, transactionPayload);
 
-      // 3. Mark the order as synced to IGF
-      const orderRef = doc(db, 'orders', order.docId || order.id);
+      // 4. Mark the order as synced to IGF
       transaction.update(orderRef, {
         igfSynced: true,
+        igfReversed: false,
         igfTxRef: refNumber,
         igfSyncedAt: new Date().toISOString(),
         igfAmountCentavos: amountCentavos,
         updatedAt: new Date().toISOString(),
       });
 
-      // 4. Update the IGF Fund balance atomically
+      // 5. Update the IGF Fund balance atomically
       transaction.update(igfRef, {
         balanceCentavos: currentBalanceCentavos + amountCentavos,
         updatedAt: serverTimestamp(),
@@ -816,7 +1119,32 @@ export const financeService = {
     const rawAmount = Number(order.productInfo?.totalPrice || order.totalPrice || 0);
     const amountCentavos = order.igfAmountCentavos || toCentavos(rawAmount);
 
+    if (amountCentavos <= 0) {
+      const orderRef = doc(db, 'orders', order.docId || order.id);
+      await updateDoc(orderRef, {
+        igfSynced: false,
+        igfReversed: true,
+        updatedAt: new Date().toISOString(),
+      });
+      return { success: true, message: 'Zero revenue order reversal completed.' };
+    }
+
     return await runTransaction(db, async (transaction) => {
+      // 1. Transaction-level idempotency lock on order document
+      const orderDocId = order.docId || order.id;
+      const orderRef = doc(db, 'orders', orderDocId);
+      const orderSnap = await transaction.get(orderRef);
+      if (orderSnap.exists()) {
+        const orderData = orderSnap.data();
+        if (orderData.igfSynced === false || orderData.igfReversed === true) {
+          return {
+            success: true,
+            alreadyReversed: true,
+            refNumber: orderData.igfReversalRef || null,
+          };
+        }
+      }
+
       const igfRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, 'fund_igf_main');
       const igfSnap = await transaction.get(igfRef);
       if (!igfSnap.exists()) {
@@ -825,9 +1153,11 @@ export const financeService = {
 
       const currentBalanceCentavos = igfSnap.data().balanceCentavos || 0;
 
-      // 1. Create reversal transaction
+      // 2. Create reversal transaction with collision-free unique reference
       const txRef = doc(collection(db, COLLECTIONS.TRANSACTIONS));
-      const refNumber = `REV-IGF-${order.orderId || Date.now().toString().slice(-6)}`;
+      const safeOrderId = (order.orderId || 'ORD').trim();
+      const docSuffix = orderDocId ? orderDocId.slice(-6).toUpperCase() : Date.now().toString().slice(-6);
+      const refNumber = `REV-IGF-${safeOrderId}-${docSuffix}`;
 
       transaction.set(txRef, {
         refNumber,
@@ -841,7 +1171,7 @@ export const financeService = {
         description: `Reversal of Merchandise Revenue for Order #${order.orderId}: ${reason}`,
         source: 'MERCHANDISE_ORDER_REVERSAL',
         orderId: order.orderId,
-        orderDocId: order.docId || order.id,
+        orderDocId,
         reversalReason: reason,
         createdById: user?.uid || 'order-system',
         createdBy: user?.userName || user?.displayName || 'Order Management',
@@ -850,8 +1180,7 @@ export const financeService = {
         status: TRANSACTION_STATUSES.POSTED,
       });
 
-      // 2. Update order document
-      const orderRef = doc(db, 'orders', order.docId || order.id);
+      // 3. Update order document
       transaction.update(orderRef, {
         igfSynced: false,
         igfReversed: true,
@@ -861,7 +1190,7 @@ export const financeService = {
         updatedAt: new Date().toISOString(),
       });
 
-      // 3. Decrement IGF Fund balance atomically
+      // 4. Decrement IGF Fund balance atomically
       const newBalanceCentavos = Math.max(0, currentBalanceCentavos - amountCentavos);
       transaction.update(igfRef, {
         balanceCentavos: newBalanceCentavos,

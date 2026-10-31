@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import BudgetManager from '../BudgetManager/BudgetManagement.jsx';
 import BudgetAnalytics from '../BudgetAnalytics/BudgetAnalytics.jsx';
 import FundGovernance from './FundGovernance.jsx';
 import PreOrderBatchManager from './PreOrderBatchManager.jsx';
+import PPMPMatrix from './PPMPMatrix.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
 import { 
   BarChart3, 
-  FileSpreadsheet, 
   ShieldAlert, 
   Wallet, 
   Coins, 
-  PackageCheck 
+  PackageCheck,
+  ClipboardList 
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './FinanceDashboard.module.css';
@@ -19,15 +19,15 @@ import styles from './FinanceDashboard.module.css';
  * @component
  * @description Financial Control Center with tabbed navigation:
  * - Fund Accounts, Budget Allocations & Ledger (FundGovernance)
+ * - PPMP Procurement Matrix & Fiscal Plan (PPMPMatrix)
  * - Pre-Order Procurement Batches (PreOrderBatchManager)
  * - Budget Details & Analytics (BudgetAnalytics)
- * - Manage Budget Allocations (BudgetManager)
  */
 const FinanceDashboard = () => {
   const { canEditFinance } = usePermissions();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
-  const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'batches' | 'analytics' | 'logs'
+  const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'ppmp' | 'batches' | 'analytics'
 
   return (
     <div className={`${styles.financeDashboardContainer} ${isClassic ? styles.financeClassic : ''}`}>
@@ -48,7 +48,7 @@ const FinanceDashboard = () => {
 
         <h1 className={styles.mainTitle}>Financial Control Center</h1>
         <p className={styles.subtitle}>
-          Track institutional funds, allocate fiscal & FSG budgets, restrict disbursements by policy, manage pre-orders, and audit real-time ledger entries.
+          Track institutional funds, allocate fiscal &amp; FSG budgets, break down PPMP procurement schedules, restrict disbursements by policy, manage pre-orders, and audit real-time ledger entries.
         </p>
       </header>
 
@@ -60,7 +60,16 @@ const FinanceDashboard = () => {
           onClick={() => setActiveTab('funds')}
         >
           <Coins size={17} className={styles.tabIcon} />
-          <span className={styles.tabLabel}>Fund Accounts & Ledger</span>
+          <span className={styles.tabLabel}>Fund Accounts &amp; Ledger</span>
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.tabButton} ${activeTab === 'ppmp' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('ppmp')}
+        >
+          <ClipboardList size={17} className={styles.tabIcon} />
+          <span className={styles.tabLabel}>PPMP Procurement Matrix</span>
         </button>
 
         <button
@@ -78,19 +87,8 @@ const FinanceDashboard = () => {
           onClick={() => setActiveTab('analytics')}
         >
           <BarChart3 size={17} className={styles.tabIcon} />
-          <span className={styles.tabLabel}>Budget Details & Analytics</span>
+          <span className={styles.tabLabel}>Budget Details &amp; Analytics</span>
         </button>
-
-        {canEditFinance && (
-          <button
-            type="button"
-            className={`${styles.tabButton} ${activeTab === 'logs' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('logs')}
-          >
-            <FileSpreadsheet size={17} className={styles.tabIcon} />
-            <span className={styles.tabLabel}>Manage Budget Allocations</span>
-          </button>
-        )}
       </nav>
 
       {/* Tab Content Panes */}
@@ -98,6 +96,12 @@ const FinanceDashboard = () => {
         {activeTab === 'funds' && (
           <section className={styles.tabPane} key="funds">
             <FundGovernance />
+          </section>
+        )}
+
+        {activeTab === 'ppmp' && (
+          <section className={styles.tabPane} key="ppmp">
+            <PPMPMatrix />
           </section>
         )}
 
@@ -110,12 +114,6 @@ const FinanceDashboard = () => {
         {activeTab === 'analytics' && (
           <section className={styles.tabPane} key="analytics">
             <BudgetAnalytics />
-          </section>
-        )}
-
-        {canEditFinance && activeTab === 'logs' && (
-          <section className={styles.tabPane} key="logs">
-            <BudgetManager />
           </section>
         )}
       </main>

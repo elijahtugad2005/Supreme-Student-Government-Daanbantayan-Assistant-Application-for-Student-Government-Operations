@@ -19,12 +19,15 @@ export const validateTransactionRules = ({
   expensePurpose,
   amountCentavos,
   allocationId,
+  allocationStatus = 'approved',
+  lineItemId,
   resolutionRef,
   supportingDocumentIds = [],
   receiptUrl,
   custodianUserId,
   availableBalanceCentavos = 0,
   availableAllocationCentavos = 0,
+  availableLineItemCentavos,
 }) => {
   const errors = [];
   const missingRequirements = [];
@@ -60,6 +63,19 @@ export const validateTransactionRules = ({
       errors.push('Choose an approved allocation before recording this expense.');
       missingRequirements.push('Approved Allocation');
     }
+
+    // Restriction: Draft status allocations cannot receive ledger postings
+    if (allocationId && allocationStatus === 'draft') {
+      errors.push(
+        'Cannot post expense against a draft budget allocation. The allocation must be approved in the PPMP Procurement Matrix first.'
+      );
+    }
+
+    // Restriction: Fully spent/depleted allocations cannot accept additional expenses
+    if (allocationId && availableAllocationCentavos !== undefined && availableAllocationCentavos <= 0) {
+      errors.push('Cannot post expense against a fully utilized or depleted budget allocation.');
+    }
+
     if (!resolutionRef || resolutionRef.trim() === '') {
       errors.push('A valid budget resolution or approved reference document is required.');
       missingRequirements.push('Resolution Reference');
@@ -74,6 +90,14 @@ export const validateTransactionRules = ({
       amountCentavos > availableAllocationCentavos
     ) {
       errors.push('Expense amount exceeds remaining approved allocation for this activity.');
+    }
+
+    if (
+      lineItemId &&
+      availableLineItemCentavos !== undefined &&
+      amountCentavos > availableLineItemCentavos
+    ) {
+      errors.push('Expense amount exceeds remaining planned estimate for this specific PPMP line item.');
     }
   }
 
@@ -99,7 +123,8 @@ export const validateTransactionRules = ({
   }
 
   return {
-    isValid: errors.length === 0 && missingRequirements.length === 0,
+    isValid: errors.length === 0,
+    hasMissingRequirements: missingRequirements.length > 0,
     errors,
     missingRequirements,
   };

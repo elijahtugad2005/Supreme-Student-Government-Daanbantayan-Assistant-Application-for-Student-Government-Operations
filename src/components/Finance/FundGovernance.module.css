@@ -814,6 +814,41 @@
   background: #1d4ed8;
 }
 
+.postExpenseBtnDisabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+
+.statusDraftBadge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.fiscalTermBadge {
+  display: inline-block;
+  background: #fdf2f2;
+  color: #7a121d;
+  border: 1px solid rgba(122, 18, 29, 0.25);
+  border-radius: 9999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+}
+
 .editAllocBtn {
   background: transparent;
   color: #64748b;

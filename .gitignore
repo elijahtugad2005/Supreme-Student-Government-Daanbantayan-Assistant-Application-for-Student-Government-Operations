@@ -142,6 +142,7 @@ SKILLS_CHEAT_SHEET.md
 agent/
 skills/
 skills-lock.json
+.scratch/
 
 # .gitignore
 public/_next/

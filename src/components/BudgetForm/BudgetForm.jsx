@@ -25,7 +25,7 @@ import {
   HiRefresh,
   HiOfficeBuilding
 } from 'react-icons/hi';
-import { fromCentavos } from '../../utils/financeConstants.js';
+import { fromCentavos, toCentavos, getPPMPStatus } from '../../utils/financeConstants.js';
 
 const QUICK_PRESETS = [
   { label: '₱5,000', value: 5000 },
@@ -69,13 +69,14 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
     fiscalYear: new Date().getFullYear(),
     startDate: '',
     endDate: '',
+    status: editingBudget?.status || 'approved',
   });
 
   // Itemized line-items sub-calculator for planning allocations
   const [showItemizer, setShowItemizer] = useState(false);
   const [breakdownItems, setBreakdownItems] = useState([
-    { description: 'Venue / Materials', cost: '' },
-    { description: 'Refreshments / Logistics', cost: '' }
+    { description: 'Venue / Materials', cost: '', spent: '' },
+    { description: 'Refreshments / Logistics', cost: '', spent: '' }
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -111,29 +112,33 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
   const fiscalAccount = fundAccounts.find((a) => a.id === 'fund_fiscal_year_budget');
   const fsgAccount = fundAccounts.find((a) => a.id === 'fund_fsg_remittance');
 
+  const fiscalCeiling = fromCentavos(fiscalAccount?.appropriatedCeilingCentavos || 0);
   const fiscalBalance = Math.max(fromCentavos(fiscalAccount?.balanceCentavos || 0), funds?.annualBudget || 0);
   const fsgBalance = Math.max(fromCentavos(fsgAccount?.balanceCentavos || 0), funds?.fsgRemittance || 0);
 
   const fiscalAllocated = statistics?.fiscalAllocated || 0;
   const fsgAllocated = statistics?.fsgAllocated || 0;
 
-  const fiscalAvailable = Math.max(0, fiscalBalance - fiscalAllocated);
+  // Base for fiscal allocations: University Fiscal Allowance ceiling if set, else liquid balance
+  const fiscalBudgetBase = fiscalCeiling > 0 ? fiscalCeiling : fiscalBalance;
+  const fiscalAvailable = Math.max(0, fiscalBudgetBase - fiscalAllocated);
   const fsgAvailable = Math.max(0, fsgBalance - fsgAllocated);
 
   const isFSGSelected = formData.fundAccountId === 'fund_fsg_remittance';
   const activeResolutionTemplates = isFSGSelected ? FSG_RESOLUTION_TEMPLATES : FISCAL_RESOLUTION_TEMPLATES;
   const selectedFundAvailable = isFSGSelected ? fsgAvailable : fiscalAvailable;
-  const selectedFundBalance = isFSGSelected ? fsgBalance : fiscalBalance;
+  const selectedFundBalance = isFSGSelected ? fsgBalance : fiscalBudgetBase;
   const selectedFundName = isFSGSelected ? 'FSG Remittance & Supplemental Fund' : 'SSG Fiscal Year Budget';
 
   // Prefill form if editing
   useEffect(() => {
     if (editingBudget) {
+      const initialSpent = editingBudget.spent !== undefined && editingBudget.spent !== null ? editingBudget.spent : 0;
       setFormData({
         fundAccountId: editingBudget.fundAccountId || editingBudget.raw?.fundAccountId || 'fund_fiscal_year_budget',
         eventName: editingBudget.eventName || '',
         allocatedAmount: editingBudget.allocated || '',
-        spentAmount: editingBudget.spent || 0,
+        spentAmount: initialSpent,
         category: editingBudget.category || 'Event',
         committee: editingBudget.committee || 'General',
         resolution: editingBudget.resolution || '',
@@ -142,7 +147,32 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
         fiscalYear: editingBudget.fiscalYear || new Date().getFullYear(),
         startDate: editingBudget.startDate || '',
         endDate: editingBudget.endDate || '',
+        status: editingBudget.status || 'approved',
       });
+
+      if (editingBudget.approvedLineItems && editingBudget.approvedLineItems.length > 0) {
+        const mappedItems = editingBudget.approvedLineItems.map((li) => ({
+          id: li.id,
+          description: li.name || li.description || '',
+          cost: li.plannedAmount !== undefined ? li.plannedAmount : fromCentavos(li.plannedCentavos || 0),
+          spent: li.spentAmount !== undefined ? li.spentAmount : fromCentavos(li.spentCentavos || 0),
+          quantity: li.quantity || 1,
+          spentCentavos: li.spentCentavos || 0,
+          status: li.status || 'fresh',
+          notes: li.notes || '',
+        }));
+        setBreakdownItems(mappedItems);
+        setShowItemizer(true);
+
+        // When loading, synchronize itemized line item expenses to initial spent so it displays properly
+        const lineItemsSpentSum = mappedItems.reduce((acc, curr) => acc + (parseFloat(curr.spent) || 0), 0);
+        if (lineItemsSpentSum > 0) {
+          setFormData(prev => ({
+            ...prev,
+            spentAmount: lineItemsSpentSum % 1 === 0 ? lineItemsSpentSum.toString() : lineItemsSpentSum.toFixed(2)
+          }));
+        }
+      }
     } else if (defaultFundAccountId) {
       setFormData(prev => ({
         ...prev,
@@ -154,25 +184,25 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
   // Calculate remaining amount
   const calculateRemaining = () => {
     const allocated = parseFloat(formData.allocatedAmount) || 0;
-    const spent = parseFloat(formData.spentAmount) || 0;
+    const spent = parseFloat(formData.spentAmount) || expensesSum || 0;
     return allocated - spent;
   };
 
   // Determine status based on spending
   const determineStatus = () => {
     const allocated = parseFloat(formData.allocatedAmount) || 0;
-    const spent = parseFloat(formData.spentAmount) || 0;
+    const spent = parseFloat(formData.spentAmount) || expensesSum || 0;
     const remaining = allocated - spent;
 
     if (spent === 0) return 'Not Started';
-    if (remaining < 0) return 'Over Budget';
+    if (remaining < 0) return 'Over Budget (Inflation)';
     if (remaining === 0) return 'Fully Spent';
     if (spent > (allocated * 0.9)) return 'Almost Spent';
     if (spent > (allocated * 0.5)) return 'In Progress';
     return 'On Track';
   };
 
-  // Sum of sub-calculator items
+  // Sum of sub-calculator items (Planned Budget)
   const breakdownSum = useMemo(() => {
     return breakdownItems.reduce((acc, curr) => {
       const val = parseFloat(curr.cost) || 0;
@@ -180,9 +210,36 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
     }, 0);
   }, [breakdownItems]);
 
-  // Apply breakdown sum to allocated amount
+  // Sum of sub-calculator items (Expenses / Initial Spent)
+  const expensesSum = useMemo(() => {
+    return breakdownItems.reduce((acc, curr) => {
+      const val = parseFloat(curr.spent) || 0;
+      return acc + val;
+    }, 0);
+  }, [breakdownItems]);
+
+  const allocatedCapital = parseFloat(formData.allocatedAmount) || 0;
+  const isOverPlanned = allocatedCapital > 0 && breakdownSum > allocatedCapital;
+  const unassignedPlannedCapital = Math.max(0, allocatedCapital - breakdownSum);
+  const plannedPercentOfCapital = allocatedCapital > 0 ? Math.round((breakdownSum / allocatedCapital) * 100) : 0;
+
+  // Expenses Overlap & Price Inflation
+  const effectiveSpentAmount = parseFloat(formData.spentAmount) || expensesSum || 0;
+  const isInflationOverrun = allocatedCapital > 0 && effectiveSpentAmount > allocatedCapital;
+  const inflationOverrunAmount = isInflationOverrun ? effectiveSpentAmount - allocatedCapital : 0;
+  const inflationRate = allocatedCapital > 0 && isInflationOverrun
+    ? ((inflationOverrunAmount / allocatedCapital) * 100).toFixed(1)
+    : 0;
+
+  // Apply breakdown sum to allocated amount (Only allowed if no allocated capital was set yet or within available surplus)
   const applyBreakdownSum = () => {
     if (breakdownSum > 0) {
+      if (allocatedCapital > 0 && breakdownSum > allocatedCapital) {
+        alert(
+          `Planned budget is based on the allocated capital (₱${allocatedCapital.toLocaleString(undefined, { minimumFractionDigits: 2 })}). Total planned breakdown cannot exceed the authorized allocation.`
+        );
+        return;
+      }
       setFormData(prev => ({
         ...prev,
         allocatedAmount: breakdownSum.toFixed(2)
@@ -193,18 +250,65 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
     }
   };
 
+  // Apply expenses sum to initial spent amount (allowed to overlap due to real-world price inflation)
+  const applyExpensesSum = () => {
+    const formattedSum = expensesSum > 0 
+      ? (expensesSum % 1 === 0 ? expensesSum.toString() : expensesSum.toFixed(2)) 
+      : '0';
+    setFormData(prev => ({
+      ...prev,
+      spentAmount: formattedSum
+    }));
+    if (errors.spentAmount) {
+      setErrors(prev => ({ ...prev, spentAmount: '' }));
+    }
+    if (errors.overspend) {
+      setErrors(prev => ({ ...prev, overspend: '' }));
+    }
+  };
+
   const handleAddBreakdownItem = () => {
-    setBreakdownItems(prev => [...prev, { description: '', cost: '' }]);
+    setBreakdownItems(prev => [...prev, { description: '', cost: '', spent: '' }]);
   };
 
   const handleRemoveBreakdownItem = (index) => {
-    setBreakdownItems(prev => prev.filter((_, i) => i !== index));
+    setBreakdownItems(prev => {
+      const copy = prev.filter((_, i) => i !== index);
+      const hasAnySpent = copy.some(it => it.spent !== '' && it.spent !== undefined && it.spent !== null);
+      if (hasAnySpent) {
+        const newExpensesSum = copy.reduce((acc, curr) => acc + (parseFloat(curr.spent) || 0), 0);
+        setFormData(fPrev => ({
+          ...fPrev,
+          spentAmount: newExpensesSum > 0 
+            ? (newExpensesSum % 1 === 0 ? newExpensesSum.toString() : newExpensesSum.toFixed(2)) 
+            : '0'
+        }));
+      }
+      return copy;
+    });
   };
 
   const handleBreakdownChange = (index, field, val) => {
     setBreakdownItems(prev => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: val };
+
+      // When expenses in cost breakdown planner change, synchronize immediately to Initial Spent
+      if (field === 'spent') {
+        const hasAnySpent = copy.some(it => it.spent !== '' && it.spent !== undefined && it.spent !== null);
+        if (hasAnySpent) {
+          const newExpensesSum = copy.reduce((acc, curr) => acc + (parseFloat(curr.spent) || 0), 0);
+          setFormData(fPrev => ({
+            ...fPrev,
+            spentAmount: newExpensesSum > 0 
+              ? (newExpensesSum % 1 === 0 ? newExpensesSum.toString() : newExpensesSum.toFixed(2)) 
+              : (val === '' ? '' : '0')
+          }));
+          if (errors.spentAmount) {
+            setErrors(ePrev => ({ ...ePrev, spentAmount: '' }));
+          }
+        }
+      }
       return copy;
     });
   };
@@ -234,8 +338,14 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
       newErrors.eventName = 'Event/Project name is required';
     }
     
-    if (!formData.allocatedAmount || parseFloat(formData.allocatedAmount) <= 0) {
+    const requestedAmount = parseFloat(formData.allocatedAmount) || 0;
+    const existingAllocationAmount = editingBudget ? (editingBudget.allocated || 0) : 0;
+    const effectiveSurplus = selectedFundAvailable + existingAllocationAmount;
+
+    if (!formData.allocatedAmount || requestedAmount <= 0) {
       newErrors.allocatedAmount = 'Allocated amount must be greater than 0';
+    } else if (requestedAmount > effectiveSurplus) {
+      newErrors.allocatedAmount = `Cannot allocate ₱${requestedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}. Exceeds available surplus of ₱${effectiveSurplus.toLocaleString(undefined, { minimumFractionDigits: 2 })} in ${selectedFundName}. Allocations are approved estimations that cannot exceed the initial fiscal budget.`;
     }
     
     if (formData.spentAmount && parseFloat(formData.spentAmount) < 0) {
@@ -246,8 +356,9 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
       newErrors.dates = 'End date cannot be before start date';
     }
 
-    if (formData.spentAmount && parseFloat(formData.spentAmount) > parseFloat(formData.allocatedAmount)) {
-      newErrors.overspend = 'Spent amount cannot exceed allocated amount';
+    // Planned breakdown cannot exceed allocated capital
+    if (showItemizer && allocatedCapital > 0 && breakdownSum > allocatedCapital) {
+      newErrors.breakdown = `Planned breakdown (₱${breakdownSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}) exceeds the allocated capital of ₱${allocatedCapital.toLocaleString(undefined, { minimumFractionDigits: 2 })}. The planned budget cannot exceed the authorized PPMP allocation.`;
     }
 
     // Validate receipt URL format if provided
@@ -295,22 +406,57 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
 
     try {
       const allocated = parseFloat(formData.allocatedAmount);
-      const spent = parseFloat(formData.spentAmount) || 0;
-      const remaining = allocated - spent;
+      const userSpent = parseFloat(formData.spentAmount);
+      const effectiveSpent = expensesSum > 0
+        ? expensesSum
+        : (!isNaN(userSpent) && userSpent >= 0 ? userSpent : 0);
+      const remaining = allocated - effectiveSpent;
       const status = determineStatus();
+
+      // Normalize valid breakdown items into approvedLineItems
+      const validLineItems = (breakdownItems || [])
+        .filter((it) => (it.description || it.name || '').trim())
+        .map((it, idx) => {
+          const plannedVal = parseFloat(it.cost || it.amount || 0);
+          const spentVal = parseFloat(it.spent || 0);
+          const plannedCentavos = toCentavos(plannedVal);
+          const spentCentavos = toCentavos(spentVal);
+
+          return {
+            id: it.id || `line_${Date.now()}_${idx}`,
+            name: (it.description || it.name || '').trim(),
+            quantity: Number(it.quantity || 1),
+            unitCost: plannedVal,
+            plannedAmount: plannedVal,
+            spentAmount: spentVal,
+            plannedCentavos,
+            spentCentavos,
+            status: getPPMPStatus(spentCentavos, plannedCentavos),
+            notes: it.notes || '',
+          };
+        });
+
+      const determinedProcurementType =
+        formData.category === 'Project'
+          ? 'PROJECT'
+          : ['Supplies', 'Printing', 'Equipment', 'Material'].includes(formData.category)
+          ? 'MATERIAL_SUPPLY'
+          : 'EVENT';
 
       const budgetData = {
         fundAccountId: formData.fundAccountId || 'fund_fiscal_year_budget',
         eventName: formData.eventName.trim(),
         allocated,
-        spent,
+        spent: effectiveSpent,
         remaining,
         category: formData.category,
+        procurementType: determinedProcurementType,
         committee: formData.committee,
         resolution: formData.resolution.trim(),
         description: formData.description.trim(),
         receiptUrl: formData.receiptUrl.trim(),
-        status,
+        approvedLineItems: validLineItems,
+        status: formData.status || 'approved',
         fiscalYear: formData.fiscalYear,
         startDate: formData.startDate || null,
         endDate: formData.endDate || null,
@@ -402,7 +548,7 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
   // Calculate progress percentage
   const calculateProgress = () => {
     const allocated = parseFloat(formData.allocatedAmount) || 0;
-    const spent = parseFloat(formData.spentAmount) || 0;
+    const spent = parseFloat(formData.spentAmount) || expensesSum || 0;
     if (allocated === 0) return 0;
     return Math.min((spent / allocated) * 100, 100);
   };
@@ -412,7 +558,8 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
     const status = determineStatus();
     if (isClassic) {
       switch(status) {
-        case 'Over Budget': return '#DC2626';
+        case 'Over Budget':
+        case 'Over Budget (Inflation)': return '#DC2626';
         case 'Fully Spent': return '#D4AF37';
         case 'Almost Spent': return '#F59E0B';
         case 'In Progress': return '#E5B842';
@@ -421,7 +568,8 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
       }
     }
     switch(status) {
-      case 'Over Budget': return '#e61919';
+      case 'Over Budget':
+      case 'Over Budget (Inflation)': return '#ea580c';
       case 'Fully Spent': return '#16a34a';
       case 'Almost Spent': return '#f59e0b';
       case 'In Progress': return '#2563eb';
@@ -431,7 +579,9 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
   };
 
   const requestedAmount = parseFloat(formData.allocatedAmount) || 0;
-  const isExceedingSelectedFund = selectedFundBalance > 0 && requestedAmount > selectedFundAvailable && !editingBudget;
+  const existingAllocationAmount = editingBudget ? (editingBudget.allocated || 0) : 0;
+  const effectiveSurplus = selectedFundAvailable + existingAllocationAmount;
+  const isExceedingSelectedFund = selectedFundBalance > 0 && requestedAmount > effectiveSurplus;
 
   return (
     <div className={`${styles.container} ${isClassic ? styles.formClassic : ''}`}>
@@ -554,7 +704,7 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
           </div>
           {isExceedingSelectedFund && (
             <span className={styles.treasuryWarning}>
-              ⚠️ Exceeds fund surplus by ₱{(requestedAmount - selectedFundAvailable).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ⚠️ Exceeds fund surplus by ₱{(requestedAmount - effectiveSurplus).toLocaleString(undefined, { minimumFractionDigits: 2 })} (Allocations are planned estimations and cannot exceed official budget)
             </span>
           )}
         </div>
@@ -570,8 +720,13 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
           <div className={styles.previewItem}>
             <span className={styles.previewLabel}>Recorded Spent</span>
             <span className={styles.previewValue}>
-              ₱{(parseFloat(formData.spentAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₱{(parseFloat(formData.spentAmount) || expensesSum || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
+            {showItemizer && expensesSum > 0 && (
+              <span className={styles.previewSyncedTag}>
+                ✓ Synced from Planner
+              </span>
+            )}
           </div>
           <div className={styles.previewItem}>
             <span className={styles.previewLabel}>Remaining Balance</span>
@@ -701,10 +856,30 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
 
           {/* Spent Amount */}
           <div className={styles.formGroup}>
-            <label htmlFor="spentAmount" className={styles.label}>
-              <HiCreditCard className={styles.labelIcon} />
-              Initial Spent / Disbursed Amount (₱)
-            </label>
+            <div className={styles.labelRow}>
+              <label htmlFor="spentAmount" className={styles.label}>
+                <HiCreditCard className={styles.labelIcon} />
+                Initial Spent / Disbursed Amount (₱)
+              </label>
+              {showItemizer && expensesSum > 0 && (
+                <div className={styles.syncIndicatorGroup}>
+                  {Math.abs((parseFloat(formData.spentAmount) || 0) - expensesSum) < 0.01 ? (
+                    <span className={styles.syncPillSuccess} title="Synchronized with Cost Breakdown Planner expenses">
+                      <HiCheckCircle size={13} /> Synced with Planner: ₱{expensesSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.syncPillAction}
+                      onClick={applyExpensesSum}
+                      title="Click to synchronize Initial Spent with Cost Breakdown Planner expenses"
+                    >
+                      <HiRefresh size={12} /> Sync with Planner (₱{expensesSum.toLocaleString(undefined, { minimumFractionDigits: 2 })})
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div className={styles.currencyInput}>
               <span className={styles.currencySymbol}>₱</span>
               <input
@@ -762,59 +937,187 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
           </div>
         </div>
 
-        {/* Itemized Line-Items Calculator Drawer (Quality of Life) */}
+        {/* Itemized Line-Items Calculator Drawer (Cost Breakdown Planner with Expenses) */}
         {showItemizer && (
           <div className={styles.itemizerDrawer}>
             <div className={styles.itemizerHeader}>
               <div>
                 <h4 className={styles.itemizerTitle}>Cost Breakdown Planner</h4>
-                <p className={styles.itemizerSubtitle}>Itemize estimated expenses to automatically compute total allocation.</p>
+                <p className={styles.itemizerSubtitle}>
+                  Itemize planned line items against the authorized allocated capital. Planned budget is capped by the allocation, while actual expenses can overlap to accommodate real-world price inflation.
+                </p>
               </div>
-              <div className={styles.itemizerSumBlock}>
-                <span className={styles.itemizerSumLabel}>Total Computed:</span>
-                <span className={styles.itemizerSumValue}>₱{breakdownSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <button
-                  type="button"
-                  className={styles.applyBreakdownBtn}
-                  onClick={applyBreakdownSum}
-                  disabled={breakdownSum === 0}
-                >
-                  <HiCheckCircle /> Apply To Allocation
-                </button>
+
+              {/* Real-Time Planned vs Allocated Telemetry */}
+              <div className={styles.itemizerTelemetry}>
+                <div className={styles.telemetryStatBox}>
+                  <span className={styles.telemetryStatLabel}>Allocated Capital</span>
+                  <span className={styles.telemetryStatVal}>
+                    ₱{allocatedCapital.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className={styles.telemetryStatBox}>
+                  <span className={styles.telemetryStatLabel}>Planned Items Total</span>
+                  <span
+                    className={styles.telemetryStatVal}
+                    style={{ color: isOverPlanned ? '#ef4444' : '#22c55e' }}
+                  >
+                    ₱{breakdownSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className={styles.telemetryStatBox}>
+                  <div className={styles.telemetryStatBoxHeader}>
+                    <span className={styles.telemetryStatLabel}>Expenses / Actuals</span>
+                    {expensesSum > 0 && (
+                      <span className={styles.telemetrySyncBadge} title="Expenses automatically synchronize to Initial Spent">
+                        <HiRefresh size={10} /> Auto-Synced
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={styles.telemetryStatVal}
+                    style={{ color: isInflationOverrun ? '#ea580c' : '#d97706' }}
+                  >
+                    ₱{expensesSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className={styles.itemizerList}>
-              {breakdownItems.map((item, idx) => (
-                <div key={idx} className={styles.itemizerRow}>
-                  <input
-                    type="text"
-                    placeholder="Expense item (e.g. sound system, food packs)"
-                    value={item.description}
-                    onChange={(e) => handleBreakdownChange(idx, 'description', e.target.value)}
-                    className={styles.itemizerInputDesc}
-                  />
-                  <div className={styles.itemizerCurrencyWrap}>
-                    <span>₱</span>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={item.cost}
-                      onChange={(e) => handleBreakdownChange(idx, 'cost', e.target.value)}
-                      className={styles.itemizerInputCost}
+            {/* Visual Indicators & Telemetry Track */}
+            {allocatedCapital > 0 && (
+              <div className={styles.indicatorContainer}>
+                {/* Planned Progress Track */}
+                <div className={styles.indicatorProgressSection}>
+                  <div className={styles.indicatorProgressHeader}>
+                    <span className={styles.indicatorProgressTitle}>
+                      Planned Budget Progress ({plannedPercentOfCapital}% of capital allocated)
+                    </span>
+                    <span
+                      className={`${styles.indicatorPill} ${
+                        isOverPlanned
+                          ? styles.indicatorPillDanger
+                          : breakdownSum === allocatedCapital
+                          ? styles.indicatorPillSuccess
+                          : styles.indicatorPillWarning
+                      }`}
+                    >
+                      {isOverPlanned
+                        ? `⚠️ Over-Planned by ₱${(breakdownSum - allocatedCapital).toLocaleString(undefined, { minimumFractionDigits: 2 })} (Cannot increase planned budget)`
+                        : breakdownSum === allocatedCapital
+                        ? '✓ 100% Fully Planned (Matches Allocated Capital)'
+                        : `₱${unassignedPlannedCapital.toLocaleString(undefined, { minimumFractionDigits: 2 })} unassigned planned balance`}
+                    </span>
+                  </div>
+
+                  <div className={styles.meterTrack}>
+                    <div
+                      className={`${styles.meterFill} ${
+                        isOverPlanned ? styles.meterFillDanger : styles.meterFillSuccess
+                      }`}
+                      style={{ width: `${Math.min(100, plannedPercentOfCapital)}%` }}
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveBreakdownItem(idx)}
-                    className={styles.itemizerRemoveBtn}
-                    title="Remove item"
-                    disabled={breakdownItems.length === 1}
-                  >
-                    <HiTrash />
-                  </button>
                 </div>
-              ))}
+
+                {/* Price Inflation Overlap Indicator (When Expenses Exceed Allocated Capital) */}
+                {isInflationOverrun && (
+                  <div className={styles.inflationNoticeBanner}>
+                    <div className={styles.inflationNoticeIcon}>📈</div>
+                    <div className={styles.inflationNoticeContent}>
+                      <strong>Price Inflation &amp; Cost Overrun Detected:</strong> Actual expenses (₱{expensesSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}) overlap allocated capital by <strong>₱{inflationOverrunAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} (+{inflationRate}%)</strong>.
+                      <span className={styles.inflationNoticeSub}>
+                        Allowed per operational policy: Accounts for real-world supplier price increases and market variance.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.applyExpensesBtn}
+                      onClick={applyExpensesSum}
+                      title="Sync expenses total with Initial Spent"
+                    >
+                      <HiCheckCircle /> Apply Initial Spent
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {errors.breakdown && (
+              <div className={styles.breakdownErrorAlert}>
+                <HiExclamationCircle size={18} />
+                <span>{errors.breakdown}</span>
+              </div>
+            )}
+
+            {/* Column Header Titles */}
+            <div className={styles.itemizerColumnHeader}>
+              <span style={{ flex: 1.6 }}>Expense Item / Description</span>
+              <span style={{ width: '140px' }}>Planned Budget (₱)</span>
+              <span style={{ width: '140px' }}>Expenses / Spent (₱)</span>
+              <span style={{ width: '36px' }}></span>
+            </div>
+
+            <div className={styles.itemizerList}>
+              {breakdownItems.map((item, idx) => {
+                const itemCost = parseFloat(item.cost || 0);
+                const itemSpent = parseFloat(item.spent || 0);
+                const hasItemInflation = itemCost > 0 && itemSpent > itemCost;
+                const itemInflationDiff = hasItemInflation ? itemSpent - itemCost : 0;
+
+                return (
+                  <div key={idx} className={styles.itemizerRowWrap}>
+                    <div className={styles.itemizerRow}>
+                      <input
+                        type="text"
+                        placeholder="Expense item (e.g. sound system, food packs)"
+                        value={item.description}
+                        onChange={(e) => handleBreakdownChange(idx, 'description', e.target.value)}
+                        className={styles.itemizerInputDesc}
+                      />
+                      <div className={styles.itemizerCurrencyWrap}>
+                        <span>₱</span>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={item.cost}
+                          onChange={(e) => handleBreakdownChange(idx, 'cost', e.target.value)}
+                          className={styles.itemizerInputCost}
+                          title="Estimated planned budget"
+                        />
+                      </div>
+                      <div className={styles.itemizerCurrencyWrap}>
+                        <span style={{ color: '#d97706' }}>₱</span>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={item.spent || ''}
+                          onChange={(e) => handleBreakdownChange(idx, 'spent', e.target.value)}
+                          className={`${styles.itemizerInputSpent} ${hasItemInflation ? styles.itemizerInputInflation : ''}`}
+                          title="Initial expenses spent on this item"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveBreakdownItem(idx)}
+                        className={styles.itemizerRemoveBtn}
+                        title="Remove item"
+                        disabled={breakdownItems.length === 1}
+                      >
+                        <HiTrash />
+                      </button>
+                    </div>
+
+                    {hasItemInflation && (
+                      <div className={styles.rowInflationIndicator}>
+                        <span>📈 Price Inflation: +₱{itemInflationDiff.toLocaleString(undefined, { minimumFractionDigits: 2 })} over planned item estimate</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <button
@@ -897,7 +1200,7 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
         <div className={styles.formGroup}>
           <label htmlFor="description" className={styles.label}>
             <HiDocumentText className={styles.labelIcon} />
-            Budget Justification & Objective
+            Budget Justification & Objective (Optional)
           </label>
           <textarea
             id="description"
@@ -905,7 +1208,7 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
             value={formData.description}
             onChange={handleInputChange}
             className={styles.textarea}
-            placeholder="Outline the operational objectives, beneficiaries, and budget justification..."
+            placeholder="Outline the operational objectives, beneficiaries, and budget justification (Optional)..."
             rows="3"
           />
         </div>
@@ -914,7 +1217,7 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
         <div className={styles.formGroup}>
           <label htmlFor="receiptUrl" className={styles.label}>
             <HiLink className={styles.labelIcon} />
-            Verification Document / Cloud Drive Link
+            Verification Document / Cloud Drive Link (Optional)
           </label>
           <input
             type="url"
@@ -929,6 +1232,45 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
             Attach cloud folder, scanned canvass sheets, approved resolution PDF, or receipts for transparency.
           </small>
           {errors.receiptUrl && <span className={styles.error}>{errors.receiptUrl}</span>}
+        </div>
+
+        {/* Approval Status Selector (Draft vs Approved) */}
+        <div className={styles.formGroup} style={{ marginTop: '0.75rem', marginBottom: '1.25rem' }}>
+          <label className={styles.label}>
+            <HiTag className={styles.labelIcon} />
+            Allocation Approval Status *
+          </label>
+          <div className={styles.approvalStatusGrid}>
+            <div
+              className={`${styles.statusCard} ${formData.status !== 'draft' ? styles.statusCardActiveApproved : ''}`}
+              onClick={() => setFormData(prev => ({ ...prev, status: 'approved' }))}
+              role="button"
+              tabIndex={0}
+            >
+              <div className={styles.statusCardHeader}>
+                <span className={styles.statusCardTitle}>✅ Officially Approved</span>
+                {formData.status !== 'draft' && <span className={styles.statusBadgeSelected}>Active</span>}
+              </div>
+              <div className={styles.statusCardSubtitle}>
+                Officially authorized package. Eligible for PPMP disbursements and financial ledger expense postings.
+              </div>
+            </div>
+
+            <div
+              className={`${styles.statusCard} ${formData.status === 'draft' ? styles.statusCardActiveDraft : ''}`}
+              onClick={() => setFormData(prev => ({ ...prev, status: 'draft' }))}
+              role="button"
+              tabIndex={0}
+            >
+              <div className={styles.statusCardHeader}>
+                <span className={styles.statusCardTitle}>📝 Draft Proposal</span>
+                {formData.status === 'draft' && <span className={styles.statusBadgeDraftSelected}>Draft Active</span>}
+              </div>
+              <div className={styles.statusCardSubtitle}>
+                Internal draft proposal under review. Expenses CANNOT be posted to financial ledgers until approved.
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Action Controls */}

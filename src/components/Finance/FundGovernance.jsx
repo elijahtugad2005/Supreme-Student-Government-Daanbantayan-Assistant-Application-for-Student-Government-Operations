@@ -11,8 +11,8 @@ import {
   formatPHP,
   fromCentavos,
   toCentavos,
+  PPMP_STATUSES,
 } from '../../utils/financeConstants.js';
-import BudgetForm from '../BudgetForm/BudgetForm.jsx';
 import styles from './FundGovernance.module.css';
 import {
   HiPlus,
@@ -36,8 +36,12 @@ const FundGovernance = () => {
     reverseTransaction,
     cleanLegacyTestRecords,
     refreshFinanceData,
+    updateFiscalBudget,
+    updateFundBalance,
     loading,
     budgets,
+    archivedBudgets = [],
+    restoreBudget,
     statistics,
   } = useFinance();
   const { currentUser, userName, userRole } = useAuth();
@@ -50,10 +54,24 @@ const FundGovernance = () => {
   const [isCleaning, setIsCleaning] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // Budget Allocation Modal State (Merged Feature)
-  const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
-  const [selectedAllocationForEdit, setSelectedAllocationForEdit] = useState(null);
-  const [defaultAllocationFundId, setDefaultAllocationFundId] = useState('fund_fiscal_year_budget');
+  // Unified Fiscal Budget Modal State (Serves as primary balance & PPMP ceiling)
+  const [isFiscalBudgetModalOpen, setIsFiscalBudgetModalOpen] = useState(false);
+  const [fiscalBudgetForm, setFiscalBudgetForm] = useState({
+    budgetAmount: '',
+    resolutionRef: '',
+    bankAccountReference: 'BDO Institutional Account ****2005',
+    note: '',
+  });
+  const [fiscalBudgetError, setFiscalBudgetError] = useState(null);
+  const [isSavingFiscalBudget, setIsSavingFiscalBudget] = useState(false);
+
+  // Fund Balance Calibration Modal State for Non-Fiscal Funds (FSG, IGF, IGP)
+  const [isFundBalanceModalOpen, setIsFundBalanceModalOpen] = useState(false);
+  const [selectedFundForBalance, setSelectedFundForBalance] = useState(null);
+  const [fundBalanceInput, setFundBalanceInput] = useState('');
+  const [fundBalanceReason, setFundBalanceReason] = useState('');
+  const [fundBalanceError, setFundBalanceError] = useState(null);
+  const [isSavingFundBalance, setIsSavingFundBalance] = useState(false);
   const [allocFundFilter, setAllocFundFilter] = useState('All'); // 'All' | 'fund_fiscal_year_budget' | 'fund_fsg_remittance'
 
   // Form State for new Transaction
@@ -73,19 +91,75 @@ const FundGovernance = () => {
 
   const activeFund = fundAccounts.find((a) => a.id === txForm.fundAccountId);
 
-  // Handlers for Budget Allocations
-  const handleOpenNewAllocation = (fundId = 'fund_fiscal_year_budget') => {
-    setSelectedAllocationForEdit(null);
-    setDefaultAllocationFundId(fundId || 'fund_fiscal_year_budget');
-    setIsAllocationModalOpen(true);
+  // Handlers for Unified Fiscal Budget
+  const handleOpenFiscalBudgetModal = (fund) => {
+    const amt = fund.balanceCentavos
+      ? (fund.balanceCentavos / 100).toString()
+      : (fund.appropriatedCeilingCentavos ? (fund.appropriatedCeilingCentavos / 100).toString() : '');
+    setFiscalBudgetForm({
+      budgetAmount: amt,
+      resolutionRef: fund.appropriationResolutionRef || '',
+      bankAccountReference: fund.bankAccountReference || 'BDO Institutional Account ****2005',
+      note: fund.lastBudgetUpdateNote || '',
+    });
+    setFiscalBudgetError(null);
+    setIsFiscalBudgetModalOpen(true);
   };
 
-  const handleEditAllocation = (budget) => {
-    setSelectedAllocationForEdit(budget);
-    setDefaultAllocationFundId(
-      budget.fundAccountId || (budget.isFSG ? 'fund_fsg_remittance' : 'fund_fiscal_year_budget')
-    );
-    setIsAllocationModalOpen(true);
+  const handleSaveFiscalBudget = async (e) => {
+    e.preventDefault();
+    setFiscalBudgetError(null);
+    const amountNum = parseFloat(fiscalBudgetForm.budgetAmount);
+    if (isNaN(amountNum) || amountNum < 0) {
+      setFiscalBudgetError('Please enter a valid fiscal budget amount (₱0.00 or greater).');
+      return;
+    }
+    try {
+      setIsSavingFiscalBudget(true);
+      await updateFiscalBudget({
+        budgetAmount: amountNum,
+        resolutionRef: fiscalBudgetForm.resolutionRef,
+        bankAccountReference: fiscalBudgetForm.bankAccountReference,
+        note: fiscalBudgetForm.note,
+      });
+      setIsFiscalBudgetModalOpen(false);
+    } catch (err) {
+      setFiscalBudgetError(err.message || 'Error updating fiscal budget.');
+    } finally {
+      setIsSavingFiscalBudget(false);
+    }
+  };
+
+  // Handlers for Non-Fiscal Fund Balance (FSG, IGF, IGP)
+  const handleOpenFundBalanceModal = (fund) => {
+    setSelectedFundForBalance(fund);
+    setFundBalanceInput(fund.balanceCentavos ? (fund.balanceCentavos / 100).toString() : '0');
+    setFundBalanceReason('');
+    setFundBalanceError(null);
+    setIsFundBalanceModalOpen(true);
+  };
+
+  const handleSaveFundBalance = async (e) => {
+    e.preventDefault();
+    setFundBalanceError(null);
+    const amountNum = parseFloat(fundBalanceInput);
+    if (isNaN(amountNum) || amountNum < 0) {
+      setFundBalanceError('Please enter a valid balance amount (₱0.00 or greater).');
+      return;
+    }
+    try {
+      setIsSavingFundBalance(true);
+      await updateFundBalance(
+        selectedFundForBalance.id,
+        amountNum,
+        fundBalanceReason.trim() || 'Fund Balance Calibration'
+      );
+      setIsFundBalanceModalOpen(false);
+    } catch (err) {
+      setFundBalanceError(err.message || 'Error updating fund balance.');
+    } finally {
+      setIsSavingFundBalance(false);
+    }
   };
 
   const handleOpenTxForAllocation = (budget) => {
@@ -190,15 +264,18 @@ const FundGovernance = () => {
   };
 
   // Allocation counts & filtered list
-  const filteredBudgets = (budgets || []).filter((b) => {
-    if (allocFundFilter === 'fund_fiscal_year_budget') {
-      return !b.isFSG && b.fundAccountId !== 'fund_fsg_remittance';
-    }
-    if (allocFundFilter === 'fund_fsg_remittance') {
-      return b.isFSG || b.fundAccountId === 'fund_fsg_remittance';
-    }
-    return true;
-  });
+  const isViewingArchived = allocFundFilter === 'archived';
+  const filteredBudgets = isViewingArchived
+    ? (archivedBudgets || [])
+    : (budgets || []).filter((b) => {
+        if (allocFundFilter === 'fund_fiscal_year_budget') {
+          return !b.isFSG && b.fundAccountId !== 'fund_fsg_remittance';
+        }
+        if (allocFundFilter === 'fund_fsg_remittance') {
+          return b.isFSG || b.fundAccountId === 'fund_fsg_remittance';
+        }
+        return true;
+      });
 
   const fiscalBudgetsCount = (budgets || []).filter(
     (b) => !b.isFSG && b.fundAccountId !== 'fund_fsg_remittance'
@@ -207,20 +284,37 @@ const FundGovernance = () => {
     (b) => b.isFSG || b.fundAccountId === 'fund_fsg_remittance'
   ).length;
 
+  // Real-time KPI summaries calculated from budgets with fallback to statistics
+  const totalAllocatedSum = (budgets || []).reduce((acc, b) => acc + (b.allocated || 0), 0);
+  const totalSpentSum = (budgets || []).reduce((acc, b) => acc + (b.spent || 0), 0);
+  const fiscalAllocatedSum = (budgets || [])
+    .filter((b) => !b.isFSG && b.fundAccountId !== 'fund_fsg_remittance')
+    .reduce((acc, b) => acc + (b.allocated || 0), 0);
+  const fsgAllocatedSum = (budgets || [])
+    .filter((b) => b.isFSG || b.fundAccountId === 'fund_fsg_remittance')
+    .reduce((acc, b) => acc + (b.allocated || 0), 0);
+  const remainingSum = Math.max(0, totalAllocatedSum - totalSpentSum);
+
+  const displayTotalAllocated = (statistics && statistics.totalAllocated > 0)
+    ? statistics.totalAllocated
+    : totalAllocatedSum;
+  const displayFiscalAllocated = (statistics && statistics.fiscalAllocated > 0)
+    ? statistics.fiscalAllocated
+    : fiscalAllocatedSum;
+  const displayFsgAllocated = (statistics && statistics.fsgAllocated > 0)
+    ? statistics.fsgAllocated
+    : fsgAllocatedSum;
+  const displayTotalSpent = (statistics && statistics.totalSpent > 0)
+    ? statistics.totalSpent
+    : totalSpentSum;
+  const displayRemaining = (statistics && statistics.totalAllocated > 0)
+    ? Math.max(0, (statistics.totalAllocated || 0) - (statistics.totalSpent || 0))
+    : remainingSum;
+
   return (
     <div>
       {/* Action Toolbar */}
       <div className={styles.actionRow}>
-        {canEditFinance && (
-          <button
-            type="button"
-            className={styles.allocateToolbarBtn}
-            onClick={() => handleOpenNewAllocation('fund_fiscal_year_budget')}
-          >
-            <HiPlus size={16} /> New Budget Allocation
-          </button>
-        )}
-
         {canEditFinance && (
           <button
             type="button"
@@ -267,9 +361,9 @@ const FundGovernance = () => {
 
           const balanceCentavos = fund.balanceCentavos || 0;
           const allocatedCentavos = isFiscal
-            ? toCentavos(statistics?.fiscalAllocated || 0)
+            ? toCentavos(displayFiscalAllocated)
             : isFSG
-            ? toCentavos(statistics?.fsgAllocated || 0)
+            ? toCentavos(displayFsgAllocated)
             : 0;
           const surplusCentavos = Math.max(0, balanceCentavos - allocatedCentavos);
 
@@ -285,26 +379,52 @@ const FundGovernance = () => {
                 <h3 className={styles.fundTitle}>{fund.displayName}</h3>
                 <p className={styles.fundSub}>{fund.subcategory}</p>
 
-                <div className={styles.fundBalanceLabel}>Treasury Holding</div>
+                <div className={styles.fundBalanceLabel}>
+                  {isFiscal ? 'Fiscal Budget' : 'Fund Balance'}
+                </div>
                 <div className={styles.fundBalance}>
                   {formatPHP(balanceCentavos, true)}
                 </div>
 
-                {/* Sub-Metrics: Allocated & Available Surplus for Appropriations Funds */}
-                {(isFiscal || isFSG) && (
+                {/* Sub-Metrics for Fiscal Year Budget (2026-2027 Indicator & PPMP Earmarks) */}
+                {isFiscal && (() => {
+                  const unallocatedReserveCentavos = Math.max(0, balanceCentavos - allocatedCentavos);
+
+                  return (
+                    <div className={styles.fundCardSubStats}>
+                      <div className={styles.fundStatRow}>
+                        <span className={styles.fundStatLabel}>Academic Term:</span>
+                        <span className={styles.fundStatValue} style={{ fontWeight: 800, color: '#7a121d' }}>
+                          2026–2027 Fiscal Budget
+                        </span>
+                      </div>
+                      <div className={styles.fundStatRow}>
+                        <span className={styles.fundStatLabel}>PPMP Programmed:</span>
+                        <span className={styles.fundStatValue}>
+                          {formatPHP(allocatedCentavos, true)}
+                        </span>
+                      </div>
+                      <div className={styles.fundStatRow}>
+                        <span className={styles.fundStatLabel}>Unprogrammed Reserve:</span>
+                        <span className={`${styles.fundStatValue} ${styles.fundStatSurplus}`}>
+                          {formatPHP(unallocatedReserveCentavos, true)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Sub-Metrics for FSG Remittance */}
+                {isFSG && (
                   <div className={styles.fundCardSubStats}>
                     <div className={styles.fundStatRow}>
-                      <span className={styles.fundStatLabel}>
-                        {isFiscal ? 'Approved Allocation:' : 'FSG Sub-Allocated:'}
-                      </span>
+                      <span className={styles.fundStatLabel}>FSG Sub-Allocated:</span>
                       <span className={styles.fundStatValue}>
                         {formatPHP(allocatedCentavos, true)}
                       </span>
                     </div>
                     <div className={styles.fundStatRow}>
-                      <span className={styles.fundStatLabel}>
-                        {isFiscal ? 'Unallocated Surplus:' : 'Available Reserve:'}
-                      </span>
+                      <span className={styles.fundStatLabel}>Available Reserve:</span>
                       <span className={`${styles.fundStatValue} ${styles.fundStatSurplus}`}>
                         {formatPHP(surplusCentavos, true)}
                       </span>
@@ -334,23 +454,29 @@ const FundGovernance = () => {
               {/* Fund Action & Meta Footer */}
               <div>
                 {canEditFinance && isFiscal && (
-                  <button
-                    type="button"
-                    className={styles.quickAllocateBtnMaroon}
-                    onClick={() => handleOpenNewAllocation('fund_fiscal_year_budget')}
-                  >
-                    <HiPlus size={14} /> + Allocate Fiscal Budget
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.85rem' }}>
+                    <button
+                      type="button"
+                      className={styles.secondaryBtn}
+                      style={{ padding: '0.5rem 0.75rem', fontSize: '0.82rem', justifyContent: 'center', fontWeight: 600 }}
+                      onClick={() => handleOpenFiscalBudgetModal(fund)}
+                    >
+                      <HiPencil size={14} /> Edit Fiscal Budget
+                    </button>
+                  </div>
                 )}
 
-                {canEditFinance && isFSG && (
-                  <button
-                    type="button"
-                    className={styles.quickAllocateBtnGold}
-                    onClick={() => handleOpenNewAllocation('fund_fsg_remittance')}
-                  >
-                    <HiPlus size={14} /> + Allocate FSG Remittance
-                  </button>
+                {canEditFinance && !isFiscal && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.85rem' }}>
+                    <button
+                      type="button"
+                      className={styles.secondaryBtn}
+                      style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', justifyContent: 'center' }}
+                      onClick={() => handleOpenFundBalanceModal(fund)}
+                    >
+                      <HiPencil size={13} /> Edit Fund Balance
+                    </button>
+                  </div>
                 )}
 
                 {canEditFinance && (isIGF || isIGP) && (
@@ -371,7 +497,7 @@ const FundGovernance = () => {
                 )}
 
                 <div className={styles.fundMeta}>
-                  <span>{fund.bankAccountReference || 'General Holding'}</span>
+                  <span>{fund.bankAccountReference || (isFiscal ? 'BDO Institutional Account' : 'General Holding')}</span>
                   <span>FY {fund.fiscalYear}</span>
                 </div>
               </div>
@@ -420,21 +546,16 @@ const FundGovernance = () => {
               >
                 🤝 FSG ({fsgBudgetsCount})
               </button>
-            </div>
-
-            {canEditFinance && (
               <button
                 type="button"
-                className={styles.allocateToolbarBtn}
-                onClick={() =>
-                  handleOpenNewAllocation(
-                    allocFundFilter !== 'All' ? allocFundFilter : 'fund_fiscal_year_budget'
-                  )
-                }
+                className={`${styles.filterPill} ${
+                  allocFundFilter === 'archived' ? styles.filterPillActive : ''
+                }`}
+                onClick={() => setAllocFundFilter('archived')}
               >
-                <HiPlus size={16} /> New Allocation
+                📁 Archived ({archivedBudgets.length})
               </button>
-            )}
+            </div>
           </div>
         </div>
 
@@ -443,34 +564,31 @@ const FundGovernance = () => {
           <div className={styles.allocKpiCard}>
             <span className={styles.allocKpiLabel}>Total Approved</span>
             <span className={styles.allocKpiValue}>
-              {formatPHP(toCentavos(statistics?.totalAllocated || 0), true)}
+              {formatPHP(toCentavos(displayTotalAllocated), true)}
             </span>
           </div>
           <div className={styles.allocKpiCard}>
             <span className={styles.allocKpiLabel}>Fiscal Budget Allotted</span>
             <span className={styles.allocKpiValueMaroon}>
-              {formatPHP(toCentavos(statistics?.fiscalAllocated || 0), true)}
+              {formatPHP(toCentavos(displayFiscalAllocated), true)}
             </span>
           </div>
           <div className={styles.allocKpiCard}>
             <span className={styles.allocKpiLabel}>FSG Remittance Allotted</span>
             <span className={styles.allocKpiValueGold}>
-              {formatPHP(toCentavos(statistics?.fsgAllocated || 0), true)}
+              {formatPHP(toCentavos(displayFsgAllocated), true)}
             </span>
           </div>
           <div className={styles.allocKpiCard}>
             <span className={styles.allocKpiLabel}>Total Disbursed</span>
             <span className={styles.allocKpiValueSpent}>
-              {formatPHP(toCentavos(statistics?.totalSpent || 0), true)}
+              {formatPHP(toCentavos(displayTotalSpent), true)}
             </span>
           </div>
           <div className={styles.allocKpiCard}>
             <span className={styles.allocKpiLabel}>Remaining Available</span>
             <span className={styles.allocKpiValueRemaining}>
-              {formatPHP(
-                toCentavos((statistics?.totalAllocated || 0) - (statistics?.totalSpent || 0)),
-                true
-              )}
+              {formatPHP(toCentavos(displayRemaining), true)}
             </span>
           </div>
         </div>
@@ -479,25 +597,17 @@ const FundGovernance = () => {
         {filteredBudgets.length === 0 ? (
           <div className={styles.emptyAllocationsBox}>
             <p className={styles.emptyAllocText}>
-              {allocFundFilter === 'All'
-                ? 'No budget allocations created yet. Create an approved appropriation to fund activities and post event expenses.'
+              {allocFundFilter === 'archived'
+                ? 'No archived budget allocations.'
+                : allocFundFilter === 'All'
+                ? 'No budget allocations synchronized yet. Program allocations inside the PPMP Procurement Matrix.'
                 : `No budget allocations found under ${
                     allocFundFilter === 'fund_fsg_remittance' ? 'FSG Remittance' : 'Fiscal Year Budget'
                   }.`}
             </p>
-            {canEditFinance && (
-              <button
-                type="button"
-                className={styles.allocateToolbarBtn}
-                onClick={() =>
-                  handleOpenNewAllocation(
-                    allocFundFilter !== 'All' ? allocFundFilter : 'fund_fiscal_year_budget'
-                  )
-                }
-              >
-                <HiPlus size={16} /> Create First Allocation
-              </button>
-            )}
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+              Allocations are programmed and managed inside the PPMP Procurement Matrix tab.
+            </p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -516,6 +626,10 @@ const FundGovernance = () => {
               <tbody>
                 {filteredBudgets.map((b) => {
                   const isFSG = b.fundAccountId === 'fund_fsg_remittance' || b.isFSG;
+                  const isDraft = b.status === 'draft';
+                  const isFullySpent = b.remaining <= 0;
+                  const canPostExpense = !isDraft && !isFullySpent;
+
                   return (
                     <tr key={b.id}>
                       <td>
@@ -558,37 +672,66 @@ const FundGovernance = () => {
                         {formatPHP(toCentavos(b.remaining), true)}
                       </td>
                       <td>
-                        <span
-                          className={`${styles.statusPill} ${
-                            b.status === 'On Track'
-                              ? styles.statusPosted
-                              : b.status === 'Over Budget'
-                              ? styles.statusReversed
-                              : styles.statusPending
-                          }`}
-                        >
-                          {b.status}
-                        </span>
+                        {b.isArchived ? (
+                          <span className={styles.statusReversed} title="Archived allocation">
+                            📁 Archived
+                          </span>
+                        ) : isDraft ? (
+                          <span className={styles.statusDraftBadge} title="Draft allocation cannot be posted to financial ledger until approved">
+                            📝 Draft
+                          </span>
+                        ) : (
+                          <span
+                            className={`${styles.statusPill} ${
+                              b.ppmpStatus === PPMP_STATUSES.FRESH
+                                ? styles.statusFreshPill
+                                : b.ppmpStatus === PPMP_STATUSES.DEPLETED
+                                ? styles.statusReversed
+                                : styles.statusPosted
+                            }`}
+                          >
+                            {b.ppmpStatus === PPMP_STATUSES.FRESH
+                              ? 'Planned'
+                              : b.ppmpStatus === PPMP_STATUSES.DEPLETED
+                              ? 'Fully Spent'
+                              : 'Partially Spent'}
+                          </span>
+                        )}
                       </td>
                       {canEditFinance && (
                         <td>
-                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'nowrap' }}>
-                            <button
-                              type="button"
-                              className={styles.postExpenseBtn}
-                              title="Post Expense against this Allocation"
-                              onClick={() => handleOpenTxForAllocation(b)}
-                            >
-                              Post Expense
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.editAllocBtn}
-                              title="Edit Allocation"
-                              onClick={() => handleEditAllocation(b)}
-                            >
-                              <HiPencil size={13} />
-                            </button>
+                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'nowrap', alignItems: 'center' }}>
+                            {b.isArchived ? (
+                              <button
+                                type="button"
+                                className={styles.postExpenseBtn}
+                                style={{ background: '#3b82f6', borderColor: '#2563eb' }}
+                                title="Restore this archived allocation back to active PPMP matrix"
+                                onClick={async () => {
+                                  if (window.confirm(`Restore allocation "${b.eventName}" back to active PPMP?`)) {
+                                    await restoreBudget(b.id);
+                                  }
+                                }}
+                              >
+                                Restore
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className={canPostExpense ? styles.postExpenseBtn : styles.postExpenseBtnDisabled}
+                                title={
+                                  isDraft
+                                    ? 'Cannot post expense: Allocation is currently in Draft status.'
+                                    : isFullySpent
+                                    ? 'Cannot post expense: Budget is fully utilized or spent.'
+                                    : 'Post Expense against this Allocation'
+                                }
+                                onClick={() => canPostExpense && handleOpenTxForAllocation(b)}
+                                disabled={!canPostExpense}
+                              >
+                                {isFullySpent ? 'Fully Spent' : isDraft ? 'Draft' : 'Post Expense'}
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -880,6 +1023,12 @@ const FundGovernance = () => {
                       <option value="">-- Choose Approved Activity Allocation --</option>
                       {budgetAllocations
                         .filter((alloc) => {
+                          // Only postable allocations: not draft and remaining budget > 0
+                          const isDraft = alloc.status === 'draft';
+                          const remaining =
+                            (alloc.approvedAmountCentavos || 0) - (alloc.spentAmountCentavos || 0);
+                          if (isDraft || remaining <= 0) return false;
+
                           const isFSGAlloc =
                             alloc.fundAccountId === 'fund_fsg_remittance' ||
                             alloc.fundCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE ||
@@ -1072,36 +1221,178 @@ const FundGovernance = () => {
         </div>
       )}
 
-      {/* Merged Budget Allocation Modal (BudgetForm) */}
-      {isAllocationModalOpen && (
-        <div
-          className={styles.modalBackdrop}
-          onClick={() => {
-            setIsAllocationModalOpen(false);
-            setSelectedAllocationForEdit(null);
-          }}
-        >
-          <div className={styles.modalLarge} onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className={styles.modalCloseBtn}
-              onClick={() => {
-                setIsAllocationModalOpen(false);
-                setSelectedAllocationForEdit(null);
-              }}
-              aria-label="Close Allocation Modal"
-            >
-              <HiX size={22} />
-            </button>
-            <BudgetForm
-              editingBudget={selectedAllocationForEdit}
-              defaultFundAccountId={defaultAllocationFundId}
-              onSuccess={() => {
-                setIsAllocationModalOpen(false);
-                setSelectedAllocationForEdit(null);
-                refreshFinanceData();
-              }}
-            />
+      {/* Unified Fiscal Budget Modal */}
+      {isFiscalBudgetModalOpen && (
+        <div className={styles.modalBackdrop} onClick={() => setIsFiscalBudgetModalOpen(false)}>
+          <div className={styles.modalContent} style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
+                🏛️ Edit 2026–2027 Fiscal Budget
+              </h3>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                style={{ position: 'static' }}
+                onClick={() => setIsFiscalBudgetModalOpen(false)}
+              >
+                <HiX size={20} />
+              </button>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem', marginBottom: '1.25rem' }}>
+              Calibrate and update the primary Fiscal Budget. This establishes the institutional operating balance and the ceiling for the PPMP procurement schedule.
+            </p>
+
+            {fiscalBudgetError && (
+              <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                {fiscalBudgetError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveFiscalBudget}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>2026–2027 Fiscal Budget Amount (₱) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className={styles.formInput}
+                  placeholder="e.g. 500000.00"
+                  value={fiscalBudgetForm.budgetAmount}
+                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, budgetAmount: e.target.value })}
+                  required
+                />
+                <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+                  The total approved fiscal budget allocation for this term.
+                </span>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Institutional Depository Bank Reference *</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  placeholder="e.g. BDO Institutional Account ****2005"
+                  value={fiscalBudgetForm.bankAccountReference}
+                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, bankAccountReference: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Board / Administration Resolution Reference</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  placeholder="e.g. BOR-RES-2026-081 / Office of Student Affairs Memo"
+                  value={fiscalBudgetForm.resolutionRef}
+                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, resolutionRef: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Reconciliation / Audit Note</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  placeholder="e.g. Annual university appropriation calibration"
+                  value={fiscalBudgetForm.note}
+                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, note: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => setIsFiscalBudgetModalOpen(false)}
+                  disabled={isSavingFiscalBudget}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.primaryBtn}
+                  disabled={isSavingFiscalBudget}
+                >
+                  {isSavingFiscalBudget ? 'Saving...' : 'Save Fiscal Budget'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Non-Fiscal Fund Balance Modal (FSG, IGF, IGP) */}
+      {isFundBalanceModalOpen && selectedFundForBalance && (
+        <div className={styles.modalBackdrop} onClick={() => setIsFundBalanceModalOpen(false)}>
+          <div className={styles.modalContent} style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
+                💰 Edit Fund Balance ({selectedFundForBalance.displayName})
+              </h3>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                style={{ position: 'static' }}
+                onClick={() => setIsFundBalanceModalOpen(false)}
+              >
+                <HiX size={20} />
+              </button>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem', marginBottom: '1.25rem' }}>
+              Calibrate and update the current balance available for this fund source.
+            </p>
+
+            {fundBalanceError && (
+              <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                {fundBalanceError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveFundBalance}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Fund Balance (₱) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className={styles.formInput}
+                  placeholder="0.00"
+                  value={fundBalanceInput}
+                  onChange={(e) => setFundBalanceInput(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Reconciliation Note / Deposit Reference</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  placeholder="e.g. Remittance deposit / Cash count reconciliation"
+                  value={fundBalanceReason}
+                  onChange={(e) => setFundBalanceReason(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => setIsFundBalanceModalOpen(false)}
+                  disabled={isSavingFundBalance}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.primaryBtn}
+                  disabled={isSavingFundBalance}
+                >
+                  {isSavingFundBalance ? 'Saving...' : 'Update Fund Balance'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

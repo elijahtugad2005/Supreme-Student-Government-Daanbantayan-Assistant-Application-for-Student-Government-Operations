@@ -7,6 +7,12 @@ import {
   TOP_LEVEL_FUND_LABELS,
   TRANSACTION_TYPES,
   TRANSACTION_STATUSES,
+  PROCUREMENT_TYPES,
+  PROCUREMENT_TYPE_LABELS,
+  PPMP_STATUSES,
+  PPMP_STATUS_CONFIG,
+  getPPMPStatus,
+  getUtilizationRate,
   toCentavos,
   fromCentavos,
   formatPHP,
@@ -35,6 +41,7 @@ export const FinanceProvider = ({ children }) => {
 
   // Backward-compatibility state for legacy views (BudgetAnalytics, etc.)
   const [budgets, setBudgets] = useState([]);
+  const [archivedBudgets, setArchivedBudgets] = useState([]);
   const [funds, setFunds] = useState({
     annualBudget: 0,
     incomeGenerated: 0,
@@ -75,43 +82,91 @@ export const FinanceProvider = ({ children }) => {
       lastUpdated: new Date(),
     });
 
-    // Map budgetAllocations to legacy budget format
-    const legacyBudgets = allocations.map((alloc) => {
-      const allocated = fromCentavos(alloc.approvedAmountCentavos || 0);
-      const spent = fromCentavos(alloc.spentAmountCentavos || 0);
+    // Map budgetAllocations to legacy budget format with PPMP lifecycle status
+    const allMappedBudgets = allocations.map((alloc) => {
+      const approvedCentavos = alloc.approvedAmountCentavos !== undefined
+        ? Number(alloc.approvedAmountCentavos)
+        : toCentavos(alloc.allocated || alloc.allocatedAmount || 0);
+      const spentCentavos = alloc.spentAmountCentavos !== undefined
+        ? Number(alloc.spentAmountCentavos)
+        : toCentavos(alloc.spent || alloc.spentAmount || 0);
+      const allocated = fromCentavos(approvedCentavos);
+      const spent = fromCentavos(spentCentavos);
       const remaining = Math.max(0, allocated - spent);
-      let status = 'On Track';
-      if (spent >= allocated) status = 'Fully Spent';
-      else if (spent > allocated * 0.8) status = 'Almost Spent';
+      const ppmpStatus = getPPMPStatus(spentCentavos, approvedCentavos);
+      const utilizationRate = getUtilizationRate(spentCentavos, approvedCentavos);
+      const isArchived = alloc.status === 'archived' || alloc.isActive === false;
 
       const fund = accounts.find((a) => a.id === alloc.fundAccountId);
       const isFSG = alloc.fundAccountId === 'fund_fsg_remittance';
 
+      const determinedProcurementType =
+        alloc.procurementType ||
+        (alloc.category === 'Project'
+          ? PROCUREMENT_TYPES.PROJECT
+          : ['Supplies', 'Printing', 'Equipment', 'Material'].includes(alloc.category)
+          ? PROCUREMENT_TYPES.MATERIAL_SUPPLY
+          : PROCUREMENT_TYPES.EVENT);
+
+      // Process sub-line items with status
+      const mappedLineItems = (alloc.approvedLineItems || []).map((li, idx) => {
+        const itemPlannedCentavos =
+          li.plannedCentavos !== undefined
+            ? Number(li.plannedCentavos)
+            : toCentavos(li.plannedAmount || li.estimatedCost || 0);
+        const itemSpentCentavos = Number(li.spentCentavos || 0);
+        return {
+          ...li,
+          id: li.id || `line_${idx}`,
+          name: li.name || li.title || li.description || `Item ${idx + 1}`,
+          plannedAmount: fromCentavos(itemPlannedCentavos),
+          spentAmount: fromCentavos(itemSpentCentavos),
+          plannedCentavos: itemPlannedCentavos,
+          spentCentavos: itemSpentCentavos,
+          status: getPPMPStatus(itemSpentCentavos, itemPlannedCentavos),
+          utilizationRate: getUtilizationRate(itemSpentCentavos, itemPlannedCentavos),
+        };
+      });
+
       return {
         id: alloc.id,
         eventName: alloc.activityName || 'Unnamed Allocation',
+        activityName: alloc.activityName || 'Unnamed Allocation',
         allocated,
         spent,
         remaining,
         category: alloc.category || 'Event',
+        procurementType: determinedProcurementType,
         committee: alloc.committee || 'General',
         resolution: alloc.resolutionRef || '',
         description: alloc.description || '',
         receiptUrl: (alloc.supportingDocumentIds && alloc.supportingDocumentIds[0]) || '',
-        status,
+        status: alloc.status || 'approved',
+        isArchived,
+        isActive: alloc.isActive !== false && alloc.status !== 'archived',
+        ppmpStatus,
+        utilizationRate,
+        approvedLineItems: mappedLineItems,
         fiscalYear: alloc.fiscalYear || new Date().getFullYear(),
         fundAccountId: alloc.fundAccountId || 'fund_fiscal_year_budget',
         fundName: fund ? fund.displayName : (isFSG ? 'FSG Remittance & Supplemental Fund' : 'SSG Fiscal Year Budget'),
         fundCategory: fund ? fund.topLevelCategory : (isFSG ? TOP_LEVEL_FUNDS.FSG_REMITTANCE : TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET),
         isFSG,
         createdAt: alloc.createdAt?.toDate?.() || new Date(),
+        archivedAt: alloc.archivedAt?.toDate?.() || null,
+        archivedBy: alloc.archivedBy || null,
         raw: alloc,
       };
     });
 
-    setBudgets(legacyBudgets);
+    // Segregate active non-archived budgets from archived ones
+    const activeBudgets = allMappedBudgets.filter((b) => !b.isArchived);
+    const archivedList = allMappedBudgets.filter((b) => b.isArchived);
 
-    // Compute stats
+    setBudgets(activeBudgets);
+    setArchivedBudgets(archivedList);
+
+    // Compute stats on active allocations only
     let totalAlloc = 0;
     let totalSp = 0;
     let fiscalAllocated = 0;
@@ -121,7 +176,7 @@ export const FinanceProvider = ({ children }) => {
     const catMap = {};
     const comMap = {};
 
-    legacyBudgets.forEach((b) => {
+    activeBudgets.forEach((b) => {
       totalAlloc += b.allocated;
       totalSp += b.spent;
       if (b.isFSG) {
@@ -135,6 +190,10 @@ export const FinanceProvider = ({ children }) => {
       comMap[b.committee] = (comMap[b.committee] || 0) + b.allocated;
     });
 
+    const fiscalAcc = accounts.find((a) => a.id === 'fund_fiscal_year_budget');
+    const fiscalCeiling = fromCentavos(fiscalAcc?.appropriatedCeilingCentavos || 0);
+    const fiscalHolding = fromCentavos(fiscalAcc?.balanceCentavos || 0);
+
     setStatistics({
       totalAllocated: totalAlloc,
       totalSpent: totalSp,
@@ -142,10 +201,13 @@ export const FinanceProvider = ({ children }) => {
       fiscalAllocated,
       fiscalSpent,
       fiscalRemaining: Math.max(0, fiscalAllocated - fiscalSpent),
+      fiscalCeiling,
+      fiscalHolding,
+      fiscalUnallocatedReserve: Math.max(0, fiscalCeiling - fiscalAllocated),
       fsgAllocated,
       fsgSpent,
       fsgRemaining: Math.max(0, fsgAllocated - fsgSpent),
-      budgetCount: legacyBudgets.length,
+      budgetCount: activeBudgets.length,
       categories: catMap,
       committees: comMap,
     });
@@ -199,7 +261,9 @@ export const FinanceProvider = ({ children }) => {
           approvedAmount: budgetData.allocatedAmount || budgetData.allocated || 0,
           resolutionRef: budgetData.resolution || '',
           category: budgetData.category || 'Event',
+          procurementType: budgetData.procurementType,
           committee: budgetData.committee || 'General',
+          status: budgetData.status || 'approved',
           approvedLineItems: budgetData.approvedLineItems || [],
           supportingDocumentIds: budgetData.receiptUrl ? [budgetData.receiptUrl] : [],
         },
@@ -237,7 +301,14 @@ export const FinanceProvider = ({ children }) => {
   const updateBudget = async (id, budgetData) => {
     try {
       const user = { uid: currentUser?.uid || 'anon', userName, userRole };
-      await financeService.updateBudgetAllocation(id, budgetData, user);
+      await financeService.updateBudgetAllocation(
+        id,
+        {
+          ...budgetData,
+          status: budgetData.status,
+        },
+        user
+      );
       await refreshFinanceData();
       return id;
     } catch (err) {
@@ -257,6 +328,20 @@ export const FinanceProvider = ({ children }) => {
     } catch (err) {
       console.error('Error deleting budget allocation:', err);
       setError(err.message || 'Failed to delete budget allocation.');
+      throw err;
+    }
+  };
+
+  // Restore an archived budget allocation
+  const restoreBudget = async (id) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      await financeService.restoreBudgetAllocation(id, user);
+      await refreshFinanceData();
+      return id;
+    } catch (err) {
+      console.error('Error restoring budget allocation:', err);
+      setError(err.message || 'Failed to restore budget allocation.');
       throw err;
     }
   };
@@ -299,6 +384,41 @@ export const FinanceProvider = ({ children }) => {
     }
   };
 
+  // Update Fiscal Budget (serves as unified primary balance and PPMP ceiling)
+  const updateFiscalBudget = async (budgetData) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      await financeService.updateFiscalBudget('fund_fiscal_year_budget', budgetData, user);
+      await refreshFinanceData();
+      return true;
+    } catch (err) {
+      console.error('Error updating fiscal budget in provider:', err);
+      throw err;
+    }
+  };
+
+  // Update Fund Balance (for non-fiscal funds e.g. FSG, IGF, IGP)
+  const updateFundBalance = async (fundAccountId, balanceAmount, reason) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      await financeService.updateFundBalance(fundAccountId, balanceAmount, user, reason);
+      await refreshFinanceData();
+      return true;
+    } catch (err) {
+      console.error('Error updating fund balance in provider:', err);
+      throw err;
+    }
+  };
+
+  // Backward-compatible wrappers
+  const updateFiscalCeiling = async (ceilingData) => {
+    return updateFiscalBudget(ceilingData);
+  };
+
+  const updateFundHoldingBalance = async (fundAccountId, balanceAmount, reason) => {
+    return updateFundBalance(fundAccountId, balanceAmount, reason);
+  };
+
   const value = {
     // Redesigned entities
     fundAccounts,
@@ -309,9 +429,22 @@ export const FinanceProvider = ({ children }) => {
     recordTransaction,
     reverseTransaction,
     cleanLegacyTestRecords,
+    updateFiscalBudget,
+    updateFundBalance,
+    updateFiscalCeiling,
+    updateFundHoldingBalance,
+
+    // Helpers & Enums
+    getPPMPStatus,
+    getUtilizationRate,
+    PPMP_STATUSES,
+    PPMP_STATUS_CONFIG,
+    PROCUREMENT_TYPES,
+    PROCUREMENT_TYPE_LABELS,
 
     // Backward-compatible properties & operations
     budgets,
+    archivedBudgets,
     funds,
     statistics,
     loading,
@@ -319,6 +452,7 @@ export const FinanceProvider = ({ children }) => {
     addBudget,
     updateBudget,
     deleteBudget,
+    restoreBudget,
     fetchBudgets: refreshFinanceData,
     fetchFunds: refreshFinanceData,
     getFundUtilizationPercentage: () => {
