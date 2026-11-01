@@ -2,8 +2,8 @@ import styles from './memberdashboard.module.css';
 import orgStyles from './WorkinProgress/organization.module.css';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Memberslist from './Memberlist';
-import OrganizationView from './OrganizationView';
-import OrganizationModal from './OrganizationModal';
+import OrganizationView from './UserManagement/OrganizationView';
+import OrganizationModal from './UserManagement/OrganizationModal';
 import { db } from "../firebase/firebaseConfig";
 import {
     collection, addDoc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch,

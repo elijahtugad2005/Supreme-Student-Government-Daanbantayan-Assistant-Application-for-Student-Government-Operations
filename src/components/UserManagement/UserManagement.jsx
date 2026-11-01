@@ -64,6 +64,7 @@ function UserManagement() {
   const [statusFilter, setStatusFilter] = useState('active');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [pagination, setPagination] = useState({ totalPages: 1, totalUsers: 0, hasNextPage: false, hasPreviousPage: false });
   
   // Selected user for editing
   const [selectedUser, setSelectedUser] = useState(null);
@@ -109,6 +110,9 @@ function UserManagement() {
       
       setUsers(usersData.users);
       setFilteredUsers(usersData.users);
+      if (usersData.pagination) {
+        setPagination(usersData.pagination);
+      }
       
       // Fetch statistics
       const stats = await userManagementService.getUserStatistics();
@@ -621,6 +625,34 @@ function UserManagement() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pagination Controls Bar */}
+      {!loading && filteredUsers.length > 0 && (
+        <div className={styles.paginationBar}>
+          <div className={styles.paginationInfo}>
+            Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, pagination.totalUsers || filteredUsers.length)} of {pagination.totalUsers || filteredUsers.length} users
+          </div>
+          <div className={styles.paginationControls}>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={!pagination.hasPreviousPage && currentPage <= 1}
+              className={styles.pageButton}
+            >
+              Previous
+            </button>
+            <span className={styles.pageNumber}>Page {currentPage} of {pagination.totalPages || 1}</span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={!pagination.hasNextPage && currentPage >= pagination.totalPages}
+              className={styles.pageButton}
+            >
+              Next
+            </button>
           </div>
         </div>
       )}

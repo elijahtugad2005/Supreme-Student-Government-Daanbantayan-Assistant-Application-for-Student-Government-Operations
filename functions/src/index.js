@@ -14,6 +14,7 @@
  *   path by which AI output becomes official without a person acting on it.
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { defineSecret } from 'firebase-functions/params';
@@ -358,6 +359,35 @@ export const setRoleClaims = onCall(async (request) => {
   });
 
   return { ok: true, role, uid: targetUid };
+});
+
+/**
+ * Authoritative Server-Side Role Claim Sync Trigger.
+ * Whenever a user document's 'role' field is modified in Firestore,
+ * this trigger ensures their Firebase Auth custom claims are updated immediately,
+ * regardless of whether the client's direct callable succeeded or failed.
+ */
+export const onUserRoleUpdated = onDocumentUpdated('users/{userId}', async (event) => {
+  const before = event.data?.before?.data();
+  const after = event.data?.after?.data();
+
+  if (!after) return null;
+
+  const oldRole = before?.role || null;
+  const newRole = after?.role || null;
+
+  if (oldRole === newRole) return null;
+
+  const userId = event.params.userId;
+  logger.info('Detected role mutation in Firestore, syncing custom claims:', { userId, oldRole, newRole });
+
+  try {
+    await setRoleClaim(userId, newRole);
+    logger.info('Authoritative role claim synced successfully for user:', { userId, newRole });
+  } catch (err) {
+    logger.error('Failed to sync role claim on document update:', { userId, newRole, error: err.message });
+  }
+  return null;
 });
 
 // ════════════════════════════════════════════════════════════

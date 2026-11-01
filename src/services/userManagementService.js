@@ -332,23 +332,67 @@ export const userManagementService = {
    * @param {boolean} activeOnly - Show only active users
    * @returns {Promise<Object>} Paginated users data
    */
-  async getAllUsers(page = 1, pageSize = 20, roleFilter = null, activeOnly = true) {
+  async getAllUsers(page = 1, pageSize = 20, roleFilter = null, activeOnly = true, startAfterDoc = null) {
     try {
-      // Build query constraints — avoid compound index issues by keeping it simple
+      // 1. If startAfterDoc is provided or first page without compound constraints, execute native Firestore limit & cursor query
       const constraints = [];
 
       if (roleFilter) {
         constraints.push(where('role', '==', roleFilter));
       }
+      if (activeOnly) {
+        constraints.push(where('isActive', '==', true));
+      }
 
-      const q = query(collection(db, USERS_COLLECTION), ...constraints);
+      // Try native cursor/indexed query first
+      try {
+        const queryConstraints = [...constraints, orderBy('createdAt', 'desc')];
+        if (startAfterDoc) {
+          queryConstraints.push(startAfter(startAfterDoc));
+        }
+        queryConstraints.push(firestoreLimit(pageSize + 1));
+
+        const nativeQuery = query(collection(db, USERS_COLLECTION), ...queryConstraints);
+        const snap = await getDocs(nativeQuery);
+
+        if (!snap.empty) {
+          const hasMore = snap.docs.length > pageSize;
+          const docsToUse = hasMore ? snap.docs.slice(0, pageSize) : snap.docs;
+          const users = docsToUse.map(d => ({ id: d.id, ...d.data() }));
+          const lastDoc = docsToUse[docsToUse.length - 1] || null;
+
+          return {
+            users,
+            lastDoc,
+            pagination: {
+              page,
+              pageSize,
+              totalUsers: users.length,
+              totalPages: hasMore ? page + 1 : page,
+              hasNextPage: hasMore,
+              hasPreviousPage: page > 1
+            }
+          };
+        }
+      } catch (nativeErr) {
+        // Fallback gracefully if compound index is missing in Firestore Console
+        console.warn('[userManagementService] Native index query warning, falling back to safe query:', nativeErr.message);
+      }
+
+      // Safe fallback query bounded by firestoreLimit(500) to protect memory
+      const fallbackConstraints = [];
+      if (roleFilter) {
+        fallbackConstraints.push(where('role', '==', roleFilter));
+      }
+      fallbackConstraints.push(firestoreLimit(500));
+
+      const q = query(collection(db, USERS_COLLECTION), ...fallbackConstraints);
       const querySnapshot = await getDocs(q);
 
-      // Filter in-memory: handles missing isActive field (treats missing = active)
+      // Filter in-memory: handles legacy documents with missing isActive field (treats missing = active)
       const allUsers = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        // If activeOnly, skip users where isActive is explicitly false
         if (activeOnly && data.isActive === false) return;
         allUsers.push({ id: docSnap.id, ...data });
       });
@@ -365,12 +409,14 @@ export const userManagementService = {
 
       // Paginate in-memory
       const totalUsers = allUsers.length;
-      const totalPages = Math.ceil(totalUsers / pageSize);
+      const totalPages = Math.ceil(totalUsers / pageSize) || 1;
       const startIndex = (page - 1) * pageSize;
       const users = allUsers.slice(startIndex, startIndex + pageSize);
+      const lastDoc = querySnapshot.docs[startIndex + users.length - 1] || null;
 
       return {
         users,
+        lastDoc,
         pagination: {
           page,
           pageSize,

@@ -66,8 +66,27 @@ export const ensureRoleClaim = async (user, firestoreRole) => {
 
 /**
  * Admin-only: push a role change to another user's token straight away.
+ * Includes automatic retry with exponential backoff to handle transient network
+ * drops and cold starts.
+ *
+ * @param {string} targetUid
+ * @param {number} maxRetries
+ * @returns {Promise<{ok: boolean, role: string|null, uid: string}>}
  */
-export const syncClaimsForUser = async (targetUid) => {
-  const { data } = await callable('setRoleClaims')({ targetUid });
-  return data;
+export const syncClaimsForUser = async (targetUid, maxRetries = 3) => {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      const { data } = await callable('setRoleClaims')({ targetUid });
+      return data;
+    } catch (err) {
+      attempt++;
+      if (attempt >= maxRetries) {
+        console.error(`[roleClaims] syncClaimsForUser failed after ${maxRetries} attempts:`, err);
+        throw err;
+      }
+      const delay = Math.pow(2, attempt) * 500;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
 };

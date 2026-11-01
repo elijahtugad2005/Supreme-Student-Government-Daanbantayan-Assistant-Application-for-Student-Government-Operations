@@ -1781,3 +1781,63 @@
     justify-content: center;
   }
 }
+
+/* =====================================================
+   PAGINATION CONTROLS
+   ===================================================== */
+.paginationBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--um-card-bg);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-md);
+  box-shadow: var(--um-shadow-sm);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.paginationInfo {
+  font-size: 0.85rem;
+  color: var(--um-text-muted);
+  font-weight: 500;
+}
+
+.paginationControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--um-bg);
+  color: var(--um-text-primary);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--um-transition);
+}
+
+.pageButton:hover:not(:disabled) {
+  background: var(--um-border);
+  border-color: var(--um-border-strong);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageNumber {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--um-text-secondary);
+}
