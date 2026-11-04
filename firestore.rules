@@ -534,11 +534,26 @@ service cloud.firestore {
         || hasOverride('canAuditFinance');
     }
 
+    function canManageCentralizedOrderSheet() {
+      return myRole() == 'admin'
+        || myRole() == 'secretary'
+        || myRole() == 'executive_secretary'
+        || myRole() == 'deputy_secretary'
+        || myRole() == 'press_secretary'
+        || myRole() == 'linkages_secretary'
+        || myRole() == 'finance_secretary'
+        || hasOverride('canManageCentralizedOrderSheet');
+    }
+
     function canManageOrders() {
       return myRole() == 'admin'
         || myRole() == 'president'
         || myRole() == 'vice_president'
+        || myRole() == 'secretary'
         || myRole() == 'executive_secretary'
+        || myRole() == 'deputy_secretary'
+        || myRole() == 'press_secretary'
+        || myRole() == 'linkages_secretary'
         || myRole() == 'finance_secretary'
         || myRole() == 'auditor'
         || myRole() == 'budget_officer'
@@ -546,6 +561,14 @@ service cloud.firestore {
         || myRole() == 'representative'
         || myRole() == 'senator'
         || hasOverride('canManageOrders');
+    }
+
+    // System & Centralized Sheet Settings
+    match /settings/{settingId} {
+      allow read: if settingId == 'app' || isSignedIn();
+      allow write: if settingId == 'commerceOrderSheet'
+        ? canManageCentralizedOrderSheet()
+        : (isAdmin() || isOfficer() || myRole() == 'finance_secretary');
     }
 
     // Commerce / Merchandise Orders

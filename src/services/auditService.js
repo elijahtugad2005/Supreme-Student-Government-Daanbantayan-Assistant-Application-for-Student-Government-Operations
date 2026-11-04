@@ -89,7 +89,7 @@ export const AUDIT_CODE_DEFINITIONS = {
     border: 'rgba(239, 68, 68, 0.35)'
   },
 
-  // Commerce (Deletions only)
+  // Commerce (Deletions & Centralized Sheet Sync)
   CDL: {
     code: 'CDL',
     module: 'Commerce Hub',
@@ -98,6 +98,15 @@ export const AUDIT_CODE_DEFINITIONS = {
     color: '#F43F5E', // Rose Crimson
     bg: 'rgba(244, 63, 94, 0.15)',
     border: 'rgba(244, 63, 94, 0.35)'
+  },
+  CSY: {
+    code: 'CSY',
+    module: 'Commerce Hub',
+    label: 'Commerce Sheet Sync',
+    description: 'Centralized Order Google Sheet created, assigned, or synchronized',
+    color: '#10B981', // Emerald Green
+    bg: 'rgba(16, 185, 129, 0.15)',
+    border: 'rgba(16, 185, 129, 0.35)'
   },
 
   // Budget & Finance Operations

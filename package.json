@@ -20,6 +20,8 @@
     "test:roster-import": "node scripts/roster-import-check.mjs",
     "test:sync-contract": "node scripts/sync-contract-check.mjs",
     "test:death-aid": "node scripts/death-aid-check.mjs",
+    "test:order-status": "node scripts/order-status-check.mjs",
+    "test:centralized-sheet": "node scripts/centralized-order-sheet-check.mjs",
     "test:death-aid-calc": "esbuild scripts/death-aid-calc-check.mjs --bundle --platform=node --format=esm --outfile=node_modules/.tmp/calc.mjs --external:firebase/app --external:firebase/firestore --external:firebase/auth --log-level=warning && node node_modules/.tmp/calc.mjs",
     "test:roster-ownership": "node scripts/roster-ownership-check.mjs",
     "test:theme": "node scripts/theme-token-check.mjs",

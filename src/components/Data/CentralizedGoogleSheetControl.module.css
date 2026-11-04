@@ -1,0 +1,829 @@
+/* ==========================================================================
+   CentralizedGoogleSheetControl.module.css
+   Secretariat-Governed Google Sheets API v4 Control Plane (Orders Only)
+   Supports Default, Classic Royal Maroon (.theme-dark), & Brutalist (.theme-light)
+   ========================================================================== */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Top Governance & OAuth Bar ── */
+.governanceBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  padding: 0.95rem 1.15rem;
+  border-radius: 10px;
+  background: var(--om-bg, #f8fafc);
+  border: 1px solid var(--om-border, #e2e8f0);
+}
+
+.governanceLeft {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.governanceRight {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.3rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.roleBadgeAuthorized {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+}
+
+.roleBadgeReadOnly {
+  background: rgba(217, 119, 6, 0.14);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.32);
+}
+
+.oauthPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.oauthConnected {
+  background: rgba(16, 185, 129, 0.12);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.oauthDisconnected {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--om-text-secondary, #475569);
+  border: 1px solid var(--om-border, #cbd5e1);
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.recordingNotice {
+  font-size: 0.79rem;
+  color: var(--om-text-secondary, #64748b);
+}
+
+/* ── Buttons ── */
+.btnPrimary,
+.btnSecondary,
+.btnGhost,
+.btnSuccess,
+.btnDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  padding: 0.54rem 0.95rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.btnPrimary {
+  background: #1d4ed8;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+.btnSuccess {
+  background: #059669;
+  color: #ffffff;
+  border: 1px solid #059669;
+}
+
+.btnSuccess:hover:not(:disabled) {
+  background: #047857;
+  border-color: #047857;
+}
+
+.btnSecondary {
+  background: var(--om-card-bg, #ffffff);
+  color: var(--om-text-primary, #0f172a);
+  border: 1px solid var(--om-border, #cbd5e1);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: var(--om-bg, #f1f5f9);
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--om-text-secondary, #475569);
+  border: 1px solid transparent;
+  padding: 0.44rem 0.7rem;
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--om-text-primary, #0f172a);
+}
+
+.btnDanger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.btnPrimary:disabled,
+.btnSecondary:disabled,
+.btnGhost:disabled,
+.btnSuccess:disabled,
+.btnDanger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Warning / Alert Callouts ── */
+.calloutWarning,
+.calloutDanger,
+.calloutInfo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.15rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.calloutWarning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+
+.calloutDanger {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #991b1b;
+}
+
+.calloutInfo {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: var(--om-text-primary, #1e293b);
+}
+
+.calloutBody {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+
+.calloutText strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+/* ── Active Centralized Sheet Band ── */
+.activeSheetPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 10px;
+  background: var(--om-bg, #f8fafc);
+  border: 1px solid var(--om-border, #e2e8f0);
+}
+
+.sheetHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sheetIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sheetTitleLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--om-text-primary, #0f172a);
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.templateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.metaLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  font-size: 0.8rem;
+  color: var(--om-text-secondary, #64748b);
+  font-variant-numeric: tabular-nums;
+}
+
+.sharingHint {
+  font-size: 0.78rem;
+  color: var(--om-text-secondary, #64748b);
+  margin: 0;
+}
+
+.sheetHeaderActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+/* ── Sync Operations Row ── */
+.syncActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--om-border, #e2e8f0);
+}
+
+.syncBtnGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.autoPushLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--om-text-primary, #1e293b);
+  cursor: pointer;
+  user-select: none;
+}
+
+.autoPushCheckbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #059669;
+  cursor: pointer;
+}
+
+/* ── Pull Diff Preview Panel ── */
+.diffPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  border-radius: 8px;
+  background: var(--om-card-bg, #ffffff);
+  border: 1px solid var(--om-border, #cbd5e1);
+}
+
+.diffMetricsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.diffMetricBox {
+  padding: 0.7rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--om-border, #e2e8f0);
+  background: var(--om-bg, #f8fafc);
+}
+
+.diffMetricNum {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--om-text-primary, #0f172a);
+}
+
+.diffMetricProtected {
+  color: #b45309;
+}
+
+.diffMetricCreate {
+  color: #059669;
+}
+
+.diffMetricLabel {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--om-text-secondary, #64748b);
+}
+
+.protectedList {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.8rem;
+  color: #92400e;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.diffTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--om-border, #e2e8f0);
+  border-radius: 8px;
+}
+
+.diffTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.diffTable th {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--om-bg, #f1f5f9);
+  color: var(--om-text-secondary, #475569);
+  border-bottom: 1px solid var(--om-border, #e2e8f0);
+}
+
+.diffTable td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--om-border, #f1f5f9);
+  color: var(--om-text-primary, #1e293b);
+  font-variant-numeric: tabular-nums;
+}
+
+.diffFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+/* ── Setup / Assignment Builder ── */
+.setupPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.25rem;
+  border-radius: 10px;
+  background: var(--om-bg, #f8fafc);
+  border: 1px solid var(--om-border, #e2e8f0);
+}
+
+.setupModeSwitch {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.setupSwitchBtn {
+  padding: 0.5rem 0.95rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--om-border, #cbd5e1);
+  background: var(--om-card-bg, #ffffff);
+  color: var(--om-text-secondary, #475569);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.setupSwitchBtnActive {
+  background: #1d4ed8;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fieldLabel {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--om-text-secondary, #475569);
+}
+
+.textInput,
+.selectInput {
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--om-border, #cbd5e1);
+  background: var(--om-card-bg, #ffffff);
+  color: var(--om-text-primary, #0f172a);
+  font-size: 0.86rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.inlineInputRow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.inlineInputRow .textInput {
+  flex: 1 1 280px;
+}
+
+.radioRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.radioOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--om-border, #cbd5e1);
+  background: var(--om-card-bg, #ffffff);
+  cursor: pointer;
+}
+
+.radioOptionActive {
+  border-color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.radioOptionTitle {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--om-text-primary, #0f172a);
+}
+
+.radioOptionDesc {
+  display: block;
+  font-size: 0.77rem;
+  color: var(--om-text-secondary, #64748b);
+  margin-top: 0.18rem;
+}
+
+.schemaColumnsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+}
+
+.schemaColPill {
+  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.2rem 0.5rem;
+  border-radius: 5px;
+  background: var(--om-card-bg, #ffffff);
+  border: 1px solid var(--om-border, #cbd5e1);
+  color: var(--om-text-primary, #334155);
+}
+
+/* ── Custom Mapping Grid ── */
+.mappingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.65rem;
+  padding-top: 0.5rem;
+}
+
+.mappingItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mappingItemLabel {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--om-text-primary, #1e293b);
+}
+
+/* ── History Drawer ── */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed var(--om-border, #cbd5e1);
+}
+
+.historyRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.79rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  background: var(--om-card-bg, #ffffff);
+  border: 1px solid var(--om-border, #e2e8f0);
+}
+
+/* ── Setup Guide Modal ── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.modalDialog {
+  width: 100%;
+  max-width: 680px;
+  max-height: 86vh;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: var(--om-card-bg, #ffffff);
+  border: 1px solid var(--om-border, #cbd5e1);
+  padding: 1.4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+}
+
+.modalTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--om-border, #e2e8f0);
+  padding-bottom: 0.75rem;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--om-text-primary, #0f172a);
+}
+
+.guideSteps {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--om-text-primary, #1e293b);
+}
+
+.codeInline {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.79rem;
+  padding: 0.12rem 0.38rem;
+  border-radius: 4px;
+  background: rgba(100, 116, 139, 0.14);
+}
+
+.spin {
+  animation: spinAnim 0.9s linear infinite;
+}
+
+@keyframes spinAnim {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   CLASSIC ROYAL MAROON & IMPERIAL GOLD (.theme-dark)
+   ========================================================================== */
+:global(.theme-dark) .governanceBar,
+:global(.theme-dark) .activeSheetPanel,
+:global(.theme-dark) .setupPanel {
+  background: rgba(28, 6, 10, 0.92);
+  border-color: rgba(212, 175, 55, 0.32);
+}
+
+:global(.theme-dark) .diffPanel,
+:global(.theme-dark) .diffMetricBox,
+:global(.theme-dark) .radioOption,
+:global(.theme-dark) .historyRow,
+:global(.theme-dark) .modalDialog {
+  background: rgba(18, 4, 7, 0.96);
+  border-color: rgba(212, 175, 55, 0.3);
+  color: #f8fafc;
+}
+
+:global(.theme-dark) .sheetTitle,
+:global(.theme-dark) .modalTitle,
+:global(.theme-dark) .diffMetricNum,
+:global(.theme-dark) .radioOptionTitle,
+:global(.theme-dark) .mappingItemLabel,
+:global(.theme-dark) .autoPushLabel,
+:global(.theme-dark) .guideSteps {
+  color: #ffea9f;
+}
+
+:global(.theme-dark) .metaLine,
+:global(.theme-dark) .sharingHint,
+:global(.theme-dark) .recordingNotice,
+:global(.theme-dark) .radioOptionDesc,
+:global(.theme-dark) .fieldLabel,
+:global(.theme-dark) .diffMetricLabel {
+  color: rgba(255, 234, 159, 0.74);
+}
+
+:global(.theme-dark) .textInput,
+:global(.theme-dark) .selectInput,
+:global(.theme-dark) .schemaColPill {
+  background: rgba(14, 3, 5, 0.95);
+  border-color: rgba(212, 175, 55, 0.36);
+  color: #ffffff;
+}
+
+:global(.theme-dark) .btnPrimary,
+:global(.theme-dark) .setupSwitchBtnActive {
+  background: linear-gradient(135deg, #e5b842 0%, #d4af37 100%);
+  color: #180407;
+  border-color: #ffea9f;
+  font-weight: 700;
+}
+
+:global(.theme-dark) .btnSecondary,
+:global(.theme-dark) .setupSwitchBtn {
+  background: rgba(34, 8, 13, 0.9);
+  color: #ffea9f;
+  border-color: rgba(212, 175, 55, 0.38);
+}
+
+:global(.theme-dark) .btnGhost {
+  color: rgba(255, 234, 159, 0.82);
+}
+
+:global(.theme-dark) .tabBadge {
+  background: rgba(212, 175, 55, 0.16);
+  color: #ffea9f;
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+:global(.theme-dark) .roleBadgeAuthorized,
+:global(.theme-dark) .oauthConnected,
+:global(.theme-dark) .templateBadge {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.38);
+}
+
+:global(.theme-dark) .roleBadgeReadOnly,
+:global(.theme-dark) .calloutWarning {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.38);
+}
+
+:global(.theme-dark) .calloutDanger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.42);
+}
+
+:global(.theme-dark) .calloutInfo {
+  background: rgba(212, 175, 55, 0.1);
+  color: #ffea9f;
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+:global(.theme-dark) .diffTable th {
+  background: rgba(36, 8, 14, 0.95);
+  color: #ffea9f;
+  border-bottom-color: rgba(212, 175, 55, 0.28);
+}
+
+:global(.theme-dark) .diffTable td {
+  color: #f8fafc;
+  border-bottom-color: rgba(212, 175, 55, 0.14);
+}
+
+/* ==========================================================================
+   SWISS BRUTALIST LIGHT MODE (.theme-light)
+   ========================================================================== */
+:global(.theme-light) .governanceBar,
+:global(.theme-light) .activeSheetPanel,
+:global(.theme-light) .setupPanel,
+:global(.theme-light) .diffPanel,
+:global(.theme-light) .modalDialog {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #0a0a0a;
+}
+
+:global(.theme-light) .btnPrimary,
+:global(.theme-light) .btnSuccess,
+:global(.theme-light) .setupSwitchBtnActive {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+}
+
+:global(.theme-light) .btnSecondary,
+:global(.theme-light) .setupSwitchBtn,
+:global(.theme-light) .textInput,
+:global(.theme-light) .selectInput,
+:global(.theme-light) .radioOption {
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0;
+}
+

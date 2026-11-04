@@ -50,6 +50,24 @@ export const DEATH_AID_MANAGER_ROLES = [
 export const canManageDeathAid = (user) =>
   DEATH_AID_MANAGER_ROLES.includes(user?.role);
 
+/**
+ * Roles authorized to Create, Assign/Reassign, and Trigger Read/Write Sync
+ * on the Centralized Commerce Hub Order Google Sheet.
+ * Strictly limited to the 6 Secretariat roles plus system `admin`.
+ */
+export const CENTRALIZED_ORDER_SHEET_MANAGER_ROLES = [
+  'admin',
+  'secretary',
+  'executive_secretary',
+  'deputy_secretary',
+  'press_secretary',
+  'linkages_secretary',
+  'finance_secretary',
+];
+
+export const canManageCentralizedOrderSheet = (user) =>
+  CENTRALIZED_ORDER_SHEET_MANAGER_ROLES.includes(user?.role);
+
 export const canSubmitDeathAid = (user) => !!user?.role;
 
 export const canViewOwnDeathAid = (user) => !!user?.role;
@@ -224,10 +242,10 @@ export const ROLE_PERMISSIONS = {
     name: 'Press Secretary',
     category: 'Secretariat',
     accessTier: 'Higher Access',
-    description: 'Higher Access: Documents, Inventory, Sections & Contributions, Announcements',
+    description: 'Higher Access: Documents, Inventory, Sections & Contributions, Announcements, Commerce Orders',
     permissions: {
       canManageProducts: true,
-      canManageOrders: false,
+      canManageOrders: true,
       canManageUsers: false,
       canViewAnalytics: true,
       canViewFinance: false,
@@ -247,10 +265,10 @@ export const ROLE_PERMISSIONS = {
     name: 'Secretary on Linkages',
     category: 'Secretariat',
     accessTier: 'Higher Access',
-    description: 'Higher Access: Documents, Inventory, Sections & Contributions (External liaison)',
+    description: 'Higher Access: Documents, Inventory, Sections & Contributions, Commerce Orders (External liaison)',
     permissions: {
       canManageProducts: true,
-      canManageOrders: false,
+      canManageOrders: true,
       canManageUsers: false,
       canViewAnalytics: true,
       canViewFinance: false,
@@ -270,10 +288,10 @@ export const ROLE_PERMISSIONS = {
     name: 'Deputy Secretary',
     category: 'Secretariat',
     accessTier: 'Higher Access',
-    description: 'Higher Access: Documents, Inventory, Sections & Contributions (Full operations)',
+    description: 'Higher Access: Documents, Inventory, Sections & Contributions, Commerce Orders (Full operations)',
     permissions: {
       canManageProducts: true,
-      canManageOrders: false,
+      canManageOrders: true,
       canManageUsers: false,
       canViewAnalytics: true,
       canViewFinance: false,
@@ -754,9 +772,9 @@ export const canAccessRoute = (user, routeName) => {
     '/track-order': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
     '/products': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative'],
     '/products/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
-    '/orders': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
-    '/orders/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
-    '/commerce': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+    '/orders': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
+    '/orders/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+    '/commerce': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
 
     // Finance — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
     '/finance': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer', 'secretary', 'executive_secretary'],

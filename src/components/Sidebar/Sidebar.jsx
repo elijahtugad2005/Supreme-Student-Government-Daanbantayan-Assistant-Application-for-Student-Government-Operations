@@ -59,7 +59,7 @@ const NAV_ITEMS = [
 
   // Order Placement & Tracking (Open to all students, members, guests, and officers)
   { to: "/order", text: "Order", icon: HiShoppingCart, roles: ['public', ...ALL_EXECUTIVE_ROLES, ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES, 'creatives', 'governor', 'member', 'guest'], publicAccess: true },
-  { to: "/commerce", text: "Commerce Hub", icon: HiShoppingBag, roles: ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES], permissions: ['canManageOrders'] },
+  { to: "/commerce", text: "Commerce Hub", icon: HiShoppingBag, roles: [...ALL_EXECUTIVE_ROLES, ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES], permissions: ['canManageOrders'] },
 
   // Admin Section — President has full general access; VP & Finance have Audit Trail
   { to: "/admin", text: "Admin Dashboard", icon: HiChartBar, roles: ['admin', 'president'], permissions: ['canManageUsers'] },

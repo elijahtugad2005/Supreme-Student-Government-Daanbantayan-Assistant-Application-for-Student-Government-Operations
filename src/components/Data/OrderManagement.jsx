@@ -19,18 +19,51 @@ import {
   Search, Edit2, Trash2, AlertCircle, Package, Clock, CheckCircle, 
   Check, X, ClockIcon, CreditCard, Truck, FileSpreadsheet, 
   ChevronDown, ChevronUp, MoreVertical, SlidersHorizontal,
-  Landmark, Sparkles, RefreshCw, ExternalLink, ShieldCheck, TrendingUp, ArrowRight
+  Landmark, Sparkles, RefreshCw, ExternalLink, ShieldCheck, TrendingUp, ArrowRight,
+  LayoutDashboard, Banknote, Smartphone, User, Activity, RotateCcw, XCircle
 } from 'lucide-react';
 import PesoSign from '../Common/PesoSign.jsx';
 import Order from '../Order/order.jsx';
 import SheetSyncPanel from './SheetSyncPanel.jsx';
+import { canManageCentralizedOrderSheet } from './centralizedOrderSheetOrchestrator.js';
+import {
+  createBrowserCentralizedOrderSheetOrchestrator,
+  getGoogleConnectionStatus,
+  subscribeToCentralizedOrderSheet,
+} from '../../services/googleSheetsOrderSyncService.js';
+import {
+  executeOrderStatusUpdate,
+  normalizeOrderStatusUpper,
+  computeOrderStatistics,
+} from './orderStatusTransition.js';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import financeService from '../../services/financeService.js';
 import { fromCentavos, toCentavos, formatPHP } from '../../utils/financeConstants.js';
 import styles from './OrderManagement.module.css';
 
 function OrderManagement() {
-  const { currentUser, userName, userRole } = useAuth();
+  const { currentUser, userName, userRole, userPermissionOverrides } = useAuth();
+  const actorUser = useMemo(
+    () => ({
+      uid: currentUser?.uid || '',
+      email: currentUser?.email || '',
+      name: userName || currentUser?.displayName || 'SSG Officer',
+      role: userRole || '',
+      permissionOverrides: userPermissionOverrides || {},
+    }),
+    [
+      currentUser?.uid,
+      currentUser?.email,
+      currentUser?.displayName,
+      userName,
+      userRole,
+      userPermissionOverrides,
+    ]
+  );
+  const canManageCentralSheet = useMemo(
+    () => canManageCentralizedOrderSheet(actorUser),
+    [actorUser]
+  );
 
   // ========================================
   // STATE MANAGEMENT
@@ -41,6 +74,15 @@ function OrderManagement() {
   const [igfAccount, setIgfAccount] = useState(null);
   const [isSyncingIGF, setIsSyncingIGF] = useState(false);
   const [igfModalOpen, setIgfModalOpen] = useState(false);
+  const [centralSheet, setCentralSheet] = useState(null);
+  const [autoPushEnabled, setAutoPushEnabled] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribeToCentralizedOrderSheet((docData) => {
+      setCentralSheet(docData);
+    });
+    return () => unsub();
+  }, []);
   
   // Navigation state
   const [activeSection, setActiveSection] = useState('orders');
@@ -315,101 +357,38 @@ function OrderManagement() {
   // UPDATE ORDER STATUS
   // ========================================
   const updateOrderStatus = async (docId, newStatus, order) => {
-    showToast(`Updating order ${order.orderId}...`, 'info');
+    let persistedFields = null;
+    await executeOrderStatusUpdate({
+      docId,
+      newStatus,
+      order,
+      deps: {
+        currentUser,
+        userName,
+        showToast,
+        syncOrderStockDeduction,
+        auditService,
+        financeService,
+        updateOrderDoc: async (targetId, fields) => {
+          persistedFields = fields;
+          return updateDoc(doc(db, 'orders', targetId), fields);
+        },
+      },
+    });
 
-    try {
-      const oldStatus = order.orderStatus;
-      const isClaimAction = newStatus === 'Claimed' || newStatus === 'Completed';
-      const isOnlinePaid = newStatus === 'Online Paid' || newStatus === 'Paid';
-      const wasClaimAction = oldStatus === 'Claimed' || oldStatus === 'Completed' || order.claimed || order.stockClaimDeducted;
-      const isReturned = newStatus === 'Returned';
-      const isPending = newStatus === 'Pending';
-      const isCancelled = newStatus === 'Cancelled';
-
-      // 1. Stock handling:
-      // When Claimed/Completed: deduct stock from Product Catalog and Inventory Register
-      if (isClaimAction && !order.stockClaimDeducted) {
-        await syncOrderStockDeduction({ order, deduct: true });
-      }
-
-      // When moved to Pending, Online Paid (unclaimed), or Cancelled from a claimed state: restore stock
-      if ((isCancelled || isPending || (isOnlinePaid && wasClaimAction)) && order.stockClaimDeducted) {
-        await syncOrderStockDeduction({ order, deduct: false });
-      }
-
-      // When Returned (defective/bad product):
-      // Do NOT return bad/defective items into sellable inventory. Log an audit trail entry for quarantine.
-      if (isReturned) {
-        const performer = userName || currentUser?.displayName || currentUser?.email || 'Commerce Hub Officer';
-        await auditService.logInventoryUpdate(
-          performer,
-          order.productInfo?.productName || 'Merchandise Item',
-          `Order #${order.orderId} returned (bad product): quarantined defective item (revenue reversed from IGF)`
-        );
-      }
-
-      // 2. IGF Revenue Integration:
-      // When Claimed/Completed or Online Paid: proceeds must be recorded into IGF Ledger
-      // CRITICAL PRE-EMPTION: If an order was Online Paid or already has an active IGF sync record,
-      // completing/claiming it ONLY deducts stock — IGF is NOT re-credited so it won't have duplicate records.
-      const isAlreadyInIGF = order.igfSynced === true && !order.igfReversed;
-      let igfSynced = order.igfSynced;
-      if ((isClaimAction || isOnlinePaid) && !isAlreadyInIGF) {
-        try {
-          await financeService.syncOrderRevenueToIGF({
-            order: { ...order, docId, orderStatus: newStatus },
-            user: currentUser,
-            notes: `Merchandise order #${order.orderId} status set to ${newStatus}`
-          });
-          igfSynced = true;
-        } catch (syncErr) {
-          console.warn('Auto IGF sync notice:', syncErr);
-        }
-      }
-
-      // When Cancelled, Pending (Cash on Arrival), or Returned (bad product refund):
-      // Reverse proceeds from IGF Ledger if it had synced
-      if ((isCancelled || isPending || isReturned) && order.igfSynced) {
-        try {
-          await financeService.reverseOrderRevenueFromIGF({
-            order: { ...order, docId },
-            user: currentUser,
-            reason: isReturned
-              ? `Order #${order.orderId} returned (bad/defective product refund)`
-              : `Order #${order.orderId} moved to ${newStatus} by officer`
-          });
-          igfSynced = false;
-        } catch (revErr) {
-          console.warn('Auto IGF reversal notice:', revErr);
-        }
-      }
-
-      // 3. Update order status in Firestore
-      await updateDoc(doc(db, 'orders', docId), {
-        orderStatus: newStatus,
-        claimed: isClaimAction,
-        stockClaimDeducted: isClaimAction,
-        igfSynced: igfSynced ?? false,
-        returnedAt: isReturned ? new Date().toISOString() : (order.returnedAt || null),
-        updatedAt: new Date().toISOString()
-      });
-
-      const detailMsg = isClaimAction
-        ? (isAlreadyInIGF || wasOnlinePaid
-            ? ' (Completed: stock decreased; IGF already recorded upon online payment)'
-            : ' (Paid & Claimed: stock deducted & IGF synced)')
-        : isOnlinePaid
-          ? ' (Paid Online: proceeds in IGF, awaiting pickup)'
-          : isReturned
-            ? ' (Returned: defective product logged & IGF refunded)'
-            : isPending
-              ? ' (Cash on Arrival: awaiting payment on claim)'
-              : '';
-
-      showToast(`Order #${order.orderId} status updated to ${newStatus}${detailMsg}.`, 'success');
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      showToast('Error updating order status: ' + error.message, 'error');
+    if (
+      persistedFields &&
+      autoPushEnabled &&
+      canManageCentralSheet &&
+      centralSheet?.spreadsheetId &&
+      getGoogleConnectionStatus().connected
+    ) {
+      const updatedOrderSnapshot = { ...order, ...persistedFields };
+      createBrowserCentralizedOrderSheetOrchestrator(actorUser)
+        .pushSingleOrderUpdate(updatedOrderSnapshot)
+        .catch((err) => {
+          console.warn('[OrderManagement] Auto-push to Google Sheet failed:', err);
+        });
     }
   };
 
@@ -536,9 +515,10 @@ function OrderManagement() {
   };
 
   const toggleClaimStatus = async (order) => {
-    const isCurrentlyClaimed = order.claimed === true || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed';
+    const rawOrderStatus = normalizeOrderStatusUpper(order.orderStatus);
+    const isCurrentlyClaimed = order.claimed === true || rawOrderStatus === 'CLAIMED' || rawOrderStatus === 'COMPLETED';
     const newClaimed = !isCurrentlyClaimed;
-    const isOnlinePayment = order.paymentInfo?.paymentMethod === 'Online' || order.orderStatus === 'Online Paid';
+    const isOnlinePayment = order.paymentInfo?.paymentMethod === 'Online' || rawOrderStatus === 'ONLINE PAID';
     const newStatus = newClaimed ? 'Claimed' : (isOnlinePayment ? 'Online Paid' : 'Pending');
     showToast(`${newClaimed ? 'Claiming' : 'Unclaiming'} order ${order.orderId}...`, 'info');
 
@@ -633,21 +613,21 @@ function OrderManagement() {
     // Filter by status
     if (statusFilter !== 'All') {
       result = result.filter(order => {
-        const rawStatus = (order.orderStatus || '').toUpperCase();
-        const isClaimed = order.claimed === true || rawStatus === 'CLAIMED' || order.orderStatus === 'Completed';
+        const rawStatus = normalizeOrderStatusUpper(order.orderStatus);
+        const isClaimed = order.claimed === true || rawStatus === 'CLAIMED' || rawStatus === 'COMPLETED';
         const isOnlinePaid = !isClaimed && (rawStatus === 'ONLINE PAID' || rawStatus === 'PAID');
         const isReturned = rawStatus === 'RETURNED';
         const isCancelled = rawStatus === 'CANCELLED';
         const isPending = !isClaimed && !isOnlinePaid && !isReturned && !isCancelled;
 
         if (statusFilter === 'Claimed') return isClaimed;
-        if (statusFilter === 'Completed') return order.orderStatus === 'Completed' || isClaimed;
+        if (statusFilter === 'Completed') return rawStatus === 'COMPLETED' || isClaimed;
         if (statusFilter === 'Online Paid' || statusFilter === 'Paid') return isOnlinePaid;
         if (statusFilter === 'Pending') return isPending;
         if (statusFilter === 'Returned') return isReturned;
         if (statusFilter === 'Cancelled') return isCancelled;
         if (statusFilter === 'Unclaimed') return !isClaimed && !isCancelled && !isReturned;
-        return order.orderStatus === statusFilter;
+        return String(order.orderStatus ?? '') === statusFilter;
       });
     }
 
@@ -658,10 +638,11 @@ function OrderManagement() {
 
     // Search by order ID or customer name
     if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
       result = result.filter(order =>
-        order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customerInfo?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customerInfo?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        String(order.orderId ?? '').toLowerCase().includes(q) ||
+        String(order.customerInfo?.fullName ?? '').toLowerCase().includes(q) ||
+        String(order.customerInfo?.email ?? '').toLowerCase().includes(q)
       );
     }
 
@@ -671,28 +652,7 @@ function OrderManagement() {
   // ========================================
   // STATISTICS CALCULATION
   // ========================================
-  const getStatistics = () => {
-    const claimedOrders = orders.filter(o => o.claimed || o.orderStatus?.toUpperCase() === 'CLAIMED' || o.orderStatus === 'Claimed' || o.orderStatus === 'Completed');
-    const onlinePaidOrders = orders.filter(o => !o.claimed && (o.orderStatus === 'Online Paid' || o.orderStatus === 'Paid' || o.orderStatus?.toUpperCase() === 'ONLINE PAID'));
-    const pendingOrders = orders.filter(o => !o.claimed && (o.orderStatus === 'Pending' || o.orderStatus?.toUpperCase() === 'UNCLAIMED' || (!o.orderStatus && o.orderStatus !== 'Online Paid')));
-    const returnedOrders = orders.filter(o => o.orderStatus?.toUpperCase() === 'RETURNED' || o.orderStatus === 'Returned');
-    const unclaimedOrders = orders.filter(o => !o.claimed && o.orderStatus !== 'Claimed' && o.orderStatus !== 'Completed');
-
-    // Revenue includes all collected funds: Claimed/Completed orders + Online Paid orders
-    const claimedRevenue = claimedOrders.reduce((sum, order) => sum + (order.productInfo?.totalPrice || 0), 0);
-    const onlinePaidRevenue = onlinePaidOrders.reduce((sum, order) => sum + (order.productInfo?.totalPrice || 0), 0);
-    const totalRevenue = claimedRevenue + onlinePaidRevenue;
-
-    return {
-      total: orders.length,
-      claimed: claimedOrders.length,
-      onlinePaid: onlinePaidOrders.length,
-      pending: pendingOrders.length,
-      returned: returnedOrders.length,
-      unclaimed: unclaimedOrders.length,
-      totalRevenue,
-    };
-  };
+  const getStatistics = () => computeOrderStatistics(orders);
 
   const stats = getStatistics();
 
@@ -702,11 +662,18 @@ function OrderManagement() {
   const igfMetrics = useMemo(() => {
     const igfBalance = fromCentavos(igfAccount?.balanceCentavos || 0);
 
-    const settledOrders = orders.filter(
-      (o) => o.orderStatus !== 'Cancelled' && 
-             o.orderStatus !== 'Returned' && 
-             (o.claimed || o.orderStatus === 'Completed' || o.orderStatus === 'Paid' || o.orderStatus === 'Online Paid' || o.orderStatus?.toUpperCase() === 'CLAIMED')
-    );
+    const settledOrders = orders.filter((o) => {
+      const raw = normalizeOrderStatusUpper(o.orderStatus);
+      return (
+        raw !== 'CANCELLED' &&
+        raw !== 'RETURNED' &&
+        (o.claimed ||
+          raw === 'COMPLETED' ||
+          raw === 'PAID' ||
+          raw === 'ONLINE PAID' ||
+          raw === 'CLAIMED')
+      );
+    });
     const settledRevenue = settledOrders.reduce((sum, o) => {
       const val = Number(o.productInfo?.totalPrice || o.totalPrice) || 0;
       return sum + val;
@@ -860,6 +827,8 @@ function OrderManagement() {
       date = new Date(timestamp);
     }
 
+    if (Number.isNaN(date.getTime())) return 'N/A';
+
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -869,38 +838,45 @@ function OrderManagement() {
     });
   };
 
-  // ========================================
-  // GET STATUS STYLE
-  // ========================================
-  const getStatusColor = (status) => {
-    const s = (status || '').toUpperCase();
-    switch (s) {
-      case 'PENDING': return '#fff3cd'; // Amber: Cash on Arrival/Claiming (Unpaid)
-      case 'ONLINE PAID':
-      case 'PAID': return '#cfe2ff'; // Soft Blue: Paid Online, awaiting claim
-      case 'ONGOING': return '#e0e7ff';
-      case 'COMPLETED':
-      case 'CLAIMED': return '#d1e7dd'; // Emerald Green: Paid & Claimed
-      case 'RETURNED': return '#f3e8ff'; // Purple: Defective/Bad product returned
-      case 'UNCLAIMED': return '#fff3cd';
-      case 'CANCELLED': return '#f8d7da'; // Red: Cancelled
-      default: return '#e2e3e5';
-    }
+  const formatDateParts = (timestamp) => {
+    if (!timestamp) return { date: 'N/A', time: '' };
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return { date: 'N/A', time: '' };
+    return {
+      date: date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }),
+      time: date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
   };
 
-  const getStatusTextColor = (status) => {
-    const s = (status || '').toUpperCase();
+  // ========================================
+  // GET SEMANTIC STATUS KEY
+  // ========================================
+  const getStatusKey = (status) => {
+    const s = normalizeOrderStatusUpper(status);
     switch (s) {
-      case 'PENDING': return '#856404'; // Deep Amber
+      case 'PENDING':
+      case 'UNCLAIMED':
+        return 'pending';
       case 'ONLINE PAID':
-      case 'PAID': return '#084298'; // Deep Blue
-      case 'ONGOING': return '#3730a3';
+      case 'PAID':
+      case 'ONGOING':
+        return 'online-paid';
       case 'COMPLETED':
-      case 'CLAIMED': return '#0f5132'; // Deep Green
-      case 'RETURNED': return '#6b21a8'; // Deep Purple
-      case 'UNCLAIMED': return '#856404';
-      case 'CANCELLED': return '#842029'; // Deep Red
-      default: return '#41464b';
+      case 'CLAIMED':
+        return 'claimed';
+      case 'RETURNED':
+        return 'returned';
+      case 'CANCELLED':
+        return 'cancelled';
+      default:
+        return 'pending';
     }
   };
 
@@ -927,7 +903,7 @@ function OrderManagement() {
   // GET STATUS CHIP COLOR (mobile dark theme)
   // ========================================
   const getMobileStatusStyle = (status) => {
-    switch (status?.toUpperCase()) {
+    switch (normalizeOrderStatusUpper(status)) {
       case 'PENDING':      return { bg: 'rgba(234,179,8,0.15)',   color: '#fbbf24', border: 'rgba(234,179,8,0.3)' };
       case 'ONLINE PAID':
       case 'PAID':         return { bg: 'rgba(59,130,246,0.15)',  color: '#60a5fa', border: 'rgba(59,130,246,0.3)' };
@@ -1066,7 +1042,7 @@ function OrderManagement() {
               className={`${styles.mobilePaymentChip} ${paymentFilter === m ? styles.mobilePaymentChipActive : ''}`}
               onClick={() => { setPaymentFilter(m); setPage(1); }}
             >
-              {m === 'All' ? '💳 All Methods' : m === 'Cash' ? '💵 Cash' : '📲 Online'}
+              {m === 'All' ? <><CreditCard size={13} /> All Methods</> : m === 'Cash' ? <><Banknote size={13} /> Cash</> : <><Smartphone size={13} /> Online</>}
             </button>
           ))}
         </div>
@@ -1100,10 +1076,11 @@ function OrderManagement() {
             {paginatedOrders.map((order) => {
               const isExpanded = expandedOrderId === order.docId;
               const isSelected = selectedOrders.includes(order.docId);
-              const isClaimed = order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED';
+              const rawOrderStatus = normalizeOrderStatusUpper(order.orderStatus);
+              const isClaimed = order.claimed || rawOrderStatus === 'CLAIMED';
               const displayStatus = isClaimed
                 ? 'Claimed'
-                : (order.orderStatus?.toUpperCase() === 'UNCLAIMED' ? 'Pending' : (order.orderStatus || 'Pending'));
+                : (rawOrderStatus === 'UNCLAIMED' ? 'Pending' : (typeof order.orderStatus === 'string' && order.orderStatus ? order.orderStatus : 'Pending'));
               const statusStyle = getMobileStatusStyle(displayStatus);
 
               return (
@@ -1168,7 +1145,7 @@ function OrderManagement() {
 
                       {/* Customer Section */}
                       <div className={styles.mobileDetailsSection}>
-                        <span className={styles.mobileDetailsSectionTitle}>👤 Customer</span>
+                        <span className={styles.mobileDetailsSectionTitle}><User size={13} /> Customer</span>
                         <div className={styles.mobileDetailsGrid}>
                           <div className={styles.mobileDetailItem}>
                             <span className={styles.mobileDetailLabel}>Full Name</span>
@@ -1191,7 +1168,7 @@ function OrderManagement() {
 
                       {/* Product Section */}
                       <div className={styles.mobileDetailsSection}>
-                        <span className={styles.mobileDetailsSectionTitle}>📦 Product</span>
+                        <span className={styles.mobileDetailsSectionTitle}><Package size={13} /> Product</span>
                         <div className={styles.mobileDetailsGrid}>
                           <div className={styles.mobileDetailItem}>
                             <span className={styles.mobileDetailLabel}>Name</span>
@@ -1222,7 +1199,7 @@ function OrderManagement() {
 
                       {/* Payment Section */}
                       <div className={styles.mobileDetailsSection}>
-                        <span className={styles.mobileDetailsSectionTitle}>💳 Payment</span>
+                        <span className={styles.mobileDetailsSectionTitle}><CreditCard size={13} /> Payment</span>
                         <div className={styles.mobileDetailsGrid}>
                           <div className={styles.mobileDetailItem}>
                             <span className={styles.mobileDetailLabel}>Method</span>
@@ -1241,19 +1218,19 @@ function OrderManagement() {
 
                       {/* Status Selector */}
                       <div className={styles.mobileDetailsSection}>
-                        <span className={styles.mobileDetailsSectionTitle}>⚡ Order Status</span>
+                        <span className={styles.mobileDetailsSectionTitle}><Activity size={13} /> Order Status</span>
                         <div style={{ marginTop: '0.4rem' }}>
                           <select
                             className={styles.statusSelect}
                             style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem' }}
                             value={
-                              order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED'
+                              order.claimed || rawOrderStatus === 'CLAIMED'
                                 ? 'Claimed'
-                                : (order.orderStatus === 'Online Paid' || order.orderStatus === 'Paid' || order.orderStatus?.toUpperCase() === 'ONLINE PAID'
+                                : (rawOrderStatus === 'ONLINE PAID' || rawOrderStatus === 'PAID'
                                     ? 'Online Paid'
-                                    : (order.orderStatus === 'Returned' || order.orderStatus?.toUpperCase() === 'RETURNED'
+                                    : (rawOrderStatus === 'RETURNED'
                                         ? 'Returned'
-                                        : (order.orderStatus?.toUpperCase() === 'UNCLAIMED' ? 'Pending' : (order.orderStatus || 'Pending'))))
+                                        : (rawOrderStatus === 'UNCLAIMED' ? 'Pending' : (typeof order.orderStatus === 'string' && order.orderStatus ? order.orderStatus : 'Pending'))))
                             }
                             onChange={(e) => handleStatusChange(order, e.target.value)}
                           >
@@ -1501,6 +1478,116 @@ function OrderManagement() {
   // ========================================
   const renderOrdersTableView = () => (
     <div className={styles.ordersView}>
+      {/* Operational Quick-Filter KPI Strip */}
+      <div className={styles.ordersQuickStrip}>
+        <button
+          type="button"
+          className={`${styles.quickStatCard} ${statusFilter === 'All' ? styles.quickStatCardActive : ''}`}
+          onClick={() => { setStatusFilter('All'); setPage(1); }}
+        >
+          <div className={styles.quickStatIcon}><Package size={16} /></div>
+          <div className={styles.quickStatBody}>
+            <span className={styles.quickStatLabel}>All Orders</span>
+            <span className={styles.quickStatVal}>{stats.total}</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.quickStatCard} ${styles.quickStatGreen} ${statusFilter === 'Claimed' ? styles.quickStatCardActive : ''}`}
+          onClick={() => { setStatusFilter(statusFilter === 'Claimed' ? 'All' : 'Claimed'); setPage(1); }}
+        >
+          <div className={styles.quickStatIcon}><CheckCircle size={16} /></div>
+          <div className={styles.quickStatBody}>
+            <span className={styles.quickStatLabel}>Claimed & Fulfilled</span>
+            <span className={styles.quickStatVal}>{stats.claimed}</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.quickStatCard} ${styles.quickStatAmber} ${statusFilter === 'Pending' ? styles.quickStatCardActive : ''}`}
+          onClick={() => { setStatusFilter(statusFilter === 'Pending' ? 'All' : 'Pending'); setPage(1); }}
+        >
+          <div className={styles.quickStatIcon}><Clock size={16} /></div>
+          <div className={styles.quickStatBody}>
+            <span className={styles.quickStatLabel}>Unclaimed / Pending</span>
+            <span className={styles.quickStatVal}>{stats.unclaimed}</span>
+          </div>
+        </button>
+
+        <div className={`${styles.quickStatCard} ${styles.quickStatStatic}`}>
+          <div className={styles.quickStatIcon}><PesoSign size={16} /></div>
+          <div className={styles.quickStatBody}>
+            <span className={styles.quickStatLabel}>Claimed Revenue</span>
+            <span className={styles.quickStatVal}>₱{stats.totalRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className={`${styles.quickStatCard} ${styles.quickStatGold}`}
+          onClick={() => setIgfModalOpen(true)}
+          title="Open IGF Treasury Audit & Sync"
+        >
+          <div className={styles.quickStatIcon}><Landmark size={16} /></div>
+          <div className={styles.quickStatBody}>
+            <span className={styles.quickStatLabel}>IGF Fund Ledger</span>
+            <span className={styles.quickStatVal}>₱{igfMetrics.igfBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Centralized Google Sheet Status Strip (Visible to all Commerce Hub officers) */}
+      {centralSheet?.spreadsheetId && (
+        <div className={styles.centralSheetStrip}>
+          <div className={styles.centralSheetLeft}>
+            <FileSpreadsheet size={16} />
+            <span className={styles.centralSheetName}>
+              Centralized Sheet: <strong>{centralSheet.spreadsheetTitle}</strong>
+            </span>
+            <span className={styles.centralSheetMeta}>
+              Tab: {centralSheet.sheetTitle} • Owner: {centralSheet.assignedByName || 'SSG Secretariat'}
+              {centralSheet.lastSyncedAt
+                ? ` • Synced ${new Date(centralSheet.lastSyncedAt).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}`
+                : ''}
+            </span>
+            {!canManageCentralSheet && (
+              <span className={styles.centralSheetReadOnlyTag}>View-Only</span>
+            )}
+            {canManageCentralSheet && autoPushEnabled && (
+              <span className={styles.centralSheetAutoTag}>Auto-Push ON</span>
+            )}
+          </div>
+          <div className={styles.centralSheetRight}>
+            <a
+              href={centralSheet.spreadsheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.centralSheetLinkBtn}
+            >
+              <span>Open Google Sheet</span>
+              <ExternalLink size={13} />
+            </a>
+            {canManageCentralSheet && (
+              <button
+                type="button"
+                className={styles.centralSheetSyncShortcut}
+                onClick={() => setActiveSection('settings')}
+              >
+                <RefreshCw size={13} />
+                <span>Secretariat Sync</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className={styles.productsToolbar}>
         <div className={styles.productsToolbarLeft}>
@@ -1509,18 +1596,29 @@ function OrderManagement() {
             <input
               type="text"
               className={styles.searchInput}
-              placeholder="Search by Order ID, Name, or Email..."
+              placeholder="Search by Order ID, Student Name, or Email..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                className={styles.searchClearBtn}
+                onClick={() => { setSearchQuery(''); setPage(1); }}
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className={styles.filterSelect}
+            aria-label="Filter by order status"
           >
-            <option value="All">All Status</option>
+            <option value="All">All Statuses</option>
             <option value="Pending">Pending (Cash on Arrival)</option>
             <option value="Online Paid">Online Paid (Unclaimed)</option>
             <option value="Claimed">Claimed (Fulfilled)</option>
@@ -1533,60 +1631,59 @@ function OrderManagement() {
             value={paymentFilter}
             onChange={(e) => { setPaymentFilter(e.target.value); setPage(1); }}
             className={styles.filterSelect}
+            aria-label="Filter by payment method"
           >
-            <option value="All">All Methods</option>
-            <option value="Cash">Cash</option>
-            <option value="Online">Online</option>
+            <option value="All">All Payment Methods</option>
+            <option value="Cash">Cash (Via Officer)</option>
+            <option value="Online">Online (e-Wallet)</option>
           </select>
         </div>
 
         <div className={styles.productsToolbarRight}>
-            <button
-              type="button"
-              className={`${styles.syncToolbarBtn} ${styles.btnSyncIgf}`}
-              onClick={() => setIgfModalOpen(true)}
-              title="Review merchandise revenue and sync with official SSG IGF fund account"
-            >
-              <Landmark size={16} />
-              <span>IGF Revenue Link</span>
-              {igfMetrics.eligibleOrders.length > 0 && (
-                <span className={styles.igfPendingPill}>{igfMetrics.eligibleOrders.length}</span>
-              )}
-            </button>
-            <button
-              type="button"
-              className={`${styles.syncToolbarBtn} ${styles.btnSyncSheet}`}
-              onClick={() => setActiveSection('settings')}
-              title="Import and dynamically sync orders from Excel or Google Sheets"
-            >
-              <FileSpreadsheet size={16} />
-              Sync Sheet / Excel
-            </button>
-            {/* Bulk Delete */}
-            <button
-              type="button"
-              className={`${styles.syncToolbarBtn} ${styles.btnBulkDelete}`}
-              onClick={openBulkDeleteModal}
-              disabled={selectedOrders.length === 0}
-              title="Delete selected orders"
-            >
-              <Trash2 size={16} />
-              Delete Selected
-            </button>
-            <button
-              type="button"
-              className={`${styles.syncToolbarBtn} ${styles.btnDeleteAll}`}
-              onClick={handleDeleteAllOrders}
-              disabled={orders.length === 0}
-              title="Delete all orders"
-            >
-              <Trash2 size={16} />
-              Delete All
-            </button>
-            {/* Selected count */}
-            {selectedOrders.length > 0 && (
-              <span className={styles.selectionInfo}>Selected: {selectedOrders.length}</span>
+          {selectedOrders.length > 0 && (
+            <span className={styles.selectionInfo}>{selectedOrders.length} selected</span>
+          )}
+          <button
+            type="button"
+            className={`${styles.syncToolbarBtn} ${styles.btnSyncIgf}`}
+            onClick={() => setIgfModalOpen(true)}
+            title="Review merchandise revenue and sync with official SSG IGF fund account"
+          >
+            <Landmark size={15} />
+            <span>IGF Revenue Link</span>
+            {igfMetrics.eligibleOrders.length > 0 && (
+              <span className={styles.igfPendingPill}>{igfMetrics.eligibleOrders.length}</span>
             )}
+          </button>
+          <button
+            type="button"
+            className={`${styles.syncToolbarBtn} ${styles.btnSyncSheet}`}
+            onClick={() => setActiveSection('settings')}
+            title="Import and dynamically sync orders from Excel or Google Sheets"
+          >
+            <FileSpreadsheet size={15} />
+            <span>Sync Sheet / Excel</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.syncToolbarBtn} ${styles.btnBulkDelete}`}
+            onClick={openBulkDeleteModal}
+            disabled={selectedOrders.length === 0}
+            title="Delete selected orders"
+          >
+            <Trash2 size={15} />
+            <span>Delete Selected</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.syncToolbarBtn} ${styles.btnDeleteAll}`}
+            onClick={handleDeleteAllOrders}
+            disabled={orders.length === 0}
+            title="Delete all orders"
+          >
+            <Trash2 size={15} />
+            <span>Delete All</span>
+          </button>
         </div>
       </div>
 
@@ -1594,110 +1691,169 @@ function OrderManagement() {
       <div className={styles.tableWrapper}>
         {loading ? (
           <div className={styles.emptyState}>
-            <p>Loading orders...</p>
+            <div className={styles.mobileSpinner} style={{ margin: '0 auto 0.75rem' }} />
+            <p>Loading merchandise orders...</p>
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className={styles.emptyState}>
-            <AlertCircle size={48} style={{ margin: '0 auto 10px', display: 'block', color: '#94a3b8' }} />
+            <AlertCircle size={40} className={styles.emptyStateIcon} />
             <p>
               {orders.length === 0 
-                ? 'No orders yet. Orders will appear here once customers place them.'
-                : 'No orders match your filters.'}
+                ? 'No orders recorded yet. Orders will appear here once students submit reservations or sheets are synced.'
+                : 'No orders match your current search or filter criteria.'}
             </p>
           </div>
         ) : (
-          <div className={styles.tableWrapper}>
-            <table className={styles.orderTable}>
-              <thead>
-                <tr>
-                  <th><input type="checkbox" onChange={toggleSelectAll} checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrders.includes(o.docId))} /></th>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Product</th>
-                  <th>Quantity</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Payment</th>
-                  <th>IGF Treasury</th>
-                  <th>Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedOrders.map((order) => (
-                  <tr key={order.docId} className={styles.tableRow}>
-                    <td data-label="Select"><input type="checkbox" checked={selectedOrders.includes(order.docId)} onChange={() => toggleSelectOrder(order.docId)} /></td>
-                    <td data-label="Order ID" className={styles.orderIdCell}>{order.orderId}</td>
+          <table className={styles.orderTable}>
+            <colgroup>
+              <col className={styles.colSelect} />
+              <col className={styles.colOrderId} />
+              <col className={styles.colCustomer} />
+              <col className={styles.colProduct} />
+              <col className={styles.colQty} />
+              <col className={styles.colTotal} />
+              <col className={styles.colStatus} />
+              <col className={styles.colPayment} />
+              <col className={styles.colIgf} />
+              <col className={styles.colDate} />
+              <col className={styles.colActions} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label="Select all orders on this page"
+                    onChange={toggleSelectAll}
+                    checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrders.includes(o.docId))}
+                  />
+                </th>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>IGF Treasury</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedOrders.map((order) => {
+                const rawOrderStatus = normalizeOrderStatusUpper(order.orderStatus);
+                const safeStatusStr = typeof order.orderStatus === 'string' && order.orderStatus ? order.orderStatus : 'Pending';
+                const effectiveStatusValue =
+                  order.claimed || rawOrderStatus === 'CLAIMED'
+                    ? 'Claimed'
+                    : (rawOrderStatus === 'ONLINE PAID' || rawOrderStatus === 'PAID'
+                        ? 'Online Paid'
+                        : (rawOrderStatus === 'RETURNED'
+                            ? 'Returned'
+                            : (rawOrderStatus === 'UNCLAIMED' ? 'Pending' : safeStatusStr)));
+                const statusKey = getStatusKey(effectiveStatusValue);
+                const isRowClaimed = order.claimed || rawOrderStatus === 'CLAIMED' || rawOrderStatus === 'COMPLETED';
+                const paymentMethodStr = order.paymentInfo?.paymentMethod || 'Cash';
+                const isOnlineMethod = String(paymentMethodStr).toUpperCase().includes('ONLINE');
+                const dateParts = formatDateParts(order.dateOrdered);
+                const totalVal = Number(order.productInfo?.totalPrice ?? order.totalPrice) || 0;
+                const isSelected = selectedOrders.includes(order.docId);
+
+                return (
+                  <tr
+                    key={order.docId}
+                    className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected : ''}`}
+                  >
+                    <td data-label="Select" className={styles.selectCell}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select order ${order.orderId}`}
+                        checked={isSelected}
+                        onChange={() => toggleSelectOrder(order.docId)}
+                      />
+                    </td>
+                    <td data-label="Order ID" className={styles.orderIdCell}>
+                      <span className={styles.orderIdBadge}>{order.orderId}</span>
+                    </td>
                     <td data-label="Customer">
                       <div className={styles.customerCell}>
-                        <span className={styles.customerName}>{order.customerInfo?.fullName}</span>
-                        <span className={styles.customerEmail}>{order.customerInfo?.email}</span>
+                        <span className={styles.customerName} title={order.customerInfo?.fullName}>
+                          {order.customerInfo?.fullName || '—'}
+                        </span>
+                        <span className={styles.customerEmail} title={order.customerInfo?.email}>
+                          {order.customerInfo?.email || (order.customerInfo?.section ? `Sec: ${order.customerInfo.section}` : '—')}
+                        </span>
                       </div>
                     </td>
                     <td data-label="Product">
                       <div className={styles.productCell}>
-                        <span className={styles.productName}>{order.productInfo?.productName}</span>
-                        {(order.productInfo?.size !== 'N/A' || order.productInfo?.color !== 'N/A') && (
+                        <span className={styles.productName} title={order.productInfo?.productName}>
+                          {order.productInfo?.productName || '—'}
+                        </span>
+                        {(order.productInfo?.size && order.productInfo?.size !== 'N/A') ||
+                         (order.productInfo?.color && order.productInfo?.color !== 'N/A') ? (
                           <span className={styles.productVariant}>
-                            {order.productInfo?.size !== 'N/A' && `Size: ${order.productInfo?.size}`}
-                            {order.productInfo?.size !== 'N/A' && order.productInfo?.color !== 'N/A' && ' • '}
-                            {order.productInfo?.color !== 'N/A' && `Color: ${order.productInfo?.color}`}
+                            {order.productInfo?.size && order.productInfo?.size !== 'N/A' && `Size: ${order.productInfo.size}`}
+                            {order.productInfo?.size && order.productInfo?.size !== 'N/A' && order.productInfo?.color && order.productInfo?.color !== 'N/A' && ' • '}
+                            {order.productInfo?.color && order.productInfo?.color !== 'N/A' && `Color: ${order.productInfo.color}`}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td data-label="Quantity" className={styles.quantityCell}>
+                      <span className={styles.qtyPill}>{order.productInfo?.quantity ?? 1}</span>
+                    </td>
+                    <td data-label="Total" className={styles.priceCell}>
+                      ₱{totalVal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td data-label="Status" className={styles.statusCell}>
+                      <select
+                        className={styles.statusSelect}
+                        data-status={statusKey}
+                        value={effectiveStatusValue}
+                        onChange={(e) => handleStatusChange(order, e.target.value)}
+                        title={`Order Status: ${effectiveStatusValue} — Click to update`}
+                      >
+                        <option value="Pending">Pending · Cash</option>
+                        <option value="Online Paid">Online Paid</option>
+                        <option value="Claimed">Claimed · Paid</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Returned">Returned</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                    <td data-label="Payment" className={styles.paymentCell}>
+                      <div className={styles.paymentStack}>
+                        <span
+                          className={styles.paymentBadge}
+                          data-method={isOnlineMethod ? 'online' : 'cash'}
+                        >
+                          {isOnlineMethod ? <Smartphone size={11} /> : <Banknote size={11} />}
+                          <span>{paymentMethodStr}</span>
+                        </span>
+                        {order.paymentInfo?.referenceNumber && order.paymentInfo.referenceNumber !== 'N/A' && (
+                          <span className={styles.paymentRef} title={`Ref: ${order.paymentInfo.referenceNumber}`}>
+                            #{order.paymentInfo.referenceNumber}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td data-label="Quantity" className={styles.quantityCell}>
-                      <span>{order.productInfo?.quantity}</span>
-                    </td>
-                    <td data-label="Total" className={styles.priceCell}>₱{order.productInfo?.totalPrice?.toFixed(2)}</td>
-                    <td data-label="Status">
-                      <select
-                        className={styles.statusSelect}
-                        value={
-                          order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED'
-                            ? 'Claimed'
-                            : (order.orderStatus === 'Online Paid' || order.orderStatus === 'Paid' || order.orderStatus?.toUpperCase() === 'ONLINE PAID'
-                                ? 'Online Paid'
-                                : (order.orderStatus === 'Returned' || order.orderStatus?.toUpperCase() === 'RETURNED'
-                                    ? 'Returned'
-                                    : (order.orderStatus?.toUpperCase() === 'UNCLAIMED' ? 'Pending' : (order.orderStatus || 'Pending'))))
-                        }
-                        onChange={(e) => handleStatusChange(order, e.target.value)}
-                        title="Change Order Status"
-                        style={{
-                          backgroundColor: getStatusColor(
-                            order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' 
-                              ? 'Claimed' 
-                              : (order.orderStatus === 'Paid' ? 'Online Paid' : (order.orderStatus || 'Pending'))
-                          ),
-                          color: getStatusTextColor(
-                            order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' 
-                              ? 'Claimed' 
-                              : (order.orderStatus === 'Paid' ? 'Online Paid' : (order.orderStatus || 'Pending'))
-                          ),
-                          borderColor: 'transparent'
-                        }}
-                      >
-                        <option value="Pending" style={{ background: '#fff', color: '#1f2937' }}>Pending (Cash on Arrival)</option>
-                        <option value="Online Paid" style={{ background: '#fff', color: '#1f2937' }}>Online Paid (Unclaimed)</option>
-                        <option value="Claimed" style={{ background: '#fff', color: '#1f2937' }}>Claimed (Paid & Fulfilled)</option>
-                        <option value="Completed" style={{ background: '#fff', color: '#1f2937' }}>Completed</option>
-                        <option value="Returned" style={{ background: '#fff', color: '#1f2937' }}>Returned (Bad Product)</option>
-                        <option value="Cancelled" style={{ background: '#fff', color: '#1f2937' }}>Cancelled</option>
-                      </select>
-                    </td>
-                    <td data-label="Payment">
-                      <span className={styles.paymentBadge}>
-                        {order.paymentInfo?.paymentMethod}
-                      </span>
-                    </td>
-                    <td data-label="IGF Treasury">
+                    <td data-label="IGF Treasury" className={styles.igfCell}>
                       {order.igfSynced ? (
                         <span className={styles.igfBadgeSynced} title={`Recorded in IGF ledger: ${order.igfTxRef || 'IGF-ORD'}`}>
                           <ShieldCheck size={13} />
                           <span>IGF Synced</span>
                         </span>
-                      ) : (order.claimed || order.orderStatus === 'Completed' || order.orderStatus === 'Paid' || order.orderStatus === 'Online Paid' || order.orderStatus?.toUpperCase() === 'CLAIMED') && order.orderStatus !== 'Cancelled' && order.orderStatus !== 'Returned' ? (
+                      ) : (
+                        (order.claimed ||
+                          rawOrderStatus === 'COMPLETED' ||
+                          rawOrderStatus === 'PAID' ||
+                          rawOrderStatus === 'ONLINE PAID' ||
+                          rawOrderStatus === 'CLAIMED') &&
+                        rawOrderStatus !== 'CANCELLED' &&
+                        rawOrderStatus !== 'RETURNED'
+                      ) ? (
                         <button
                           type="button"
                           className={styles.igfSyncRowBtn}
@@ -1709,35 +1865,43 @@ function OrderManagement() {
                           <span>Link to IGF</span>
                         </button>
                       ) : (
-                        <span className={styles.igfBadgePending}>—</span>
+                        <span className={styles.igfBadgePending}>Unsettled</span>
                       )}
                     </td>
-                    <td data-label="Date" className={styles.dateCell}>{formatDate(order.dateOrdered)}</td>
+                    <td data-label="Date" className={styles.dateCell}>
+                      <div className={styles.dateStack}>
+                        <span className={styles.datePrimary}>{dateParts.date}</span>
+                        {dateParts.time && <span className={styles.dateSecondary}>{dateParts.time}</span>}
+                      </div>
+                    </td>
                     <td data-label="Actions" className={styles.actionsCell}>
                       <div className={styles.tableActionsGroup}>
                         <button
+                          type="button"
                           className={styles.claimBtn}
+                          data-claimed={isRowClaimed ? 'true' : 'false'}
                           onClick={() => toggleClaimStatus(order)}
-                          title={(order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed') ? "Mark as Unclaimed" : "Mark as Claimed"}
+                          title={isRowClaimed ? 'Mark order as Unclaimed' : 'Mark order as Claimed & Fulfilled'}
                         >
-                          {(order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed') ? <X size={14} /> : <CheckCircle size={14} />}
-                          {(order.claimed || order.orderStatus?.toUpperCase() === 'CLAIMED' || order.orderStatus === 'Completed') ? "Unclaim" : "Claim"}
+                          {isRowClaimed ? <X size={13} /> : <CheckCircle size={13} />}
+                          <span>{isRowClaimed ? 'Unclaim' : 'Claim'}</span>
                         </button>
                         <button
+                          type="button"
                           className={styles.tableEditBtn}
                           onClick={() => handleEditClick(order)}
-                          title="Edit Order"
+                          title="Edit Order Details"
                         >
-                          <Edit2 size={14} />
-                          Edit
+                          <Edit2 size={13} />
+                          <span>Edit</span>
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
@@ -1789,10 +1953,15 @@ function OrderManagement() {
   // ========================================
   const renderSettingsView = () => (
     <div className={styles.settingsView} style={{ minHeight: 'unset' }}>
-      <SheetSyncPanel onSyncCompleted={() => {
-        // Switch to orders view after brief delay so user can immediately see synced orders
-        setTimeout(() => setActiveSection('orders'), 1200);
-      }} />
+      <SheetSyncPanel
+        centralSheet={centralSheet}
+        autoPushEnabled={autoPushEnabled}
+        onToggleAutoPush={setAutoPushEnabled}
+        onSyncCompleted={() => {
+          // Switch to orders view after brief delay so user can immediately see synced orders
+          setTimeout(() => setActiveSection('orders'), 1200);
+        }}
+      />
     </div>
   );
 
@@ -1811,20 +1980,23 @@ function OrderManagement() {
           className={`${styles.omTabBtn} ${activeSection === 'dashboard' ? styles.omTabBtnActive : ''}`}
           onClick={() => setActiveSection('dashboard')}
         >
-          📊 Dashboard
+          <LayoutDashboard size={15} />
+          <span>Dashboard</span>
         </button>
         <button
           className={`${styles.omTabBtn} ${activeSection === 'orders' ? styles.omTabBtnActive : ''}`}
           onClick={() => setActiveSection('orders')}
         >
-          📦 Orders
+          <Package size={15} />
+          <span>Orders</span>
           <span className={styles.omTabBadge}>{orders.length}</span>
         </button>
         <button
           className={`${styles.omTabBtn} ${activeSection === 'settings' ? styles.omTabBtnActive : ''}`}
           onClick={() => setActiveSection('settings')}
         >
-          📊 Sheet & Excel Sync
+          <FileSpreadsheet size={15} />
+          <span>Sheet & Excel Sync</span>
         </button>
       </div>
 
@@ -1869,30 +2041,21 @@ function OrderManagement() {
             <p className={styles.confirmModalMessage}>
               Change order <strong>{confirmModal.orderId}</strong> status to <strong className={styles.confirmStatusBadge}>{confirmModal.newStatus}</strong>?
             </p>
-            <div style={{
-              margin: '0.85rem 0',
-              padding: '0.65rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              lineHeight: '1.45',
-              textAlign: 'left',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
+            <div className={styles.confirmCalloutBox}>
               {confirmModal.newStatus === 'Claimed' || confirmModal.newStatus === 'Completed' ? (
                 confirmModal.currentStatus === 'Online Paid' || confirmModal.order?.paymentInfo?.paymentMethod === 'Online' ? (
-                  <span>📦 <strong>Online Paid Order Completed:</strong> Only the physical inventory & product stock will decrease. The IGF Ledger is <strong>not</strong> re-credited, preventing duplicate records.</span>
+                  <span><Package size={15} className={styles.inlineIcon} /> <strong>Online Paid Order Completed:</strong> Only the physical inventory & product stock will decrease. The IGF Ledger is <strong>not</strong> re-credited, preventing duplicate records.</span>
                 ) : (
-                  <span>📦 <strong>Cash Order Paid & Claimed:</strong> Stock will be decreased in Inventory/Products and cash proceeds recorded in the IGF Ledger.</span>
+                  <span><Package size={15} className={styles.inlineIcon} /> <strong>Cash Order Paid & Claimed:</strong> Stock will be decreased in Inventory/Products and cash proceeds recorded in the IGF Ledger.</span>
                 )
               ) : confirmModal.newStatus === 'Online Paid' ? (
-                <span>💳 <strong>Paid Online (Unclaimed):</strong> Payment is received and recorded in IGF Ledger. Stock remains available/reserved until student pickup.</span>
+                <span><CreditCard size={15} className={styles.inlineIcon} /> <strong>Paid Online (Unclaimed):</strong> Payment is received and recorded in IGF Ledger. Stock remains available/reserved until student pickup.</span>
               ) : confirmModal.newStatus === 'Pending' ? (
-                <span>⏳ <strong>Cash on Arrival/Claiming:</strong> Unpaid and unclaimed. Stock remains in inventory, and any previous IGF credit is reversed.</span>
+                <span><Clock size={15} className={styles.inlineIcon} /> <strong>Cash on Arrival/Claiming:</strong> Unpaid and unclaimed. Stock remains in inventory, and any previous IGF credit is reversed.</span>
               ) : confirmModal.newStatus === 'Returned' ? (
-                <span>↩️ <strong>Defective Product Returned:</strong> Returned due to bad product. Proceeds will be reversed/refunded from IGF Ledger, and the item logged as a defective return.</span>
+                <span><RotateCcw size={15} className={styles.inlineIcon} /> <strong>Defective Product Returned:</strong> Returned due to bad product. Proceeds will be reversed/refunded from IGF Ledger, and the item logged as a defective return.</span>
               ) : confirmModal.newStatus === 'Cancelled' ? (
-                <span>❌ <strong>Order Cancelled:</strong> Reserved stock is restored, and any credited IGF revenue is reversed.</span>
+                <span><XCircle size={15} className={styles.inlineIcon} /> <strong>Order Cancelled:</strong> Reserved stock is restored, and any credited IGF revenue is reversed.</span>
               ) : null}
             </div>
             <div className={styles.confirmModalActions}>

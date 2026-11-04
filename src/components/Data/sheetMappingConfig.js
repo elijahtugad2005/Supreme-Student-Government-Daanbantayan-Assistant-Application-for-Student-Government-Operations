@@ -49,6 +49,10 @@ export const ordersMapping = {
     'paymentInfo.paymentMethod':     'Payment Method',
     'paymentInfo.onlinePaymentType': 'Online Payment Type',
     'paymentInfo.referenceNumber':   'Reference Number',
+
+    // Centralized Sheet Metadata (IGF & Order Date)
+    'igfSynced':                     'IGF Treasury (Read-Only)',
+    'dateOrdered':                   'Date',
   },
 
   // Keyword dictionary for dynamic detection algorithm
@@ -111,13 +115,19 @@ export const ordersMapping = {
 
     // Payment detection keywords
     'paymentInfo.paymentMethod': [
-      'payment method', 'mode of payment', 'mop', 'payment type', 'method of payment', 'payment mode'
+      'payment', 'payment method', 'mode of payment', 'mop', 'payment type', 'method of payment', 'payment mode'
     ],
     'paymentInfo.onlinePaymentType': [
       'online payment type', 'payment channel', 'gateway', 'e-wallet', 'bank', 'provider'
     ],
     'paymentInfo.referenceNumber': [
-      'reference number', 'ref number', 'reference no', 'ref no', 'ref #', 'transaction id', 'txn id', 'reference'
+      'reference number', 'ref number', 'reference no', 'ref no', 'ref #', 'gcash ref', 'gcash reference', 'transaction id', 'txn id', 'reference'
+    ],
+    'igfSynced': [
+      'igf treasury read only', 'igf treasury', 'igf synced', 'igf status'
+    ],
+    'dateOrdered': [
+      'date', 'date ordered', 'order date', 'timestamp', 'created at'
     ],
   },
 
@@ -139,21 +149,28 @@ export const ordersMapping = {
   },
 
   transformers: {
+    'orderStatus': (v) => {
+      if (v === null || v === undefined || v === '') return 'Pending';
+      if (typeof v === 'boolean') return v ? 'Claimed' : 'Pending';
+      return String(v).trim() || 'Pending';
+    },
     'productInfo.quantity':    (v) => {
       const parsed = parseInt(v, 10);
       return isNaN(parsed) || parsed < 1 ? 1 : parsed;
     },
     'productInfo.pricePerUnit':(v) => {
-      if (typeof v === 'number') return v;
-      const clean = String(v).replace(/[^0-9.-]+/g, '');
-      const parsed = parseFloat(clean);
-      return isNaN(parsed) ? 0 : parsed;
+      if (typeof v === 'number') return Number.isFinite(v) && v > 0 ? v : 0;
+      const match = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+      if (!match) return 0;
+      const parsed = parseFloat(match[0]);
+      return Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
     },
     'productInfo.totalPrice':  (v) => {
-      if (typeof v === 'number') return v;
-      const clean = String(v).replace(/[^0-9.-]+/g, '');
-      const parsed = parseFloat(clean);
-      return isNaN(parsed) ? 0 : parsed;
+      if (typeof v === 'number') return Number.isFinite(v) && v > 0 ? v : 0;
+      const match = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+      if (!match) return 0;
+      const parsed = parseFloat(match[0]);
+      return Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
     },
     'productInfo.productName': (v) => {
       if (!v) return 'N/A';

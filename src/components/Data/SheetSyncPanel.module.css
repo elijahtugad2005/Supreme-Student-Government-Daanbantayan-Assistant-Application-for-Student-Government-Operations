@@ -43,6 +43,7 @@
 /* ── Mode Tabs ── */
 .modeTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--om-border, #e2e8f0);

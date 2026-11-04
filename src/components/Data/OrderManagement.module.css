@@ -188,6 +188,100 @@
 }
 
 /* =====================================================
+   OPERATIONAL QUICK-FILTER KPI STRIP
+   ===================================================== */
+
+.ordersQuickStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 0.75rem;
+}
+
+.quickStatCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--om-card-bg);
+  border: 1px solid var(--om-border);
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  font-family: var(--om-font);
+  box-shadow: var(--om-shadow-sm);
+}
+
+.quickStatCard:hover:not(.quickStatStatic) {
+  transform: translateY(-1px);
+  border-color: var(--om-blue);
+  box-shadow: var(--om-shadow-md);
+}
+
+.quickStatStatic {
+  cursor: default;
+}
+
+.quickStatCardActive {
+  border-color: var(--om-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.quickStatIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--om-blue-light);
+  color: var(--om-blue);
+  flex-shrink: 0;
+}
+
+.quickStatGreen .quickStatIcon {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+.quickStatAmber .quickStatIcon {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+}
+
+.quickStatGold .quickStatIcon {
+  background: rgba(212, 175, 55, 0.18);
+  color: #d4af37;
+}
+
+.quickStatBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.quickStatLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--om-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quickStatVal {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--om-text-primary);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* =====================================================
    TOOLBAR — matches ProductManagement .productsToolbar
    ===================================================== */
 
@@ -195,17 +289,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.85rem;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
 }
 
 .productsToolbarLeft {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
   flex: 1;
+  min-width: 280px;
 }
 
 .searchWrapper {
@@ -213,7 +307,7 @@
   display: flex;
   align-items: center;
   flex: 1;
-  min-width: 250px;
+  min-width: 240px;
 }
 
 .searchIcon {
@@ -224,16 +318,17 @@
 }
 
 .searchInput {
-  padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+  padding: 0.55rem 2.1rem 0.55rem 2.25rem;
   border: 1px solid var(--om-border);
   border-radius: 8px;
   background: var(--om-card-bg);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--om-text-primary);
   outline: none;
   width: 100%;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   font-family: var(--om-font);
+  height: 38px;
 }
 
 .searchInput:focus {
@@ -241,18 +336,38 @@
   box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
 }
 
+.searchClearBtn {
+  position: absolute;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--om-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.searchClearBtn:hover {
+  color: var(--om-text-primary);
+}
+
 .filterSelect {
-  padding: 0.6rem 0.9rem;
+  padding: 0 0.85rem;
+  height: 38px;
   border: 1px solid var(--om-border);
   border-radius: 8px;
   background: var(--om-card-bg);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 500;
   color: var(--om-text-primary);
   outline: none;
   cursor: pointer;
   font-family: var(--om-font);
   transition: border-color 0.15s ease;
-  min-width: 140px;
+  min-width: 145px;
 }
 
 .filterSelect:focus {
@@ -263,38 +378,57 @@
 .productsToolbarRight {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.selectionInfo {
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  background: var(--om-blue-light);
+  color: var(--om-blue);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .syncToolbarBtn {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.6rem 1.1rem;
-  font-size: 0.85rem;
+  gap: 0.4rem;
+  padding: 0 0.9rem;
+  height: 38px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #ffffff;
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
+  border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+  transition: all 0.18s ease;
   font-family: var(--om-font);
+  white-space: nowrap;
 }
 
-.syncToolbarBtn:hover {
+.syncToolbarBtn:hover:not(:disabled) {
   background: linear-gradient(135deg, #1d4ed8, #1e40af);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.28);
 }
 
-.syncToolbarBtn:active {
+.syncToolbarBtn:active:not(:disabled) {
   transform: translateY(0);
 }
 
+.syncToolbarBtn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* =====================================================
-   TABLE WRAPPER — matches ProductManagement
+   TABLE WRAPPER — Single clean surface, no double nesting
    ===================================================== */
 
 .tableWrapper {
@@ -304,20 +438,18 @@
   overflow-x: auto;
   overflow-y: visible;
   box-shadow: var(--om-shadow-sm);
-  padding: 1.5rem;
-  /* Enable horizontal scrolling on smaller screens */
+  padding: 0;
   -webkit-overflow-scrolling: touch;
   position: relative;
 }
 
-/* Ensure table scrolls properly */
 .tableWrapper::-webkit-scrollbar {
   height: 8px;
 }
 
 .tableWrapper::-webkit-scrollbar-track {
   background: var(--om-bg);
-  border-radius: 4px;
+  border-radius: 0 0 var(--om-radius) var(--om-radius);
 }
 
 .tableWrapper::-webkit-scrollbar-thumb {
@@ -329,88 +461,73 @@
   background: var(--om-text-muted);
 }
 
-/* Scroll hint for wide tables */
-.tableWrapper::before {
-  content: '← Scroll to see all columns →';
-  display: block;
-  text-align: center;
-  font-size: 0.7rem;
-  color: var(--om-text-muted);
-  padding: 0.5rem;
-  margin: -1rem -1rem 1rem -1rem;
-  background: var(--om-bg);
-  border-bottom: 1px solid var(--om-border);
-  border-radius: var(--om-radius) var(--om-radius) 0 0;
-  font-weight: 600;
-}
-
-@media (min-width: 1440px) {
-  .tableWrapper::before {
-    display: none; /* Hide scroll hint on large screens */
-  }
-}
-
 /* =====================================================
-   ORDERS VIEW (table) — matches ProductManagement .productsView
+   ORDERS VIEW (table)
    ===================================================== */
 
 .ordersView {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 /* =====================================================
-   ORDER TABLE — matches ProductManagement .productTable
+   ORDER TABLE — Precision 11-Column Grid
    ===================================================== */
 
 .orderTable {
   width: 100%;
-  min-width: 1100px;
+  min-width: 1220px;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   table-layout: fixed;
 }
 
+/* 11 Explicit Column Widths */
+.colSelect   { width: 42px;  }
+.colOrderId  { width: 124px; }
+.colCustomer { width: 185px; }
+.colProduct  { width: 210px; }
+.colQty      { width: 68px;  }
+.colTotal    { width: 100px; }
+.colStatus   { width: 156px; }
+.colPayment  { width: 106px; }
+.colIgf      { width: 124px; }
+.colDate     { width: 128px; }
+.colActions  { width: 168px; }
+
 .orderTable th {
-  padding: 0.85rem 1.25rem;
+  padding: 0.85rem 0.75rem;
   text-align: left;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--om-text-secondary);
   background: var(--om-bg);
   border-bottom: 1px solid var(--om-border);
   white-space: nowrap;
+  user-select: none;
 }
 
-/* Checkbox */
-.orderTable th:nth-child(1)  { width: 40px;  }
-/* Order ID */
-.orderTable th:nth-child(2)  { width: 140px; }
-/* Customer */
-.orderTable th:nth-child(3)  { width: 220px; }
-/* Product */
-.orderTable th:nth-child(4)  { width: 240px; }
-/* Quantity */
-.orderTable th:nth-child(5)  { width: 100px; text-align: center; }
-/* Total */
-.orderTable th:nth-child(6)  { width: 120px; }
-/* Status */
-.orderTable th:nth-child(7)  { width: 130px; }
-/* Payment */
-.orderTable th:nth-child(8)  { width: 100px; }
-/* Date */
-.orderTable th:nth-child(9)  { width: 160px; }
-/* Claim btn */
-.orderTable th:nth-child(10) { width: 110px; }
+.orderTable th:nth-child(1)  { width: 42px;  text-align: center; padding-left: 0.75rem; padding-right: 0.5rem; }
+.orderTable th:nth-child(2)  { width: 124px; }
+.orderTable th:nth-child(3)  { width: 185px; }
+.orderTable th:nth-child(4)  { width: 210px; }
+.orderTable th:nth-child(5)  { width: 68px;  text-align: center; }
+.orderTable th:nth-child(6)  { width: 100px; }
+.orderTable th:nth-child(7)  { width: 156px; }
+.orderTable th:nth-child(8)  { width: 106px; }
+.orderTable th:nth-child(9)  { width: 124px; }
+.orderTable th:nth-child(10) { width: 128px; }
+.orderTable th:nth-child(11) { width: 168px; text-align: right; padding-right: 1rem; }
 
 .orderTable td {
-  padding: 0.9rem 1.25rem;
+  padding: 0.85rem 0.75rem;
   border-bottom: 1px solid var(--om-border);
   vertical-align: middle;
   color: var(--om-text-primary);
+  overflow: hidden;
 }
 
 .orderTable tr:last-child td {
@@ -418,205 +535,318 @@
 }
 
 .tableRow {
-  transition: background 0.1s ease;
+  transition: background-color 0.14s ease;
 }
 
 .tableRow:hover td {
-  background: #fafbfc;
+  background: rgba(59, 130, 246, 0.03);
 }
 
-  .claimBtn {
-    background: var(--om-blue-light);
-    color: var(--om-blue);
-    border: none;
-    border-radius: var(--om-radius);
-    padding: 0.3rem 0.6rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
+.tableRowSelected td {
+  background: rgba(59, 130, 246, 0.07);
+}
 
-  .claimBtn:hover {
-    background: var(--om-blue);
-    color: white;
-  }
+/* Column 1: Select */
+.selectCell {
+  text-align: center;
+  padding-left: 0.75rem !important;
+  padding-right: 0.5rem !important;
+}
 
-  .tableActionsGroup {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-  }
+.selectCell input[type="checkbox"],
+.orderTable th:first-child input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--om-blue);
+}
 
-  .tableEditBtn {
-    background: var(--om-blue-light);
-    color: var(--om-blue);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: var(--om-radius);
-    padding: 0.3rem 0.6rem;
-    font-weight: 600;
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-
-  .tableEditBtn:hover {
-    background: var(--om-blue);
-    color: white;
-    transform: translateY(-1px);
-  }
-
-  .claimBadgeClaimed {
-    background: var(--om-green-light);
-    color: var(--om-green);
-    padding: 0.2rem 0.4rem;
-    border-radius: var(--om-radius);
-    font-size: 0.75rem;
-    margin-left: 0.5rem;
-  }
-
-  .claimBadgeUnclaimed {
-    background: var(--om-red-light);
-    color: var(--om-red);
-    padding: 0.2rem 0.4rem;
-    border-radius: var(--om-radius);
-    font-size: 0.75rem;
-    margin-left: 0.5rem;
-  }
-
+/* Column 2: Order ID */
 .orderIdCell {
-  font-family: 'Courier New', monospace;
-  font-weight: 700;
-  color: var(--om-text-primary);
-  font-size: 0.82rem;
-  min-width: 120px;
+  font-variant-numeric: tabular-nums;
 }
 
+.orderIdBadge {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: var(--om-text-primary);
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid var(--om-border);
+  padding: 0.22rem 0.48rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Column 3: Customer */
 .customerCell {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  min-width: 180px;
+  gap: 0.18rem;
+  min-width: 0;
 }
 
 .customerName {
   font-weight: 600;
+  font-size: 0.83rem;
   color: var(--om-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .customerEmail {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--om-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Column 4: Product */
 .productCell {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  min-width: 200px;
+  min-width: 0;
 }
 
 .productName {
   font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1.35;
   color: var(--om-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .productVariant {
-  font-size: 0.72rem;
-  color: var(--om-text-secondary);
-}
-
-.quantityCell {
-  font-weight: 700;
-  text-align: center;
-  padding: 0.9rem 1.25rem !important;
-}
-
-.quantityCell span {
-  display: inline-block;
-  background: #f1f5f9;
-  color: #334155;
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  min-width: 28px;
-}
-
-.priceCell {
-  font-weight: 700;
-  color: var(--om-blue);
-  padding: 0.9rem 1.25rem !important;
-}
-
-.dateCell {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: var(--om-text-secondary);
   white-space: nowrap;
-  min-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.paymentBadge {
+/* Column 5: Quantity */
+.quantityCell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.qtyPill {
   display: inline-flex;
-  padding: 0.2rem 0.55rem;
-  background: var(--om-blue-light);
-  color: var(--om-blue);
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  border: 1px solid rgba(59,130,246,0.15);
-  min-width: 70px;
+  align-items: center;
   justify-content: center;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--om-text-primary);
+  border: 1px solid var(--om-border);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  min-width: 30px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Table Actions — matches ProductManagement */
-.tableActions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: nowrap; /* Prevent wrapping */
-  min-width: 360px; /* Increased space for all buttons */
-  justify-content: flex-start;
+/* Column 6: Price / Total */
+.priceCell {
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: var(--om-text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Column 7: Status Select — Constrained to cell width, semantic states */
+.statusCell {
+  overflow: hidden;
 }
 
 .statusSelect {
-  padding: 0.4rem 0.6rem;
+  width: 100%;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 1.55rem 0 0.6rem;
   border: 1px solid var(--om-border);
-  border-radius: 6px;
-  background: var(--om-card-bg);
-  font-size: 0.75rem;
-  font-weight: 600;
+  border-radius: 7px;
+  background-color: var(--om-card-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.45rem center;
+  background-size: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  font-size: 0.74rem;
+  font-weight: 700;
   color: var(--om-text-primary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
   font-family: var(--om-font);
-  min-width: 110px;
-  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusSelect option {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* Semantic Status Variants (Default / Light) */
+.statusSelect[data-status="claimed"] {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23065f46' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.statusSelect[data-status="online-paid"] {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231e40af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.statusSelect[data-status="pending"] {
+  background-color: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2392400e' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.statusSelect[data-status="returned"] {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+  border-color: #d8b4fe;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b21a8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.statusSelect[data-status="cancelled"] {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23991b1b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .statusSelect:hover {
-  border-color: var(--om-blue);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  filter: brightness(0.98);
 }
 
 .statusSelect:focus {
   outline: none;
-  border-color: var(--om-blue);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
+/* Column 8: Payment */
+.paymentCell {
+  overflow: hidden;
+}
+
+.paymentStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.18rem;
+}
+
+.paymentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.55rem;
+  background: var(--om-blue-light);
+  color: var(--om-blue);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  white-space: nowrap;
+}
+
+.paymentBadge[data-method="cash"] {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.paymentBadge[data-method="online"] {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.paymentRef {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.66rem;
+  color: var(--om-text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Column 9: IGF Treasury */
+.igfCell {
+  overflow: hidden;
+}
+
+/* Column 10: Date (Stacked 2-line tabular-nums) */
+.dateCell {
+  font-variant-numeric: tabular-nums;
+}
+
+.dateStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.datePrimary {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--om-text-primary);
+  white-space: nowrap;
+}
+
+.dateSecondary {
+  font-size: 0.68rem;
+  color: var(--om-text-muted);
+  white-space: nowrap;
+}
+
+/* Column 11: Actions (Single-row aligned buttons) */
+.actionsCell {
+  text-align: right;
+  padding-right: 1rem !important;
+}
+
+.tableActionsGroup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+}
+
+.claimBtn,
 .tableEditBtn,
 .tableDeleteBtn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  justify-content: center;
+  gap: 0.3rem;
+  height: 30px;
+  padding: 0 0.62rem;
+  border-radius: 7px;
+  font-size: 0.74rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
@@ -626,32 +856,93 @@
   flex-shrink: 0;
 }
 
+/* Unclaimed -> Primary Emerald Claim CTA */
+.claimBtn[data-claimed="false"] {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.claimBtn[data-claimed="false"]:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  transform: translateY(-1px);
+}
+
+/* Claimed -> Calm Secondary Unclaim Action */
+.claimBtn[data-claimed="true"] {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--om-text-secondary);
+  border-color: var(--om-border);
+}
+
+.claimBtn[data-claimed="true"]:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
 .tableEditBtn {
   background: var(--om-blue-light);
   color: var(--om-blue);
-  border-color: rgba(59,130,246,0.15);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .tableEditBtn:hover {
   background: var(--om-blue);
-  color: white;
+  color: #ffffff;
   border-color: var(--om-blue);
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(59,130,246,0.3);
 }
 
 .tableDeleteBtn {
   background: var(--om-red-light);
   color: var(--om-red);
-  border-color: rgba(239,68,68,0.15);
+  border-color: rgba(239, 68, 68, 0.15);
 }
 
 .tableDeleteBtn:hover {
   background: var(--om-red);
-  color: white;
+  color: #ffffff;
   border-color: var(--om-red);
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(239,68,68,0.3);
+}
+
+.claimBadgeClaimed {
+  background: var(--om-green-light);
+  color: var(--om-green);
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--om-radius);
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.claimBadgeUnclaimed {
+  background: var(--om-red-light);
+  color: var(--om-red);
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--om-radius);
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.confirmCalloutBox {
+  margin: 0.85rem 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: left;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid var(--om-border);
+  color: var(--om-text-primary);
+}
+
+.inlineIcon {
+  vertical-align: -2px;
+  margin-right: 0.35rem;
+  display: inline-block;
 }
 
 /* =====================================================
@@ -1394,8 +1685,7 @@
   }
 
   .searchInput,
-  .filterSelect,
-  .statusSelect {
+  .filterSelect {
     background: #273548;
     border-color: var(--om-border);
     color: var(--om-text-primary);
@@ -2950,6 +3240,35 @@
   text-transform: uppercase !important;
 }
 
+/* ── Operational Quick-Filter KPI Strip ── */
+:global(.theme-light) .quickStatCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .quickStatCard:hover {
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .quickStatCardActive {
+  background: #FFFDF7 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #E61919 !important;
+}
+
+:global(.theme-light) .quickStatLabel {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .quickStatVal {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
 /* ── Toolbar & Action Filters ── */
 :global(.theme-light) .productsToolbar {
   background: #FFFFFF !important;
@@ -2964,8 +3283,7 @@
 }
 
 :global(.theme-light) .searchInput,
-:global(.theme-light) .filterSelect,
-:global(.theme-light) .statusSelect {
+:global(.theme-light) .filterSelect {
   background: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   border-radius: 0px !important;
@@ -2974,6 +3292,15 @@
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.82rem !important;
   font-weight: 600 !important;
+}
+
+:global(.theme-light) .statusSelect {
+  border: 1.5px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
 }
 
 :global(.theme-light) .searchInput:focus,
@@ -3032,7 +3359,7 @@
   border-bottom: 2px solid #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   text-transform: uppercase !important;
-  font-size: 0.75rem !important;
+  font-size: 0.72rem !important;
   letter-spacing: 0.06em !important;
 }
 
@@ -3043,7 +3370,7 @@
   font-size: 0.82rem !important;
 }
 
-:global(.theme-light) .orderTable tbody tr:hover {
+:global(.theme-light) .orderTable tbody tr:hover td {
   background: #F4F4F0 !important;
 }
 
@@ -3051,6 +3378,14 @@
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
   color: #0A0A0A !important;
+}
+
+:global(.theme-light) .orderIdBadge {
+  background: #F4F4F0 !important;
+  border: 1.5px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
 }
 
 :global(.theme-light) .customerName {
@@ -3075,7 +3410,12 @@
   font-size: 0.7rem !important;
 }
 
+:global(.theme-light) .qtyPill,
 :global(.theme-light) .quantityCell span {
+  background: #F4F4F0 !important;
+  border: 1.5px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  color: #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
 }
@@ -3118,13 +3458,11 @@
 }
 
 :global(.theme-light) .paymentBadge {
-  background: #FFFFFF !important;
-  border: 1px solid #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
   border-radius: 0px !important;
-  color: #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.68rem !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
 }
 
@@ -3134,17 +3472,34 @@
   color: #4A4A4A !important;
 }
 
+:global(.theme-light) .datePrimary {
+  color: #0A0A0A !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .dateSecondary {
+  color: #555555 !important;
+}
+
 /* ── Table Action Buttons ── */
 :global(.theme-light) .claimBtn {
-  background: #FFFFFF !important;
-  color: #0A0A0A !important;
   border: 1.5px solid #0A0A0A !important;
   border-radius: 0px !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
-  font-size: 0.72rem !important;
+  font-size: 0.7rem !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .claimBtn[data-claimed="false"] {
+  background: #ECFDF5 !important;
+  color: #065F46 !important;
+}
+
+:global(.theme-light) .claimBtn[data-claimed="true"] {
+  background: #F4F4F0 !important;
+  color: #0A0A0A !important;
 }
 
 :global(.theme-light) .claimBtn:hover {
@@ -3161,7 +3516,7 @@
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  font-size: 0.72rem !important;
+  font-size: 0.7rem !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
 }
 
@@ -3450,16 +3805,56 @@
   border: 1px solid rgba(212, 175, 55, 0.3) !important;
 }
 
+/* Operational Quick-Filter KPI Strip (Classic Maroon & Gold) */
+:global(.theme-dark) .quickStatCard {
+  background: rgba(28, 6, 10, 0.94) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(212, 175, 55, 0.08) !important;
+}
+
+:global(.theme-dark) .quickStatCard:hover {
+  background: rgba(42, 8, 14, 0.96) !important;
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  transform: translateY(-1px) !important;
+}
+
+:global(.theme-dark) .quickStatCardActive {
+  background: linear-gradient(135deg, rgba(48, 9, 16, 0.98) 0%, rgba(28, 6, 10, 0.98) 100%) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25), 0 6px 20px rgba(0, 0, 0, 0.55) !important;
+}
+
+:global(.theme-dark) .quickStatLabel {
+  color: rgba(255, 234, 159, 0.72) !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-dark) .quickStatVal {
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .quickStatMeta {
+  color: #e5b842 !important;
+}
+
 /* Toolbar & Filters */
 :global(.theme-dark) .productsToolbar {
-  background: transparent !important;
+  background: rgba(24, 5, 9, 0.88) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
 }
 
 :global(.theme-dark) .searchInput,
 :global(.theme-dark) .filterSelect {
-  background: rgba(22, 4, 8, 0.95) !important;
+  background: rgba(18, 3, 6, 0.95) !important;
   border: 1px solid rgba(212, 175, 55, 0.35) !important;
   color: #ffffff !important;
+}
+
+:global(.theme-dark) .filterSelect option {
+  background: #1a0408 !important;
+  color: #f8fafc !important;
 }
 
 :global(.theme-dark) .searchInput::placeholder {
@@ -3478,13 +3873,13 @@
 
 /* Action Toolbar Buttons */
 :global(.theme-dark) .syncToolbarBtn {
-  background: rgba(212, 175, 55, 0.15) !important;
-  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  background: rgba(212, 175, 55, 0.14) !important;
+  border: 1px solid rgba(212, 175, 55, 0.38) !important;
   color: #ffea9f !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
 }
 
-:global(.theme-dark) .syncToolbarBtn:hover {
+:global(.theme-dark) .syncToolbarBtn:hover:not(:disabled) {
   background: rgba(212, 175, 55, 0.25) !important;
   border-color: #d4af37 !important;
   color: #ffffff !important;
@@ -3563,11 +3958,164 @@
 
 :global(.theme-dark) .orderTable td {
   color: #e2e8f0 !important;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.15) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.14) !important;
 }
 
 :global(.theme-dark) .orderTable tr:hover td {
+  background: rgba(212, 175, 55, 0.07) !important;
+}
+
+/* Table Cell Elements in Classic Maroon & Gold */
+:global(.theme-dark) .orderIdBadge {
+  background: rgba(212, 175, 55, 0.1) !important;
+  border-color: rgba(212, 175, 55, 0.32) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .customerName {
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .customerEmail {
+  color: rgba(255, 234, 159, 0.62) !important;
+}
+
+:global(.theme-dark) .productName {
+  color: #f8fafc !important;
+  font-style: normal !important;
+}
+
+:global(.theme-dark) .productVariant {
+  color: rgba(255, 234, 159, 0.65) !important;
+}
+
+:global(.theme-dark) .qtyPill,
+:global(.theme-dark) .quantityCell span {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .priceCell {
+  color: #ffea9f !important;
+  font-weight: 800 !important;
+}
+
+/* Semantic Status Select Pills (Dark Maroon Theme — No Bright White Boxes!) */
+:global(.theme-dark) .statusSelect {
+  background-color: rgba(30, 41, 59, 0.65) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: #e2e8f0 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+:global(.theme-dark) .statusSelect option {
+  background: #1a0408 !important;
+  color: #f8fafc !important;
+}
+
+:global(.theme-dark) .statusSelect[data-status="claimed"] {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  color: #6ee7b7 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236ee7b7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+:global(.theme-dark) .statusSelect[data-status="online-paid"] {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgba(96, 165, 250, 0.45) !important;
+  color: #93c5fd !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393c5fd' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+:global(.theme-dark) .statusSelect[data-status="pending"] {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+  border-color: rgba(251, 191, 36, 0.45) !important;
+  color: #fde68a !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fde68a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+:global(.theme-dark) .statusSelect[data-status="returned"] {
+  background-color: rgba(168, 85, 247, 0.18) !important;
+  border-color: rgba(192, 132, 252, 0.45) !important;
+  color: #d8b4fe !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d8b4fe' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+:global(.theme-dark) .statusSelect[data-status="cancelled"] {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(248, 113, 113, 0.45) !important;
+  color: #fca5a5 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+/* Payment Method Badges in Dark Mode */
+:global(.theme-dark) .paymentBadge[data-method="cash"] {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .paymentBadge[data-method="online"] {
+  background: rgba(59, 130, 246, 0.16) !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
+  color: #93c5fd !important;
+}
+
+:global(.theme-dark) .paymentRef {
+  color: rgba(255, 234, 159, 0.55) !important;
+}
+
+/* Date Stack in Dark Mode */
+:global(.theme-dark) .datePrimary {
+  color: #f1f5f9 !important;
+}
+
+:global(.theme-dark) .dateSecondary {
+  color: rgba(255, 234, 159, 0.55) !important;
+}
+
+/* Action Buttons in Dark Mode */
+:global(.theme-dark) .claimBtn[data-claimed="false"] {
+  background: rgba(16, 185, 129, 0.18) !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  color: #6ee7b7 !important;
+}
+
+:global(.theme-dark) .claimBtn[data-claimed="false"]:hover {
+  background: #10b981 !important;
+  border-color: #34d399 !important;
+  color: #06281e !important;
+}
+
+:global(.theme-dark) .claimBtn[data-claimed="true"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(212, 175, 55, 0.28) !important;
+  color: rgba(255, 234, 159, 0.78) !important;
+}
+
+:global(.theme-dark) .claimBtn[data-claimed="true"]:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(248, 113, 113, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+:global(.theme-dark) .tableEditBtn {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .tableEditBtn:hover {
+  background: rgba(212, 175, 55, 0.28) !important;
+  border-color: #d4af37 !important;
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .confirmCalloutBox {
   background: rgba(212, 175, 55, 0.08) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+  color: #f8fafc !important;
 }
 
 :global(.theme-dark) .mobileOrderCard {
@@ -3582,20 +4130,11 @@
 
 /* KPI Card IGF Highlight */
 .kpiCardIgf {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(138, 26, 46, 0.09) 100%) !important;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(138, 26, 46, 0.08) 100%) !important;
   border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 234, 159, 0.2), 0 4px 16px rgba(0, 0, 0, 0.25) !important;
   position: relative;
   overflow: hidden;
-}
-
-.kpiCardIgf::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(180deg, #d4af37, #8a1a2e);
 }
 
 .igfCardBadge {
@@ -4127,3 +4666,154 @@
 
 
 
+
+/* =====================================================
+   CENTRALIZED GOOGLE SHEET STATUS STRIP
+   ===================================================== */
+.centralSheetStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  background: var(--om-card-bg);
+  border: 1px solid var(--om-border);
+  font-size: 0.82rem;
+}
+
+.centralSheetLeft {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  color: var(--om-text-primary);
+}
+
+.centralSheetName {
+  font-size: 0.83rem;
+}
+
+.centralSheetMeta {
+  color: var(--om-text-secondary);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.centralSheetReadOnlyTag,
+.centralSheetAutoTag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+}
+
+.centralSheetReadOnlyTag {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+}
+
+.centralSheetAutoTag {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+}
+
+.centralSheetRight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.centralSheetLinkBtn,
+.centralSheetSyncShortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.72rem;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.centralSheetLinkBtn {
+  background: var(--om-bg);
+  color: var(--om-text-primary);
+  border: 1px solid var(--om-border);
+}
+
+.centralSheetLinkBtn:hover {
+  border-color: var(--om-blue);
+  color: var(--om-blue);
+}
+
+.centralSheetSyncShortcut {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.centralSheetSyncShortcut:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+:global(.theme-dark) .centralSheetStrip {
+  background: rgba(24, 5, 9, 0.92);
+  border-color: rgba(212, 175, 55, 0.32);
+}
+
+:global(.theme-dark) .centralSheetLeft {
+  color: #ffea9f;
+}
+
+:global(.theme-dark) .centralSheetMeta {
+  color: rgba(255, 234, 159, 0.74);
+}
+
+:global(.theme-dark) .centralSheetLinkBtn {
+  background: rgba(36, 8, 13, 0.92);
+  color: #ffea9f;
+  border-color: rgba(212, 175, 55, 0.38);
+}
+
+:global(.theme-dark) .centralSheetLinkBtn:hover {
+  background: rgba(212, 175, 55, 0.18);
+  border-color: #ffea9f;
+  color: #ffffff;
+}
+
+:global(.theme-dark) .centralSheetSyncShortcut,
+:global(.theme-dark) .centralSheetAutoTag {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.38);
+}
+
+:global(.theme-dark) .centralSheetReadOnlyTag {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.38);
+}
+
+:global(.theme-light) .centralSheetStrip {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #0a0a0a;
+}
+
+:global(.theme-light) .centralSheetLinkBtn,
+:global(.theme-light) .centralSheetSyncShortcut {
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0;
+}
