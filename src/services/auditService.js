@@ -30,6 +30,15 @@ export const AUDIT_CODE_DEFINITIONS = {
     bg: 'rgba(16, 185, 129, 0.15)',
     border: 'rgba(16, 185, 129, 0.35)'
   },
+  IGP: {
+    code: 'IGP',
+    module: 'Finance & IGP',
+    label: 'IGP Project Revenue',
+    description: 'Income-Generating Project revenue (Vending, Lockers, Custom) collected',
+    color: '#F59E0B', // Amber
+    bg: 'rgba(245, 158, 11, 0.15)',
+    border: 'rgba(245, 158, 11, 0.35)'
+  },
   ADL: {
     code: 'ADL',
     module: 'Announcements',
@@ -107,6 +116,24 @@ export const AUDIT_CODE_DEFINITIONS = {
     color: '#10B981', // Emerald Green
     bg: 'rgba(16, 185, 129, 0.15)',
     border: 'rgba(16, 185, 129, 0.35)'
+  },
+  IGP: {
+    code: 'IGP',
+    module: 'Finance & IGP',
+    label: 'IGP Project Collection',
+    description: 'Income-Generating Project revenue collected (Vending, Lockers, Custom)',
+    color: '#F59E0B',
+    bg: 'rgba(245, 158, 11, 0.15)',
+    border: 'rgba(245, 158, 11, 0.35)'
+  },
+  IGP: {
+    code: 'IGP',
+    module: 'Finance & IGP',
+    label: 'IGP Project Revenue',
+    description: 'Income-Generating Project revenue (Vending, Lockers, Custom) collected',
+    color: '#F59E0B', // Amber
+    bg: 'rgba(245, 158, 11, 0.15)',
+    border: 'rgba(245, 158, 11, 0.35)'
   },
 
   // Budget & Finance Operations

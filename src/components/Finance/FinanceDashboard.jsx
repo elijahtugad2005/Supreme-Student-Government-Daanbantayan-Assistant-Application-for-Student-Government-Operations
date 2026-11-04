@@ -3,6 +3,7 @@ import BudgetAnalytics from '../BudgetAnalytics/BudgetAnalytics.jsx';
 import FundGovernance from './FundGovernance.jsx';
 import PreOrderBatchManager from './PreOrderBatchManager.jsx';
 import PPMPMatrix from './PPMPMatrix.jsx';
+import IgpProjectManager from './IgpProjectManager.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
 import { 
   BarChart3, 
@@ -10,7 +11,8 @@ import {
   Wallet, 
   Coins, 
   PackageCheck,
-  ClipboardList 
+  ClipboardList,
+  Store
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './FinanceDashboard.module.css';
@@ -27,7 +29,7 @@ const FinanceDashboard = () => {
   const { canEditFinance } = usePermissions();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
-  const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'ppmp' | 'batches' | 'analytics'
+  const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'igp' | 'ppmp' | 'batches' | 'analytics'
 
   return (
     <div className={`${styles.financeDashboardContainer} ${isClassic ? styles.financeClassic : ''}`}>
@@ -65,6 +67,15 @@ const FinanceDashboard = () => {
 
         <button
           type="button"
+          className={`${styles.tabButton} ${activeTab === 'igp' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('igp')}
+        >
+          <Store size={17} className={styles.tabIcon} />
+          <span className={styles.tabLabel}>IGP Projects &amp; Lockers</span>
+        </button>
+
+        <button
+          type="button"
           className={`${styles.tabButton} ${activeTab === 'ppmp' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('ppmp')}
         >
@@ -96,6 +107,12 @@ const FinanceDashboard = () => {
         {activeTab === 'funds' && (
           <section className={styles.tabPane} key="funds">
             <FundGovernance />
+          </section>
+        )}
+
+        {activeTab === 'igp' && (
+          <section className={styles.tabPane} key="igp">
+            <IgpProjectManager />
           </section>
         )}
 

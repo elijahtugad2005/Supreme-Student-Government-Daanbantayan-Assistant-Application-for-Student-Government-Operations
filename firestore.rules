@@ -631,6 +631,19 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Income-Generating Projects (IGP): Lockers & Collections
+    match /lockers/{lockerId} {
+      allow read: if isSignedIn();
+      allow create, update: if (canEditFinance() || isOfficer()) && isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /igpCollections/{collectionId} {
+      allow read: if isSignedIn();
+      allow create: if (canEditFinance() || isOfficer()) && isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
     // Anything not matched above is denied.
     match /{document=**} {
       allow read, write: if false;
