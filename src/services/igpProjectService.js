@@ -117,7 +117,21 @@ export function createIgpProjectService({ db }) {
     },
 
     async listCollections() {
-      return db.listCollections();
+      const collections = await db.listCollections();
+      return (collections || []).map((c) => {
+        const amountCentavos = typeof c.amountCentavos === 'number' && !isNaN(c.amountCentavos)
+          ? c.amountCentavos
+          : (typeof c.amountPHP === 'number' && !isNaN(c.amountPHP) ? Math.round(c.amountPHP * 100) : 0);
+        const amountPHP = typeof c.amountPHP === 'number' && !isNaN(c.amountPHP)
+          ? c.amountPHP
+          : (amountCentavos / 100);
+
+        return {
+          ...c,
+          amountCentavos,
+          amountPHP,
+        };
+      });
     },
 
     async getLocker(lockerId) {
@@ -136,6 +150,7 @@ export function createIgpProjectService({ db }) {
         projectName: collectionData.projectName || 'Campus Vending Machine',
         location: buildLocationInfo(collectionData.location),
         amountCentavos,
+        amountPHP: amountCentavos / 100,
         collectedBy: buildCollectorInfo(actorUser),
         collectedAt: collectionData.collectedAt || nowIso,
         notes: collectionData.notes || '',
@@ -383,7 +398,19 @@ export function createBrowserIgpProjectService() {
     },
     async listCollections() {
       const snap = await getDocs(query(collection(db, 'igpCollections'), orderBy('createdAt', 'desc')));
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      return snap.docs.map((d) => {
+        const data = d.data() || {};
+        const amountCentavos = Number(data.amountCentavos ?? toCentavos(data.amountPHP || 0));
+        const amountPHP = typeof data.amountPHP === 'number' && !isNaN(data.amountPHP)
+          ? data.amountPHP
+          : fromCentavos(amountCentavos);
+        return {
+          id: d.id,
+          ...data,
+          amountCentavos,
+          amountPHP,
+        };
+      });
     },
     async getIgpFund() {
       const snap = await getDoc(doc(db, 'fundAccounts', 'fund_igp_main'));

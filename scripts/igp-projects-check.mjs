@@ -356,6 +356,40 @@ console.log('\n=== Slice 7: Standards Checks (No float leak in storage, listColl
   );
 }
 
+console.log('\n=== Slice 8: Currency Normalization Guarantee (Fix for Cannot read properties of undefined reading toFixed) ===');
+{
+  const { store, db } = createFakeEnvironment();
+  const service = createIgpProjectService({ db });
+
+  // Add raw collection simulating Firestore storage where only amountCentavos is stored
+  store.collections.set('raw-col-1', {
+    id: 'raw-col-1',
+    projectType: IGP_PROJECT_TYPES.VENDING_MACHINE,
+    amountCentavos: 25050, // ₱250.50
+    // Notice amountPHP is omitted, exactly as stored in Firestore!
+  });
+
+  // Add another collection simulating locker rental collection
+  store.collections.set('raw-col-2', {
+    id: 'raw-col-2',
+    projectType: IGP_PROJECT_TYPES.LOCKER_RENTAL,
+    amountCentavos: 10000, // ₱100.00
+  });
+
+  const list = await service.listCollections();
+  check('listCollections returns all items', list.length === 2);
+  check(
+    'listCollections guarantees amountPHP is defined number on raw Firestore collection',
+    typeof list[0].amountPHP === 'number' && !isNaN(list[0].amountPHP),
+    `Got: ${list[0]?.amountPHP}`
+  );
+  check(
+    'listCollections accurately converts amountCentavos to amountPHP',
+    list[0].amountPHP === 250.5 && typeof list[0].amountPHP.toFixed === 'function' && list[0].amountPHP.toFixed(2) === '250.50',
+    `Got: ${list[0]?.amountPHP}`
+  );
+}
+
 console.log('\n' + results.join('\n'));
 console.log(failed === 0 ? '\nAll IGP Project checks passed.' : `\n${failed} CHECKS FAILED`);
 process.exit(failed === 0 ? 0 : 1);
