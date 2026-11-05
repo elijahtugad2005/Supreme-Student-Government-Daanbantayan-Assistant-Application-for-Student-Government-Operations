@@ -10,10 +10,13 @@ import {
   History,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
+  Trash2,
   X,
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import { hasPermission } from '../../utils/permissions.js';
 import {
   createBrowserIgpProjectService,
   LOCKER_BUILDINGS,
@@ -52,6 +55,13 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
     };
   }, [user, currentUser, userName, userRole]);
 
+  const canEditFinance = useMemo(() => {
+    return (
+      hasPermission(effectiveUser, 'canEditFinance') ||
+      ['admin', 'president', 'auditor', 'finance_secretary', 'budget_officer'].includes(effectiveUser?.role)
+    );
+  }, [effectiveUser]);
+
   const service = useMemo(() => createBrowserIgpProjectService(), []);
 
   const [activeSubTab, setActiveSubTab] = useState('lockers'); // 'lockers' | 'vending' | 'future' | 'history'
@@ -65,6 +75,9 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [rentModalLocker, setRentModalLocker] = useState(null);
   const [detailModalLocker, setDetailModalLocker] = useState(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [vendingForm, setVendingForm] = useState({
@@ -269,6 +282,29 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
       loadData();
     } catch (err) {
       showToast(err.message, 'error');
+    }
+  };
+
+  const handleDeleteVendingCollection = async (e) => {
+    e?.preventDefault();
+    if (!deleteConfirmModal) return;
+    if (!deleteReason.trim()) {
+      showToast('Please specify a reason for deleting and reversing this collection.', 'error');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await service.deleteVendingCollection(deleteConfirmModal.id, deleteReason.trim(), effectiveUser);
+      showToast('Collection deleted and fund balance reversed successfully.', 'success');
+      setDeleteConfirmModal(null);
+      setDeleteReason('');
+      await loadData();
+    } catch (err) {
+      console.error('Error deleting collection:', err);
+      showToast('Failed to delete collection: ' + err.message, 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -524,6 +560,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                   <th>Collected By</th>
                   <th>Ref #</th>
                   <th>Notes</th>
+                  {canEditFinance && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -540,11 +577,26 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                       <td>{c.collectedBy?.name || 'Officer'}</td>
                       <td>{c.referenceNumber || '—'}</td>
                       <td>{c.notes || '—'}</td>
+                      {canEditFinance && (
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.btnDangerSmall}
+                            onClick={() => {
+                              setDeleteConfirmModal(c);
+                              setDeleteReason('');
+                            }}
+                            title="Delete misinput & reverse funds"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 {collections.filter((c) => c.projectType === IGP_PROJECT_TYPES.VENDING_MACHINE).length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#9e8e8c' }}>
+                    <td colSpan={canEditFinance ? 7 : 6} style={{ textAlign: 'center', padding: '2rem', color: '#9e8e8c' }}>
                       No vending machine collections recorded yet. Click "Log Vendo Collection" above.
                     </td>
                   </tr>
@@ -586,6 +638,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                   <th>Location</th>
                   <th>Collected By</th>
                   <th>Notes</th>
+                  {canEditFinance && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -601,11 +654,26 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                       </td>
                       <td>{c.collectedBy?.name || 'Officer'}</td>
                       <td>{c.notes || '—'}</td>
+                      {canEditFinance && (
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.btnDangerSmall}
+                            onClick={() => {
+                              setDeleteConfirmModal(c);
+                              setDeleteReason('');
+                            }}
+                            title="Delete misinput & reverse funds"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 {collections.filter((c) => c.projectType === IGP_PROJECT_TYPES.FUTURE_IGP).length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#9e8e8c' }}>
+                    <td colSpan={canEditFinance ? 7 : 6} style={{ textAlign: 'center', padding: '2rem', color: '#9e8e8c' }}>
                       No custom IGP project revenues logged yet.
                     </td>
                   </tr>
@@ -1076,6 +1144,91 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                 </button>
                 <button type="submit" className={styles.btnPrimary}>
                   Save &amp; Credit IGP Fund
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Collection Confirmation Modal */}
+      {deleteConfirmModal && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalBox}>
+            <div className={styles.cardHeaderRow}>
+              <h4 className={styles.cardTitle} style={{ color: '#e06c75' }}>
+                <Trash2 size={18} color="#e06c75" /> Delete Misinput Collection
+              </h4>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => {
+                  setDeleteConfirmModal(null);
+                  setDeleteReason('');
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className={styles.warningBox}>
+              <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong>Reversal Notice:</strong> Deleting this collection will permanently remove the record and automatically reverse <strong>₱{formatCollectionAmountPHP(deleteConfirmModal)}</strong> from the IGP Treasury fund balance. An immutable audit trail entry will be logged.
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                padding: '0.85rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color, #382c2a)',
+                fontSize: '0.85rem',
+              }}
+            >
+              <div><strong>Project:</strong> {deleteConfirmModal.projectName || 'Campus Vending Machine'}</div>
+              <div><strong>Amount to Reverse:</strong> <span style={{ color: '#f7d070', fontWeight: 700 }}>₱{formatCollectionAmountPHP(deleteConfirmModal)}</span></div>
+              <div><strong>Location:</strong> {deleteConfirmModal.location?.buildingName || 'Campus Venue'} {deleteConfirmModal.location?.specificSpot ? `(${deleteConfirmModal.location.specificSpot})` : ''}</div>
+              <div><strong>Recorded Officer:</strong> {deleteConfirmModal.collectedBy?.name || 'Officer'}</div>
+              <div><strong>Date:</strong> {new Date(deleteConfirmModal.collectedAt || deleteConfirmModal.createdAt).toLocaleString()}</div>
+            </div>
+
+            <form onSubmit={handleDeleteVendingCollection} className={styles.formGrid}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Reason for Reversal / Deletion *</label>
+                <input
+                  type="text"
+                  required
+                  className={styles.textInput}
+                  placeholder="e.g. Misinput / Duplicate cash count entry by officer"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => {
+                    setDeleteConfirmModal(null);
+                    setDeleteReason('');
+                  }}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.btnDanger}
+                  disabled={!deleteReason.trim() || isDeleting}
+                >
+                  {isDeleting ? 'Deleting & Reversing...' : 'Confirm Deletion & Reversal'}
                 </button>
               </div>
             </form>
