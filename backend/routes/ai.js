@@ -87,63 +87,6 @@ function smartExcerpt(text, maxChars = 5000) {
   return `${head}\n\n[...]\n\n${tail}`;
 }
 
-// ── Robust JSON Parser Helper ─────────────────────────────────
-function safeJsonParse(raw) {
-  if (typeof raw !== 'string') return raw || {};
-  let str = raw.trim();
-
-  // Strip <think>...</think> reasoning tags often returned by DeepSeek / Nemotron / Qwen models
-  str = str.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-
-  // Strip markdown code fences (e.g. ```json ... ```)
-  str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-
-  // Try direct parse first
-  try {
-    return JSON.parse(str);
-  } catch (_) {}
-
-  // Find outermost JSON brackets { ... }
-  const firstBrace = str.indexOf('{');
-  const lastBrace = str.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    const candidate = str.slice(firstBrace, lastBrace + 1);
-    try {
-      return JSON.parse(candidate);
-    } catch (_) {}
-  }
-
-  // If there are multiple JSON blocks, try each
-  const jsonMatches = str.match(/\{[\s\S]*?\}/g);
-  if (jsonMatches) {
-    for (const match of jsonMatches.reverse()) {
-      try {
-        const parsed = JSON.parse(match);
-        if (parsed && typeof parsed === 'object') return parsed;
-      } catch (_) {}
-    }
-  }
-
-  // Attempt repair for unclosed quotes / truncated JSON
-  if (firstBrace !== -1) {
-    let candidate = str.slice(firstBrace);
-    if ((candidate.match(/"/g) || []).length % 2 !== 0) {
-      candidate += '"';
-    }
-    const openBraces = (candidate.match(/\{/g) || []).length;
-    const closeBraces = (candidate.match(/\}/g) || []).length;
-    for (let i = 0; i < openBraces - closeBraces; i++) {
-      candidate += '}';
-    }
-    try {
-      return JSON.parse(candidate);
-    } catch (_) {}
-  }
-
-  console.warn('[AI] Failed to parse JSON, returning fallback object:', str.slice(0, 150));
-  return {};
-}
-
 // ── Gemini Quota State Tracker ─────────────────────────────────
 const geminiQuotaState = {
   depleted: false,
