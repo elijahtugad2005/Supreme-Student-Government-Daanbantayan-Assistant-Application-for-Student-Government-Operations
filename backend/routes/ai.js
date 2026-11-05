@@ -8,6 +8,11 @@ const https = require('https');
 const { getFirestore } = require('../services/firebase-admin');
 const { getDownloadStream, getFileMetadata } = require('../utils/gridfs');
 const { authenticate } = require('../middleware/auth');
+const {
+  compressDocumentText,
+  buildOptimizedAiPrompt,
+  safeJsonParse,
+} = require('../utils/aiPromptOptimizer');
 
 // Optional mammoth import for docx
 let mammoth = null;
@@ -29,9 +34,9 @@ try {
 }
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = process.env.OPENROUTER_AI_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free';
+const OPENROUTER_MODEL = process.env.OPENROUTER_AI_MODEL || 'nvidia/nemotron-3.5-super-vl:free';
 
 // Reusable Keep-Alive agent saves ~200-300ms per request by reusing TLS connections
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10, timeout: 60000 });
@@ -185,13 +190,13 @@ const isUsable = (a) =>
 
 const GEMINI_MODELS = [
   GEMINI_MODEL,
-  ...String(process.env.GEMINI_FALLBACK_MODELS || 'gemini-flash-latest,gemini-flash-lite-latest')
+  ...String(process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.1-flash-lite,gemini-3.5-flash')
     .split(',').map((s) => s.trim()).filter(Boolean),
 ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
 const OPENROUTER_MODELS = [
   OPENROUTER_MODEL,
-  ...String(process.env.OPENROUTER_FALLBACK_MODELS || 'meta-llama/llama-3.3-70b-instruct:free,google/gemma-3-27b-it:free')
+  ...String(process.env.OPENROUTER_FALLBACK_MODELS || 'nvidia/nemotron-3.5-super-vl:free,openrouter/free')
     .split(',').map((s) => s.trim()).filter(Boolean),
 ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
@@ -227,21 +232,23 @@ async function tryGemini(model, prompt, filePart) {
 }
 
 async function tryOpenRouter(model, prompt) {
+  // Support both standard instruction models and reasoning models that consume tokens on internal thought
+  const isReasoningHeavy = /dots-3|nemotron|reasoning/i.test(model);
+  const body = {
+    model,
+    messages: [
+      { role: 'system', content: 'You extract metadata from institutional documents. Reply with ONE raw JSON object only. No reasoning, no prose, no markdown.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.1,
+    max_tokens: isReasoningHeavy ? 4096 : 3000,
+    response_format: { type: 'json_object' },
+  };
+
   const res = await postJson(
     'https://openrouter.ai/api/v1/chat/completions',
     { Authorization: `Bearer ${OPENROUTER_API_KEY}` },
-    {
-      model,
-      messages: [
-        { role: 'system', content: 'You extract metadata from institutional documents. Reply with ONE raw JSON object only. No reasoning, no prose, no markdown.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.1,
-      max_tokens: 3000,
-      response_format: { type: 'json_object' },
-      // Reasoning models otherwise burn the token budget thinking and return empty content.
-      reasoning: { exclude: true, effort: 'low' },
-    }
+    body
   );
   if (res.status !== 200) {
     console.warn(`[AI] OpenRouter ${model}: HTTP ${res.status} ${res.data?.error?.message || ''}`);
@@ -465,8 +472,8 @@ router.post('/analyzeDocument', async (req, res) => {
               extracted = res?.text || '';
             }
             if (extracted) {
-              textContent = smartExcerpt(extracted, 6000);
-              console.log(`[AI] Extracted ${textContent.length} chars from PDF "${fileName}"`);
+              textContent = compressDocumentText(extracted, 4500);
+              console.log(`[AI] Caveman preprocessed: ${textContent.length} chars (compressed from ${extracted.length}) for PDF "${fileName}"`);
             }
           } catch (pdfErr) {
             console.warn('[AI] pdf-parse error (multimodal inline data still available):', pdfErr.message);
@@ -493,14 +500,14 @@ router.post('/analyzeDocument', async (req, res) => {
       } else if ((mimeType.includes('wordprocessingml') || String(fileName).toLowerCase().endsWith('.docx') || String(fileName).toLowerCase().endsWith('.doc')) && mammoth) {
         try {
           const { value } = await mammoth.extractRawText({ buffer });
-          textContent = smartExcerpt(value, 6000);
-          console.log(`[AI] Extracted ${textContent.length} chars from DOCX "${fileName}"`);
+          textContent = compressDocumentText(value, 4500);
+          console.log(`[AI] Caveman preprocessed: ${textContent.length} chars for DOCX "${fileName}"`);
         } catch (mErr) {
           console.warn('[AI] mammoth extraction error:', mErr.message);
-          textContent = smartExcerpt(buffer.toString('utf8'), 6000);
+          textContent = compressDocumentText(buffer.toString('utf8'), 4500);
         }
       } else {
-        textContent = smartExcerpt(buffer.toString('utf8'), 6000);
+        textContent = compressDocumentText(buffer.toString('utf8'), 4500);
       }
     }
 
@@ -526,58 +533,12 @@ router.post('/analyzeDocument', async (req, res) => {
       }
     } catch (_) {}
 
-    const permittedLabelsText = labelsList.map(l => `- "${l.id}": ${l.name} (${l.description || 'Institutional document'})`).join('\n');
-
-    // 4. AI Analysis Prompt with Institutional Accuracy, Summary, Agenda, and Subject extraction
-    const prompt = `You are an expert archivist analyzing an official document for Cebu Technological University (CTU) Student Government.
-
-File name: ${fileName}
-${textContent ? `Document text content:\n${textContent}\n` : ''}
-
-Permitted Document Types / Labels:
-${permittedLabelsText}
-
-Extract strictly valid JSON with this schema:
-{
-  "title": "Clear, official document title as written",
-  "documentNumber": "Reference, resolution, or memorandum control number (e.g. RESO-2026-001, MEMO No. 4) or null",
-  "documentDate": "Date issued/signed in YYYY-MM-DD format, or null",
-  "documentType": "One exact id from permitted list above (e.g. minutes_of_meeting, resolution, memorandum)",
-  "documentTypeLabel": "The display name of the chosen document type",
-  "summary": "A concise executive institutional summary (2 to 4 sentences) detailing the purpose, discussions, decisions, and required actions",
-  "agenda": "The main agenda, core topic, or overarching discussion point of the document or meeting",
-  "subject": "The primary subject line or theme of the document (e.g. 'Request for Venue', '6th Regular Session', 'Budget Proposal')",
-  "authorName": "The individual who PREPARED, RECORDED, or DRAFTED this document (e.g. Secretary, Recorder, Prepared by). Null if not stated.",
-  "authorRole": "The exact title/role beside author name, e.g. 'Secretary', 'Recorded by', 'Prepared by'",
-  "labels": ["The chosen documentType id from the permitted list"],
-  "signatories": [
-    {
-      "name": "Approving or endorsing official name (President, Adviser, Dean, Campus Director, etc.)",
-      "position": "Official position or title (e.g. 'SSG President', 'SSG Adviser', 'Campus Director')",
-      "required": true
-    }
-  ]
-}
-
-CRITICAL RULES:
-1. SUMMARY, AGENDA, & SUBJECT:
-   - Provide an accurate, comprehensive summary of the document contents.
-   - Extract the main agenda and subject explicitly.
-   - Do NOT extract or include Agenda Items lists, Organization/Offices, Deadlines, or Keywords.
-2. CLASSIFICATION: Choose the most accurate documentType id from the permitted list:
-   - "minutes_of_meeting": Meeting discussions, presiding officers, attendees, resolutions approved during meeting.
-   - "resolution": Formal legislative resolutions with "WHEREAS" / "BE IT RESOLVED".
-   - "memorandum": Official memos, directives, circulars.
-   - "activity": Project proposals, activity designs.
-   - "request": Letters of request, venue requests, excuse letters.
-   - "financial": Budgets, liquidations, financial statements.
-3. AUTHOR vs SIGNATORIES:
-   - The AUTHOR (authorName) is who wrote/recorded/prepared the document (Secretary, Drafter, Prepared by).
-   - SIGNATORIES are officials who must APPROVE, ATTEST, or NOTE the document (President, Adviser, Dean).
-   - An author NEVER approves their own document. Do NOT put the author in the signatories list.
-   - If no approval signatories are found, return [] for signatories.
-4. OUTPUT:
-   - Output ONLY the valid JSON object. No explanation or markdown blocks.`;
+    // 4. Token-Optimized AI Prompt (Caveman mode: strips fluff, cuts token cost by ~50%, accelerates TTFT)
+    const { prompt } = buildOptimizedAiPrompt({
+      fileName,
+      textContent,
+      labelsList,
+    });
 
     const chosenProvider = req.body.provider || req.body.preferredProvider || 'auto';
     const analysis = await generateAiJson(prompt, filePart, Boolean(textContent && textContent.trim().length > 40), chosenProvider);

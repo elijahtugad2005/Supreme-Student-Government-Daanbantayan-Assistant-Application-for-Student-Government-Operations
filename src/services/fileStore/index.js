@@ -44,3 +44,6 @@ export const storageWarning =
     : null;
 
 export { localStore, firebaseStore, mongoStore };
+
+// Synced Storage: Google Drive mirror of mongoStore uploads (not a primary store).
+export { driveStore, DRIVE_SYNC_STATUS } from './driveStore.js';

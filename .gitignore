@@ -25,12 +25,19 @@ build/
 .env
 .env.local
 .env.*.local
+backend/.env
+backend/.env.*
 
-# Firebase Admin SDK service account (NEVER commit!)
+# Firebase Admin SDK & Google Service Account keys (NEVER commit!)
 backend/firebase-service-account.json
 backend/*firebase-adminsdk*.json
 firebase-service-account.json
 *firebase-adminsdk*.json
+*service-account*.json
+backend/*service-account*.json
+importantfiles/
+backend/importantfiles/
+*.key.json
 
 # =========================
 # OS and system files
@@ -63,6 +70,7 @@ auth-debug.log
 # during development, so it must never be committed.
 .secret.local
 functions/.secret.local
+importantfiles/
 
 # =========================
 # Local images (student pics)

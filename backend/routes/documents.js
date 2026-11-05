@@ -8,7 +8,118 @@ const {
   getFileMetadata,
   deleteFileFromGridFS,
   listFiles,
+  downloadFileFromGridFS,
 } = require('../utils/gridfs');
+const driveSync = require('../services/driveSync');
+
+const { sanitizeErrorResponse } = require('../utils/errorSanitizer');
+
+/**
+ * Record Drive mirror state on the GridFS file so the UI can show
+ * synced / failed / disabled without a separate collection.
+ */
+async function setDriveState(fileId, state) {
+  try {
+    const { ObjectId } = require('mongodb');
+    const { getDatabase } = require('../services/mongodb');
+    const db = await getDatabase();
+    const bucketName = process.env.MONGODB_BUCKET_NAME || 'documents';
+    const set = {};
+    for (const [k, v] of Object.entries(state)) set[`metadata.${k}`] = v;
+    await db.collection(`${bucketName}.files`).updateOne({ _id: new ObjectId(fileId) }, { $set: set });
+  } catch (err) {
+    console.warn(`[DriveSync] setDriveState failed for ${fileId}:`, err.message);
+  }
+}
+
+/**
+ * Mirror one GridFS file to Drive. Never throws: Drive is a secondary copy and
+ * must not break the primary (Mongo) path used by AI summaries.
+ */
+async function syncToDrive(fileId, buffer, filename, mimeType, meta = {}) {
+  if (!driveSync.isEnabled()) {
+    await setDriveState(fileId, { driveSyncStatus: 'disabled' }).catch(() => {});
+    return { status: 'disabled' };
+  }
+  try {
+    const { driveFileId, webViewLink } = await driveSync.mirrorUpload(buffer, filename, mimeType, {
+      mongoFileId: fileId,
+      documentId: meta.documentId,
+    });
+    await setDriveState(fileId, {
+      driveSyncStatus: 'synced',
+      driveFileId,
+      driveWebViewLink: webViewLink,
+      driveSyncedAt: new Date(),
+      driveSyncError: null,
+    });
+    console.log(`[DriveSync] Mirrored ${fileId} -> ${driveFileId}`);
+    return { status: 'synced', driveFileId, webViewLink };
+  } catch (err) {
+    console.warn(`[DriveSync] Failed for ${fileId}:`, err.message);
+    await setDriveState(fileId, { driveSyncStatus: 'failed', driveSyncError: err.message }).catch(() => {});
+    return { status: 'failed', error: err.message };
+  }
+}
+
+/**
+ * GET /api/documents
+ * Index endpoint describing available sub-routes.
+ */
+router.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Document Repository & Storage API',
+    endpoints: {
+      health: 'GET /api/documents/health',
+      driveStatus: 'GET /api/documents/drive/status (requires auth)',
+      list: 'GET /api/documents/list (requires auth)',
+      upload: 'POST /api/documents/upload (requires auth)',
+      download: 'GET /api/documents/:fileId/download (requires auth)',
+      metadata: 'GET /api/documents/:fileId/metadata (requires auth)',
+      delete: 'DELETE /api/documents/:fileId (requires auth)'
+    }
+  });
+});
+
+/**
+ * GET /api/documents/drive/status
+ * Whether Synced Storage (Google Drive) is configured on this server.
+ */
+router.get('/drive/status', authenticate, (req, res) => {
+  res.status(200).json({ success: true, data: { enabled: driveSync.isEnabled() } });
+});
+
+/**
+ * POST /api/documents/:fileId/drive-sync
+ * Retry (or first-time) mirror of an existing GridFS file to Drive.
+ */
+router.post('/:fileId/drive-sync', authenticate, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const metadata = await getFileMetadata(fileId);
+    if (!metadata) return res.status(404).json({ success: false, error: 'File not found' });
+
+    if (metadata.metadata?.driveFileId) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          status: 'synced',
+          driveFileId: metadata.metadata.driveFileId,
+          webViewLink: metadata.metadata.driveWebViewLink || null,
+        },
+      });
+    }
+
+    const buffer = await downloadFileFromGridFS(fileId);
+    const result = await syncToDrive(fileId, buffer, metadata.filename, metadata.metadata?.mimeType, {
+      documentId: metadata.metadata?.documentId,
+    });
+    res.status(result.status === 'failed' ? 502 : 200).json({ success: result.status !== 'failed', data: result });
+  } catch (error) {
+    console.error('[DriveSync] Retry error:', error.message);
+    res.status(500).json(sanitizeErrorResponse(error, 'Drive synchronization request failed.'));
+  }
+});
 
 /**
  * GET /api/documents/health
@@ -31,20 +142,15 @@ router.get('/health', async (req, res) => {
     const bucketName = process.env.MONGODB_BUCKET_NAME || 'documents';
     res.status(200).json({
       success: dbStatus === 'connected',
-      message: dbStatus === 'connected' ? 'MongoDB GridFS is reachable' : 'MongoDB error — ' + dbStatus,
+      message: dbStatus === 'connected' ? 'MongoDB GridFS is reachable' : 'MongoDB service temporarily degraded',
       database: process.env.MONGODB_DATABASE || 'ssg_documents',
       bucket: bucketName,
       totalFiles,
       timestamp: new Date().toISOString(),
-      mongoStatus: dbStatus,
+      mongoStatus: dbStatus === 'connected' ? 'connected' : 'error',
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Health check failed',
-      message: error.message,
-      timestamp: new Date().toISOString(),
-    });
+    res.status(500).json(sanitizeErrorResponse(error, 'Health check service unavailable'));
   }
 });
 
@@ -129,6 +235,8 @@ router.post('/upload', authenticate, upload.single('file'), async (req, res) => 
 
     console.log(`[Upload] Success: ${result.fileId}`);
 
+    const driveSyncStatus = driveSync.isEnabled() ? 'pending' : 'disabled';
+
     res.status(200).json({
       success: true,
       message: 'File uploaded successfully',
@@ -137,8 +245,14 @@ router.post('/upload', authenticate, upload.single('file'), async (req, res) => 
         fileId: result.fileId,
         filename: result.filename,
         size: result.size,
-        uploadedAt: new Date().toISOString()
+        uploadedAt: new Date().toISOString(),
+        driveSyncStatus,
       }
+    });
+
+    // Mirror to Drive after responding so upload latency is unchanged.
+    syncToDrive(result.fileId, req.file.buffer, req.file.originalname, req.file.mimetype, { documentId }).catch((err) => {
+      console.warn(`[DriveSync] Async background mirror failed for ${result.fileId}:`, err.message);
     });
 
   } catch (error) {
@@ -289,6 +403,9 @@ router.delete('/:fileId', authenticate, async (req, res) => {
 
     await deleteFileFromGridFS(fileId);
     console.log(`[Delete] Success: ${fileId}`);
+    await driveSync.deleteMirror(metadata.metadata?.driveFileId).catch((err) =>
+      console.warn(`[DriveSync] Mirror delete failed for ${fileId}:`, err.message)
+    );
 
     res.status(200).json({
       success: true,
@@ -325,7 +442,11 @@ router.delete('/firestore/:documentId', authenticate, async (req, res) => {
     const data = snap.data();
     if (data.mongoFileId) {
       try {
+        const gridMeta = await getFileMetadata(data.mongoFileId);
         await deleteFileFromGridFS(data.mongoFileId);
+        await driveSync.deleteMirror(gridMeta?.metadata?.driveFileId).catch((e) =>
+          console.warn(`[DriveSync] Mirror delete failed for ${data.mongoFileId}:`, e.message)
+        );
       } catch (err) {
         console.warn(`[Delete Firestore] GridFS cleanup failed for ${data.mongoFileId}:`, err.message);
       }

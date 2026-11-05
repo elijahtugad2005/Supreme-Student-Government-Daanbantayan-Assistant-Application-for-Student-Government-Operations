@@ -89,6 +89,7 @@ function DocumentDashboard() {
   const [busy, setBusy] = useState(false);
   const [uploadStepState, setUploadStepState] = useState(''); // 'reading' | 'uploading' | 'analyzing'
   const [autoAnalyseId, setAutoAnalyseId] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // ── Feedback progress animations for file actions ──
   const [downloadingDocId, setDownloadingDocId] = useState(null);
@@ -583,23 +584,56 @@ function DocumentDashboard() {
           </div>
         </div>
 
-        {/* Step 1: Choose file (always visible) */}
+        {/* Step 1: Choose or Drag & Drop file (always visible) */}
         <div className={stylesModule.uploadStepBox} style={styles.uploadStep}>
           <div style={styles.stepHeader}>
             <span className={stylesModule.stepBadge} style={styles.stepNumber}>1</span>
-            <span className={stylesModule.stepHeadline} style={styles.stepTitle}>Choose a file</span>
+            <span className={stylesModule.stepHeadline} style={styles.stepTitle}>Drag & Drop or Upload Document</span>
           </div>
-          <div style={styles.dropRow}>
+
+          <div
+            className={`${stylesModule.dropZoneArea} ${isDragOver ? stylesModule.dropZoneActive : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!busy) setIsDragOver(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDragOver(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDragOver(false);
+              if (busy) return;
+              const droppedFiles = e.dataTransfer.files;
+              if (droppedFiles && droppedFiles.length > 0) {
+                pickFile(droppedFiles[0]);
+              }
+            }}
+          >
             <input
               type="file"
               accept={ACCEPT_ATTRIBUTE}
               onChange={(e) => pickFile(e.target.files?.[0])}
-              style={styles.fileInput}
+              className={stylesModule.hiddenFileInput}
               disabled={busy}
+              title="Click or drag file to upload"
             />
-            <span style={styles.fileNote}>
-              Accepted: {ACCEPT_ATTRIBUTE.replace(/,/g, ', ')} · up to {formatBytes(MAX_FILE_BYTES)}
-            </span>
+            <div className={stylesModule.dropZoneIconWrap}>
+              <HiUpload />
+            </div>
+            <div className={stylesModule.dropZoneTitle}>
+              {isDragOver ? 'Drop file here to upload' : 'Drag & drop your document here, or click to browse'}
+            </div>
+            <div className={stylesModule.dropZoneSubtext}>
+              Accepted formats: {ACCEPT_ATTRIBUTE.replace(/,/g, ', ')} · Up to {formatBytes(MAX_FILE_BYTES)}
+            </div>
+            <div className={stylesModule.pdfRecommendationBadge}>
+              📄 [It is recommended for PDF files]
+            </div>
           </div>
           {fileError && <p style={styles.errorText}>{fileError}</p>}
         </div>
