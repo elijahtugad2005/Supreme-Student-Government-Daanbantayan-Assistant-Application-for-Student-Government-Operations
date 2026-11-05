@@ -34,8 +34,10 @@ const InventoryManagement = () => {
   const {
     inventory,
     categories,
+    addCategory,
     loading,
     borrowedItems,
+    fundBalances,
     addInventoryItem,
     updateInventoryItem,
     deleteInventoryItem,
@@ -50,6 +52,7 @@ const InventoryManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [stockFilter, setStockFilter] = useState('ALL'); // 'ALL' | 'LOW' | 'OUT' | 'IN'
+  const [fundFilter, setFundFilter] = useState('ALL'); // 'ALL' | 'IGF' | 'IGP'
 
   // Dialog & Modal state
   const [openDialog, setOpenDialog] = useState(false);
@@ -201,6 +204,15 @@ const InventoryManagement = () => {
         returnedDate: new Date(),
         processedBy: userName || 'Officer',
       });
+      // Audit Trail: Log Inventory Return
+      await auditService.log({
+        action: 'INVENTORY_RETURN',
+        actionCode: 'IRT',
+        category: 'INVENTORY',
+        performedBy: userName || 'Authorized Officer',
+        details: `Processed return for "${selectedBorrowLog.itemName}" (Qty: ${selectedBorrowLog.quantityBorrowed || 1}, Condition: ${returnValues.condition || 'good'})`,
+        status: 'SUCCESS',
+      });
       showToast(`Confirmed return of ${selectedBorrowLog.itemName}`);
       setOpenReturnDialog(false);
       setSelectedBorrowLog(null);
@@ -257,9 +269,14 @@ const InventoryManagement = () => {
         (stockFilter === 'OUT' && item.quantity === 0) ||
         (stockFilter === 'IN' && item.quantity > (item.minQuantity || 5));
 
-      return matchesSearch && matchesCategory && matchesStock;
+      const itemFund = (item.fundSource || (item.source?.includes('IGF') || item.linkedProductId ? 'IGF' : '')).toUpperCase();
+      const matchesFund =
+        fundFilter === 'ALL' ||
+        itemFund === fundFilter;
+
+      return matchesSearch && matchesCategory && matchesStock && matchesFund;
     });
-  }, [inventory, searchTerm, selectedCategory, stockFilter]);
+  }, [inventory, searchTerm, selectedCategory, stockFilter, fundFilter]);
 
   return (
     <div className={`${styles.container} ${isClassic ? styles.inventoryClassic : ''}`}>
@@ -475,6 +492,18 @@ const InventoryManagement = () => {
                 <option value="LOW">Low Stock</option>
                 <option value="OUT">Out of Stock</option>
               </select>
+
+              {/* Fund Source Select */}
+              <select
+                value={fundFilter}
+                onChange={(e) => setFundFilter(e.target.value)}
+                className={styles.filterSelect}
+                aria-label="Filter by Fund Source"
+              >
+                <option value="ALL">All Funds (IGF & IGP)</option>
+                <option value="IGF">IGF (Income Generated)</option>
+                <option value="IGP">IGP (Projects & Enterprises)</option>
+              </select>
             </div>
           </div>
 
@@ -624,7 +653,8 @@ const InventoryManagement = () => {
                 className={styles.primaryButton}
                 onClick={() => {
                   if (newCategoryInput.trim()) {
-                    showToast(`Classification "${newCategoryInput}" added`);
+                    addCategory(newCategoryInput.trim());
+                    showToast(`Classification "${newCategoryInput.trim()}" added`);
                     setNewCategoryInput('');
                   }
                 }}
@@ -642,6 +672,7 @@ const InventoryManagement = () => {
           isOpen={openDialog}
           item={selectedItem}
           categories={categories}
+          fundBalances={fundBalances}
           isClassic={isClassic}
           onClose={handleCloseDialog}
           onSave={handleSaveItem}
@@ -703,7 +734,21 @@ const InventoryRow = memo(function InventoryRow({
         <div className={styles.itemNameWrapper}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <span className={styles.itemNameText}>{item.name}</span>
-            {(item.fundSource === 'IGF' || item.source?.includes('IGF') || item.linkedProductId) && (
+            {item.fundSource === 'IGP' ? (
+              <span style={{
+                fontSize: '0.66rem',
+                fontWeight: 700,
+                color: '#059669',
+                background: 'rgba(5, 150, 105, 0.12)',
+                border: '1px solid rgba(5, 150, 105, 0.35)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                letterSpacing: '0.03em',
+                lineHeight: '1.2'
+              }}>
+                IGP PROJECT
+              </span>
+            ) : (item.fundSource === 'IGF' || item.source?.includes('IGF') || item.linkedProductId || !item.fundSource) ? (
               <span style={{
                 fontSize: '0.66rem',
                 fontWeight: 700,
@@ -717,7 +762,7 @@ const InventoryRow = memo(function InventoryRow({
               }}>
                 IGF FUND
               </span>
-            )}
+            ) : null}
           </div>
           {item.description && (
             <span className={styles.itemDescriptionText}>
@@ -858,6 +903,7 @@ const AssetDialog = memo(function AssetDialog({
   isOpen,
   item,
   categories,
+  fundBalances = { IGF: 0, IGP: 0 },
   isClassic,
   onClose,
   onSave,
@@ -866,6 +912,7 @@ const AssetDialog = memo(function AssetDialog({
   const [formData, setFormData] = useState(() => ({
     name: item?.name || '',
     category: item?.category || categories?.[0] || '',
+    fundSource: item?.fundSource || 'IGF',
     quantity: item?.quantity ?? 0,
     storageLocation: item?.storageLocation || '',
     amount: item?.amount ?? 0,
@@ -880,6 +927,7 @@ const AssetDialog = memo(function AssetDialog({
       setFormData({
         name: item.name || '',
         category: item.category || categories?.[0] || '',
+        fundSource: item.fundSource || 'IGF',
         quantity: item.quantity ?? 0,
         storageLocation: item.storageLocation || '',
         amount: item.amount ?? 0,
@@ -891,6 +939,7 @@ const AssetDialog = memo(function AssetDialog({
       setFormData({
         name: '',
         category: categories?.[0] || '',
+        fundSource: 'IGF',
         quantity: 0,
         storageLocation: '',
         amount: 0,
@@ -909,6 +958,21 @@ const AssetDialog = memo(function AssetDialog({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  const totalProcurementCost = useMemo(() => {
+    const q = parseInt(formData.quantity, 10) || 0;
+    const a = parseFloat(formData.amount) || 0;
+    return q * a;
+  }, [formData.quantity, formData.amount]);
+
+  const selectedFundBalance = useMemo(() => {
+    return formData.fundSource === 'IGP' ? fundBalances.IGP || 0 : fundBalances.IGF || 0;
+  }, [formData.fundSource, fundBalances]);
+
+  const isInsufficientFund = useMemo(() => {
+    if (item) return false; // editing an existing item does not re-debit the balance
+    return totalProcurementCost > selectedFundBalance;
+  }, [item, totalProcurementCost, selectedFundBalance]);
+
   const handleReceiptUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -924,6 +988,10 @@ const AssetDialog = memo(function AssetDialog({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!item && isInsufficientFund) {
+      alert(`Cannot procure asset: Total procurement cost (₱${totalProcurementCost.toFixed(2)}) exceeds available ${formData.fundSource} balance (₱${selectedFundBalance.toFixed(2)}).`);
+      return;
+    }
     setSubmitting(true);
     try {
       await onSave(formData);
@@ -960,6 +1028,109 @@ const AssetDialog = memo(function AssetDialog({
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGrid}>
+            <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+              <label>Procurement Fund Source *</label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+                marginTop: '6px'
+              }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: formData.fundSource === 'IGF' ? '2px solid #d97706' : '1px solid rgba(255,255,255,0.15)',
+                  background: formData.fundSource === 'IGF' ? 'rgba(217, 119, 6, 0.08)' : 'rgba(255,255,255,0.03)',
+                  cursor: item ? 'not-allowed' : 'pointer'
+                }}>
+                  <input
+                    type="radio"
+                    name="fundSource"
+                    value="IGF"
+                    checked={formData.fundSource === 'IGF'}
+                    disabled={Boolean(item)}
+                    onChange={() => setFormData((prev) => ({ ...prev, fundSource: 'IGF' }))}
+                    style={{ marginTop: '3px' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#d97706' }}>
+                      IGF — Income Generated Fund
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                      General student supplies, uniform accessories, merchandise stock.
+                    </div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f59e0b', marginTop: '6px' }}>
+                      Available: ₱{(fundBalances.IGF || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </label>
+
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: formData.fundSource === 'IGP' ? '2px solid #059669' : '1px solid rgba(255,255,255,0.15)',
+                  background: formData.fundSource === 'IGP' ? 'rgba(5, 150, 105, 0.08)' : 'rgba(255,255,255,0.03)',
+                  cursor: item ? 'not-allowed' : 'pointer'
+                }}>
+                  <input
+                    type="radio"
+                    name="fundSource"
+                    value="IGP"
+                    checked={formData.fundSource === 'IGP'}
+                    disabled={Boolean(item)}
+                    onChange={() => setFormData((prev) => ({ ...prev, fundSource: 'IGP' }))}
+                    style={{ marginTop: '3px' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#059669' }}>
+                      IGP — Income-Generating Projects
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                      Campus project equipment, lockers, enterprise & rental hardware.
+                    </div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#10b981', marginTop: '6px' }}>
+                      Available: ₱{(fundBalances.IGP || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Real-time Procurement Cost & Balance Calculation */}
+              {!item && totalProcurementCost > 0 && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  background: isInsufficientFund ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.1)',
+                  border: `1px solid ${isInsufficientFund ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.3)'}`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.85rem'
+                }}>
+                  <span>
+                    Total Procurement: <strong>₱{totalProcurementCost.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                    {' '}(deducted from <strong>{formData.fundSource}</strong>)
+                  </span>
+                  {isInsufficientFund ? (
+                    <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                      ⚠️ Insufficient {formData.fundSource} Balance
+                    </span>
+                  ) : (
+                    <span style={{ color: '#10b981', fontWeight: 600 }}>
+                      ✓ Balance Sufficient (₱{(selectedFundBalance - totalProcurementCost).toLocaleString('en-PH', { minimumFractionDigits: 2 })} remaining)
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className={styles.formGroup}>
               <label htmlFor="name">Item Designation *</label>
               <input
