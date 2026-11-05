@@ -892,6 +892,18 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
               </div>
 
               <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Collected By (Officer Name) *</label>
+                <input
+                  type="text"
+                  required
+                  className={styles.textInput}
+                  placeholder="e.g. Finance Secretary / Auditor"
+                  value={vendingForm.officerName || effectiveUser.name || ''}
+                  onChange={(e) => setVendingForm({ ...vendingForm, officerName: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Campus Building / Location *</label>
                 <select
                   className={styles.selectInput}
@@ -1006,6 +1018,18 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                   placeholder="e.g. 1500.00"
                   value={customForm.amountPHP}
                   onChange={(e) => setCustomForm({ ...customForm, amountPHP: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Collected By (Officer Name) *</label>
+                <input
+                  type="text"
+                  required
+                  className={styles.textInput}
+                  placeholder="e.g. Officer Name / Custodian"
+                  value={customForm.officerName || effectiveUser.name || ''}
+                  onChange={(e) => setCustomForm({ ...customForm, officerName: e.target.value })}
                 />
               </div>
 
