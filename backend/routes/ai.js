@@ -34,7 +34,7 @@ try {
 }
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL = process.env.OPENROUTER_AI_MODEL || 'nvidia/nemotron-3.5-super-vl:free';
 
@@ -133,7 +133,7 @@ const isUsable = (a) =>
 
 const GEMINI_MODELS = [
   GEMINI_MODEL,
-  ...String(process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.1-flash-lite,gemini-3.5-flash')
+  ...String(process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.5-flash-lite,gemini-3.5-flash')
     .split(',').map((s) => s.trim()).filter(Boolean),
 ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
