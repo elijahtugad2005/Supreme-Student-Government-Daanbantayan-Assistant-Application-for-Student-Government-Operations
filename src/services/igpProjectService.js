@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig.js';
 import { auditService } from './auditService.js';
+import { toCentavos, fromCentavos } from '../utils/financeConstants.js';
 
 export const IGP_PROJECT_TYPES = {
   VENDING_MACHINE: 'VENDING_MACHINE',
@@ -80,10 +81,11 @@ export function formatCentavosToPHP(centavos) {
   return (c / 100).toFixed(2);
 }
 
-function buildCollectorInfo(actorUser) {
+function buildCollectorInfo(actorUser, explicitName = '') {
+  const finalName = explicitName?.trim() || actorUser?.name || actorUser?.displayName || 'Authorized Officer';
   return {
     uid: actorUser?.uid || '',
-    name: actorUser?.name || actorUser?.displayName || 'Authorized Officer',
+    name: finalName,
     role: actorUser?.role || 'officer',
     email: actorUser?.email || '',
   };
@@ -151,7 +153,7 @@ export function createIgpProjectService({ db }) {
         location: buildLocationInfo(collectionData.location),
         amountCentavos,
         amountPHP: amountCentavos / 100,
-        collectedBy: buildCollectorInfo(actorUser),
+        collectedBy: buildCollectorInfo(actorUser, collectionData.officerName),
         collectedAt: collectionData.collectedAt || nowIso,
         notes: collectionData.notes || '',
         referenceNumber: collectionData.referenceNumber || '',
@@ -314,7 +316,7 @@ export function createIgpProjectService({ db }) {
         location: buildLocationInfo(projectData.location),
         amountCentavos,
         amountPHP: amountCentavos / 100,
-        collectedBy: buildCollectorInfo(actorUser),
+        collectedBy: buildCollectorInfo(actorUser, collectionData.officerName),
         collectedAt: projectData.collectedAt || nowIso,
         notes: projectData.notes || '',
         referenceNumber: projectData.referenceNumber || '',
