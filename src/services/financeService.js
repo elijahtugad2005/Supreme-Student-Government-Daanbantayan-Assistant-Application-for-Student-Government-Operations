@@ -4,7 +4,7 @@
  * Enforces atomic updates, append-only ledger entries, and double-entry consistency.
  */
 
-import { db } from '../firebase/firebaseConfig';
+import { db } from '../firebase/firebaseConfig.js';
 import {
   collection,
   doc,
@@ -31,8 +31,8 @@ import {
   getUtilizationRate,
   toCentavos,
   fromCentavos,
-} from '../utils/financeConstants';
-import { validateTransactionRules } from '../utils/financeValidation';
+} from '../utils/financeConstants.js';
+import { validateTransactionRules } from '../utils/financeValidation.js';
 
 const COLLECTIONS = {
   FUND_ACCOUNTS: 'fundAccounts',
@@ -45,29 +45,6 @@ const COLLECTIONS = {
 };
 
 export const financeService = {
-  /**
-   * Cleans up legacy test records in funds and budgets (Requested by User)
-   */
-  async cleanLegacyTestRecords() {
-    try {
-      // 1. Delete legacy funds docs
-      const fundsSnap = await getDocs(collection(db, COLLECTIONS.LEGACY_FUNDS));
-      for (const d of fundsSnap.docs) {
-        await deleteDoc(doc(db, COLLECTIONS.LEGACY_FUNDS, d.id));
-      }
-
-      // 2. Delete legacy budgets docs
-      const budgetsSnap = await getDocs(collection(db, COLLECTIONS.LEGACY_BUDGETS));
-      for (const d of budgetsSnap.docs) {
-        await deleteDoc(doc(db, COLLECTIONS.LEGACY_BUDGETS, d.id));
-      }
-      return { success: true, message: 'Legacy test funds and budgets cleared.' };
-    } catch (err) {
-      console.error('Error cleaning legacy records:', err);
-      throw err;
-    }
-  },
-
   /**
    * Initializes or verifies the 4 default top-level fund accounts.
    */
@@ -301,8 +278,13 @@ export const financeService = {
           : (fund.balanceCentavos || 0);
 
         if (budgetBaseCentavos > 0) {
+          // FINANCE_CLARIFICATION.MD §3.3-§3.4: Drafts do not count toward the cap. Only approved allocations count.
           const allocSnap = await getDocs(
-            query(collection(db, COLLECTIONS.BUDGET_ALLOCATIONS), where('fundAccountId', '==', fundAccountId))
+            query(
+              collection(db, COLLECTIONS.BUDGET_ALLOCATIONS),
+              where('fundAccountId', '==', fundAccountId),
+              where('status', '==', 'approved')
+            )
           );
           const currentTotalAllocated = allocSnap.docs.reduce(
             (sum, d) => sum + (d.data().approvedAmountCentavos || 0),
@@ -615,6 +597,8 @@ export const financeService = {
         custodianName,
         receiptExceptionReason,
         transferDestinationAccountId,
+        isOverspent: Boolean(validation.isOverspent),
+        warnings: validation.warnings || [],
         createdById: user.uid,
         createdBy: user.userName || user.displayName || 'Authorized Officer',
         createdAt: serverTimestamp(),

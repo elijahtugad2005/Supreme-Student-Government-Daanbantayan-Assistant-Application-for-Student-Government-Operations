@@ -1,6 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
+import {
+  FUND_DOMAINS,
+  isBudgetFSG,
+  isBudgetIGF,
+  isBudgetIGP,
+  isBudgetPPMP,
+  DEFAULT_ENTERPRISE_DISTRIBUTIONS,
+} from '../../utils/fundClassifier.js';
 import styles from './BudgetAnalytics.module.css';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -15,6 +23,8 @@ import {
   HiTrendingUp,
   HiChartBar,
   HiCheckCircle,
+  HiShoppingBag,
+  HiArchive,
   HiX,
   HiClipboardCopy,
   HiCheck,
@@ -31,15 +41,32 @@ const BudgetAnalytics = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [copiedId, setCopiedId] = useState(null);
   const [activeChartTab, setActiveChartTab] = useState('both'); // 'both' | 'category' | 'committee'
+  const [chartFundDomain, setChartFundDomain] = useState(FUND_DOMAINS.ALL); // 'ALL' | 'PPMP' | 'IGF' | 'IGP'
 
   // --- Data Processing for Charts ---
   
-  // 1. Prepare Data for Bar Chart (Budget vs Spent by Category)
+  // 1. Prepare Data for Bar Chart (Budget vs Spent by Category, filtered by Fund Domain)
   const categoryChartData = useMemo(() => {
-    if (!budgets.length) return [];
+    const scopedBudgets = budgets.filter((b) => {
+      if (chartFundDomain === FUND_DOMAINS.ALL) return true;
+      if (chartFundDomain === FUND_DOMAINS.PPMP) return isBudgetPPMP(b);
+      if (chartFundDomain === FUND_DOMAINS.IGF) return isBudgetIGF(b);
+      if (chartFundDomain === FUND_DOMAINS.IGP) return isBudgetIGP(b);
+      return true;
+    });
+
+    if (!scopedBudgets.length) {
+      if (chartFundDomain === FUND_DOMAINS.IGP) {
+        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGP(statistics.igpBalance || 0);
+      }
+      if (chartFundDomain === FUND_DOMAINS.IGF) {
+        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGF(statistics.igfBalance || 0);
+      }
+      return [];
+    }
     
     // Group by category
-    const grouped = budgets.reduce((acc, curr) => {
+    const grouped = scopedBudgets.reduce((acc, curr) => {
       const cat = curr.category || 'Uncategorized';
       if (!acc[cat]) acc[cat] = { name: cat, allocated: 0, spent: 0 };
       acc[cat].allocated += parseFloat(curr.allocated) || 0;
@@ -48,13 +75,29 @@ const BudgetAnalytics = () => {
     }, {});
 
     return Object.values(grouped).sort((a, b) => b.allocated - a.allocated);
-  }, [budgets]);
+  }, [budgets, chartFundDomain, statistics.igpBalance, statistics.igfBalance]);
 
-  // 2. Prepare Data for Pie Chart (Distribution by Committee)
+  // 2. Prepare Data for Pie Chart (Distribution by Committee / Initiative, filtered by Fund Domain)
   const committeePieData = useMemo(() => {
-    if (!budgets.length) return [];
+    const scopedBudgets = budgets.filter((b) => {
+      if (chartFundDomain === FUND_DOMAINS.ALL) return true;
+      if (chartFundDomain === FUND_DOMAINS.PPMP) return isBudgetPPMP(b);
+      if (chartFundDomain === FUND_DOMAINS.IGF) return isBudgetIGF(b);
+      if (chartFundDomain === FUND_DOMAINS.IGP) return isBudgetIGP(b);
+      return true;
+    });
 
-    const grouped = budgets.reduce((acc, curr) => {
+    if (!scopedBudgets.length) {
+      if (chartFundDomain === FUND_DOMAINS.IGP) {
+        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGP(statistics.igpBalance || 0);
+      }
+      if (chartFundDomain === FUND_DOMAINS.IGF) {
+        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGF(statistics.igfBalance || 0);
+      }
+      return [];
+    }
+
+    const grouped = scopedBudgets.reduce((acc, curr) => {
       const com = curr.committee || 'General';
       if (!acc[com]) acc[com] = { name: com, value: 0 };
       acc[com].value += parseFloat(curr.allocated) || 0;
@@ -62,7 +105,7 @@ const BudgetAnalytics = () => {
     }, {});
 
     return Object.values(grouped);
-  }, [budgets]);
+  }, [budgets, chartFundDomain, statistics.igpBalance, statistics.igfBalance]);
 
   // --- Filter Logic for Sheet ---
   const filteredBudgets = useMemo(() => {
@@ -73,7 +116,15 @@ const BudgetAnalytics = () => {
       const matchesCommittee = filterCommittee === 'All' || budget.committee === filterCommittee;
       const matchesStatus = filterStatus === 'All' || budget.status === filterStatus;
       const isFSG = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
-      const matchesFund = filterFund === 'All' || (filterFund === 'fund_fsg_remittance' ? isFSG : !isFSG);
+      const isIGF = budget.fundAccountId === 'fund_igf_main' || budget.fundCategory === 'IGF';
+      const isIGP = budget.fundAccountId === 'fund_igp_main' || budget.fundCategory === 'IGP';
+      const isFiscal = (!isFSG && !isIGF && !isIGP) || budget.fundAccountId === 'fund_fiscal_year_budget';
+
+      let matchesFund = true;
+      if (filterFund === 'fund_fiscal_year_budget') matchesFund = isFiscal;
+      else if (filterFund === 'fund_fsg_remittance') matchesFund = isFSG;
+      else if (filterFund === 'fund_igf_main') matchesFund = isIGF;
+      else if (filterFund === 'fund_igp_main') matchesFund = isIGP;
       return matchesSearch && matchesCommittee && matchesStatus && matchesFund;
     });
   }, [budgets, searchTerm, filterCommittee, filterStatus, filterFund]);
@@ -93,7 +144,7 @@ const BudgetAnalytics = () => {
 
   const copyBudgetDetails = (budget) => {
     const isFSG = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
-    const text = `Project: ${budget.eventName} (${budget.resolution || 'N/A'})\nFund Source: ${isFSG ? 'FSG Remittance' : 'Fiscal Year Budget'}\nCommittee: ${budget.committee}\nAllocated: ${formatCurrency(budget.allocated)}\nSpent: ${formatCurrency(budget.spent)}\nRemaining: ${formatCurrency(budget.remaining)}\nStatus: ${budget.status}`;
+    const text = `Project: ${budget.eventName} (${budget.resolution || 'N/A'})\nFund Source: ${budget.fundName || (budget.isFSG ? 'FSG Remittance' : 'Fiscal Year Budget')}\nCommittee: ${budget.committee}\nAllocated: ${formatCurrency(budget.allocated)}\nSpent: ${formatCurrency(budget.spent)}\nRemaining: ${formatCurrency(budget.remaining)}\nStatus: ${budget.status}`;
     navigator.clipboard.writeText(text);
     setCopiedId(budget.id);
     setTimeout(() => setCopiedId(null), 1500);
@@ -105,7 +156,7 @@ const BudgetAnalytics = () => {
       headers.join(','),
       ...filteredBudgets.map(b => [
         `"${b.eventName}"`,
-        `"${b.fundAccountId === 'fund_fsg_remittance' || b.isFSG ? 'FSG Remittance' : 'Fiscal Year Budget'}"`,
+        `"${b.fundName || (b.isFSG ? 'FSG Remittance' : 'Fiscal Year Budget')}"`,
         b.category,
         b.committee,
         b.allocated,
@@ -217,33 +268,89 @@ const BudgetAnalytics = () => {
              Available for future events
           </span>
         </div>
+        <div className={styles.statCard}>
+          <HiShoppingBag style={{fontSize: '2rem', color: isLight ? '#2563eb' : '#60a5fa', marginBottom: '0.5rem'}} />
+          <span className={styles.statLabel}>IGF Merchandise Balance</span>
+          <span className={styles.statValue} style={{ color: isLight ? '#1d4ed8' : '#93c5fd' }}>
+            {formatCurrency(statistics.igfBalance || 0)}
+          </span>
+          <span className={styles.statTrend}>
+            Income Generated Funds (Lanyards & Uniforms)
+          </span>
+        </div>
+        <div className={styles.statCard}>
+          <HiArchive style={{fontSize: '2rem', color: isLight ? '#d97706' : '#fbbf24', marginBottom: '0.5rem'}} />
+          <span className={styles.statLabel}>IGP Projects Balance</span>
+          <span className={styles.statValue} style={{ color: isLight ? '#b45309' : '#fcd34d' }}>
+            {formatCurrency(statistics.igpBalance || 0)}
+          </span>
+          <span className={styles.statTrend}>
+            Vending Machines & Campus Lockers
+          </span>
+        </div>
       </div>
 
-      {/* QoL Chart Mode Controls */}
+      {/* QoL Chart Mode & Fund Domain Controls */}
       <div className={styles.chartControlsBar}>
-        <div className={styles.chartControlLabel}>VISUALIZATION ENGINE:</div>
-        <div className={styles.chartToggleGroup}>
-          <button 
-            type="button"
-            className={`${styles.chartToggleBtn} ${activeChartTab === 'both' ? styles.chartToggleActive : ''}`}
-            onClick={() => setActiveChartTab('both')}
-          >
-            [01] DUAL GAUGES
-          </button>
-          <button 
-            type="button"
-            className={`${styles.chartToggleBtn} ${activeChartTab === 'category' ? styles.chartToggleActive : ''}`}
-            onClick={() => setActiveChartTab('category')}
-          >
-            [02] CATEGORY BAR
-          </button>
-          <button 
-            type="button"
-            className={`${styles.chartToggleBtn} ${activeChartTab === 'committee' ? styles.chartToggleActive : ''}`}
-            onClick={() => setActiveChartTab('committee')}
-          >
-            [03] COMMITTEE PIE
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <div className={styles.chartControlLabel}>FUND DOMAIN:</div>
+          <div className={styles.chartToggleGroup}>
+            <button 
+              type="button"
+              className={`${styles.chartToggleBtn} ${chartFundDomain === 'ALL' ? styles.chartToggleActive : ''}`}
+              onClick={() => setChartFundDomain('ALL')}
+            >
+              [ALL FUNDS]
+            </button>
+            <button 
+              type="button"
+              className={`${styles.chartToggleBtn} ${chartFundDomain === 'PPMP' ? styles.chartToggleActive : ''}`}
+              onClick={() => setChartFundDomain('PPMP')}
+            >
+              [PPMP / FISCAL]
+            </button>
+            <button 
+              type="button"
+              className={`${styles.chartToggleBtn} ${chartFundDomain === 'IGF' ? styles.chartToggleActive : ''}`}
+              onClick={() => setChartFundDomain('IGF')}
+            >
+              [IGF MERCHANDISE]
+            </button>
+            <button 
+              type="button"
+              className={`${styles.chartToggleBtn} ${chartFundDomain === 'IGP' ? styles.chartToggleActive : ''}`}
+              onClick={() => setChartFundDomain('IGP')}
+            >
+              [IGP ENTERPRISES]
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <div className={styles.chartControlLabel}>VIEW:</div>
+          <div className={styles.chartToggleGroup}>
+            <button 
+              type="button"
+              className={`${styles.chartToggleBtn} ${activeChartTab === 'both' ? styles.chartToggleActive : ''}`}
+              onClick={() => setActiveChartTab('both')}
+            >
+              [01] DUAL GAUGES
+            </button>
+            <button 
+              type="button"
+              className={`${styles.chartToggleBtn} ${activeChartTab === 'category' ? styles.chartToggleActive : ''}`}
+              onClick={() => setActiveChartTab('category')}
+            >
+              [02] CATEGORY BAR
+            </button>
+            <button 
+              type="button"
+              className={`${styles.chartToggleBtn} ${activeChartTab === 'committee' ? styles.chartToggleActive : ''}`}
+              onClick={() => setActiveChartTab('committee')}
+            >
+              [03] COMMITTEE PIE
+            </button>
+          </div>
         </div>
       </div>
 
@@ -253,7 +360,9 @@ const BudgetAnalytics = () => {
         {(activeChartTab === 'both' || activeChartTab === 'category') && (
           <div className={`${styles.chartCard} ${activeChartTab === 'category' ? styles.chartCardFull : ''}`}>
             <div className={styles.chartHeaderBlock}>
-              <h3 className={styles.chartTitle}>Allocated vs. Spent (by Category)</h3>
+              <h3 className={styles.chartTitle}>
+                Allocated vs. Spent {chartFundDomain !== 'ALL' ? `(${chartFundDomain})` : '(All Funds)'}
+              </h3>
               <span className={styles.chartMetaTag}>FIG 01.1 // METRIC: PHP</span>
             </div>
             <ResponsiveContainer width="100%" height="88%">
@@ -344,7 +453,9 @@ const BudgetAnalytics = () => {
         {(activeChartTab === 'both' || activeChartTab === 'committee') && (
           <div className={`${styles.chartCard} ${activeChartTab === 'committee' ? styles.chartCardFull : ''}`}>
             <div className={styles.chartHeaderBlock}>
-              <h3 className={styles.chartTitle}>Budget Distribution (by Committee)</h3>
+              <h3 className={styles.chartTitle}>
+                Budget Distribution {chartFundDomain !== 'ALL' ? `(${chartFundDomain})` : '(All Funds)'}
+              </h3>
               <span className={styles.chartMetaTag}>FIG 01.2 // SHARE: RATIO</span>
             </div>
             <ResponsiveContainer width="100%" height="88%">
@@ -455,6 +566,8 @@ const BudgetAnalytics = () => {
                 <option value="All">All Fund Sources</option>
                 <option value="fund_fiscal_year_budget">🏛️ Fiscal Year Budget</option>
                 <option value="fund_fsg_remittance">🤝 FSG Remittance</option>
+                <option value="fund_igf_main">👕 Income Generated Funds (IGF)</option>
+                <option value="fund_igp_main">🪙 Income-Generating Projects (IGP)</option>
             </select>
 
             <select 
@@ -506,11 +619,23 @@ const BudgetAnalytics = () => {
                         <div className={styles.projectResolution}>
                           {budget.resolution || 'RES-NONE'} •{' '}
                           <span style={{ 
-                            color: isFSGBudget ? '#eab308' : '#3b82f6', 
+                            color: budget.fundCategory === 'IGF' || budget.fundAccountId === 'fund_igf_main'
+                              ? '#10b981'
+                              : budget.fundCategory === 'IGP' || budget.fundAccountId === 'fund_igp_main'
+                              ? '#f59e0b'
+                              : isFSGBudget
+                              ? '#eab308'
+                              : '#3b82f6', 
                             fontWeight: 700, 
                             fontSize: '0.78rem' 
                           }}>
-                            {isFSGBudget ? '🤝 FSG Remittance' : '🏛️ Fiscal Budget'}
+                            {budget.fundCategory === 'IGF' || budget.fundAccountId === 'fund_igf_main'
+                              ? '👕 Income Generated Funds (IGF)'
+                              : budget.fundCategory === 'IGP' || budget.fundAccountId === 'fund_igp_main'
+                              ? '🪙 Income-Generating Projects (IGP)'
+                              : isFSGBudget
+                              ? '🤝 FSG Remittance'
+                              : '🏛️ Fiscal Budget'}
                           </span>
                         </div>
                       </td>

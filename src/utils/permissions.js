@@ -347,7 +347,7 @@ export const ROLE_PERMISSIONS = {
       canViewAnalytics: true,
       canViewFinance: true,
       canEditFinance: true,
-      canApproveFinance: false,
+      canApproveFinance: true, // Audit secretary approval authority (FINANCE_CLARIFICATION.MD §3.7)
       canAuditFinance: true,    // Audit clearance authority
       canExportData: true,
       canSendNotifications: false,

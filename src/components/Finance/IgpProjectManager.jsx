@@ -39,7 +39,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
   const [activeSubTab, setActiveSubTab] = useState('lockers'); // 'lockers' | 'vending' | 'future' | 'history'
   const [lockers, setLockers] = useState([]);
   const [collections, setCollections] = useState([]);
-  const [, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState({ open: false, message: '', type: 'info' });
 
   // Modals state
@@ -262,6 +262,11 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
         </div>
       )}
 
+      {isLoading && (
+        <div style={{ padding: '1rem', color: '#888', fontStyle: 'italic' }}>
+          Loading IGP financial balances and lockers...
+        </div>
+      )}
       {/* Overview Cards */}
       <div className={styles.metricsGrid}>
         <div className={styles.metricCard}>

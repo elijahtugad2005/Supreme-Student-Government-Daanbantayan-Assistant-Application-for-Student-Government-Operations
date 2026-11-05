@@ -14,6 +14,7 @@ import {
   PPMP_STATUSES,
 } from '../../utils/financeConstants.js';
 import styles from './FundGovernance.module.css';
+import BankCalibrationModal from './BankCalibrationModal.jsx';
 import {
   HiPlus,
   HiRefresh,
@@ -34,7 +35,6 @@ const FundGovernance = () => {
     transactions,
     recordTransaction,
     reverseTransaction,
-    cleanLegacyTestRecords,
     refreshFinanceData,
     updateFiscalBudget,
     updateFundBalance,
@@ -244,25 +244,6 @@ const FundGovernance = () => {
     }
   };
 
-  // Clean legacy test records
-  const handleCleanLegacy = async () => {
-    if (
-      window.confirm(
-        'Confirm deletion of all legacy test funds and budgets records? (Fresh start transition)'
-      )
-    ) {
-      try {
-        setIsCleaning(true);
-        await cleanLegacyTestRecords();
-        alert('All legacy test records successfully deleted.');
-      } catch (err) {
-        alert(err.message || 'Error clearing legacy records.');
-      } finally {
-        setIsCleaning(false);
-      }
-    }
-  };
-
   // Allocation counts & filtered list
   const isViewingArchived = allocFundFilter === 'archived';
   const filteredBudgets = isViewingArchived
@@ -333,17 +314,6 @@ const FundGovernance = () => {
         >
           <HiRefresh size={16} /> Refresh Telemetry
         </button>
-
-        {canEditFinance && (
-          <button
-            type="button"
-            className={styles.dangerBtn}
-            onClick={handleCleanLegacy}
-            disabled={isCleaning}
-          >
-            <HiTrash size={16} /> {isCleaning ? 'Cleaning...' : 'Purge Legacy Test Data'}
-          </button>
-        )}
       </div>
 
       {/* 4 Official Top-Level Fund Category Cards with Inline Allocations & Surplus */}
@@ -1222,180 +1192,75 @@ const FundGovernance = () => {
       )}
 
       {/* Unified Fiscal Budget Modal */}
-      {isFiscalBudgetModalOpen && (
-        <div className={styles.modalBackdrop} onClick={() => setIsFiscalBudgetModalOpen(false)}>
-          <div className={styles.modalContent} style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
-                🏛️ Edit 2026–2027 Fiscal Budget
-              </h3>
-              <button
-                type="button"
-                className={styles.modalCloseBtn}
-                style={{ position: 'static' }}
-                onClick={() => setIsFiscalBudgetModalOpen(false)}
-              >
-                <HiX size={20} />
-              </button>
-            </div>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem', marginBottom: '1.25rem' }}>
-              Calibrate and update the primary Fiscal Budget. This establishes the institutional operating balance and the ceiling for the PPMP procurement schedule.
-            </p>
-
-            {fiscalBudgetError && (
-              <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                {fiscalBudgetError}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveFiscalBudget}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>2026–2027 Fiscal Budget Amount (₱) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={styles.formInput}
-                  placeholder="e.g. 500000.00"
-                  value={fiscalBudgetForm.budgetAmount}
-                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, budgetAmount: e.target.value })}
-                  required
-                />
-                <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
-                  The total approved fiscal budget allocation for this term.
-                </span>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Institutional Depository Bank Reference *</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  placeholder="e.g. BDO Institutional Account ****2005"
-                  value={fiscalBudgetForm.bankAccountReference}
-                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, bankAccountReference: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Board / Administration Resolution Reference</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  placeholder="e.g. BOR-RES-2026-081 / Office of Student Affairs Memo"
-                  value={fiscalBudgetForm.resolutionRef}
-                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, resolutionRef: e.target.value })}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Reconciliation / Audit Note</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  placeholder="e.g. Annual university appropriation calibration"
-                  value={fiscalBudgetForm.note}
-                  onChange={(e) => setFiscalBudgetForm({ ...fiscalBudgetForm, note: e.target.value })}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  onClick={() => setIsFiscalBudgetModalOpen(false)}
-                  disabled={isSavingFiscalBudget}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.primaryBtn}
-                  disabled={isSavingFiscalBudget}
-                >
-                  {isSavingFiscalBudget ? 'Saving...' : 'Save Fiscal Budget'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <BankCalibrationModal
+        isOpen={isFiscalBudgetModalOpen}
+        mode="fiscal"
+        initialValues={fiscalBudgetForm}
+        isSaving={isSavingFiscalBudget}
+        error={fiscalBudgetError}
+        onClose={() => setIsFiscalBudgetModalOpen(false)}
+        onSubmit={async (formData) => {
+          setFiscalBudgetError(null);
+          const amountNum = parseFloat(formData.budgetAmount);
+          if (isNaN(amountNum) || amountNum < 0) {
+            setFiscalBudgetError('Please enter a valid budget amount (₱0.00 or greater).');
+            return;
+          }
+          if (!formData.bankAccountReference || !formData.bankAccountReference.trim()) {
+            setFiscalBudgetError('Institutional Depository Bank Reference is required.');
+            return;
+          }
+          try {
+            setIsSavingFiscalBudget(true);
+            await updateFiscalBudget({
+              budgetAmount: amountNum,
+              resolutionRef: formData.resolutionRef,
+              bankAccountReference: formData.bankAccountReference,
+              note: formData.note,
+            });
+            setIsFiscalBudgetModalOpen(false);
+          } catch (err) {
+            setFiscalBudgetError(err.message || 'Error updating fiscal budget.');
+          } finally {
+            setIsSavingFiscalBudget(false);
+          }
+        }}
+      />
 
       {/* Non-Fiscal Fund Balance Modal (FSG, IGF, IGP) */}
-      {isFundBalanceModalOpen && selectedFundForBalance && (
-        <div className={styles.modalBackdrop} onClick={() => setIsFundBalanceModalOpen(false)}>
-          <div className={styles.modalContent} style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
-                💰 Edit Fund Balance ({selectedFundForBalance.displayName})
-              </h3>
-              <button
-                type="button"
-                className={styles.modalCloseBtn}
-                style={{ position: 'static' }}
-                onClick={() => setIsFundBalanceModalOpen(false)}
-              >
-                <HiX size={20} />
-              </button>
-            </div>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem', marginBottom: '1.25rem' }}>
-              Calibrate and update the current balance available for this fund source.
-            </p>
-
-            {fundBalanceError && (
-              <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                {fundBalanceError}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveFundBalance}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Fund Balance (₱) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={styles.formInput}
-                  placeholder="0.00"
-                  value={fundBalanceInput}
-                  onChange={(e) => setFundBalanceInput(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Reconciliation Note / Deposit Reference</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  placeholder="e.g. Remittance deposit / Cash count reconciliation"
-                  value={fundBalanceReason}
-                  onChange={(e) => setFundBalanceReason(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  onClick={() => setIsFundBalanceModalOpen(false)}
-                  disabled={isSavingFundBalance}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.primaryBtn}
-                  disabled={isSavingFundBalance}
-                >
-                  {isSavingFundBalance ? 'Saving...' : 'Update Fund Balance'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <BankCalibrationModal
+        isOpen={isFundBalanceModalOpen && !!selectedFundForBalance}
+        mode="fund"
+        fund={selectedFundForBalance}
+        initialValues={{
+          fundBalance: fundBalanceInput,
+          fundBalanceReason: fundBalanceReason,
+        }}
+        isSaving={isSavingFundBalance}
+        error={fundBalanceError}
+        onClose={() => setIsFundBalanceModalOpen(false)}
+        onSubmit={async ({ balance, reason }) => {
+          setFundBalanceError(null);
+          const amountNum = parseFloat(balance);
+          if (isNaN(amountNum) || amountNum < 0) {
+            setFundBalanceError('Please enter a valid balance amount (₱0.00 or greater).');
+            return;
+          }
+          try {
+            setIsSavingFundBalance(true);
+            await updateFundBalance(
+              selectedFundForBalance.id,
+              amountNum,
+              reason?.trim() || 'Fund Balance Calibration'
+            );
+            setIsFundBalanceModalOpen(false);
+          } catch (err) {
+            setFundBalanceError(err.message || 'Error updating fund balance.');
+          } finally {
+            setIsSavingFundBalance(false);
+          }
+        }}
+      />
     </div>
   );
 };

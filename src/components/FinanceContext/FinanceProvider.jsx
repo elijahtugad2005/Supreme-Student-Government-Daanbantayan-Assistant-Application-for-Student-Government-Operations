@@ -207,6 +207,8 @@ export const FinanceProvider = ({ children }) => {
       fsgAllocated,
       fsgSpent,
       fsgRemaining: Math.max(0, fsgAllocated - fsgSpent),
+      igfBalance,
+      igpBalance,
       budgetCount: activeBudgets.length,
       categories: catMap,
       committees: comMap,
@@ -372,18 +374,6 @@ export const FinanceProvider = ({ children }) => {
     }
   };
 
-  // Clean legacy test records helper
-  const cleanLegacyTestRecords = async () => {
-    try {
-      const res = await financeService.cleanLegacyTestRecords();
-      await refreshFinanceData();
-      return res;
-    } catch (err) {
-      console.error('Error cleaning legacy records:', err);
-      throw err;
-    }
-  };
-
   // Update Fiscal Budget (serves as unified primary balance and PPMP ceiling)
   const updateFiscalBudget = async (budgetData) => {
     try {
@@ -428,7 +418,6 @@ export const FinanceProvider = ({ children }) => {
     refreshFinanceData,
     recordTransaction,
     reverseTransaction,
-    cleanLegacyTestRecords,
     updateFiscalBudget,
     updateFundBalance,
     updateFiscalCeiling,

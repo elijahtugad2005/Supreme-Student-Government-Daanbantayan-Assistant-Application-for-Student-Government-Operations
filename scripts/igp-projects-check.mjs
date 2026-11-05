@@ -105,7 +105,7 @@ console.log('=== Slice 1: Vending Machine Collection Recording (Location, Collec
 
   check(
     'records vending collection in integer centavos (₱750.50 -> 75050 centavos)',
-    record.amountCentavos === 75050 && record.amountPHP === 750.5,
+    record.amountCentavos === 75050,
     JSON.stringify(record)
   );
 
@@ -317,6 +317,42 @@ console.log('\n=== Slice 6: Record Future Custom IGP Project Revenue ===');
       customRecord.amountCentavos === 125000 &&
       fund.balanceCentavos === 125000,
     JSON.stringify(customRecord)
+  );
+}
+
+console.log('\n=== Slice 7: Standards Checks (No float leak in storage, listCollections on service) ===');
+{
+  const { store, db } = createFakeEnvironment();
+  const service = createIgpProjectService({ db });
+
+  const actor = { uid: 'u1', name: 'Officer Test', role: 'officer' };
+  const col = await service.recordVendingCollection(
+    {
+      amountPHP: 150.25,
+      location: { buildingName: 'Cafeteria', buildingId: 'bldg-caf', specificSpot: 'Entrance' },
+    },
+    actor
+  );
+
+  const collections = await service.listCollections();
+
+  check(
+    'listCollections is exposed on the service instance and returns array',
+    Array.isArray(collections) && collections.length === 1,
+    JSON.stringify(collections)
+  );
+
+  check(
+    'stored collection preserves integer centavos without floating precision leaks',
+    col.amountCentavos === 15025 && typeof col.amountCentavos === 'number',
+    JSON.stringify(col)
+  );
+
+  const metrics = await service.getIgpSummaryMetrics();
+  check(
+    'metrics return totalCollectionsCentavos strictly in centavos integer',
+    metrics.totalCollectionsCentavos === 15025 && Number.isInteger(metrics.totalCollectionsCentavos),
+    JSON.stringify(metrics)
   );
 }
 

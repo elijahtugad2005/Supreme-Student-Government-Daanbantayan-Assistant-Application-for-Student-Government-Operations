@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BudgetAnalytics from '../BudgetAnalytics/BudgetAnalytics.jsx';
 import FundGovernance from './FundGovernance.jsx';
 import PreOrderBatchManager from './PreOrderBatchManager.jsx';
@@ -26,6 +27,10 @@ import styles from './FinanceDashboard.module.css';
  * - Budget Details & Analytics (BudgetAnalytics)
  */
 const FinanceDashboard = () => {
+  const navigate = useNavigate();
+  const handleNavigateToMap = (buildingId) => {
+    navigate('/campus-map', { state: { selectedBuildingId: buildingId } });
+  };
   const { canEditFinance } = usePermissions();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
@@ -112,7 +117,7 @@ const FinanceDashboard = () => {
 
         {activeTab === 'igp' && (
           <section className={styles.tabPane} key="igp">
-            <IgpProjectManager />
+            <IgpProjectManager onNavigateToMap={handleNavigateToMap} />
           </section>
         )}
 

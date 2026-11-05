@@ -31,6 +31,8 @@ export const validateTransactionRules = ({
 }) => {
   const errors = [];
   const missingRequirements = [];
+  const warnings = [];
+  let isOverspent = false;
 
   // 1. Amount validation
   if (!amountCentavos || amountCentavos <= 0) {
@@ -38,27 +40,32 @@ export const validateTransactionRules = ({
   }
 
   // 2. Rule 2: No informal Fiscal Year Budget or FSG pocket-money usage
+  const isFormalFiscal =
+    fundCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ||
+    fundCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE ||
+    fundCategory === 'PPMP' ||
+    fundCategory === 'FISCAL_YEAR_BUDGET' ||
+    fundCategory === 'FSG_REMITTANCE';
+
   const isPocketMoney =
     expensePurpose === EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES ||
     expensePurpose?.toLowerCase().includes('pocket') ||
     expensePurpose?.toLowerCase().includes('informal');
 
-  if (
-    (fundCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ||
-      fundCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE) &&
-    isPocketMoney
-  ) {
+  if (isFormalFiscal && isPocketMoney) {
     errors.push(
       'Officer preparation consumables cannot be charged as informal pocket money to Fiscal Year Budget or FSG.'
     );
   }
 
+  const isExpenseOrPayment =
+    transactionType === TRANSACTION_TYPES.EXPENSE ||
+    transactionType === TRANSACTION_TYPES.PAYMENT ||
+    transactionType === 'EXPENSE' ||
+    transactionType === 'PAYMENT';
+
   // 3. Rule 1: Fiscal Year Budget & FSG Document Requirements for Expenses
-  if (
-    (fundCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ||
-      fundCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE) &&
-    (transactionType === TRANSACTION_TYPES.EXPENSE || transactionType === TRANSACTION_TYPES.PAYMENT)
-  ) {
+  if (isFormalFiscal && isExpenseOrPayment) {
     if (!allocationId) {
       errors.push('Choose an approved allocation before recording this expense.');
       missingRequirements.push('Approved Allocation');
@@ -84,12 +91,16 @@ export const validateTransactionRules = ({
       missingRequirements.push('Supporting Papers / Receipt');
     }
 
+    // FINANCE_CLARIFICATION.MD §3.5: Transparent Overspending
+    // Overspending an item or allocation is allowed if fund cash is available.
+    // It is warned and flagged with isOverspent: true, not rejected with a hard error.
     if (
       allocationId &&
       availableAllocationCentavos !== undefined &&
       amountCentavos > availableAllocationCentavos
     ) {
-      errors.push('Expense amount exceeds remaining approved allocation for this activity.');
+      isOverspent = true;
+      warnings.push('Expense amount exceeds remaining approved allocation for this activity.');
     }
 
     if (
@@ -97,15 +108,16 @@ export const validateTransactionRules = ({
       availableLineItemCentavos !== undefined &&
       amountCentavos > availableLineItemCentavos
     ) {
-      errors.push('Expense amount exceeds remaining planned estimate for this specific PPMP line item.');
+      isOverspent = true;
+      warnings.push('Expense amount exceeds remaining planned estimate for this specific PPMP line item.');
     }
   }
 
-  // 4. Rule 4: Balance Checks for Outflows
+  // 4. Rule 4: Balance Checks for Outflows (Cash availability is a hard block)
   const isOutflow =
-    transactionType === TRANSACTION_TYPES.EXPENSE ||
-    transactionType === TRANSACTION_TYPES.PAYMENT ||
-    transactionType === TRANSACTION_TYPES.REFUND;
+    isExpenseOrPayment ||
+    transactionType === TRANSACTION_TYPES.REFUND ||
+    transactionType === 'REFUND';
 
   if (isOutflow && availableBalanceCentavos !== undefined && amountCentavos > availableBalanceCentavos) {
     errors.push('This fund does not have enough available balance for this expense.');
@@ -125,6 +137,8 @@ export const validateTransactionRules = ({
   return {
     isValid: errors.length === 0,
     hasMissingRequirements: missingRequirements.length > 0,
+    isOverspent,
+    warnings,
     errors,
     missingRequirements,
   };

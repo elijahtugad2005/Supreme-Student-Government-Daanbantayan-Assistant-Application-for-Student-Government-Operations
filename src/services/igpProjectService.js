@@ -74,6 +74,30 @@ function calculateExpiryIso(startDateIso, months) {
   return d.toISOString();
 }
 
+export function formatCentavosToPHP(centavos) {
+  const c = typeof centavos === 'number' ? centavos : parseInt(centavos, 10);
+  if (Number.isNaN(c)) return '0.00';
+  return (c / 100).toFixed(2);
+}
+
+function buildCollectorInfo(actorUser) {
+  return {
+    uid: actorUser?.uid || '',
+    name: actorUser?.name || actorUser?.displayName || 'Authorized Officer',
+    role: actorUser?.role || 'officer',
+    email: actorUser?.email || '',
+  };
+}
+
+function buildLocationInfo(loc) {
+  return {
+    buildingName: loc?.buildingName || 'Campus Venue',
+    buildingId: loc?.buildingId || '',
+    specificSpot: loc?.specificSpot || '',
+  };
+}
+
+
 export function createIgpProjectService({ db }) {
   if (!db) throw new Error('Database adapter is required for igpProjectService.');
 
@@ -110,19 +134,9 @@ export function createIgpProjectService({ db }) {
       const payload = {
         projectType: IGP_PROJECT_TYPES.VENDING_MACHINE,
         projectName: collectionData.projectName || 'Campus Vending Machine',
-        location: {
-          buildingName: collectionData.location?.buildingName || 'Campus Venue',
-          buildingId: collectionData.location?.buildingId || '',
-          specificSpot: collectionData.location?.specificSpot || '',
-        },
+        location: buildLocationInfo(collectionData.location),
         amountCentavos,
-        amountPHP: amountCentavos / 100,
-        collectedBy: {
-          uid: actorUser?.uid || '',
-          name: actorUser?.name || actorUser?.displayName || 'Authorized Officer',
-          role: actorUser?.role || 'officer',
-          email: actorUser?.email || '',
-        },
+        collectedBy: buildCollectorInfo(actorUser),
         collectedAt: collectionData.collectedAt || nowIso,
         notes: collectionData.notes || '',
         referenceNumber: collectionData.referenceNumber || '',
@@ -141,8 +155,8 @@ export function createIgpProjectService({ db }) {
           performedBy: payload.collectedBy.name,
           itemName: `Vending Machine (${payload.location.buildingName})`,
           itemType: 'Vending Collection',
-          amountPHP: payload.amountPHP,
-          summary: `Collected ₱${payload.amountPHP.toFixed(2)} from Vending Machine (${payload.location.buildingName} - ${payload.location.specificSpot})`,
+          amountPHP: payload.amountCentavos / 100,
+          summary: `Collected ₱${formatCentavosToPHP(payload.amountCentavos)} from Vending Machine (${payload.location.buildingName} - ${payload.location.specificSpot})`,
         });
       }
 
@@ -205,13 +219,7 @@ export function createIgpProjectService({ db }) {
         buildingName: locker.buildingName,
         buildingId: locker.buildingId,
         amountCentavos: totalPaidCentavos,
-        amountPHP: totalAmountPHP,
-        collectedBy: {
-          uid: actorUser?.uid || '',
-          name: actorUser?.name || actorUser?.displayName || 'Authorized Officer',
-          role: actorUser?.role || 'officer',
-          email: actorUser?.email || '',
-        },
+        collectedBy: buildCollectorInfo(actorUser),
         collectedAt: nowIso,
         notes: `Rented ${lockerId} to ${lease.renterName} (${lease.studentId}) for ${months} month(s)`,
         fundSource: 'IGP',
@@ -287,19 +295,9 @@ export function createIgpProjectService({ db }) {
       const payload = {
         projectType: IGP_PROJECT_TYPES.FUTURE_IGP,
         projectName: projectData.projectName || 'Future IGP Initiative',
-        location: {
-          buildingName: projectData.location?.buildingName || 'Campus Venue',
-          buildingId: projectData.location?.buildingId || '',
-          specificSpot: projectData.location?.specificSpot || '',
-        },
+        location: buildLocationInfo(projectData.location),
         amountCentavos,
-        amountPHP: amountCentavos / 100,
-        collectedBy: {
-          uid: actorUser?.uid || '',
-          name: actorUser?.name || actorUser?.displayName || 'Authorized Officer',
-          role: actorUser?.role || 'officer',
-          email: actorUser?.email || '',
-        },
+        collectedBy: buildCollectorInfo(actorUser),
         collectedAt: projectData.collectedAt || nowIso,
         notes: projectData.notes || '',
         referenceNumber: projectData.referenceNumber || '',
@@ -318,8 +316,8 @@ export function createIgpProjectService({ db }) {
           performedBy: payload.collectedBy.name,
           itemName: payload.projectName,
           itemType: 'Future IGP Initiative',
-          amountPHP: payload.amountPHP,
-          summary: `Recorded ₱${payload.amountPHP.toFixed(2)} for IGP project "${payload.projectName}"`,
+          amountPHP: payload.amountCentavos / 100,
+          summary: `Recorded ₱${formatCentavosToPHP(payload.amountCentavos)} for IGP project "${payload.projectName}"`,
         });
       }
 
