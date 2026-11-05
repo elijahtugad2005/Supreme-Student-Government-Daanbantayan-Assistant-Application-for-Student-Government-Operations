@@ -111,6 +111,19 @@ if (fs.existsSync(sheetsServiceFile)) {
   check('Sheets payload includes General Ledger sheet', sheetsPayload.sheets.some(s => s.name === 'General Ledger'));
   check('Sheets payload includes Approved Allocations sheet', sheetsPayload.sheets.some(s => s.name === 'Approved Allocations'));
   check('Sheets payload includes Holding Funds sheet', sheetsPayload.sheets.some(s => s.name === 'Holding Funds'));
+
+  // Regression check: When legacy object `funds` or undefined is passed, it must not throw "funds.reduce is not a function"
+  let legacyFundsError = null;
+  try {
+    service.buildFiscalSheetsPayload({
+      funds: { annualBudget: 100000, incomeGenerated: 50000, totalFunds: 150000 },
+      budgets: [],
+      transactions: []
+    });
+  } catch (err) {
+    legacyFundsError = err.message;
+  }
+  check('buildFiscalSheetsPayload handles legacy funds object without throwing', legacyFundsError === null, legacyFundsError);
 }
 
 console.log('\n=== Slice 4: Reports & Sheets Tab in Finance Dashboard ===');

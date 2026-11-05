@@ -103,7 +103,18 @@ export async function requestGoogleSheetsToken(interactive = true) {
  * Builds formatted data for Google Sheets v4 multi-tab payload
  */
 export function buildFiscalSheetsPayload({ funds = [], budgets = [], transactions = [] }) {
-  const totalHoldingCentavos = funds.reduce((acc, f) => acc + (f.balanceCentavos || 0), 0);
+  // Normalize funds in case legacy object { annualBudget, incomeGenerated } or non-array is passed
+  const fundsList = Array.isArray(funds)
+    ? funds
+    : Object.entries(funds || {}).map(([key, val]) => ({
+        id: key,
+        displayName: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+        balanceCentavos: typeof val === 'number' ? toCentavos(val) : (val?.balanceCentavos || 0),
+        bankAccountReference: val?.bankAccountReference || 'General Depository',
+        fiscalYear: val?.fiscalYear || '2026–2027',
+      }));
+
+  const totalHoldingCentavos = fundsList.reduce((acc, f) => acc + (f.balanceCentavos || 0), 0);
   const totalApprovedAllocCentavos = budgets
     .filter(b => b.status === 'approved')
     .reduce((acc, b) => acc + (b.allocatedCentavos || toCentavos(b.allocatedAmount || 0)), 0);
@@ -158,7 +169,7 @@ export function buildFiscalSheetsPayload({ funds = [], budgets = [], transaction
   const holdingFundsSheet = {
     name: 'Holding Funds',
     headers: ['Fund Identifier', 'Fund Display Name', 'Balance (PHP)', 'Depository Bank Reference', 'Fiscal Term'],
-    rows: funds.map(f => [
+    rows: fundsList.map(f => [
       f.id || '',
       f.displayName || f.name || 'Fund',
       fromCentavos(f.balanceCentavos || toCentavos(f.balance || 0)).toFixed(2),
