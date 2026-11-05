@@ -146,6 +146,41 @@ if (fs.existsSync(sheetsServiceFile)) {
   }));
   check('Title column formatting applies solid gold bottom border', formatReqs.some(r => r.updateBorders?.bottom?.style === 'SOLID_MEDIUM'));
   check('Title column formatting auto-resizes columns', formatReqs.some(r => r.autoResizeDimensions?.dimensions?.dimension === 'COLUMNS'));
+
+  // Test Date Formatting in General Ledger rows (Fix for "Invalid Date" in Google Sheets)
+  check('Service exports formatGoogleSheetsDate', typeof service.formatGoogleSheetsDate === 'function');
+  const fromTimestampInst = service.formatGoogleSheetsDate({ toDate: () => new Date('2026-11-05T08:00:00Z') });
+  check('formatGoogleSheetsDate handles Firestore Timestamp instance (.toDate())', fromTimestampInst === '2026-11-05', `Got ${fromTimestampInst}`);
+
+  const fromSecObj = service.formatGoogleSheetsDate({ seconds: 1762329600, nanoseconds: 0 });
+  check('formatGoogleSheetsDate handles Firestore Timestamp object ({ seconds })', fromSecObj === '2025-11-05', `Got ${fromSecObj}`);
+
+  const fromUnderscoreSec = service.formatGoogleSheetsDate({ _seconds: 1762329600, _nanoseconds: 0 });
+  check('formatGoogleSheetsDate handles Firestore Timestamp object ({ _seconds })', fromUnderscoreSec === '2025-11-05', `Got ${fromUnderscoreSec}`);
+
+  const fromIsoStr = service.formatGoogleSheetsDate('2026-11-05T14:30:00.000Z');
+  check('formatGoogleSheetsDate handles ISO date strings', fromIsoStr === '2026-11-05', `Got ${fromIsoStr}`);
+
+  const fromInvalidWithFallback = service.formatGoogleSheetsDate('Invalid Date', { seconds: 1762329600 });
+  check('formatGoogleSheetsDate recovers from "Invalid Date" string using fallback', fromInvalidWithFallback === '2025-11-05', `Got ${fromInvalidWithFallback}`);
+
+  // Test full payload with transactions having Firestore Timestamp createdAt
+  const txTestPayload = service.buildFiscalSheetsPayload({
+    funds: [],
+    budgets: [],
+    transactions: [
+      { id: 'tx_ts1', createdAt: { toDate: () => new Date('2026-11-05T09:00:00Z') }, amountCentavos: 100000 },
+      { id: 'tx_ts2', createdAt: { seconds: 1762329600, nanoseconds: 0 }, amountCentavos: 200000 },
+      { id: 'tx_ts3', date: 'Invalid Date', createdAt: { seconds: 1762329600 }, amountCentavos: 300000 },
+      { id: 'tx_ts4', date: '2026-11-05', amountCentavos: 400000 },
+    ]
+  });
+
+  const ledgerSheetTest = txTestPayload.sheets.find(s => s.name === 'General Ledger');
+  const dateValues = (ledgerSheetTest?.rows || []).map(r => r[0]);
+  const hasInvalidDateString = dateValues.some(d => String(d).toLowerCase().includes('invalid'));
+  check('General Ledger rows contain zero "Invalid Date" entries', !hasInvalidDateString, `Found: ${JSON.stringify(dateValues)}`);
+  check('General Ledger rows contain valid YYYY-MM-DD dates', dateValues.every(d => /^\d{4}-\d{2}-\d{2}$/.test(d)), `Found: ${JSON.stringify(dateValues)}`);
 }
 
 console.log('\n=== Slice 4: Reports & Sheets Tab in Finance Dashboard ===');
