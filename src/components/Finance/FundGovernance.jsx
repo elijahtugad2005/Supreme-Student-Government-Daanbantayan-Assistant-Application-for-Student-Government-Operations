@@ -15,6 +15,7 @@ import {
 } from '../../utils/financeConstants.js';
 import styles from './FundGovernance.module.css';
 import BankCalibrationModal from './BankCalibrationModal.jsx';
+import { ReversalModal, RestoreAllocationModal } from './FinanceLedgerModal.jsx';
 import {
   HiPlus,
   HiRefresh,
@@ -45,11 +46,16 @@ const FundGovernance = () => {
     statistics,
   } = useFinance();
   const { currentUser, userName, userRole } = useAuth();
-  const { canEditFinance } = usePermissions();
+  const { canEditFinance, canPostFinanceLedger, canReverseFinanceLedger } = usePermissions();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReversalModalOpen, setIsReversalModalOpen] = useState(false);
   const [selectedTxForReversal, setSelectedTxForReversal] = useState(null);
+  const [isSubmittingReversal, setIsSubmittingReversal] = useState(false);
+  const [reversalModalError, setReversalModalError] = useState(null);
+  const [selectedBudgetForRestore, setSelectedBudgetForRestore] = useState(null);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [isSubmittingRestore, setIsSubmittingRestore] = useState(false);
   const [reversalReason, setReversalReason] = useState('');
   const [isCleaning, setIsCleaning] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -191,20 +197,25 @@ const FundGovernance = () => {
   const handleOpenReversal = (tx) => {
     setSelectedTxForReversal(tx);
     setReversalReason('');
+    setReversalModalError(null);
     setIsReversalModalOpen(true);
   };
 
-  const handleConfirmReversal = async () => {
-    if (!reversalReason.trim()) {
-      alert('A valid reason is required to record a reversal.');
+  const handleConfirmReversal = async (reasonText) => {
+    const finalReason = typeof reasonText === 'string' ? reasonText : reversalReason;
+    if (!finalReason || !finalReason.trim()) {
+      setReversalModalError('A valid reason is required to record a reversal.');
       return;
     }
     try {
-      await reverseTransaction(selectedTxForReversal.id, reversalReason);
+      setIsSubmittingReversal(true);
+      await reverseTransaction(selectedTxForReversal.id, finalReason.trim());
       setIsReversalModalOpen(false);
       setSelectedTxForReversal(null);
     } catch (err) {
-      alert(err.message || 'Failed to reverse transaction.');
+      setReversalModalError(err.message || 'Failed to reverse transaction.');
+    } finally {
+      setIsSubmittingReversal(false);
     }
   };
 
@@ -296,7 +307,7 @@ const FundGovernance = () => {
     <div>
       {/* Action Toolbar */}
       <div className={styles.actionRow}>
-        {canEditFinance && (
+        {canPostFinanceLedger && (
           <button
             type="button"
             className={styles.primaryBtn}
@@ -449,7 +460,7 @@ const FundGovernance = () => {
                   </div>
                 )}
 
-                {canEditFinance && (isIGF || isIGP) && (
+                {canPostFinanceLedger && (isIGF || isIGP) && (
                   <button
                     type="button"
                     className={styles.quickTxBtn}
@@ -677,10 +688,9 @@ const FundGovernance = () => {
                                 className={styles.postExpenseBtn}
                                 style={{ background: '#3b82f6', borderColor: '#2563eb' }}
                                 title="Restore this archived allocation back to active PPMP matrix"
-                                onClick={async () => {
-                                  if (window.confirm(`Restore allocation "${b.eventName}" back to active PPMP?`)) {
-                                    await restoreBudget(b.id);
-                                  }
+                                onClick={() => {
+                                  setSelectedBudgetForRestore(b);
+                                  setIsRestoreModalOpen(true);
                                 }}
                               >
                                 Restore
@@ -803,7 +813,7 @@ const FundGovernance = () => {
                           {tx.status}
                         </span>
                       </td>
-                      {canEditFinance && (
+                      {canReverseFinanceLedger && (
                         <td>
                           {tx.status === TRANSACTION_STATUSES.POSTED && (
                             <button
@@ -1117,79 +1127,39 @@ const FundGovernance = () => {
       )}
 
       {/* Authorized Reversal Modal */}
-      {isReversalModalOpen && selectedTxForReversal && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalContent} style={{ maxWidth: '450px' }}>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: '1.2rem',
-                fontWeight: 600,
-                color: '#dc2626',
-              }}
-            >
-              Authorize Transaction Reversal
-            </h3>
-            <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.5rem' }}>
-              Posted transactions cannot be deleted. This action will create a linked compensating
-              entry and adjust the fund balance.
-            </p>
+      {/* Reversal Confirmation Modal (Accessible & Alertbox-Free) */}
+      <ReversalModal
+        isOpen={isReversalModalOpen}
+        transaction={selectedTxForReversal}
+        isSubmitting={isSubmittingReversal}
+        onClose={() => {
+          setIsReversalModalOpen(false);
+          setSelectedTxForReversal(null);
+        }}
+        onConfirm={handleConfirmReversal}
+      />
 
-            <div
-              style={{
-                margin: '1rem 0',
-                padding: '0.75rem',
-                background: '#f8fafc',
-                borderRadius: '8px',
-              }}
-            >
-              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                {selectedTxForReversal.refNumber}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: '#334155' }}>
-                {formatPHP(selectedTxForReversal.amountCentavos, true)} -{' '}
-                {selectedTxForReversal.description}
-              </div>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Reversal Reason &amp; Justification *</label>
-              <textarea
-                rows="3"
-                className={styles.formTextarea}
-                placeholder="State why this transaction is being reversed..."
-                value={reversalReason}
-                onChange={(e) => setReversalReason(e.target.value)}
-                required
-              />
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '0.75rem',
-                marginTop: '1.5rem',
-              }}
-            >
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                onClick={() => setIsReversalModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.dangerBtn}
-                onClick={handleConfirmReversal}
-              >
-                Execute Reversal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Restore Allocation Modal */}
+      <RestoreAllocationModal
+        isOpen={isRestoreModalOpen}
+        budget={selectedBudgetForRestore}
+        isSubmitting={isSubmittingRestore}
+        onClose={() => {
+          setIsRestoreModalOpen(false);
+          setSelectedBudgetForRestore(null);
+        }}
+        onConfirm={async () => {
+          if (!selectedBudgetForRestore) return;
+          try {
+            setIsSubmittingRestore(true);
+            await restoreBudget(selectedBudgetForRestore.id);
+            setIsRestoreModalOpen(false);
+            setSelectedBudgetForRestore(null);
+          } finally {
+            setIsSubmittingRestore(false);
+          }
+        }}
+      />
 
       {/* Unified Fiscal Budget Modal */}
       <BankCalibrationModal

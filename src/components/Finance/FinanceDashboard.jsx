@@ -5,6 +5,7 @@ import FundGovernance from './FundGovernance.jsx';
 import PreOrderBatchManager from './PreOrderBatchManager.jsx';
 import PPMPMatrix from './PPMPMatrix.jsx';
 import IgpProjectManager from './IgpProjectManager.jsx';
+import FinanceReportExportPanel from './FinanceReportExportPanel.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
 import { 
   BarChart3, 
@@ -13,7 +14,8 @@ import {
   Coins, 
   PackageCheck,
   ClipboardList,
-  Store
+  Store,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './FinanceDashboard.module.css';
@@ -34,7 +36,7 @@ const FinanceDashboard = () => {
   const { canEditFinance } = usePermissions();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
-  const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'igp' | 'ppmp' | 'batches' | 'analytics'
+  const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'igp' | 'ppmp' | 'batches' | 'analytics' | 'reports'
 
   return (
     <div className={`${styles.financeDashboardContainer} ${isClassic ? styles.financeClassic : ''}`}>
@@ -105,6 +107,15 @@ const FinanceDashboard = () => {
           <BarChart3 size={17} className={styles.tabIcon} />
           <span className={styles.tabLabel}>Budget Details &amp; Analytics</span>
         </button>
+
+        <button
+          type="button"
+          className={`${styles.tabButton} ${activeTab === 'reports' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('reports')}
+        >
+          <FileSpreadsheet size={17} className={styles.tabIcon} />
+          <span className={styles.tabLabel}>Reports &amp; Sheets</span>
+        </button>
       </nav>
 
       {/* Tab Content Panes */}
@@ -136,6 +147,12 @@ const FinanceDashboard = () => {
         {activeTab === 'analytics' && (
           <section className={styles.tabPane} key="analytics">
             <BudgetAnalytics />
+          </section>
+        )}
+
+        {activeTab === 'reports' && (
+          <section className={styles.tabPane} key="reports">
+            <FinanceReportExportPanel />
           </section>
         )}
       </main>

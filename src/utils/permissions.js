@@ -68,6 +68,27 @@ export const CENTRALIZED_ORDER_SHEET_MANAGER_ROLES = [
 export const canManageCentralizedOrderSheet = (user) =>
   CENTRALIZED_ORDER_SHEET_MANAGER_ROLES.includes(user?.role);
 
+/**
+ * Roles authorized to Post expenses into the General Ledger and Execute Reversals.
+ * Strictly limited to Finance Secretariat and Oversight:
+ * - Admin
+ * - Finance Secretary
+ * - Budget Officer (Budget Secretary)
+ * - Auditor (Secretary of Audit)
+ */
+export const FINANCE_LEDGER_OPERATOR_ROLES = [
+  'admin',
+  'finance_secretary',
+  'budget_officer',
+  'auditor',
+];
+
+export const canPostFinanceLedger = (user) =>
+  FINANCE_LEDGER_OPERATOR_ROLES.includes(user?.role);
+
+export const canReverseFinanceLedger = (user) =>
+  FINANCE_LEDGER_OPERATOR_ROLES.includes(user?.role);
+
 export const canSubmitDeathAid = (user) => !!user?.role;
 
 export const canViewOwnDeathAid = (user) => !!user?.role;
