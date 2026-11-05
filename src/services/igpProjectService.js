@@ -343,6 +343,50 @@ export function createIgpProjectService({ db }) {
       return saved;
     },
 
+    /**
+     * Reverses and deletes a collection record (e.g. accidental double-entry or misinput)
+     * and atomically decrements the IGP fund balance back.
+     */
+    async deleteVendingCollection(collectionId, reason = 'Administrative Reversal', actorUser = null) {
+      if (!collectionId) throw new Error('Collection ID is required');
+
+      let col = null;
+      if (typeof db.getCollection === 'function') {
+        col = await db.getCollection(collectionId);
+      } else if (typeof db.listCollections === 'function') {
+        const all = await db.listCollections();
+        col = all.find((c) => c.id === collectionId);
+      }
+
+      if (!col) {
+        throw new Error(`Collection not found with ID: ${collectionId}`);
+      }
+
+      const amountCentavos = col.amountCentavos || Math.round((col.amountPHP || 0) * 100);
+
+      if (typeof db.deleteCollection === 'function') {
+        await db.deleteCollection(collectionId);
+      }
+
+      // Reversal: subtract the collection amount from fund balance
+      await db.updateIgpFundBalance(-amountCentavos);
+
+      if (typeof db.logAudit === 'function') {
+        await db.logAudit({
+          actionCode: 'IGP_REVERSAL',
+          projectType: col.projectType || IGP_PROJECT_TYPES.VENDING_MACHINE,
+          module: 'Finance & IGP',
+          performedBy: actorUser?.name || actorUser?.displayName || 'Authorized Auditor',
+          itemName: col.projectName || 'Vending Collection',
+          itemType: 'Collection Deletion & Reversal',
+          amountPHP: -(amountCentavos / 100),
+          summary: `Deleted collection ${collectionId} (₱${(amountCentavos / 100).toFixed(2)}) - Reason: ${reason}`,
+        });
+      }
+
+      return { success: true, deletedId: collectionId, reversedCentavos: amountCentavos };
+    },
+
     async getIgpSummaryMetrics() {
       const collections = await db.listCollections();
       const lockers = await db.listLockers();
@@ -399,6 +443,14 @@ export function createBrowserIgpProjectService() {
     async addCollection(data) {
       const ref = await addDoc(collection(db, 'igpCollections'), data);
       return { id: ref.id, ...data };
+    },
+    async deleteCollection(id) {
+      await deleteDoc(doc(db, 'igpCollections', id));
+      return true;
+    },
+    async getCollection(id) {
+      const snap = await getDoc(doc(db, 'igpCollections', id));
+      return snap.exists() ? { id: snap.id, ...snap.data() } : null;
     },
     async listCollections() {
       const snap = await getDocs(query(collection(db, 'igpCollections'), orderBy('createdAt', 'desc')));

@@ -55,6 +55,12 @@ function createFakeEnvironment() {
       store.collections.set(id, { id, ...data });
       return store.collections.get(id);
     },
+    async deleteCollection(id) {
+      return store.collections.delete(id);
+    },
+    async getCollection(id) {
+      return store.collections.get(id) || null;
+    },
     async listCollections() {
       return Array.from(store.collections.values());
     },
@@ -446,6 +452,56 @@ console.log('\n=== Slice 9: Officer Name in Input Forms & fromCentavos Regressio
     lRec.currentLease.recordedBy === 'Marcus Wright (Budget Secretary)',
     JSON.stringify(lRec.currentLease)
   );
+}
+
+console.log('\n=== Slice 10: Vending Machine Collection Deletion & Fund Reversal (Misinput Handling) ===');
+{
+  const { store, db } = createFakeEnvironment();
+  const service = createIgpProjectService({ db });
+
+  const actor = { uid: 'u-auditor', name: 'Marcus Auditor', role: 'auditor' };
+
+  // 1. Record a collection of ₱500.00
+  const col = await service.recordVendingCollection(
+    {
+      amountPHP: 500,
+      location: { buildingName: 'Student Center', buildingId: 'bldg-sc', specificSpot: 'Hallway' },
+      officerName: 'Marcus Auditor',
+    },
+    actor
+  );
+
+  let fund = await db.getIgpFund();
+  check('Initial collection credits IGP fund by 50000 centavos', fund.balanceCentavos === 50000);
+
+  // 2. Delete the misinput collection
+  const delResult = await service.deleteVendingCollection(col.id, 'Misinput: duplicate cash count', actor);
+  check('deleteVendingCollection returns success', delResult?.success === true && delResult?.deletedId === col.id);
+
+  // 3. Fund balance should be reversed by 50000 centavos (back to 0)
+  fund = await db.getIgpFund();
+  check('deleteVendingCollection reverses the fund balance back to 0', fund.balanceCentavos === 0, `Got: ${fund.balanceCentavos}`);
+
+  // 4. Collection should be gone from listCollections()
+  const remaining = await service.listCollections();
+  check('Collection is removed from listCollections()', remaining.some(c => c.id === col.id) === false);
+
+  // 5. Audit log entry recorded
+  const lastAudit = store.auditLogs[store.auditLogs.length - 1];
+  check(
+    'Audit trail records the collection deletion and reversal',
+    lastAudit && lastAudit.itemType?.includes('Deletion') && lastAudit.summary?.includes('duplicate cash count'),
+    JSON.stringify(lastAudit)
+  );
+
+  // 6. Deleting non-existent collection throws error
+  let missingError = null;
+  try {
+    await service.deleteVendingCollection('non-existent-id', 'test', actor);
+  } catch (err) {
+    missingError = err.message;
+  }
+  check('Deleting non-existent collection throws error', missingError !== null, missingError);
 }
 
 console.log('\n' + results.join('\n'));
