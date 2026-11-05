@@ -601,7 +601,7 @@ const FundGovernance = () => {
                   <th>Disbursed</th>
                   <th>Remaining</th>
                   <th>Status</th>
-                  {canEditFinance && <th>Actions</th>}
+                  {(canPostFinanceLedger || canEditFinance) && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -609,7 +609,7 @@ const FundGovernance = () => {
                   const isFSG = b.fundAccountId === 'fund_fsg_remittance' || b.isFSG;
                   const isDraft = b.status === 'draft';
                   const isFullySpent = b.remaining <= 0;
-                  const canPostExpense = !isDraft && !isFullySpent;
+                  const canPostExpense = !isDraft && !isFullySpent && canPostFinanceLedger;
 
                   return (
                     <tr key={b.id}>
@@ -679,7 +679,7 @@ const FundGovernance = () => {
                           </span>
                         )}
                       </td>
-                      {canEditFinance && (
+                      {(canPostFinanceLedger || canEditFinance) && (
                         <td>
                           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'nowrap', alignItems: 'center' }}>
                             {b.isArchived ? (
@@ -695,7 +695,7 @@ const FundGovernance = () => {
                               >
                                 Restore
                               </button>
-                            ) : (
+                            ) : canPostFinanceLedger ? (
                               <button
                                 type="button"
                                 className={canPostExpense ? styles.postExpenseBtn : styles.postExpenseBtnDisabled}
@@ -711,7 +711,7 @@ const FundGovernance = () => {
                               >
                                 {isFullySpent ? 'Fully Spent' : isDraft ? 'Draft' : 'Post Expense'}
                               </button>
-                            )}
+                            ) : null}
                           </div>
                         </td>
                       )}

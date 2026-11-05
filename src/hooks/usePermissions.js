@@ -233,8 +233,8 @@ export const usePermissions = () => {
     canDeleteData: checkPermission('canDeleteData'),
 
     // Finance Ledger Authority Checks (Admin, Finance Secretary, Budget Officer, Auditor)
-    canPostFinanceLedger: ['admin', 'finance_secretary', 'budget_officer', 'auditor'].includes(userRole),
-    canReverseFinanceLedger: ['admin', 'finance_secretary', 'budget_officer', 'auditor'].includes(userRole)
+    canPostFinanceLedger: checkAction('canPostFinanceLedger') || ['admin', 'finance_secretary', 'budget_officer', 'auditor'].includes(userRole),
+    canReverseFinanceLedger: checkAction('canReverseFinanceLedger') || ['admin', 'finance_secretary', 'budget_officer', 'auditor'].includes(userRole)
   };
 };
 
