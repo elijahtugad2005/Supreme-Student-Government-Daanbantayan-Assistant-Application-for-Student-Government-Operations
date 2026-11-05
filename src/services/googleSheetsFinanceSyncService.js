@@ -100,6 +100,74 @@ export async function requestGoogleSheetsToken(interactive = true) {
 }
 
 /**
+ * Robustly parses and formats dates from various formats (Firestore Timestamps, ISO strings, etc.)
+ * into a valid YYYY-MM-DD string that Google Sheets natively understands as a date,
+ * strictly preventing "Invalid Date" output.
+ */
+export function formatGoogleSheetsDate(dateVal, fallbackVal = null) {
+  if (!dateVal) {
+    if (fallbackVal) return formatGoogleSheetsDate(fallbackVal, null);
+    return '';
+  }
+
+  // 1. If it's a Firestore Timestamp instance with .toDate()
+  if (typeof dateVal?.toDate === 'function') {
+    try {
+      const d = dateVal.toDate();
+      if (d instanceof Date && !isNaN(d.getTime())) {
+        return d.toISOString().slice(0, 10);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. If it's a serialized Firestore Timestamp object: { seconds: ..., nanoseconds: ... } or { _seconds, _nanoseconds }
+  if (typeof dateVal === 'object' && dateVal !== null) {
+    const sec = dateVal.seconds ?? dateVal._seconds;
+    if (typeof sec === 'number' && !isNaN(sec)) {
+      const d = new Date(sec * 1000);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().slice(0, 10);
+      }
+    }
+  }
+
+  // 3. If it's already a JS Date
+  if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
+    return dateVal.toISOString().slice(0, 10);
+  }
+
+  // 4. If it's a numeric timestamp (epoch milliseconds or seconds)
+  if (typeof dateVal === 'number' && !isNaN(dateVal)) {
+    const d = new Date(dateVal > 1e11 ? dateVal : dateVal * 1000);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().slice(0, 10);
+    }
+  }
+
+  // 5. If it's a string
+  if (typeof dateVal === 'string') {
+    const trimmed = dateVal.trim();
+    if (!trimmed || trimmed.toLowerCase() === 'invalid date') {
+      if (fallbackVal) return formatGoogleSheetsDate(fallbackVal, null);
+      return '';
+    }
+
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+
+    if (fallbackVal) return formatGoogleSheetsDate(fallbackVal, null);
+    return '';
+  }
+
+  if (fallbackVal) return formatGoogleSheetsDate(fallbackVal, null);
+  return '';
+}
+
+/**
  * Builds formatted data for Google Sheets v4 multi-tab payload
  */
 export function buildFiscalSheetsPayload({ funds = [], budgets = [], transactions = [] }) {
@@ -125,19 +193,20 @@ export function buildFiscalSheetsPayload({ funds = [], budgets = [], transaction
     name: 'Summary KPIs',
     headers: ['Institutional Metric', 'Amount (PHP)', 'Account / Status Reference', 'Last Synchronized'],
     rows: [
-      ['Total Holding Fund Balance', fromCentavos(totalHoldingCentavos).toFixed(2), 'All Depository Accounts', new Date().toISOString()],
-      ['Approved Legislative Appropriations', fromCentavos(totalApprovedAllocCentavos).toFixed(2), 'Active PPMP Matrix', new Date().toISOString()],
-      ['Total Event Disbursements Spent', fromCentavos(totalSpentCentavos).toFixed(2), 'Audited Ledger Disbursements', new Date().toISOString()],
-      ['Remaining Legislative Allocation Surplus', fromCentavos(Math.max(0, totalApprovedAllocCentavos - totalSpentCentavos)).toFixed(2), 'Available PPMP Ceiling', new Date().toISOString()],
+      ['Total Holding Fund Balance', fromCentavos(totalHoldingCentavos).toFixed(2), 'All Depository Accounts', new Date().toISOString().slice(0, 10)],
+      ['Approved Legislative Appropriations', fromCentavos(totalApprovedAllocCentavos).toFixed(2), 'Active PPMP Matrix', new Date().toISOString().slice(0, 10)],
+      ['Total Event Disbursements Spent', fromCentavos(totalSpentCentavos).toFixed(2), 'Audited Ledger Disbursements', new Date().toISOString().slice(0, 10)],
+      ['Remaining Legislative Allocation Surplus', fromCentavos(Math.max(0, totalApprovedAllocCentavos - totalSpentCentavos)).toFixed(2), 'Available PPMP Ceiling', new Date().toISOString().slice(0, 10)],
     ],
   };
 
   // 2. General Ledger
+  const transactionsList = Array.isArray(transactions) ? transactions : [];
   const ledgerSheet = {
     name: 'General Ledger',
     headers: ['Date', 'Transaction ID', 'Type', 'Account / Fund', 'Amount (PHP)', 'Payee / Payer', 'Description', 'Custodian', 'Resolution Ref', 'Audit Overspent'],
-    rows: transactions.map(tx => [
-      tx.date || (tx.createdAt ? new Date(tx.createdAt).toLocaleDateString('en-PH') : ''),
+    rows: transactionsList.map(tx => [
+      formatGoogleSheetsDate(tx.date, tx.createdAt || tx.timestamp || tx.transactionDate),
       tx.referenceNo || tx.id || '',
       tx.transactionType || 'EXPENSE',
       tx.fundAccountId || 'fund_fiscal_year_budget',
@@ -459,6 +528,7 @@ export default {
   isGoogleOAuthConfigured,
   getGoogleConnectionStatus,
   requestGoogleSheetsToken,
+  formatGoogleSheetsDate,
   buildFiscalSheetsPayload,
   buildTitleColumnFormattingRequests,
   exportFiscalPackageToGoogleSheets,
