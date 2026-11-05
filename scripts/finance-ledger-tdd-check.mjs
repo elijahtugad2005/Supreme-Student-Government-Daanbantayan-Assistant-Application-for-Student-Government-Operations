@@ -124,6 +124,28 @@ if (fs.existsSync(sheetsServiceFile)) {
     legacyFundsError = err.message;
   }
   check('buildFiscalSheetsPayload handles legacy funds object without throwing', legacyFundsError === null, legacyFundsError);
+
+  // Test Title Column Design Formatting Requests
+  check('Service exports buildTitleColumnFormattingRequests', typeof service.buildTitleColumnFormattingRequests === 'function');
+  const formatReqs = service.buildTitleColumnFormattingRequests({
+    sheetId: 101,
+    headers: ['Transaction ID', 'Amount (PHP)', 'Account / Fund', 'Custodian'],
+    totalRows: 25
+  });
+
+  check('buildTitleColumnFormattingRequests returns array of requests', Array.isArray(formatReqs) && formatReqs.length >= 5);
+  check('Title column formatting freezes Row 1', formatReqs.some(r => r.updateSheetProperties?.properties?.gridProperties?.frozenRowCount === 1));
+  check('Title column formatting sets 36px row height', formatReqs.some(r => r.updateDimensionProperties?.properties?.pixelSize === 36));
+  check('Title column formatting applies Royal Crimson background', formatReqs.some(r => {
+    const bg = r.repeatCell?.cell?.userEnteredFormat?.backgroundColor;
+    return bg && Math.abs(bg.red - 0.48) < 0.05 && Math.abs(bg.green - 0.07) < 0.05;
+  }));
+  check('Title column formatting applies Imperial Gold text with bold weight', formatReqs.some(r => {
+    const tf = r.repeatCell?.cell?.userEnteredFormat?.textFormat;
+    return tf?.bold === true && tf?.foregroundColor && tf.foregroundColor.red >= 0.9;
+  }));
+  check('Title column formatting applies solid gold bottom border', formatReqs.some(r => r.updateBorders?.bottom?.style === 'SOLID_MEDIUM'));
+  check('Title column formatting auto-resizes columns', formatReqs.some(r => r.autoResizeDimensions?.dimensions?.dimension === 'COLUMNS'));
 }
 
 console.log('\n=== Slice 4: Reports & Sheets Tab in Finance Dashboard ===');
