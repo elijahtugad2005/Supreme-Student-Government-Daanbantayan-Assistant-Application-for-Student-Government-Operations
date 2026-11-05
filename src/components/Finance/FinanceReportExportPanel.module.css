@@ -1,6 +1,6 @@
 /* ==========================================================================
    FINANCE REPORT EXPORT & GOOGLE SHEETS SYNC - IMPECCABLE DESIGN SYSTEM
-   Aligns with SSG Institutional Treasury, Dark Cyberpunk & Brutalist Modes
+   Supports Default Modern Clean & Institutional Royal Maroon / Imperial Gold (.theme-dark)
    ========================================================================== */
 
 .wrapper {
@@ -34,6 +34,7 @@
   background: var(--surface-primary, #ffffff);
   border: 1px solid var(--border-subtle, #e2e8f0);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
 }
 
 .governanceLeft {
@@ -112,6 +113,7 @@
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.25s ease;
 }
 
 .heroContent {
@@ -176,6 +178,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  transition: all 0.25s ease;
 }
 
 .cardHeader {
@@ -204,7 +207,7 @@
   line-height: 1.45;
 }
 
-/* ─── Tabs Preview Card ─── */
+/* ─── Tabs Preview List ─── */
 .sheetsStructureList {
   display: flex;
   flex-direction: column;
@@ -241,6 +244,7 @@
   justify-content: center;
   flex-shrink: 0;
   margin-top: 0.1rem;
+  transition: all 0.2s ease;
 }
 
 .sheetTabDetails {
@@ -467,44 +471,233 @@
   to { transform: rotate(360deg); }
 }
 
-/* ─── Dark Mode Adaptation ─── */
-:global(.theme-dark) .governanceBar,
+/* ==========================================================================
+   CLASSIC MODE: ROYAL CRIMSON MAROON & IMPERIAL GOLD AESTHETIC
+   Triggered on :global(.theme-dark) or ancestor .financeClassic
+   ========================================================================== */
+
+:global(.theme-dark) .governanceBar {
+  background: rgba(30, 4, 8, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.15) !important;
+}
+
+:global(.theme-dark) .operatorBadge {
+  background: rgba(122, 18, 29, 0.7) !important;
+  border-color: #d4af37 !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.05em !important;
+  box-shadow: 0 2px 10px rgba(122, 18, 29, 0.4) !important;
+}
+
+:global(.theme-dark) .roleBadgeReadOnly {
+  background: rgba(74, 5, 13, 0.8) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+:global(.theme-dark) .oauthConnected {
+  background: rgba(22, 101, 52, 0.35) !important;
+  border-color: rgba(74, 222, 128, 0.45) !important;
+  color: #86efac !important;
+}
+
+:global(.theme-dark) .oauthDisconnected {
+  background: rgba(45, 6, 11, 0.6) !important;
+  border-color: rgba(212, 175, 55, 0.25) !important;
+  color: #c9a9ad !important;
+}
+
+:global(.theme-dark) .heroBanner {
+  background: radial-gradient(circle at 10% 20%, rgba(150, 23, 37, 0.95) 0%, rgba(94, 8, 17, 0.98) 50%, #2a0306 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(122, 18, 29, 0.35) !important;
+}
+
+:global(.theme-dark) .heroTag {
+  background: rgba(74, 5, 13, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.5) !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+:global(.theme-dark) .heroTitle {
+  font-family: 'Cinzel', Georgia, serif !important;
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 2px 14px rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .heroDescription {
+  color: #ffea9f !important;
+  opacity: 0.9;
+}
+
 :global(.theme-dark) .card {
-  background: #0f172a;
-  border-color: #1e293b;
+  background: radial-gradient(circle at 50% 0%, rgba(74, 5, 13, 0.4) 0%, rgba(18, 3, 5, 0.98) 70%, #100204 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 18px rgba(122, 18, 29, 0.18) !important;
+}
+
+:global(.theme-dark) .cardHeader {
+  border-bottom-color: rgba(212, 175, 55, 0.2) !important;
 }
 
 :global(.theme-dark) .cardTitle {
-  color: #f1f5f9;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.02em !important;
 }
 
-:global(.theme-dark) .sheetTabItem {
-  background: #1e293b;
-  border-color: #334155;
-}
-
-:global(.theme-dark) .sheetTabName {
-  color: #f8fafc;
+:global(.theme-dark) .cardSubtitle {
+  color: #c9a9ad !important;
 }
 
 :global(.theme-dark) .modeOption {
-  background: #1e293b;
-  border-color: #334155;
+  background: rgba(20, 3, 6, 0.7) !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .modeOption:hover {
+  background: rgba(45, 6, 11, 0.8) !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+}
+
+:global(.theme-dark) .modeOptionActive {
+  background: linear-gradient(135deg, rgba(122, 18, 29, 0.7) 0%, rgba(74, 5, 13, 0.85) 100%) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.3), inset 0 1px 0 rgba(255, 234, 159, 0.2) !important;
 }
 
 :global(.theme-dark) .modeOptionTitle {
-  color: #f8fafc;
+  color: #fff6e5 !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+
+:global(.theme-dark) .modeOptionDesc {
+  color: #c9a9ad !important;
+}
+
+:global(.theme-dark) .formLabel {
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.03em !important;
 }
 
 :global(.theme-dark) .formInput {
-  background: #020617;
-  border-color: #334155;
-  color: #f8fafc;
+  background: rgba(20, 3, 6, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #fff6e5 !important;
+}
+
+:global(.theme-dark) .formInput:focus {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25) !important;
+}
+
+:global(.theme-dark) .formHint {
+  color: #a8848a !important;
+}
+
+:global(.theme-dark) .exportBtn {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  box-shadow: 0 4px 18px rgba(122, 18, 29, 0.5), inset 0 1px 0 rgba(255, 234, 159, 0.3) !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.04em !important;
+}
+
+:global(.theme-dark) .exportBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #961725 0%, #5e0811 100%) !important;
+  border-color: #ffea9f !important;
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.45) !important;
+  transform: translateY(-2px) !important;
+}
+
+:global(.theme-dark) .sheetTabItem {
+  background: rgba(20, 3, 6, 0.7) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+:global(.theme-dark) .sheetTabItem:hover {
+  background: rgba(45, 6, 11, 0.8) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+}
+
+:global(.theme-dark) .sheetTabNumber {
+  background: #7a121d !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .sheetTabName {
+  color: #fff6e5 !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  letter-spacing: 0.02em !important;
+}
+
+:global(.theme-dark) .sheetTabCount {
+  background: rgba(122, 18, 29, 0.6) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .sheetTabSummary {
+  color: #c9a9ad !important;
 }
 
 :global(.theme-dark) .auditNotice {
-  background: #020617;
-  border-color: #1e293b;
-  color: #94a3b8;
+  background: rgba(20, 3, 6, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .alertError {
+  background: rgba(122, 18, 29, 0.35) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  color: #fee2e2 !important;
+}
+
+:global(.theme-dark) .alertSuccess {
+  background: rgba(20, 3, 6, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: #ffea9f !important;
+}
+
+:global(.theme-dark) .sheetLinkBtn {
+  background: linear-gradient(135deg, #7a121d 0%, #4a050d 100%) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffea9f !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  box-shadow: 0 2px 10px rgba(122, 18, 29, 0.4) !important;
+}
+
+:global(.theme-dark) .sheetLinkBtn:hover {
+  background: linear-gradient(135deg, #961725 0%, #5e0811 100%) !important;
+  border-color: #ffea9f !important;
+}
+
+/* ─── Compliance Notice ─── */
+.complianceNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface-secondary, #f8fafc);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 10px;
+  font-size: 0.785rem;
+  color: #475569;
+}
+
+:global(.theme-dark) .complianceNotice {
+  background: rgba(20, 3, 6, 0.7) !important;
+  border-color: rgba(212, 175, 55, 0.25) !important;
+  color: #c9a9ad !important;
 }
 

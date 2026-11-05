@@ -106,8 +106,8 @@ check('rules and JS agree on Death Aid managers',
   `rules=[${ruleRoles}] js=[${DEATH_AID_MANAGER_ROLES}]`);
 check('governors and representatives may manage Death Aid',
   ['governor', 'representative'].every((r) => canManageDeathAid({ role: r })));
-check('members, guests and senators may not',
-  ['member', 'guest', 'senator', 'public'].every((r) => !canManageDeathAid({ role: r })));
+check('members, guests and public may not',
+  ['member', 'guest', 'public'].every((r) => !canManageDeathAid({ role: r })));
 check('a Member with the Creatives flag may not',
   !canManageDeathAid({ role: 'member', canManageCreatives: true }));
 

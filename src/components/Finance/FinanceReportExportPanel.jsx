@@ -301,18 +301,8 @@ export const FinanceReportExportPanel = () => {
             </div>
           </div>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.65rem',
-            padding: '0.85rem 1rem',
-            background: 'var(--surface-secondary, #f8fafc)',
-            border: '1px solid var(--border-subtle, #e2e8f0)',
-            borderRadius: '10px',
-            fontSize: '0.785rem',
-            color: '#475569'
-          }}>
-            <Building2 size={16} color="#475569" style={{ flexShrink: 0 }} />
+          <div className={styles.complianceNotice}>
+            <Building2 size={16} style={{ flexShrink: 0 }} />
             <span>
               Format conforms to CTU Supreme Student Government Financial By-Laws &amp; Commission on Audit (COA) standards.
             </span>

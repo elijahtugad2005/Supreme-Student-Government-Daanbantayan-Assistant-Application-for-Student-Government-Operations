@@ -27,12 +27,12 @@ import {
   setDoc,
   where,
 } from 'firebase/firestore';
-import { db } from '../firebase/firebaseConfig';
+import { db } from '../firebase/firebaseConfig.js';
 import {
   DEATH_AID_COLLECTION_STATUS,
   DEATH_AID_DEBT_TYPES,
   DEATH_AID_REMITTANCE_STATUS,
-} from '../utils/permissions';
+} from '../utils/permissions.js';
 
 export const COLLECTION_COLLECTION = 'deathAidCollections';
 export const REMITTANCE_COLLECTION = 'deathAidRemittances';
