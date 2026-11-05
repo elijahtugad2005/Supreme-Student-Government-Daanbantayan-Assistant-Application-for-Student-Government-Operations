@@ -390,6 +390,64 @@ console.log('\n=== Slice 8: Currency Normalization Guarantee (Fix for Cannot rea
   );
 }
 
+console.log('\n=== Slice 9: Officer Name in Input Forms & fromCentavos Regression Prevention ===');
+{
+  const { store, db } = createFakeEnvironment();
+  const service = createIgpProjectService({ db });
+
+  // 1. Explicit officerName in vending collection
+  const vRec = await service.recordVendingCollection(
+    {
+      amountPHP: 500,
+      location: { buildingName: 'Student Center', buildingId: 'bldg-sc', specificSpot: 'Hallway' },
+      officerName: 'Sarah Connor (Secretary of Audit)',
+    },
+    { uid: 'u-default', name: 'Default User', role: 'admin' }
+  );
+
+  check(
+    'recordVendingCollection respects explicit officerName input',
+    vRec.collectedBy.name === 'Sarah Connor (Secretary of Audit)',
+    JSON.stringify(vRec.collectedBy)
+  );
+
+  // 2. Explicit officerName in custom IGP revenue
+  const cRec = await service.recordCustomIgpRevenue(
+    {
+      projectName: 'T-Shirt Merch Batch 1',
+      amountPHP: 1200,
+      location: { buildingName: 'Admin Building' },
+      officerName: 'John Doe (Finance Secretary)',
+    },
+    { uid: 'u-default', name: 'Default User', role: 'admin' }
+  );
+
+  check(
+    'recordCustomIgpRevenue respects explicit officerName input',
+    cRec.collectedBy.name === 'John Doe (Finance Secretary)',
+    JSON.stringify(cRec.collectedBy)
+  );
+
+  // 3. Explicit officerName in locker rental
+  await service.initializeLockerUnitsIfEmpty();
+  const lRec = await service.rentLockerUnit(
+    'HM-L01',
+    {
+      renterName: 'Alice Student',
+      studentId: 'CTU-2026-001',
+      months: 1,
+      officerName: 'Marcus Wright (Budget Secretary)',
+    },
+    { uid: 'u-default', name: 'Default User', role: 'admin' }
+  );
+
+  check(
+    'rentLockerUnit respects explicit officerName input in recordedBy',
+    lRec.currentLease.recordedBy === 'Marcus Wright (Budget Secretary)',
+    JSON.stringify(lRec.currentLease)
+  );
+}
+
 console.log('\n' + results.join('\n'));
 console.log(failed === 0 ? '\nAll IGP Project checks passed.' : `\n${failed} CHECKS FAILED`);
 process.exit(failed === 0 ? 0 : 1);
