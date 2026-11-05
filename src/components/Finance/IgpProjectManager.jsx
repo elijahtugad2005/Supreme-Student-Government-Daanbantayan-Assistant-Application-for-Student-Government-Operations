@@ -72,6 +72,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
     buildingName: 'Student Center',
     buildingId: 'bldg-student-center',
     specificSpot: 'Ground Floor Cafeteria Hallway',
+    officerName: '',
     notes: '',
     referenceNumber: '',
   });
@@ -83,6 +84,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
     phoneNumber: '',
     months: 1,
     startDate: new Date().toISOString().split('T')[0],
+    officerName: '',
   });
 
   const [customForm, setCustomForm] = useState({
@@ -91,6 +93,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
     buildingName: 'Administration Building',
     buildingId: 'bldg-admin',
     specificSpot: 'SSG Office',
+    officerName: '',
     notes: '',
     referenceNumber: '',
   });
@@ -150,6 +153,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
       showToast('Please enter a valid collection amount.', 'error');
       return;
     }
+    const collectorName = vendingForm.officerName?.trim() || effectiveUser.name || 'Authorized Officer';
     try {
       await service.recordVendingCollection(
         {
@@ -159,18 +163,20 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
             buildingId: vendingForm.buildingId,
             specificSpot: vendingForm.specificSpot,
           },
+          officerName: collectorName,
           notes: vendingForm.notes,
           referenceNumber: vendingForm.referenceNumber,
         },
         effectiveUser
       );
-      showToast(`✓ Recorded ₱${parseFloat(vendingForm.amountPHP).toFixed(2)} to IGP Fund!`, 'success');
+      showToast(`✓ Recorded ₱${parseFloat(vendingForm.amountPHP).toFixed(2)} to IGP Fund by ${collectorName}!`, 'success');
       setVendingModalOpen(false);
       setVendingForm({
         amountPHP: '',
         buildingName: 'Student Center',
         buildingId: 'bldg-student-center',
         specificSpot: 'Ground Floor Cafeteria Hallway',
+        officerName: '',
         notes: '',
         referenceNumber: '',
       });
@@ -186,8 +192,16 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
       showToast('Student Renter Name and Student ID are required.', 'error');
       return;
     }
+    const officerInCharge = rentForm.officerName?.trim() || effectiveUser.name || 'SSG Officer';
     try {
-      await service.rentLockerUnit(rentModalLocker.lockerId, rentForm, effectiveUser);
+      await service.rentLockerUnit(
+        rentModalLocker.lockerId,
+        {
+          ...rentForm,
+          officerName: officerInCharge,
+        },
+        effectiveUser
+      );
       showToast(`✓ Locker ${rentModalLocker.lockerId} rented to ${rentForm.renterName}!`, 'success');
       setRentModalLocker(null);
       setRentForm({
@@ -197,6 +211,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
         phoneNumber: '',
         months: 1,
         startDate: new Date().toISOString().split('T')[0],
+        officerName: '',
       });
       loadData();
     } catch (err) {
@@ -222,6 +237,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
       showToast('Project Name and positive amount are required.', 'error');
       return;
     }
+    const collectorName = customForm.officerName?.trim() || effectiveUser.name || 'Authorized Officer';
     try {
       await service.recordCustomIgpRevenue(
         {
@@ -232,6 +248,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
             buildingId: customForm.buildingId,
             specificSpot: customForm.specificSpot,
           },
+          officerName: collectorName,
           notes: customForm.notes,
           referenceNumber: customForm.referenceNumber,
         },
@@ -245,6 +262,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
         buildingName: 'Administration Building',
         buildingId: 'bldg-admin',
         specificSpot: 'SSG Office',
+        officerName: '',
         notes: '',
         referenceNumber: '',
       });
