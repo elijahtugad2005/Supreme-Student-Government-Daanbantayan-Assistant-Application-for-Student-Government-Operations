@@ -641,7 +641,7 @@ service cloud.firestore {
     match /igpCollections/{collectionId} {
       allow read: if isSignedIn();
       allow create: if (canEditFinance() || isOfficer()) && isSignedIn();
-      allow update, delete: if isAdmin();
+      allow update, delete: if (isAdmin() || canEditFinance()) && isSignedIn();
     }
 
     // Anything not matched above is denied.
