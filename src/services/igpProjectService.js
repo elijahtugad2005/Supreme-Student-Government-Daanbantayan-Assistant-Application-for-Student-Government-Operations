@@ -215,7 +215,7 @@ export function createIgpProjectService({ db }) {
         totalPaidCentavos,
         startDate,
         expiryDate,
-        recordedBy: actorUser?.name || actorUser?.displayName || 'SSG Officer',
+        recordedBy: rentalData.officerName?.trim() || actorUser?.name || actorUser?.displayName || 'SSG Officer',
         recordedAt: nowIso,
       };
 
@@ -237,7 +237,7 @@ export function createIgpProjectService({ db }) {
         buildingId: locker.buildingId,
         amountCentavos: totalPaidCentavos,
         amountPHP: totalPaidCentavos / 100,
-        collectedBy: buildCollectorInfo(actorUser),
+        collectedBy: buildCollectorInfo(actorUser, rentalData.officerName),
         collectedAt: nowIso,
         notes: `Rented ${lockerId} to ${lease.renterName} (${lease.studentId}) for ${months} month(s)`,
         fundSource: 'IGP',
@@ -316,7 +316,7 @@ export function createIgpProjectService({ db }) {
         location: buildLocationInfo(projectData.location),
         amountCentavos,
         amountPHP: amountCentavos / 100,
-        collectedBy: buildCollectorInfo(actorUser, collectionData.officerName),
+        collectedBy: buildCollectorInfo(actorUser, projectData.officerName),
         collectedAt: projectData.collectedAt || nowIso,
         notes: projectData.notes || '',
         referenceNumber: projectData.referenceNumber || '',
@@ -404,10 +404,12 @@ export function createBrowserIgpProjectService() {
       const snap = await getDocs(query(collection(db, 'igpCollections'), orderBy('createdAt', 'desc')));
       return snap.docs.map((d) => {
         const data = d.data() || {};
-        const amountCentavos = Number(data.amountCentavos ?? toCentavos(data.amountPHP || 0));
+        const amountCentavos = typeof data.amountCentavos === 'number' && !isNaN(data.amountCentavos)
+          ? data.amountCentavos
+          : toCentavosSafe(data.amountPHP || 0);
         const amountPHP = typeof data.amountPHP === 'number' && !isNaN(data.amountPHP)
           ? data.amountPHP
-          : fromCentavos(amountCentavos);
+          : (amountCentavos / 100);
         return {
           id: d.id,
           ...data,
