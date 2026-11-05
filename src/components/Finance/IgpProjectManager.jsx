@@ -22,6 +22,24 @@ import {
 } from '../../services/igpProjectService.js';
 import styles from './IgpProjectManager.module.css';
 
+/**
+ * Safely formats currency to 2 decimal places, supporting both amountPHP and amountCentavos,
+ * preventing any "Cannot read properties of undefined (reading 'toFixed')" runtime errors.
+ */
+function formatCollectionAmountPHP(c) {
+  if (typeof c?.amountPHP === 'number' && !isNaN(c.amountPHP)) {
+    return c.amountPHP.toFixed(2);
+  }
+  if (typeof c?.amountCentavos === 'number' && !isNaN(c.amountCentavos)) {
+    return (c.amountCentavos / 100).toFixed(2);
+  }
+  const parsed = parseFloat(c?.amountPHP);
+  if (!isNaN(parsed)) {
+    return parsed.toFixed(2);
+  }
+  return '0.00';
+}
+
 export default function IgpProjectManager({ user = null, onNavigateToMap = null }) {
   const { currentUser, userName, userRole } = useAuth();
   const effectiveUser = useMemo(() => {
@@ -287,7 +305,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
             {metrics.occupiedLockers} / {metrics.totalLockers}
           </div>
           <div className={styles.metricSubtext}>
-            {metrics.availableLockers} Available • ₱{metrics.lockersPHP.toFixed(2)} Collected
+            {metrics.availableLockers} Available • ₱{(metrics.lockersPHP || 0).toFixed(2)} Collected
           </div>
         </div>
 
@@ -496,7 +514,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                   .map((c) => (
                     <tr key={c.id}>
                       <td>{new Date(c.collectedAt).toLocaleString()}</td>
-                      <td style={{ fontWeight: 700, color: '#f7d070' }}>₱{c.amountPHP.toFixed(2)}</td>
+                      <td style={{ fontWeight: 700, color: '#f7d070' }}>₱{formatCollectionAmountPHP(c)}</td>
                       <td>
                         <strong>{c.location?.buildingName}</strong>
                         {c.location?.specificSpot ? ` (${c.location.specificSpot})` : ''}
