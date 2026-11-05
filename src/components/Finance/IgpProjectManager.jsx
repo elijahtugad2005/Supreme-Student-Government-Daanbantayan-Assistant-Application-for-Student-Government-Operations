@@ -577,7 +577,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                     <tr key={c.id}>
                       <td>{new Date(c.collectedAt).toLocaleDateString()}</td>
                       <td style={{ fontWeight: 700 }}>{c.projectName}</td>
-                      <td style={{ fontWeight: 700, color: '#f7d070' }}>₱{c.amountPHP.toFixed(2)}</td>
+                      <td style={{ fontWeight: 700, color: '#f7d070' }}>₱{formatCollectionAmountPHP(c)}</td>
                       <td>
                         <strong>{c.location?.buildingName}</strong> ({c.location?.specificSpot})
                       </td>
@@ -649,7 +649,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                       </span>
                     </td>
                     <td>{c.projectName}</td>
-                    <td style={{ fontWeight: 700, color: '#f7d070' }}>₱{c.amountPHP.toFixed(2)}</td>
+                    <td style={{ fontWeight: 700, color: '#f7d070' }}>₱{formatCollectionAmountPHP(c)}</td>
                     <td>{c.collectedBy?.name || 'SSG Officer'}</td>
                   </tr>
                 ))}
