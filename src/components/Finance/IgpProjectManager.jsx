@@ -759,6 +759,18 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                 </select>
               </div>
 
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Assisting Officer Name *</label>
+                <input
+                  type="text"
+                  required
+                  className={styles.textInput}
+                  placeholder="e.g. Officer Name"
+                  value={rentForm.officerName || effectiveUser.name || ''}
+                  onChange={(e) => setRentForm({ ...rentForm, officerName: e.target.value })}
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <button
                   type="button"
