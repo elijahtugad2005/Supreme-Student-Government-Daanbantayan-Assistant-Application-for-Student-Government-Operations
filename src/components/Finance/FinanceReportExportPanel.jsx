@@ -24,9 +24,14 @@ import {
 import styles from './FinanceReportExportPanel.module.css';
 
 export const FinanceReportExportPanel = () => {
-  const { funds, budgets, transactions } = useFinance();
+  const { fundAccounts, budgetAllocations, transactions, funds, budgets } = useFinance();
   const { currentUser, userProfile } = useAuth();
   const { canPostFinanceLedger, role } = usePermissions();
+
+  // Use redesigned arrays with backward-compatible fallbacks
+  const activeFunds = Array.isArray(fundAccounts) && fundAccounts.length > 0 ? fundAccounts : (Array.isArray(funds) ? funds : []);
+  const activeBudgets = Array.isArray(budgetAllocations) && budgetAllocations.length > 0 ? budgetAllocations : (Array.isArray(budgets) ? budgets : []);
+  const activeTransactions = Array.isArray(transactions) ? transactions : [];
 
   const [exportMode, setExportMode] = useState('new'); // 'new' | 'existing'
   const [customSpreadsheetId, setCustomSpreadsheetId] = useState('');
@@ -46,9 +51,9 @@ export const FinanceReportExportPanel = () => {
 
     try {
       const result = await exportFiscalPackageToGoogleSheets({
-        funds,
-        budgets,
-        transactions,
+        funds: activeFunds.length > 0 ? activeFunds : funds,
+        budgets: activeBudgets,
+        transactions: activeTransactions,
         spreadsheetId: targetSpreadsheetId || null,
         user: {
           role: userProfile?.role || role || 'admin',
@@ -265,7 +270,7 @@ export const FinanceReportExportPanel = () => {
                 <div className={styles.sheetTabDetails}>
                   <div className={styles.sheetTabName}>
                     <span>General Ledger</span>
-                    <span className={styles.sheetTabCount}>{transactions.length} records</span>
+                    <span className={styles.sheetTabCount}>{activeTransactions.length} records</span>
                   </div>
                   <div className={styles.sheetTabSummary}>
                     Immutable chronological transaction ledger with double-entry reference IDs, payees, allocations, and reversal logs.
@@ -278,7 +283,7 @@ export const FinanceReportExportPanel = () => {
                 <div className={styles.sheetTabDetails}>
                   <div className={styles.sheetTabName}>
                     <span>Approved Allocations</span>
-                    <span className={styles.sheetTabCount}>{budgets.length} lines</span>
+                    <span className={styles.sheetTabCount}>{activeBudgets.length} lines</span>
                   </div>
                   <div className={styles.sheetTabSummary}>
                     PPMP departmental budget ceilings, disbursed totals, remaining balance, and approval timestamps.
@@ -291,7 +296,7 @@ export const FinanceReportExportPanel = () => {
                 <div className={styles.sheetTabDetails}>
                   <div className={styles.sheetTabName}>
                     <span>Holding Funds</span>
-                    <span className={styles.sheetTabCount}>{funds.length} accounts</span>
+                    <span className={styles.sheetTabCount}>{activeFunds.length} accounts</span>
                   </div>
                   <div className={styles.sheetTabSummary}>
                     Current balances across Fiscal Operating, FSG Trust, IGF Student Supply, and IGP Campus Projects.
