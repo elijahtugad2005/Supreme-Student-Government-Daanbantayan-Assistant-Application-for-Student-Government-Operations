@@ -23,6 +23,7 @@
     "test:order-status": "node scripts/order-status-check.mjs",
     "test:centralized-sheet": "node scripts/centralized-order-sheet-check.mjs",
     "test:sheet-diag": "node scripts/diagnose-sheet-sync.mjs",
+    "test:map-2d": "node scripts/campus-map-2d-check.mjs",
     "test:igp-projects": "node scripts/igp-projects-check.mjs",
     "test:death-aid-calc": "esbuild scripts/death-aid-calc-check.mjs --bundle --platform=node --format=esm --outfile=node_modules/.tmp/calc.mjs --external:firebase/app --external:firebase/firestore --external:firebase/auth --log-level=warning && node node_modules/.tmp/calc.mjs",
     "test:roster-ownership": "node scripts/roster-ownership-check.mjs",

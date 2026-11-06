@@ -33,7 +33,6 @@ import {
   FiMaximize2,
   FiCompass,
   FiMapPin,
-  FiLayers,
   FiNavigation,
   FiCheck,
   FiCopy
@@ -174,8 +173,8 @@ const DEFAULT_CAMPUS_TREES = [
   { id: 'tree-sth-3', x: 810, y: 1480, type: 'mango', scale: 1.05 }
 ];
 
-// Lightweight, High-Detail 2.5D Isometric Tree Component
-const IsometricTree = React.memo(({ tree, isIsometric, isAdmin, isPlantingMode, showMangoFruits, onRemove }) => {
+// Lightweight, High-Detail 2D Sky View Tree Component
+const IsometricTree = React.memo(({ tree, isAdmin, isPlantingMode, showMangoFruits, onRemove }) => {
   const { x, y, scale = 1.0 } = tree;
   // Normalize legacy tree types (e.g. 'pine'/'conifer' -> 'mango', 'canopy' -> 'acacia')
   const rawType = (tree.type || '').toLowerCase();
@@ -202,173 +201,58 @@ const IsometricTree = React.memo(({ tree, isIsometric, isAdmin, isPlantingMode, 
     >
       {/* 1. Ground Cast Shadow */}
       <ellipse
-        cx={x + (isIsometric ? 7 : 0)}
-        cy={y + (isIsometric ? 2 : 0)}
+        cx={x}
+        cy={y}
         rx={type === 'acacia' ? 15 : 12}
-        ry={isIsometric ? 5 : 9}
+        ry={9}
         className={styles.treeShadow}
       />
 
       {/* 2. Variety: Philippine Acacia (Rain Tree - Samanea saman) */}
       {type === 'acacia' && (
         <g>
-          {isIsometric ? (
-            <>
-              {/* Spreading Wood Limbs & Gnarled Trunk */}
-              <path
-                d={`M ${x - 2.5} ${y} L ${x - 1.8} ${y - 12} L ${x + 1.8} ${y - 12} L ${x + 2.5} ${y} Z`}
-                fill="#3E1C0A"
-              />
-              <path
-                d={`M ${x - 1} ${y - 10} Q ${x - 9} ${y - 16} ${x - 16} ${y - 23}`}
-                stroke="#3E1C0A"
-                strokeWidth="2.8"
-                strokeLinecap="round"
-                fill="none"
-              />
-              <path
-                d={`M ${x + 1} ${y - 10} Q ${x + 9} ${y - 16} ${x + 16} ${y - 23}`}
-                stroke="#3E1C0A"
-                strokeWidth="2.8"
-                strokeLinecap="round"
-                fill="none"
-              />
-              <path
-                d={`M ${x} ${y - 11} L ${x} ${y - 25}`}
-                stroke="#3E1C0A"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                fill="none"
-              />
-
-              {/* Wide Tiered Umbrella Canopy */}
-              <ellipse cx={x} cy={y - 25} rx={22} ry={9.5} fill="#064E3B" />
-              <ellipse cx={x - 13} cy={y - 26} rx={11} ry={7.5} fill="#065F46" />
-              <ellipse cx={x + 13} cy={y - 26} rx={11} ry={7.5} fill="#047857" />
-              <ellipse cx={x} cy={y - 30} rx={17} ry={9} fill="#059669" />
-              <ellipse cx={x - 7} cy={y - 32} rx={10} ry={5.5} fill="#10B981" />
-              <ellipse cx={x + 7} cy={y - 32} rx={9} ry={5} fill="#10B981" />
-              <ellipse cx={x} cy={y - 35} rx={8} ry={4} fill="#34D399" opacity="0.9" />
-
-              {/* Delicate Rain Tree Pink Puff Blossoms */}
-              <circle cx={x - 13} cy={y - 27} r={1.6} fill="#F472B6" opacity="0.9" />
-              <circle cx={x - 5} cy={y - 33} r={1.8} fill="#FB7185" opacity="0.95" />
-              <circle cx={x + 6} cy={y - 33} r={1.7} fill="#F472B6" opacity="0.9" />
-              <circle cx={x + 14} cy={y - 28} r={1.8} fill="#FDA4AF" opacity="0.95" />
-              <circle cx={x} cy={y - 36} r={2} fill="#F472B6" opacity="0.95" />
-            </>
-          ) : (
-            // 2D Sky View: Wide Umbrella Acacia Crown
-            <>
-              <circle cx={x} cy={y} r="15" fill="#064E3B" />
-              <circle cx={x - 7} cy={y} r="10" fill="#065F46" />
-              <circle cx={x + 7} cy={y} r="10" fill="#047857" />
-              <circle cx={x} cy={y - 2} r="11" fill="#059669" />
-              <circle cx={x - 2} cy={y - 3} r="7" fill="#10B981" />
-              <circle cx={x - 3} cy={y - 4} r="3" fill="#34D399" opacity="0.9" />
-              <circle cx={x - 8} cy={y - 2} r={1.6} fill="#F472B6" />
-              <circle cx={x + 8} cy={y - 3} r={1.6} fill="#FB7185" />
-              <circle cx={x} cy={y - 6} r={1.8} fill="#F472B6" />
-            </>
-          )}
+          <circle cx={x} cy={y} r="15" fill="#064E3B" />
+          <circle cx={x - 7} cy={y} r="10" fill="#065F46" />
+          <circle cx={x + 7} cy={y} r="10" fill="#047857" />
+          <circle cx={x} cy={y - 2} r="11" fill="#059669" />
+          <circle cx={x - 2} cy={y - 3} r="7" fill="#10B981" />
+          <circle cx={x - 3} cy={y - 4} r="3" fill="#34D399" opacity="0.9" />
+          <circle cx={x - 8} cy={y - 2} r={1.6} fill="#F472B6" />
+          <circle cx={x + 8} cy={y - 3} r={1.6} fill="#FB7185" />
+          <circle cx={x} cy={y - 6} r={1.8} fill="#F472B6" />
         </g>
       )}
 
       {/* 3. Variety: Philippine Mango Tree (Carabao Mango - Mangifera indica) */}
       {type === 'mango' && (
         <g>
-          {isIsometric ? (
-            <>
-              {/* Sturdy Gnarled Mango Trunk */}
-              <path
-                d={`M ${x - 3} ${y} Q ${x - 2} ${y - 8} ${x - 1} ${y - 15} L ${x + 1.5} ${y - 15} Q ${x + 2} ${y - 8} ${x + 3} ${y} Z`}
-                fill="#451A03"
-              />
-              <path
-                d={`M ${x - 0.5} ${y - 14} Q ${x - 6} ${y - 20} ${x - 9} ${y - 24}`}
-                stroke="#451A03"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                fill="none"
-              />
-              <path
-                d={`M ${x + 0.5} ${y - 14} Q ${x + 6} ${y - 20} ${x + 9} ${y - 24}`}
-                stroke="#451A03"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                fill="none"
-              />
+          <circle cx={x} cy={y} r="13" fill="#064E3B" />
+          <circle cx={x - 5} cy={y} r="8.5" fill="#065F46" />
+          <circle cx={x + 5} cy={y} r="8.5" fill="#047857" />
+          <circle cx={x} cy={y - 2} r="9.5" fill="#059669" />
+          <circle cx={x - 2} cy={y - 3} r="6" fill="#10B981" />
+          <circle cx={x - 3} cy={y - 4} r="2.5" fill="#34D399" opacity="0.9" />
 
-              {/* Dense Rounded Mango Canopy */}
-              <ellipse cx={x} cy={y - 24} rx={16} ry={13} fill="#064E3B" />
-              <ellipse cx={x - 8} cy={y - 23} rx={9.5} ry={8} fill="#065F46" />
-              <ellipse cx={x + 8} cy={y - 23} rx={9.5} ry={8} fill="#047857" />
-              <ellipse cx={x} cy={y - 29} rx={12} ry={9.5} fill="#059669" />
-              <ellipse cx={x - 4} cy={y - 31} rx={8} ry={6} fill="#10B981" />
-              <ellipse cx={x + 4} cy={y - 28} rx={7} ry={5} fill="#10B981" />
-              <circle cx={x - 4} cy={y - 33} r={3} fill="#34D399" opacity="0.85" />
-
-              {/* Leaf Texture Details */}
-              <circle cx={x - 10} cy={y - 20} r="1.2" fill="#064E3B" opacity="0.6" />
-              <circle cx={x + 10} cy={y - 21} r="1.2" fill="#064E3B" opacity="0.6" />
-
-              {/* 🌟 SECRET EASTER EGG: Hanging Ripe Golden Carabao Mangoes in March & May */}
-              {showMangoFruits && (
-                <g className={styles.mangoFruitCluster}>
-                  {[
-                    { fx: x - 10, fy: y - 20, rot: -15 },
-                    { fx: x - 4, fy: y - 16, rot: 10 },
-                    { fx: x + 6, fy: y - 19, rot: -8 },
-                    { fx: x + 11, fy: y - 22, rot: 18 },
-                    { fx: x - 1, fy: y - 24, rot: 5 },
-                  ].map((m, idx) => (
-                    <g key={idx} transform={`translate(${m.fx}, ${m.fy}) rotate(${m.rot})`}>
-                      <line x1="0" y1="-2.5" x2="0" y2="0" stroke="#3E1A04" strokeWidth="0.8" />
-                      <path
-                        d="M 0 0 C -2.2 2, -2.8 4.5, -1 6.8 C 1.2 8.2, 3.2 6.2, 2.2 3.2 C 1.8 1.2, 0.8 0.2, 0 0 Z"
-                        fill="#F59E0B"
-                        stroke="#D97706"
-                        strokeWidth="0.5"
-                      />
-                      <ellipse cx="-0.5" cy="3.2" rx="0.7" ry="1.6" fill="#FEF08A" opacity="0.85" />
-                      <circle cx="0.2" cy="5.8" r="0.9" fill="#EA580C" opacity="0.75" />
-                    </g>
-                  ))}
-                </g>
-              )}
-            </>
-          ) : (
-            // 2D Sky View: Dense Rounded Mango Crown
-            <>
-              <circle cx={x} cy={y} r="13" fill="#064E3B" />
-              <circle cx={x - 5} cy={y} r="8.5" fill="#065F46" />
-              <circle cx={x + 5} cy={y} r="8.5" fill="#047857" />
-              <circle cx={x} cy={y - 2} r="9.5" fill="#059669" />
-              <circle cx={x - 2} cy={y - 3} r="6" fill="#10B981" />
-              <circle cx={x - 3} cy={y - 4} r="2.5" fill="#34D399" opacity="0.9" />
-
-              {/* 🌟 SECRET EASTER EGG in 2D Sky View */}
-              {showMangoFruits && (
-                <g>
-                  {[
-                    { fx: x - 8, fy: y - 4 },
-                    { fx: x + 8, fy: y - 3 },
-                    { fx: x - 2, fy: y + 7 },
-                    { fx: x + 5, fy: y + 5 },
-                  ].map((m, idx) => (
-                    <circle
-                      key={idx}
-                      cx={m.fx}
-                      cy={m.fy}
-                      r="1.8"
-                      fill="#F59E0B"
-                      stroke="#D97706"
-                      strokeWidth="0.6"
-                    />
-                  ))}
-                </g>
-              )}
-            </>
+          {/* 🌟 SECRET EASTER EGG in 2D Sky View */}
+          {showMangoFruits && (
+            <g>
+              {[
+                { fx: x - 8, fy: y - 4 },
+                { fx: x + 8, fy: y - 3 },
+                { fx: x - 2, fy: y + 7 },
+                { fx: x + 5, fy: y + 5 },
+              ].map((m, idx) => (
+                <circle
+                  key={idx}
+                  cx={m.fx}
+                  cy={m.fy}
+                  r="1.8"
+                  fill="#F59E0B"
+                  stroke="#D97706"
+                  strokeWidth="0.6"
+                />
+              ))}
+            </g>
           )}
         </g>
       )}
@@ -376,107 +260,21 @@ const IsometricTree = React.memo(({ tree, isIsometric, isAdmin, isPlantingMode, 
       {/* 4. Variety: Tropical Coconut Palm */}
       {type === 'palm' && (
         <g>
-          {isIsometric ? (
-            <>
-              {/* Taller Curved Segmented Palm Trunk */}
-              <path
-                d={`M ${x} ${y} Q ${x + 4} ${y - 14} ${x} ${y - 27}`}
-                stroke="#5C2C16"
-                strokeWidth="3.2"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y} Q ${x + 4} ${y - 14} ${x} ${y - 27}`}
-                stroke="#92400E"
-                strokeWidth="2.2"
-                strokeDasharray="3 2"
-                fill="none"
-              />
-
-              {/* Cluster of Coconuts */}
-              <circle cx={x - 2.5} cy={y - 26} r="2.2" fill="#582E11" />
-              <circle cx={x + 2.5} cy={y - 26} r="2.2" fill="#65A30D" />
-              <circle cx={x} cy={y - 24} r="2.1" fill="#78350F" />
-
-              {/* 8 Arching Tropical Fronds */}
-              <path
-                d={`M ${x} ${y - 27} Q ${x - 12} ${y - 33} ${x - 18} ${y - 22}`}
-                stroke="#10B981"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y - 27} Q ${x - 16} ${y - 27} ${x - 23} ${y - 15}`}
-                stroke="#047857"
-                strokeWidth="1.8"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y - 27} Q ${x + 12} ${y - 33} ${x + 18} ${y - 22}`}
-                stroke="#059669"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y - 27} Q ${x + 16} ${y - 27} ${x + 23} ${y - 15}`}
-                stroke="#047857"
-                strokeWidth="1.8"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y - 27} Q ${x - 6} ${y - 39} ${x - 10} ${y - 32}`}
-                stroke="#34D399"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y - 27} Q ${x + 6} ${y - 39} ${x + 10} ${y - 32}`}
-                stroke="#10B981"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y - 27} Q ${x - 2} ${y - 42} ${x - 4} ${y - 35}`}
-                stroke="#34D399"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d={`M ${x} ${y - 27} Q ${x + 2} ${y - 42} ${x + 4} ${y - 35}`}
-                stroke="#10B981"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-              />
-            </>
-          ) : (
-            // 2D Sky View Palm
-            <>
-              <circle cx={x} cy={y} r="6" fill="#582E11" />
-              {[-60, -20, 20, 60, 120, 160, 200, 240].map((deg, i) => (
-                <line
-                  key={i}
-                  x1={x}
-                  y1={y}
-                  x2={x + Math.cos(deg * Math.PI / 180) * 16}
-                  y2={y + Math.sin(deg * Math.PI / 180) * 16}
-                  stroke={i % 2 === 0 ? "#10B981" : "#059669"}
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-              ))}
-              <circle cx={x - 1.5} cy={y - 1.5} r="2" fill="#65A30D" />
-              <circle cx={x + 1.5} cy={y + 1.5} r="2" fill="#78350F" />
-            </>
-          )}
+          <circle cx={x} cy={y} r="6" fill="#582E11" />
+          {[-60, -20, 20, 60, 120, 160, 200, 240].map((deg, i) => (
+            <line
+              key={i}
+              x1={x}
+              y1={y}
+              x2={x + Math.cos(deg * Math.PI / 180) * 16}
+              y2={y + Math.sin(deg * Math.PI / 180) * 16}
+              stroke={i % 2 === 0 ? "#10B981" : "#059669"}
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
+          ))}
+          <circle cx={x - 1.5} cy={y - 1.5} r="2" fill="#65A30D" />
+          <circle cx={x + 1.5} cy={y + 1.5} r="2" fill="#78350F" />
         </g>
       )}
 
@@ -484,7 +282,7 @@ const IsometricTree = React.memo(({ tree, isIsometric, isAdmin, isPlantingMode, 
       {isAdmin && isPlantingMode && (
         <circle
           cx={x}
-          cy={y - (isIsometric ? 38 : 14)}
+          cy={y - 14}
           r="5.5"
           className={styles.treeDeleteIndicator}
         />
@@ -504,15 +302,12 @@ const ROOF_COLOR_PALETTES = {
   charcoal: { id: 'charcoal', label: '🔘 Steel Charcoal', base: '#374151', light: '#4B5563', dark: '#1F2937', pattern: 'roofRibsCharcoal' }
 };
 
-// 🏛️ Memoized Building & Architectural Feature Element
-// Eliminates expensive polygon geometry, window matrix calculation, and SVG reflows during pan & zoom
+// 🏛️ Memoized Building & Architectural Feature Element (Clean 2D Sky View)
 const BuildingFeatureItem = React.memo(function BuildingFeatureItem({
   feat,
   isSelected,
   isHovered,
   matchesFilter,
-  isIsometric,
-  extrudeScale,
   isSatellite,
   roofColor,
   onSelect,
@@ -521,8 +316,6 @@ const BuildingFeatureItem = React.memo(function BuildingFeatureItem({
   isPlantingActive
 }) {
   const opacity = matchesFilter ? 1 : 0.22;
-  const baseH = Math.round(feat.height * extrudeScale);
-  const h = isIsometric ? (isHovered ? baseH + 4 : baseH) : 0;
 
   return (
     <g
@@ -536,96 +329,11 @@ const BuildingFeatureItem = React.memo(function BuildingFeatureItem({
       onMouseEnter={() => onHover(feat)}
       onMouseLeave={onHoverLeave}
     >
-      {/* 2.5D Ground Cast Shadow */}
-      {isIsometric && feat.height > 0 && (
-        <path
-          d={feat.pathD}
-          className={styles.buildingShadow}
-          transform="translate(4, 7)"
-        />
-      )}
-
-      {/* 2.5D Extruded Vertical Walls with Directional Sunlight Shading & Glass Windows */}
-      {isIsometric && feat.wallFacets?.map((wall, wIdx) => {
-        const wallD = `M ${wall.x1.toFixed(1)},${wall.y1.toFixed(1)} L ${wall.x2.toFixed(1)},${wall.y2.toFixed(1)} L ${wall.x2.toFixed(1)},${(wall.y2 - h).toFixed(1)} L ${wall.x1.toFixed(1)},${(wall.y1 - h).toFixed(1)} Z`;
-
-        // Calculate architectural windows along this wall facet
-        const normName = (feat.name || '').toUpperCase();
-        const isNoWindowBuilding = normName.includes('MSR') || normName.includes('GYM') || normName.includes('KALAMBUAN');
-        const dx = wall.x2 - wall.x1;
-        const dy = wall.y2 - wall.y1;
-        const wallLen = Math.sqrt(dx * dx + dy * dy);
-        const windows = [];
-
-        // Only place smaller windows on eligible academic & admin buildings
-        if (!isNoWindowBuilding && wallLen >= 18 && h >= 10) {
-          const stories = h >= 22 ? 2 : 1;
-          const windowSpacing = 13;
-          const numWindows = Math.floor((wallLen - 6) / windowSpacing);
-
-          if (numWindows >= 1) {
-            const ux = dx / wallLen;
-            const uy = dy / wallLen;
-            const winWidth = 4.8;
-            const margin = (wallLen - numWindows * windowSpacing) / 2;
-
-            for (let s = 0; s < stories; s++) {
-              const storyH = h / stories;
-              const winBaseY = (s * storyH) + storyH * 0.30;
-              const winHeight = storyH * 0.35;
-
-              for (let i = 0; i < numWindows; i++) {
-                const pos = margin + i * windowSpacing + (windowSpacing - winWidth) / 2;
-                const wx1 = wall.x1 + ux * pos;
-                const wy1 = wall.y1 + uy * pos;
-                const wx2 = wall.x1 + ux * (pos + winWidth);
-                const wy2 = wall.y1 + uy * (pos + winWidth);
-
-                const winD = `M ${wx1.toFixed(1)},${(wy1 - winBaseY).toFixed(1)} L ${wx2.toFixed(1)},${(wy2 - winBaseY).toFixed(1)} L ${wx2.toFixed(1)},${(wy2 - winBaseY - winHeight).toFixed(1)} L ${wx1.toFixed(1)},${(wy1 - winBaseY - winHeight).toFixed(1)} Z`;
-                windows.push({ id: `win-${s}-${i}`, d: winD });
-              }
-            }
-          }
-        }
-
-        return (
-          <g key={`wall-group-${wIdx}`}>
-            {/* Wall Surface */}
-            <path
-              d={wallD}
-              className={styles.buildingWall}
-              style={{
-                fill: feat.category.color,
-                filter: `brightness(${wall.brightness})`,
-                stroke: feat.category.color,
-                strokeWidth: 0.5
-              }}
-            />
-
-            {/* Architectural Glass Windows with Reflective Blue Glazing */}
-            {windows.map((win) => (
-              <path
-                key={win.id}
-                d={win.d}
-                className={styles.wallWindow}
-                style={{
-                  fill: 'rgba(219, 234, 254, 0.75)',
-                  stroke: 'rgba(30, 58, 138, 0.85)',
-                  strokeWidth: 0.65
-                }}
-              />
-            ))}
-          </g>
-        );
-      })}
-
-      {/* 🏠 3D Pitched / Gabled Roof Surface or Flat Ground Plaza */}
+      {/* 🏠 2D Building Roof Surface or Flat Ground Plaza */}
       {feat.height > 0 && feat.roofData ? (
         <g className={styles.roofStructureGroup}>
-          {/* Base Roof Footprint with Selected Roof Material Pattern */}
           <path
             d={feat.pathD}
-            transform={`translate(0, -${h})`}
             className={`${styles.buildingPath} ${isSelected ? styles.buildingSelected : ''} ${isHovered ? styles.buildingHovered : ''}`}
             style={{
               fill: isSelected
@@ -645,76 +353,6 @@ const BuildingFeatureItem = React.memo(function BuildingFeatureItem({
               transition: 'transform 0.2s ease, fill 0.2s ease'
             }}
           />
-
-          {/* 3D Hip Ridge Line and Slope Creases in Isometric Mode */}
-          {isIsometric && (
-            <g className={styles.roofRidgeGroup} opacity={0.92}>
-              {/* Central Ridge Beam */}
-              <line
-                x1={feat.roofData.r1[0]}
-                y1={feat.roofData.r1[1] - h - feat.roofData.ridgeRise}
-                x2={feat.roofData.r2[0]}
-                y2={feat.roofData.r2[1] - h - feat.roofData.ridgeRise}
-                stroke="#FFFFFF"
-                strokeWidth={2.4}
-                strokeLinecap="round"
-                filter="drop-shadow(0 2px 3px rgba(0,0,0,0.45))"
-              />
-
-              {/* Hip Crease Rafter Lines Connecting Ridge Ends to Building Corners */}
-              <line
-                x1={feat.roofData.r1[0]}
-                y1={feat.roofData.r1[1] - h - feat.roofData.ridgeRise}
-                x2={feat.roofData.minX}
-                y2={feat.roofData.minY - h}
-                stroke="rgba(255, 255, 255, 0.45)"
-                strokeWidth={1.2}
-                strokeDasharray="none"
-              />
-              <line
-                x1={feat.roofData.r1[0]}
-                y1={feat.roofData.r1[1] - h - feat.roofData.ridgeRise}
-                x2={feat.roofData.minX}
-                y2={feat.roofData.maxY - h}
-                stroke="rgba(0, 0, 0, 0.35)"
-                strokeWidth={1.2}
-                strokeDasharray="none"
-              />
-              <line
-                x1={feat.roofData.r2[0]}
-                y1={feat.roofData.r2[1] - h - feat.roofData.ridgeRise}
-                x2={feat.roofData.maxX}
-                y2={feat.roofData.minY - h}
-                stroke="rgba(255, 255, 255, 0.45)"
-                strokeWidth={1.2}
-                strokeDasharray="none"
-              />
-              <line
-                x1={feat.roofData.r2[0]}
-                y1={feat.roofData.r2[1] - h - feat.roofData.ridgeRise}
-                x2={feat.roofData.maxX}
-                y2={feat.roofData.maxY - h}
-                stroke="rgba(0, 0, 0, 0.35)"
-                strokeWidth={1.2}
-                strokeDasharray="none"
-              />
-
-              {/* Shaded Southern/Eastern Roof Hip Slope (Ambient Occlusion) */}
-              {feat.roofData.isHoriz ? (
-                <polygon
-                  points={`${feat.roofData.r1[0]},${feat.roofData.r1[1] - h - feat.roofData.ridgeRise} ${feat.roofData.r2[0]},${feat.roofData.r2[1] - h - feat.roofData.ridgeRise} ${feat.roofData.maxX},${feat.roofData.maxY - h} ${feat.roofData.minX},${feat.roofData.maxY - h}`}
-                  fill="rgba(0, 0, 0, 0.16)"
-                  pointerEvents="none"
-                />
-              ) : (
-                <polygon
-                  points={`${feat.roofData.r1[0]},${feat.roofData.r1[1] - h - feat.roofData.ridgeRise} ${feat.roofData.r2[0]},${feat.roofData.r2[1] - h - feat.roofData.ridgeRise} ${feat.roofData.maxX},${feat.roofData.maxY - h} ${feat.roofData.maxX},${feat.roofData.minY - h}`}
-                  fill="rgba(0, 0, 0, 0.16)"
-                  pointerEvents="none"
-                />
-              )}
-            </g>
-          )}
         </g>
       ) : (
         /* Flat Ground Plaza / Sand Court */
@@ -728,9 +366,7 @@ const BuildingFeatureItem = React.memo(function BuildingFeatureItem({
                 ? 'url(#beachSandPattern)'
                 : feat.isGroundPlaza
                   ? 'url(#plazaPavingPattern)'
-                  : isIsometric
-                    ? feat.category.color + (isSatellite ? 'CC' : 'E6')
-                    : feat.category.color + (isSatellite ? '59' : '26'),
+                  : feat.category.color + (isSatellite ? '59' : '26'),
             stroke: isSelected ? '#FF8A50' : isHovered ? '#FFFFFF' : feat.category.color,
             strokeWidth: isSelected ? 3.5 : isHovered ? 2.8 : feat.isGroundPlaza ? 2 : 1.8,
             strokeDasharray: feat.isGroundPlaza ? '5 3' : 'none',
@@ -740,10 +376,10 @@ const BuildingFeatureItem = React.memo(function BuildingFeatureItem({
         />
       )}
 
-      {/* Building Centroid Label (Floating above 3D Roof or on Ground Plaza) */}
+      {/* Building Centroid Label (Top-Down Centered) */}
       <text
         x={feat.centroid[0]}
-        y={h > 0 ? feat.centroid[1] - h - 6 : feat.centroid[1]}
+        y={feat.centroid[1]}
         className={`${styles.buildingLabel} ${feat.isGroundPlaza ? styles.groundPlazaLabel : ''}`}
         textAnchor="middle"
         dominantBaseline="middle"
@@ -783,11 +419,6 @@ function CampusMap() {
     }, 120);
   }, []);
 
-  // Dedicated View Mode: '2d' (Top-Down Sky View) vs '2.5d' (Tactical Isometric 3D)
-  const [viewMode, setViewMode] = useState('2.5d');
-  const isIsometric = viewMode === '2.5d';
-  const [isoAngle, setIsoAngle] = useState(52); // Tilt angle: 40° High, 52° Tactical, 64° Low
-  const [extrudeScale, setExtrudeScale] = useState(1.0); // Height multiplier: 1.0x, 1.4x
 
   // Basemap & Satellite Imagery Overlay state
   const [basemapMode, setBasemapMode] = useState('satellite'); // 'blueprint' | 'satellite'
@@ -1688,7 +1319,7 @@ function CampusMap() {
           )}
           <h1 className={styles.pageTitle}>Campus Interactive Map</h1>
           <p className={styles.pageSubtitle}>
-            Full topological 2.5D tactical sky-view of Cebu Technological University – Daanbantayan Campus.
+            Full topological 2D tactical sky-view of Cebu Technological University – Daanbantayan Campus.
             Explore interactive architectural zoning, real-time venue dispatches, and student governance facilities.
           </p>
         </div>
@@ -1776,28 +1407,6 @@ function CampusMap() {
           ))}
         </div>
 
-        {/* Dedicated 2D vs 2.5D View Options Switcher */}
-        <div className={styles.viewSegmentedGroup}>
-          <button
-            type="button"
-            className={`${styles.viewSegmentBtn} ${viewMode === '2d' ? styles.viewSegmentBtnActive : ''}`}
-            onClick={() => setViewMode('2d')}
-            title="Switch to 2D Top-Down Sky View"
-          >
-            <FiCompass size={15} />
-            <span>2D Sky View</span>
-          </button>
-          <button
-            type="button"
-            className={`${styles.viewSegmentBtn} ${viewMode === '2.5d' ? styles.viewSegmentBtnActive : ''}`}
-            onClick={() => setViewMode('2.5d')}
-            title="Switch to 2.5D Isometric 3D Tactical Model"
-          >
-            <FiLayers size={15} />
-            <span>2.5D Isometric</span>
-          </button>
-        </div>
-
         {/* Basemap Imagery Mode Switcher: Blueprint vs Satellite */}
         <div className={styles.viewSegmentedGroup}>
           <button
@@ -1846,61 +1455,22 @@ function CampusMap() {
           </div>
         )}
 
-        {/* 2.5D Perspective Camera Tilt & Height Extrusion Options */}
-        {isIsometric && (
-          <div className={styles.isoOptionsGroup}>
-            <span className={styles.isoOptionsLabel}>Tilt:</span>
-            {[
-              { label: '40° High', angle: 40, title: 'Bird\'s-Eye High Perspective (40°)' },
-              { label: '52° Tactical', angle: 52, title: 'Tactical Isometric Standard (52°)' },
-              { label: '64° Low', angle: 64, title: 'Dramatic Low-Altitude Skyline (64°)' },
-            ].map((opt) => (
-              <button
-                key={opt.angle}
-                type="button"
-                className={`${styles.isoOptionBtn} ${isoAngle === opt.angle ? styles.isoOptionBtnActive : ''}`}
-                onClick={() => setIsoAngle(opt.angle)}
-                title={opt.title}
-              >
-                {opt.label}
-              </button>
-            ))}
-
-            <span className={styles.isoDivider} />
-
-            <span className={styles.isoOptionsLabel}>Height:</span>
-            {[
-              { label: '1.0x Normal', scale: 1.0, title: 'Standard 1:1 Architectural Height Extrusion' },
-              { label: '1.4x Enhanced', scale: 1.4, title: 'Elevated 1.4x High-Contrast Facet Extrusion' }
-            ].map((opt) => (
-              <button
-                key={opt.scale}
-                type="button"
-                className={`${styles.isoOptionBtn} ${extrudeScale === opt.scale ? styles.isoOptionBtnActive : ''}`}
-                onClick={() => setExtrudeScale(opt.scale)}
-                title={opt.title}
-              >
-                {opt.label}
-              </button>
-            ))}
-
-            <span className={styles.isoDivider} />
-
-            <span className={styles.isoOptionsLabel}>Roof Sheets:</span>
-            {Object.values(ROOF_COLOR_PALETTES).map((pal) => (
-              <button
-                key={pal.id}
-                type="button"
-                className={`${styles.roofColorBtn} ${roofColor === pal.id ? styles.roofColorBtnActive : ''}`}
-                onClick={() => handleSetRoofColor(pal.id)}
-                title={`${pal.label} Corrugated Metal Roofing (MSR Halls keep Plain Galvanized Steel)`}
-              >
-                <span className={styles.roofColorSwatch} style={{ backgroundColor: pal.base }} />
-                <span>{pal.label.split(' ')[1]}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Building Roof Sheets Customization */}
+        <div className={styles.isoOptionsGroup}>
+          <span className={styles.isoOptionsLabel}>Roof Sheets:</span>
+          {Object.values(ROOF_COLOR_PALETTES).map((pal) => (
+            <button
+              key={pal.id}
+              type="button"
+              className={`${styles.roofColorBtn} ${roofColor === pal.id ? styles.roofColorBtnActive : ''}`}
+              onClick={() => handleSetRoofColor(pal.id)}
+              title={`${pal.label} Corrugated Metal Roofing (MSR Halls keep Plain Galvanized Steel)`}
+            >
+              <span className={styles.roofColorSwatch} style={{ backgroundColor: pal.base }} />
+              <span>{pal.label.split(' ')[1]}</span>
+            </button>
+          ))}
+        </div>
 
         {/* Strictly Admin Only: Isometric Trees Manual Planting Toolbar */}
         {isStrictAdmin && (
@@ -2068,7 +1638,7 @@ function CampusMap() {
           <div
             className={styles.compassNeedle}
             style={{
-              transform: isIsometric ? 'rotate(-22deg)' : 'rotate(0deg)',
+              transform: 'rotate(0deg)',
               transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
@@ -2082,18 +1652,15 @@ function CampusMap() {
           <span>GPS: 11.2665° N, 124.0086° E</span>
           <span className={styles.gpsZoom}>Zoom: {(zoom * 100).toFixed(0)}%</span>
           <span className={styles.gpsModeBadge}>
-            {isIsometric ? '2.5D ISO TACTICAL' : '2D SKY VIEW'}
+            2D SKY VIEW
           </span>
           <span className={styles.gpsBasemapBadge}>
             {isSatellite ? '🛰️ SATELLITE OVERLAY' : '🗺️ VECTOR BLUEPRINT'}
           </span>
         </div>
 
-        {/* 3D Perspective Canvas Wrapper */}
-        <div
-          className={`${styles.mapSvgWrapper} ${isIsometric ? styles.mapSvgWrapperIsometric : ''}`}
-          style={isIsometric ? { transform: `rotateX(${isoAngle}deg) rotateZ(-22deg) scale(1.14)` } : undefined}
-        >
+        {/* Map Canvas Wrapper */}
+        <div className={styles.mapSvgWrapper}>
           {/* SVG Vector Map Rendering */}
           <svg
             ref={svgRef}
@@ -2449,7 +2016,6 @@ function CampusMap() {
                   <IsometricTree
                     key={t.id}
                     tree={t}
-                    isIsometric={isIsometric}
                     isAdmin={isStrictAdmin}
                     isPlantingMode={isPlantingTree}
                     showMangoFruits={showMangoFruits}
@@ -2471,8 +2037,6 @@ function CampusMap() {
                     isSelected={isSelected}
                     isHovered={isHovered}
                     matchesFilter={matchesFilter}
-                    isIsometric={isIsometric}
-                    extrudeScale={extrudeScale}
                     isSatellite={isSatellite}
                     roofColor={roofColor}
                     onSelect={focusFeature}
@@ -2559,14 +2123,7 @@ function CampusMap() {
           >
             <HiRefresh size={20} />
           </button>
-          <button
-            type="button"
-            className={`${styles.mobileFabBtn} ${isIsometric ? styles.mobileFabBtnActive : ''}`}
-            onClick={() => setViewMode(isIsometric ? '2d' : '2.5d')}
-            aria-label="Toggle 2D / 2.5D Isometric view"
-          >
-            <FiLayers size={18} />
-          </button>
+
           <button
             type="button"
             className={`${styles.mobileFabBtn} ${isMaximized ? styles.mobileFabBtnActive : ''}`}

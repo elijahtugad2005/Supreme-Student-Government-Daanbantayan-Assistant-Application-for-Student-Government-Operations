@@ -753,24 +753,16 @@
   border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
-/* ─── 3D Perspective Canvas Wrapper ─── */
+/* ─── Map Canvas Wrapper ─── */
 .mapSvgWrapper {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
   transform: translateZ(0);
   will-change: transform;
   contain: layout paint;
-  transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.mapSvgWrapperIsometric {
-  transform: rotateX(52deg) rotateZ(-22deg) scale(1.14) translateZ(0);
 }
 
 /* ─── SVG Canvas ─── */

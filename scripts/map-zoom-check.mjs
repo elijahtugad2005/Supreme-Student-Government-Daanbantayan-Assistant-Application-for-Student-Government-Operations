@@ -32,7 +32,7 @@ check('Wheel zoom sensitivity is gentle (<= 0.0016 per px)', isMultiplierGentle,
 // 4. Viewport size expansion: Check viewportContainer height
 const viewportHeightMatch = cssCode.match(/\.viewportContainer\s*\{[^}]*[\s\n]height:\s*([^;]+);/);
 const viewportHeight = viewportHeightMatch ? viewportHeightMatch[1].trim() : '';
-const isExpanded = viewportHeight.includes('84vh') || viewportHeight.includes('calc(100vh') || viewportHeight.includes('82vh');
+const isExpanded = viewportHeight.includes('84vh') || viewportHeight.includes('calc(100vh') || viewportHeight.includes('82vh') || viewportHeight.includes('88vh');
 check('Viewport container is expanded for expansive layout', isExpanded, `found ${viewportHeight}`);
 
 // 5. CSS transition disabled during dragging and zooming
