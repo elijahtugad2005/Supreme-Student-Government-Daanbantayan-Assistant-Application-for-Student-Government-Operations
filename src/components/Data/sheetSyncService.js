@@ -200,15 +200,24 @@ export function detectDynamicColumnMappings(sheetHeaders = [], mappingConfig) {
  * Convert a Google Sheets URL to its published CSV export URL.
  */
 export function buildCsvUrl(sheetUrl) {
-  if (sheetUrl.includes('/export?') || sheetUrl.includes('/gviz/tq')) {
-    return sheetUrl;
+  if (typeof sheetUrl !== 'string') {
+    throw new Error('Expected Google Sheets URL to be a string.');
   }
-  const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  const cleanUrl = sheetUrl.trim();
+  if (cleanUrl.includes('/export?') || cleanUrl.includes('/gviz/tq')) {
+    return cleanUrl;
+  }
+  const match = cleanUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   if (!match) {
     throw new Error('Could not extract Spreadsheet ID from URL. Expected format: https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/...');
   }
   const spreadsheetId = match[1];
-  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=0`;
+
+  // Extract gid from #gid=1234 or ?gid=1234 or &gid=1234
+  const gidMatch = cleanUrl.match(/[?&#]gid=([0-9]+)/);
+  const gid = gidMatch ? gidMatch[1] : '0';
+
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
 }
 
 /**
