@@ -83,3 +83,4 @@ if (failed > 0) {
   console.log('\n✅ All 2.5D isometric view removal checks passed.');
   process.exit(0);
 }
+
