@@ -189,6 +189,19 @@ const dashSrc = fs.readFileSync(path.resolve(__dirname, '../src/components/Finan
 check('FinanceDashboard includes reports tab', dashSrc.includes("'reports'"));
 check('FinanceDashboard mounts FinanceReportExportPanel', dashSrc.includes('FinanceReportExportPanel'));
 
+console.log('\n=== Slice 5: Finance Handbook Walkthrough Guide ===');
+
+const guidePath = path.resolve(__dirname, '../src/components/Finance/FinanceGuideModal.jsx');
+check('FinanceGuideModal.jsx exists', fs.existsSync(guidePath));
+const guideSrc = fs.existsSync(guidePath) ? fs.readFileSync(guidePath, 'utf8') : '';
+const chapterIds = [...guideSrc.matchAll(/\{ id: '([a-z]+)', num: '(\d{2})'/g)].map(m => m[1]);
+check('Finance guide defines 8 chapters', chapterIds.length === 8, `Found ${chapterIds.length}`);
+check('Every guide chapter has a rendered page', chapterIds.every(id => guideSrc.includes(`current.id === '${id}'`)), chapterIds.join(','));
+['Fiscal Year Budget', 'FSG Remittance', 'Income Generated Funds (IGF)', 'Income-Generating Projects (IGP)'].forEach(fund =>
+  check(`Finance guide explains ${fund}`, guideSrc.includes(fund)));
+check('Finance guide supports Escape and arrow-key navigation', guideSrc.includes("'Escape'") && guideSrc.includes("'ArrowRight'") && guideSrc.includes("'ArrowLeft'"));
+check('FinanceDashboard mounts FinanceGuideModal', dashSrc.includes('FinanceGuideModal') && dashSrc.includes('setGuideOpen(true)'));
+
 console.log('\n=== Final Results ===');
 results.forEach(r => console.log(r));
 

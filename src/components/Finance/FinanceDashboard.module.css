@@ -464,3 +464,31 @@
 :global(.theme-dark) .financeDashboardContainer .tabActive .tabIcon {
   color: #ffea9f !important;
 }
+
+/* Finance Handbook (walkthrough guide) trigger */
+.guideBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  background: rgba(247, 208, 112, 0.1);
+  border: 1px solid rgba(247, 208, 112, 0.35);
+  color: #f7d070;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.guideBtn:hover {
+  background: rgba(247, 208, 112, 0.18);
+  border-color: #f7d070;
+}
+
+.guideBtn:focus-visible {
+  outline: 2px solid #f7d070;
+  outline-offset: 2px;
+}

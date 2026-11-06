@@ -6,6 +6,7 @@ import PreOrderBatchManager from './PreOrderBatchManager.jsx';
 import PPMPMatrix from './PPMPMatrix.jsx';
 import IgpProjectManager from './IgpProjectManager.jsx';
 import FinanceReportExportPanel from './FinanceReportExportPanel.jsx';
+import FinanceGuideModal from './FinanceGuideModal.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
 import { 
   BarChart3, 
@@ -15,7 +16,8 @@ import {
   PackageCheck,
   ClipboardList,
   Store,
-  FileSpreadsheet
+  FileSpreadsheet,
+  BookOpen
 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './FinanceDashboard.module.css';
@@ -37,6 +39,7 @@ const FinanceDashboard = () => {
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
   const [activeTab, setActiveTab] = useState('funds'); // 'funds' | 'igp' | 'ppmp' | 'batches' | 'analytics' | 'reports'
+  const [guideOpen, setGuideOpen] = useState(false);
 
   return (
     <div className={`${styles.financeDashboardContainer} ${isClassic ? styles.financeClassic : ''}`}>
@@ -48,6 +51,15 @@ const FinanceDashboard = () => {
             <Wallet size={13} />
             <span>{isClassic ? 'SSG TREASURY & FISCAL GOVERNANCE' : 'Treasury & Fiscal Governance'}</span>
           </div>
+          <button
+            type="button"
+            className={styles.guideBtn}
+            onClick={() => setGuideOpen(true)}
+            aria-haspopup="dialog"
+          >
+            <BookOpen size={14} />
+            <span>Finance Handbook</span>
+          </button>
           {!canEditFinance && (
             <span className={styles.viewOnlyBadge}>
               <ShieldAlert size={13} /> View-Only Mode
@@ -156,6 +168,8 @@ const FinanceDashboard = () => {
           </section>
         )}
       </main>
+
+      <FinanceGuideModal isOpen={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 };
