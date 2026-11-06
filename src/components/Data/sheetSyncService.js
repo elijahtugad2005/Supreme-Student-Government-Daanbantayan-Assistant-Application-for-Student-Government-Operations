@@ -50,24 +50,24 @@ export function detectDynamicColumnMappings(sheetHeaders = [], mappingConfig) {
   const { fieldMappings, fieldAliases = {}, importantFields = [] } = mappingConfig;
   const resolvedMappings = {};
   const matchesInfo = {};
-  const usedColumns = new Set();
 
   // Pre-normalize all sheet headers
-  const normalizedHeaders = sheetHeaders.map((header) => ({
+  const normalizedHeaders = sheetHeaders.map((header, index) => ({
+    index,
     original: header,
     normalized: normalizeText(header),
   }));
+
+  const candidates = [];
 
   // Iterate over each target Firebase field defined in mapping
   Object.keys(fieldMappings).forEach((firebaseField) => {
     const defaultSheetCol = fieldMappings[firebaseField];
     const aliases = fieldAliases[firebaseField] || [];
     const allAliases = [defaultSheetCol, ...aliases].map(normalizeText);
+    const isImportant = importantFields.includes(firebaseField);
 
-    let bestMatch = null;
-    let highestScore = 0;
-
-    for (const { original, normalized } of normalizedHeaders) {
+    for (const { index, original, normalized } of normalizedHeaders) {
       if (!normalized) continue;
 
       let score = 0;
@@ -98,34 +98,96 @@ export function detectDynamicColumnMappings(sheetHeaders = [], mappingConfig) {
         }
       }
 
-      if (score > highestScore) {
-        highestScore = score;
-        bestMatch = original;
+      // Prevent generic "id" alias on orderId from stealing Student/School/Transaction IDs
+      if (firebaseField === 'orderId') {
+        if (
+          /\b(student|school|prod|product|item|txn|transaction|ref|reference)\b/i.test(normalized) &&
+          !/\border\b/i.test(normalized)
+        ) {
+          score = 0;
+        }
+      }
+
+      // Prevent generic "id" alias on productId from stealing Student/School/Order IDs
+      if (firebaseField === 'productInfo.productId' || firebaseField === 'productId') {
+        if (
+          /\b(student|school|order|txn|transaction|ref|reference)\b/i.test(normalized) &&
+          !/\b(prod|product|item|sku)\b/i.test(normalized)
+        ) {
+          score = 0;
+        }
+      }
+
+      // Prevent customerInfo.address from matching email address columns
+      if (firebaseField === 'customerInfo.address') {
+        if (/\b(email|mail|e-mail)\b/i.test(normalized)) {
+          score = 0;
+        }
+      }
+
+      // Prevent customerInfo.fullName from stealing item/product columns
+      if (firebaseField === 'customerInfo.fullName') {
+        if (
+          /\b(item|product|merchandise|goods)\b/i.test(normalized) &&
+          !/\b(customer|student|buyer|name)\b/i.test(normalized)
+        ) {
+          score = 0;
+        }
+      }
+
+      if (score >= 65) {
+        candidates.push({
+          firebaseField,
+          defaultSheetCol,
+          isImportant,
+          headerIndex: index,
+          original,
+          score,
+        });
       }
     }
+  });
 
-    if (bestMatch && highestScore >= 65) {
-      resolvedMappings[firebaseField] = bestMatch;
-      usedColumns.add(bestMatch);
-      matchesInfo[firebaseField] = {
-        matchedColumn: bestMatch,
-        confidence: highestScore,
-        isImportant: importantFields.includes(firebaseField),
-        fieldPath: firebaseField,
-        targetLabel: defaultSheetCol,
-      };
-    } else {
+  // Sort candidates by score descending, then importance, then header appearance
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.isImportant !== b.isImportant) return a.isImportant ? -1 : 1;
+    return a.headerIndex - b.headerIndex;
+  });
+
+  const usedFields = new Set();
+  const usedColumns = new Set();
+
+  for (const cand of candidates) {
+    const colKey = String(cand.original).trim().toLowerCase();
+    if (usedFields.has(cand.firebaseField) || usedColumns.has(colKey)) continue;
+
+    usedFields.add(cand.firebaseField);
+    usedColumns.add(colKey);
+    resolvedMappings[cand.firebaseField] = cand.original;
+    matchesInfo[cand.firebaseField] = {
+      matchedColumn: cand.original,
+      confidence: cand.score,
+      isImportant: cand.isImportant,
+      fieldPath: cand.firebaseField,
+      targetLabel: cand.defaultSheetCol,
+    };
+  }
+
+  // Populate unmapped important and default fields
+  Object.keys(fieldMappings).forEach((firebaseField) => {
+    if (!matchesInfo[firebaseField]) {
       matchesInfo[firebaseField] = {
         matchedColumn: null,
         confidence: 0,
         isImportant: importantFields.includes(firebaseField),
         fieldPath: firebaseField,
-        targetLabel: defaultSheetCol,
+        targetLabel: fieldMappings[firebaseField],
       };
     }
   });
 
-  const unmappedSheetColumns = sheetHeaders.filter((h) => !usedColumns.has(h));
+  const unmappedSheetColumns = sheetHeaders.filter((h) => !usedColumns.has(String(h).trim().toLowerCase()));
 
   return { resolvedMappings, matchesInfo, unmappedSheetColumns };
 }
@@ -377,7 +439,13 @@ export function transformRow(row, mappingConfig, resolvedMappings, rowIndex = 0,
 }
 
 export function transformAllRows(rows, mappingConfig, customMappings = null, progressCallback = null, maxOrderNumber = 0) {
-  const detected = customMappings ? { resolvedMappings: customMappings } : detectDynamicColumnMappings(Object.keys(rows[0] || {}), mappingConfig);
+  const hasCustomMappings =
+    customMappings &&
+    typeof customMappings === 'object' &&
+    Object.keys(customMappings).length > 0;
+  const detected = hasCustomMappings
+    ? { resolvedMappings: customMappings }
+    : detectDynamicColumnMappings(Object.keys(rows[0] || {}), mappingConfig);
   const mappingsToUse = detected.resolvedMappings;
   const docs = [];
   let skippedCount = 0;
@@ -635,13 +703,17 @@ export async function syncSourceToFirestore({ source, mappingConfig, customMappi
     return emptyResult;
   }
   onProgress('Running dynamic keyword detection algorithm on sheet columns...');
-  const { docs, skippedCount, errors: transformErrors, detected, autoGeneratedIds } = transformAllRows(rawRows, mappingConfig, customMappings, null, startMax);
+  const hasCustom =
+    customMappings &&
+    typeof customMappings === 'object' &&
+    Object.keys(customMappings).length > 0;
+  const { docs, skippedCount, errors: transformErrors, detected, autoGeneratedIds } = transformAllRows(rawRows, mappingConfig, hasCustom ? customMappings : null, null, startMax);
   const mappedColsCount = Object.keys(detected.resolvedMappings).length;
   onProgress(`Algorithm matched ${mappedColsCount} fields. Extracted ${docs.length} valid records (${skippedCount} skipped, ${autoGeneratedIds} with auto-generated IDs).`);
 
   // Log details about Order ID processing
   if (autoGeneratedIds > 0) {
-    onProgress(`⚠️  ${autoGeneratedIds} Order IDs were auto-generated due to missing, invalid format, or duplicate IDs. Only SSGDB-### format is accepted.`);
+    onProgress(`⚠️  ${autoGeneratedIds} Order IDs were auto-generated due to missing, invalid format, or duplicate IDs. Accepted formats: ORD-DB-#### or SSGDB-###.`);
   }
   if (docs.length === 0) {
     const noDocsResult = { created: 0, updated: 0, errors: transformErrors, total: 0, skipped: skippedCount, rawCount: rawRows.length, detected, autoGeneratedIds };

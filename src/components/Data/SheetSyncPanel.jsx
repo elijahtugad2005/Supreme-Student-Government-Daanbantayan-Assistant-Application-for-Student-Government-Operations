@@ -373,6 +373,9 @@ function SheetSyncPanel({
                 'success'
               );
             }
+            if (res.created > 0 || res.updated > 0) {
+              setSuccessModal({ isOpen: true, created: res.created, updated: res.updated });
+            }
             if (onSyncCompleted) {
               onSyncCompleted(res);
             }
