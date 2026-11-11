@@ -187,6 +187,21 @@ await check('Secretary CANNOT delete a roster', () =>
 );
 
 console.log('=== 5. Privilege escalation is blocked ===');
+await check('New user CANNOT self-register with role: admin on create', () =>
+  assertFails(asUser('newbie1').collection('users').doc('newbie1').set({ role: 'admin', name: 'Evil Newbie' }))
+);
+await check('New user CANNOT self-register with permissionOverrides on create', () =>
+  assertFails(
+    asUser('newbie1').collection('users').doc('newbie1').set({
+      role: 'member',
+      name: 'Evil Newbie',
+      permissionOverrides: { canManageUsers: true },
+    })
+  )
+);
+await check('New user CAN self-register with role: member on create', () =>
+  assertSucceeds(asUser('newbie1').collection('users').doc('newbie1').set({ role: 'member', name: 'Good Newbie' }))
+);
 await check('Member CANNOT promote themselves', () =>
   assertFails(asUser('member1').collection('users').doc('member1').update({ role: 'admin' }))
 );

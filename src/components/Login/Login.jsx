@@ -1,13 +1,15 @@
 // components/Login/Login.jsx
-// PURPOSE: Official Student Government Authentication Portal
+// PURPOSE: Official Student Government Authentication & Registration Portal
 // AESTHETICS: Classic Royal Maroon & Imperial Gold with Traditional Ethnic Border Art
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   HiLockClosed, 
   HiMail, 
+  HiUser,
+  HiIdentification,
   HiEye, 
   HiEyeOff, 
   HiArrowLeft, 
@@ -45,42 +47,110 @@ const EthnicCornerBracket = ({ className }) => (
   </svg>
 );
 
-function Login() {
+function Login({ initialMode = 'login' }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { login, signup } = useAuth();
+
+  const [mode, setMode] = useState(
+    location.pathname === '/register' ? 'register' : initialMode
+  );
+  const [fullName, setFullName] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  useEffect(() => {
+    if (location.pathname === '/register') {
+      setMode('register');
+    } else if (location.pathname === '/login' && initialMode === 'login') {
+      setMode('login');
+    }
+  }, [location.pathname, initialMode]);
 
   // Get the page user tried to access before being redirected to login
   const from = location.state?.from?.pathname || '/';
 
+  const switchMode = (targetMode) => {
+    setError('');
+    setMode(targetMode);
+  };
+
   // ========================================
-  // HANDLE LOGIN SUBMISSION
+  // HANDLE LOGIN OR REGISTRATION SUBMISSION
   // ========================================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       setError('');
+
+      if (mode === 'register') {
+        if (!fullName.trim()) {
+          setError('Full Name is required.');
+          return;
+        }
+        if (!studentId.trim()) {
+          setError('Student ID is required.');
+          return;
+        }
+        if (!email.trim()) {
+          setError('Email address is required.');
+          return;
+        }
+        if (!password || password.length < 6) {
+          setError('Password must be at least 6 characters long.');
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError('Passwords do not match. Please verify your Confirm Password.');
+          return;
+        }
+        if (!agreedToTerms) {
+          setError('You must agree to the Terms and Conditions before registering.');
+          return;
+        }
+
+        setLoading(true);
+        // Registered users automatically get the 'member' role
+        await signup(email.trim(), password, fullName.trim(), 'member', {
+          studentId: studentId.trim(),
+          agreedToTerms: true,
+          agreedToTermsAt: new Date().toISOString(),
+        });
+
+        navigate(from, { replace: true });
+        return;
+      }
+
       setLoading(true);
-      
-      await login(email, password);
-      
+      await login(email.trim(), password);
+
       // Success! Redirect to target page
       navigate(from, { replace: true });
-      
     } catch (error) {
-      if (error.code === 'auth/user-not-found') {
-        setError('No account found with this email address.');
-      } else if (error.code === 'auth/wrong-password') {
-        setError('Incorrect password. Please verify your credentials.');
+      if (
+        error.code === 'auth/invalid-credential' ||
+        error.code === 'auth/invalid-login-credentials' ||
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/wrong-password'
+      ) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else if (error.code === 'auth/weak-password') {
+        setError('Password is too weak. Please use at least 6 characters.');
       } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
+      } else if (error.code === 'auth/user-disabled') {
+        setError('This account has been disabled. Please contact your administrator.');
       } else if (error.code === 'auth/too-many-requests') {
         setError('Too many failed login attempts. Please wait a moment.');
       } else {
@@ -91,6 +161,8 @@ function Login() {
     }
   };
 
+  const isRegister = mode === 'register';
+
   return (
     <div className={styles.container}>
       {/* Top & Bottom Page-Level Ethnic Tribal Border Bands */}
@@ -100,7 +172,7 @@ function Login() {
       {/* Atmospheric ambient radiant glow */}
       <div className={styles.ambientGlow} aria-hidden="true" />
 
-      {/* Main Login Card */}
+      {/* Main Login / Register Card */}
       <div className={styles.loginCard}>
         {/* Card Top Tribal Accent Ribbon */}
         <div className={styles.cardTribalStripTop} aria-hidden="true" />
@@ -112,7 +184,7 @@ function Login() {
         <EthnicCornerBracket className={`${styles.cornerBracket} ${styles.cornerBottomRight}`} />
 
         <div className={styles.cardInner}>
-          {/* Institutional Header Block (Text Only) */}
+          {/* Institutional Header Block */}
           <div className={styles.headerBlock}>
             <div className={styles.eyebrowRow}>
               <span className={styles.eyebrowDiamond}>◆</span>
@@ -120,13 +192,39 @@ function Login() {
               <span className={styles.eyebrowDiamond}>◆</span>
             </div>
 
-            <h1 className={styles.title}>LOGIN TO SSG APP</h1>
+            <h1 className={styles.title}>
+              {isRegister ? 'REGISTER ACCOUNT' : 'LOGIN TO SSG APP'}
+            </h1>
             <p className={styles.subtitle}>Cebu Technological University — Daanbantayan Campus</p>
             <div className={styles.ethnicDividerMini} aria-hidden="true">
               <span className={styles.dividerLine} />
               <span className={styles.dividerGlyph}>❖</span>
               <span className={styles.dividerLine} />
             </div>
+          </div>
+
+          {/* Mode Toggle Tabs: Sign In vs Register Account */}
+          <div className={styles.modeTabs} role="tablist" aria-label="Authentication Mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!isRegister}
+              disabled={loading}
+              onClick={() => switchMode('login')}
+              className={`${styles.modeTab} ${!isRegister ? styles.modeTabActive : ''}`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isRegister}
+              disabled={loading}
+              onClick={() => switchMode('register')}
+              className={`${styles.modeTab} ${isRegister ? styles.modeTabActive : ''}`}
+            >
+              Register Account
+            </button>
           </div>
 
           {error && (
@@ -139,11 +237,52 @@ function Login() {
           {/* Google Sign-In Option */}
           <GoogleSignInButton />
 
-          {/* Traditional Email / Password Form */}
+          {/* Email / Password Form (Login or Register) */}
           <form onSubmit={handleSubmit} className={styles.form}>
+            {isRegister && (
+              <>
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="register-name">
+                    Full Name *
+                  </label>
+                  <div className={styles.inputWrapper}>
+                    <HiUser className={styles.inputIcon} aria-hidden="true" />
+                    <input
+                      id="register-name"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Juan Dela Cruz"
+                      className={styles.input}
+                      required
+                      autoComplete="name"
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="register-student-id">
+                    Student ID *
+                  </label>
+                  <div className={styles.inputWrapper}>
+                    <HiIdentification className={styles.inputIcon} aria-hidden="true" />
+                    <input
+                      id="register-student-id"
+                      type="text"
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      placeholder="e.g. 1334567"
+                      className={styles.input}
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor="login-email">
-                Institutional Email
+                Institutional Email {isRegister ? '*' : ''}
               </label>
               <div className={styles.inputWrapper}>
                 <HiMail className={styles.inputIcon} aria-hidden="true" />
@@ -162,7 +301,7 @@ function Login() {
 
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor="login-password">
-                Password
+                Password {isRegister ? '*' : ''}
               </label>
               <div className={styles.inputWrapper}>
                 <HiLockClosed className={styles.inputIcon} aria-hidden="true" />
@@ -171,10 +310,11 @@ function Login() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your security credentials"
+                  placeholder={isRegister ? "Create a password (min. 6 characters)" : "Enter your security credentials"}
                   className={`${styles.input} ${styles.inputWithToggle}`}
                   required
-                  autoComplete="current-password"
+                  minLength={isRegister ? 6 : undefined}
+                  autoComplete={isRegister ? "new-password" : "current-password"}
                 />
                 <button
                   type="button"
@@ -188,6 +328,57 @@ function Login() {
               </div>
             </div>
 
+            {isRegister && (
+              <>
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="register-confirm-password">
+                    Confirm Password *
+                  </label>
+                  <div className={styles.inputWrapper}>
+                    <HiLockClosed className={styles.inputIcon} aria-hidden="true" />
+                    <input
+                      id="register-confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter your password"
+                      className={`${styles.input} ${styles.inputWithToggle}`}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className={styles.togglePasswordButton}
+                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                      title={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                    >
+                      {showConfirmPassword ? <HiEyeOff size={18} /> : <HiEye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.termsRow}>
+                  <input
+                    id="register-terms"
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className={styles.termsCheckbox}
+                    required
+                  />
+                  <label htmlFor="register-terms" className={styles.termsLabel}>
+                    I agree to the <span className={styles.termsHighlight}>Terms and Conditions</span> and CTU-DB Supreme Student Government data privacy policies.
+                    <br />
+                    <span className={styles.roleBadgeHint}>
+                      ✓ New accounts are automatically registered as a Student.
+                    </span>
+                  </label>
+                </div>
+              </>
+            )}
+
             <button 
               type="submit" 
               disabled={loading}
@@ -196,15 +387,41 @@ function Login() {
               {loading ? (
                 <span className={styles.btnContent}>
                   <span className={styles.btnSpinner} />
-                  <span>Authenticating...</span>
+                  <span>{isRegister ? 'Creating Account...' : 'Authenticating...'}</span>
                 </span>
               ) : (
                 <span className={styles.btnContent}>
                   <HiSparkles className={styles.btnIcon} />
-                  <span>Sign In to SSG Portal</span>
+                  <span>{isRegister ? 'Register Student Account' : 'Sign In to SSG Portal'}</span>
                 </span>
               )}
             </button>
+
+            <div className={styles.switchModeFooter}>
+              {isRegister ? (
+                <>
+                  <span>Already have an account?</span>
+                  <button
+                    type="button"
+                    onClick={() => switchMode('login')}
+                    className={styles.switchModeLink}
+                  >
+                    Sign In
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>Don&apos;t have an account yet?</span>
+                  <button
+                    type="button"
+                    onClick={() => switchMode('register')}
+                    className={styles.switchModeLink}
+                  >
+                    Register Account
+                  </button>
+                </>
+              )}
+            </div>
 
             <button 
               type="button"

@@ -24,7 +24,13 @@ function ProtectedRoute({
   redirectTo = '/login',
   allowGuest = false
 }) {
-  const { currentUser, userRole, userName, userPermissions } = useAuth();
+  const {
+    currentUser,
+    userRole,
+    userName,
+    userPermissions,
+    userPermissionOverrides
+  } = useAuth();
   const location = useLocation();
 
   // Unauthenticated visitors browsing with guest rights
@@ -53,8 +59,8 @@ function ProtectedRoute({
     email: currentUser.email,
     role: userRole,
     name: userName,
-    permissions: currentUser.permissions || {},
-    permissionOverrides: userPermissions || {}
+    permissions: userPermissions || currentUser.permissions || {},
+    permissionOverrides: userPermissionOverrides || {}
   };
 
   // ========================================

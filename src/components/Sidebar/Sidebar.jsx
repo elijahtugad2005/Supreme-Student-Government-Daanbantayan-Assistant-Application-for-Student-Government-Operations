@@ -76,7 +76,7 @@ const NAV_ITEMS = [
   { to: "/inventory", text: "Inventory", icon: HiCube, roles: ['admin', 'president', 'vice_president', ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES], permissions: ['canManageProducts'] },
 
   // Announcements & Documents — Creatives has Announcements; Legislative has Announcements & Documents
-  { to: "/announcement", text: "Announcements", icon: HiSpeakerphone, roles: ['admin', 'president', 'vice_president', ...ALL_SECRETARY_ROLES, ...ALL_LEGISLATIVE_ROLES, 'creatives'], permissions: ['canSendNotifications'] },
+  { to: "/announcement", text: "Announcements", icon: HiSpeakerphone, roles: ['admin', 'superadmin', 'president', 'vice_president', 'general_secretary', ...ALL_SECRETARY_ROLES, ...ALL_LEGISLATIVE_ROLES, 'creatives', 'governor', 'adviser'], permissions: ['canSendNotifications'] },
   { to: "/documents", text: "Documents", icon: HiFolder, roles: ['admin', 'president', 'vice_president', ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES], permissions: ['canExportData'] },
 
   // Campus Interactive 2D Eagle-Eye Sky Map — Open to all

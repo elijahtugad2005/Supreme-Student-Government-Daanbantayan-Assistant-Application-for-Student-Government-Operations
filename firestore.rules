@@ -205,7 +205,19 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAdmin() || isOfficer() || (isSignedIn() && request.auth.uid == userId);
 
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Self-registration may only ever assign 'member' or 'guest' with no
+      // permissionOverrides — otherwise a new user could create their profile
+      // with role: 'admin'. Admins and officers may provision any role.
+      allow create: if isAdmin() || isOfficer()
+        || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role in ['member', 'guest']
+          && (
+            !('permissionOverrides' in request.resource.data)
+            || request.resource.data.permissionOverrides.size() == 0
+          )
+        );
 
       // Changing the role or the individual access map is an administrative act.
       // A user may edit the rest of their own profile, but never their own
@@ -231,21 +243,36 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // PUBLIC-FACING CONTENT — readable without signing in
+    // PUBLIC-FACING CONTENT — readable without signing in, writable by officers
     // =========================================================================
+    function canManageAnnouncements() {
+      return isAdmin()
+        || isOfficer()
+        || myRole() == 'superadmin'
+        || myRole() == 'general_secretary'
+        || myRole() == 'creatives'
+        || myRole() == 'governor'
+        || myRole() == 'adviser'
+        || myRole() == 'senator'
+        || myRole() == 'representative'
+        || hasOverride('canSendNotifications')
+        || hasOverride('canManageAnnouncements')
+        || hasOverride('canCreateAnnouncements');
+    }
+
     match /announcements/{docId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if canManageAnnouncements();
     }
 
     match /newsArticles/{docId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if canManageAnnouncements();
     }
 
     match /calendarEvents/{docId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if canManageAnnouncements();
     }
 
     match /terms/{docId} {
@@ -438,17 +465,25 @@ service cloud.firestore {
 
     // Roles permitted to work with the document archive.
     function canManageDocuments() {
-      return myRole() == 'admin'
-        || myRole() == 'secretary'
+      return isAdmin()
+        || isOfficer()
+        || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer'
         || myRole() == 'representative'
-        || myRole() == 'senator';
+        || myRole() == 'senator'
+        || hasOverride('canExportData');
     }
 
     match /documents/{documentId} {
       allow read: if canManageDocuments();
       allow create: if canManageDocuments() && isSignedIn();
       allow update: if canManageDocuments() && isSignedIn();
-      allow delete: if isAdmin() || myRole() == 'secretary';
+      allow delete: if isAdmin() || isOfficer()
+        || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer'
+        || hasOverride('canDeleteData');
 
       // Reserved for Phase 4: per-document signature checklists.
       match /signatures/{signatureId} {

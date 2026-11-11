@@ -44,25 +44,34 @@ export function AuthProvider({ children }) {
   // ========================================
   // SIGNUP FUNCTION
   // Creates new user account with comprehensive schema and permissions
+  // Registered users automatically receive the 'member' role
   // ========================================
-  const signup = async (email, password, name, role = 'guest', additionalData = {}) => {
+  const signup = async (email, password, name, role = 'member', additionalData = {}) => {
     try {
+      // Self-registered accounts automatically get the 'member' role
+      const assignedRole = role === 'guest' ? 'guest' : 'member';
+
       // Create Firebase Auth account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
       // Get default permissions for the role
-      const defaultPermissions = getDefaultPermissionsForRole(role);
+      const defaultPermissions = getDefaultPermissionsForRole(assignedRole);
       
+      // Sanitize additionalData so role/permissions cannot be overridden
+      const { role: _ignoredRole, permissions: _ignoredPerms, permissionOverrides: _ignoredOverrides, ...safeAdditionalData } = additionalData || {};
+
       // Create comprehensive user document
       const userData = {
+        ...safeAdditionalData,
         uid: user.uid,
         email: user.email,
         name: name,
+        studentId: safeAdditionalData.studentId || '',
         photoURL: null,
         
         // Role and permissions
-        role: role,
+        role: assignedRole,
         permissions: defaultPermissions,
         
         // Authentication information
@@ -76,21 +85,20 @@ export function AuthProvider({ children }) {
         lastUpdatedAt: new Date().toISOString(),
         
         // Additional information
-        department: additionalData.department || '',
-        phone: additionalData.phone || '',
-        address: additionalData.address || '',
-        notes: additionalData.notes || '',
-        
-        // Merge any additional data
-        ...additionalData
+        department: safeAdditionalData.department || '',
+        phone: safeAdditionalData.phone || '',
+        address: safeAdditionalData.address || '',
+        notes: safeAdditionalData.notes || ''
       };
       
       // Store user data in Firestore
       await setDoc(doc(db, 'users', user.uid), userData);
       
       // Set local state
-      setUserRole(role);
+      setUserRole(assignedRole);
       setUserName(name);
+      setUserPermissions(defaultPermissions);
+      setUserPermissionOverrides({});
       
       return userCredential;
     } catch (error) {
@@ -185,6 +193,8 @@ export function AuthProvider({ children }) {
         
         setUserRole(userData.role);
         setUserName(userData.name || user.displayName || 'Google User');
+        setUserPermissions(userData.permissions || {});
+        setUserPermissionOverrides(userData.permissionOverrides || {});
       }
       
       return result;

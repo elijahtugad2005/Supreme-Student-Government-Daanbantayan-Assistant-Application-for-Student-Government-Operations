@@ -24,6 +24,7 @@ import DeathAid from './components/DeathAid.jsx';
 import SectionsAndContributions from './components/SectionsAndContributions/SectionsAndContributions.jsx';
 import Login from './components/Login/Login.jsx'; 
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute.jsx';
+import { ROUTE_ALLOWED_ROLES } from './utils/permissions.js';
 import FinanceDashboard from './components/Finance/FinanceDashboard.jsx';
 import InventoryManagement from './components/InventoryDashboard/InventoryManagement.jsx';
 import DocumentDashboard from './components/Document/DocumentDashboard.jsx';
@@ -89,6 +90,7 @@ function App() {
             PUBLIC ROUTES (No Sidebar/Header)
             ======================================== */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Login initialMode="register" />} />
 
         {/* ========================================
             DASHBOARD ROUTES (Wrapped in Layout)
@@ -105,7 +107,7 @@ function App() {
         <Route path="/order" element={
           <ProtectedRoute
             allowGuest
-            allowedRoles={['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/order']}
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
@@ -125,7 +127,7 @@ function App() {
         <Route path="/track-order" element={
           <ProtectedRoute
             allowGuest
-            allowedRoles={['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/track-order']}
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
@@ -144,7 +146,9 @@ function App() {
         {/* 2. ADMIN ONLY ROUTES */}
         <Route path="/admin" element={
           <ProtectedRoute 
-            allowedRoles={['admin']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/admin']}
+            requiredPermissions={['canManageUsers']}
+            anyPermission={true}
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
@@ -164,8 +168,9 @@ function App() {
         {/* 2.1 ADMIN USER MANAGEMENT */}
         <Route path="/admin/users" element={
           <ProtectedRoute 
-            allowedRoles={['admin']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/admin/users']}
             requiredPermissions={['canManageUsers']}
+            anyPermission={true}
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
@@ -185,13 +190,14 @@ function App() {
         {/* 2.2 ADMIN AUDIT TRAIL */}
         <Route path="/admin/audit" element={
           <ProtectedRoute 
-            allowedRoles={['admin']}
-            requiredPermissions={['canManageUsers']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/admin/audit']}
+            requiredPermissions={['canManageUsers', 'canViewFinance']}
+            anyPermission={true}
             customAccessDenied={
               <DashboardLayout>
                 <AccessDenied 
-                  message="You need user management permissions to view the audit trail."
-                  requiredPermissions={['canManageUsers']}
+                  message="You need audit or finance oversight permissions to view the audit trail."
+                  requiredPermissions={['canManageUsers', 'canViewFinance']}
                   showUserInfo={true}
                 />
               </DashboardLayout>
@@ -206,7 +212,7 @@ function App() {
         {/* 3. FINANCE DASHBOARD */}
         <Route path="/finance" element={
           <ProtectedRoute 
-            allowedRoles={['admin', 'secretary', 'finance_secretary']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/finance']}
             requiredPermissions={['canViewFinance']}
             anyPermission={true}
             customAccessDenied={
@@ -228,7 +234,7 @@ function App() {
         {/* 4. INVENTORY MANAGEMENT */}
         <Route path="/inventory" element={
           <ProtectedRoute 
-            allowedRoles={['admin', 'secretary', 'representative', 'senator']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/inventory']}
             requiredPermissions={['canManageProducts']}
             anyPermission={true}
             customAccessDenied={
@@ -250,7 +256,7 @@ function App() {
         {/* 5. COMMERCE HUB */}
         <Route path="/commerce" element={
           <ProtectedRoute 
-            allowedRoles={['admin', 'secretary', 'representative', 'member']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/commerce']}
             requiredPermissions={['canManageOrders']}
             anyPermission={true}
             customAccessDenied={
@@ -272,21 +278,7 @@ function App() {
         {/* 6. DOCUMENTS */}
         <Route path="/documents" element={
           <ProtectedRoute 
-            allowedRoles={[
-              'admin',
-              'president',
-              'vice_president',
-              'secretary',
-              'executive_secretary',
-              'press_secretary',
-              'linkages_secretary',
-              'deputy_secretary',
-              'finance_secretary',
-              'auditor',
-              'budget_officer',
-              'representative',
-              'senator'
-            ]}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/documents']}
             requiredPermissions={['canExportData']}
             anyPermission={true}
             customAccessDenied={
@@ -308,7 +300,7 @@ function App() {
         {/* 6.9 SECTIONS & CONTRIBUTIONS (UNIFIED CLASS ROSTER & DEATH AID) */}
         <Route path="/sections-contributions" element={
           <ProtectedRoute
-            allowedRoles={['public', 'admin', 'secretary', 'governor', 'finance_secretary', 'senator', 'representative', 'member', 'guest']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/sections-contributions']}
             requiredPermissions={['canSubmitRoster']}
             allowGuest
             customAccessDenied={
@@ -330,7 +322,7 @@ function App() {
         {/* 7. REPORTS / ROSTER REGISTRY */}
         <Route path="/reports" element={
           <ProtectedRoute
-            allowedRoles={['public', 'admin', 'secretary', 'governor', 'finance_secretary', 'senator', 'representative', 'member', 'guest']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/reports']}
             requiredPermissions={['canSubmitRoster']}
             allowGuest
             customAccessDenied={
@@ -352,11 +344,7 @@ function App() {
         {/* 7b. DEATH AID COLLECTION & REMITTANCE */}
         <Route path="/death-aid" element={
           <ProtectedRoute
-            allowedRoles={[
-              'public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary',
-              'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary',
-              'auditor', 'budget_officer', 'governor', 'senator', 'representative', 'member', 'guest'
-            ]}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/death-aid']}
             requiredPermissions={['canSubmitRoster']}
             allowGuest
             customAccessDenied={
@@ -378,7 +366,7 @@ function App() {
         {/* 8. ANNOUNCEMENTS */}
         <Route path="/announcement" element={
           <ProtectedRoute 
-            allowedRoles={['admin', 'secretary', 'representative']}
+            allowedRoles={ROUTE_ALLOWED_ROLES['/announcement']}
             requiredPermissions={['canSendNotifications']}
             anyPermission={true}
             customAccessDenied={

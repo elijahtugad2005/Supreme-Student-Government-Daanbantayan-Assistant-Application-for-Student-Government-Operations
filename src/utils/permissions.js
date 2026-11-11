@@ -505,10 +505,10 @@ export const ROLE_PERMISSIONS = {
   },
 
   member: {
-    name: 'Member',
+    name: 'Student',
     category: 'General Student Body',
     accessTier: 'Low Access',
-    description: 'Basic student member access: View and order requisitions',
+    description: 'Basic student access: View and order requisitions',
     permissions: {
       canManageProducts: false,
       canManageOrders: false,
@@ -763,14 +763,65 @@ const ROUTE_PERMISSION_GRANTS = {
   '/admin/users': ['canManageUsers'],
   '/admin/settings': ['canConfigureSystem'],
   '/admin/analytics': ['canViewAnalytics'],
+  '/admin/audit': ['canManageUsers', 'canViewFinance'],
   '/finance': ['canViewFinance'],
   '/inventory': ['canManageProducts'],
   '/products': ['canManageProducts'],
   '/products/manage': ['canManageProducts'],
   '/orders': ['canManageOrders'],
   '/orders/manage': ['canManageOrders'],
+  '/commerce': ['canManageOrders'],
   '/documents': ['canExportData'],
   '/announcement': ['canSendNotifications'],
+};
+
+/**
+ * Canonical route-to-roles matrix shared by App.jsx, Sidebar.jsx, and canAccessRoute().
+ */
+export const ROUTE_ALLOWED_ROLES = {
+  // Admin routes (President & Admin full operations; VP & Finance/Audit have Audit Trail)
+  '/admin': ['admin', 'president'],
+  '/admin/users': ['admin', 'president'],
+  '/admin/analytics': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
+  '/admin/settings': ['admin', 'president'],
+  '/admin/audit': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer'],
+
+  // Management routes (Commerce Hub)
+  '/order': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+  '/track-order': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+  '/products': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative'],
+  '/products/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
+  '/orders': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
+  '/orders/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+  '/commerce': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+
+  // Finance — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
+  '/finance': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer', 'secretary', 'executive_secretary'],
+
+  // Inventory — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
+  '/inventory': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+
+  // Sections & Contributions / Roster registry / Death Aid — All roles, public access enabled
+  '/sections-contributions': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
+  '/reports': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
+  '/death-aid': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
+
+  // Documents — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
+  '/documents': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
+
+  // Announcements — President, VP, Secretaries, Senator, Representative, Creatives, Governor, Adviser
+  '/announcement': ['admin', 'superadmin', 'president', 'vice_president', 'secretary', 'general_secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'senator', 'representative', 'creatives', 'governor', 'adviser'],
+
+  // Member routes
+  '/profile': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member'],
+  '/orders/history': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'representative', 'senator', 'member'],
+
+  // Public routes
+  '/': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+  '/campus-map': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+  '/login': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+  '/register': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
+  '/about': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']
 };
 
 /**
@@ -780,51 +831,7 @@ const ROUTE_PERMISSION_GRANTS = {
  * @returns {boolean} True if user can access the route
  */
 export const canAccessRoute = (user, routeName) => {
-  const routePermissions = {
-    // Admin routes (President & Admin full operations)
-    '/admin': ['admin', 'president'],
-    '/admin/users': ['admin', 'president'],
-    '/admin/analytics': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
-    '/admin/settings': ['admin', 'president'],
-    '/admin/audit': ['admin', 'president', 'vice_president'],
-
-    // Management routes (Commerce Hub)
-    '/order': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
-    '/track-order': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
-    '/products': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative'],
-    '/products/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'auditor', 'budget_officer'],
-    '/orders': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator', 'member'],
-    '/orders/manage': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
-    '/commerce': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'deputy_secretary', 'press_secretary', 'linkages_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
-
-    // Finance — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
-    '/finance': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer', 'secretary', 'executive_secretary'],
-
-    // Inventory — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
-    '/inventory': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
-
-    // Sections & Contributions / Roster registry — All roles, public access enabled
-    '/sections-contributions': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
-    '/reports': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
-
-    // Documents — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
-    '/documents': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
-
-    // Announcements — President, VP, Press Secretary, Senator, Representative, Creatives
-    '/announcement': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'senator', 'representative', 'creatives'],
-
-    // Member routes
-    '/profile': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member'],
-    '/orders/history': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'finance_secretary', 'representative', 'senator', 'member'],
-
-    // Public routes
-    '/': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
-    '/campus-map': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
-    '/login': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest'],
-    '/about': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'creatives', 'governor', 'member', 'guest']
-  };
-
-  const allowedRoles = routePermissions[routeName] ||
+  const allowedRoles = ROUTE_ALLOWED_ROLES[routeName] ||
     ['admin', 'president', 'vice_president', 'secretary', 'finance_secretary', 'senator', 'representative', 'member', 'guest'];
 
   if (!user?.role) return false;
