@@ -5,8 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: process.env.VERCEL ? '/' : (process.env.GH_PAGES ? '/Prototype-SSG-Office-Assistant-App/' : '/'),
-  // Telegram settings do not use the VITE_ prefix, so allow them through too.
-  envPrefix: ['VITE_', 'TELEGRAM_'],
+  envPrefix: ['VITE_'],
   build: {
     modulePreload: false,
     chunkSizeWarningLimit: 1000,

@@ -66,7 +66,8 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       documents: '/api/documents',
-      ai: '/api/ai'
+      ai: '/api/ai',
+      telegram: '/api/telegram'
     }
   });
 });
@@ -91,6 +92,9 @@ app.use('/api/documents', documentsRouter);
 
 const aiRouter = require('./routes/ai');
 app.use('/api/ai', aiRouter);
+
+const telegramRouter = require('./routes/telegram');
+app.use('/api/telegram', telegramRouter);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // TELEGRAM / MESSENGER WEBHOOK ENDPOINTS (Legacy — kept for notifications)

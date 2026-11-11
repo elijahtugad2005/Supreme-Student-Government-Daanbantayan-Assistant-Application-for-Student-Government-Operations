@@ -23,6 +23,7 @@ import {
   sendAnnouncementToTelegram,
   deleteTelegramMessage,
   isTelegramReady,
+  checkTelegramStatus,
 } from '../services/telegramService';
 import { 
   FiCalendar, 
@@ -316,6 +317,20 @@ const handleImageChange = async (e) => {
       setNewsArticles(newsData);
     });
     return () => unsubscribe();
+  }, []);
+
+  // ========================================
+  // CHECK SERVER-SIDE TELEGRAM STATUS
+  // ========================================
+  const [, setTelegramStatusTick] = useState(0);
+  useEffect(() => {
+    let active = true;
+    checkTelegramStatus().then(() => {
+      if (active) setTelegramStatusTick((n) => n + 1);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // ========================================

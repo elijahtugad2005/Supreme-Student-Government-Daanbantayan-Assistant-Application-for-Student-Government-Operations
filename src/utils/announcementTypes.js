@@ -30,12 +30,10 @@ export const TELEGRAM_CHANNELS = {
   faculty: {
     value: 'faculty',
     label: 'Faculty',
-    envKey: 'TELEGRAM_CTUDBFACULTIES_CHANNELID',
   },
   all_mayors: {
     value: 'all_mayors',
     label: 'All Mayors',
-    envKey: 'TELEGRAM_CTUDBALLMAYORS_CHANNELID',
   },
 };
 
