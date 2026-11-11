@@ -426,8 +426,36 @@ export const recordSignature = async (documentId, index, signed, options = {}) =
 };
 
 export const correctClassification = async (documentId, labelSlug, reason) => {
-  const { data } = await callable('correctClassification')({ documentId, labelSlug, reason });
-  return data;
+  try {
+    const { data } = await callable('correctClassification')({ documentId, labelSlug, reason });
+    return data;
+  } catch (err) {
+    console.warn(
+      `[documentAiService] Backend/Cloud correctClassification failed (${err.message}). Falling back to direct client-side Firestore update...`
+    );
+    const docRef = doc(db, 'documents', documentId);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) throw new Error('Document not found');
+    const docData = snap.data() || {};
+    const previous =
+      docData?.aiSuggestion?.documentType ||
+      (Array.isArray(docData.labels) && docData.labels.length > 0 ? docData.labels[0] : null);
+    const currentUser = auth?.currentUser;
+    const verifiedFields = Array.from(new Set([...(docData.verifiedFields || []), 'documentType']));
+
+    await updateDoc(docRef, {
+      labels: [labelSlug],
+      aiState: 'corrected',
+      correctedBy: currentUser?.uid || null,
+      correctedByName: currentUser?.displayName || 'User',
+      correctedAt: new Date().toISOString(),
+      verifiedFields,
+      updatedAt: serverTimestamp(),
+      updatedBy: currentUser?.uid || null,
+    });
+
+    return { ok: true, from: previous, to: labelSlug };
+  }
 };
 
 /**

@@ -24,18 +24,27 @@ function initializeFirebaseAdmin() {
     } catch (fileError) {
       // Option 2: Use environment variables (production)
       console.log('[Firebase Admin] Service account file not found, using environment variables');
-      
-      if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
-        throw new Error('Firebase Admin credentials not configured. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables.');
-      }
 
-      serviceAccount = {
-        type: 'service_account',
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-        // Private key from env var has escaped newlines, need to unescape
-        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      };
+      if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+        const jsonStr = raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8');
+        serviceAccount = JSON.parse(jsonStr);
+        if (serviceAccount.private_key) {
+          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+      } else {
+        if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
+          throw new Error('Firebase Admin credentials not configured. Set FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables.');
+        }
+
+        serviceAccount = {
+          type: 'service_account',
+          project_id: process.env.FIREBASE_PROJECT_ID.trim(),
+          client_email: process.env.FIREBASE_CLIENT_EMAIL.trim(),
+          // Private key from env var may have surrounding quotes or escaped newlines
+          private_key: process.env.FIREBASE_PRIVATE_KEY.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n'),
+        };
+      }
     }
 
     admin.initializeApp({

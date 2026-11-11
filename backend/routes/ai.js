@@ -7,7 +7,7 @@ const router = express.Router();
 const https = require('https');
 const { getFirestore } = require('../services/firebase-admin');
 const { getDownloadStream, getFileMetadata } = require('../utils/gridfs');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireRole, DOCUMENT_ARCHIVE_ROLES } = require('../middleware/auth');
 const {
   compressDocumentText,
   buildOptimizedAiPrompt,
@@ -338,8 +338,6 @@ const getStatus = (req, res) => {
       },
     ],
     fallbackActive: (openrouter && !gemini) || (quotaDepleted && openrouter),
-    apiKeyHint: GEMINI_API_KEY ? `${GEMINI_API_KEY.slice(0, 4)}…` : null,
-    openrouterKeyHint: OPENROUTER_API_KEY ? `${OPENROUTER_API_KEY.slice(0, 4)}…` : null,
   });
 };
 
@@ -353,7 +351,7 @@ router.post('/aiStatus', getStatus);
  * POST /api/ai/analyzeDocument
  * Analyzes document binary and writes extracted intelligence to Firestore
  */
-router.post('/analyzeDocument', async (req, res) => {
+router.post('/analyzeDocument', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { documentId, fileContent } = req.body;
     if (!documentId) {
@@ -714,7 +712,7 @@ router.post('/analyzeDocument', async (req, res) => {
  * POST /api/ai/confirmAnalysis
  * Confirm suggestions and apply them to official document metadata
  */
-router.post('/confirmAnalysis', async (req, res) => {
+router.post('/confirmAnalysis', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { documentId, apply = [], overrides = {} } = req.body;
     if (!documentId) return res.status(400).json({ error: 'documentId is required' });
@@ -810,7 +808,7 @@ router.post('/confirmAnalysis', async (req, res) => {
  * POST /api/ai/recordSignature
  * Tick or untick one signatory in signatureChecklist
  */
-router.post('/recordSignature', async (req, res) => {
+router.post('/recordSignature', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { documentId, index, signed, signedByName, note } = req.body;
     if (!documentId || typeof index !== 'number') {
@@ -839,6 +837,8 @@ router.post('/recordSignature', async (req, res) => {
       ...entry,
       status: signed ? 'signed' : 'pending',
       signedAt: signed ? entry.signedAt || now : null,
+      recordedByUid: signed ? req.user?.uid || null : null,
+      recordedByName: signed ? req.user?.name || null : null,
       signedByName: signed ? String(signedByName || entry.name || '').trim() : null,
       recordedNote: String(note || '').trim() || null,
     };
@@ -878,6 +878,63 @@ router.post('/recordSignature', async (req, res) => {
     res.status(200).json({ ok: true, index, progress, complete, signedCount, requiredTotal, status: updates.status });
   } catch (err) {
     res.status(500).json({ error: 'recordSignature failed', message: err.message });
+  }
+});
+
+/**
+ * POST /api/ai/correctClassification
+ * Record a human overriding or verifying the AI document type classification
+ */
+router.post('/correctClassification', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
+  try {
+    const { documentId, labelSlug, reason } = req.body || {};
+    if (!documentId || !labelSlug) {
+      return res.status(400).json({ error: 'documentId and labelSlug are required' });
+    }
+
+    const db = getFirestore();
+    const docRef = db.collection('documents').doc(documentId);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    const docData = snap.data() || {};
+    const previous =
+      docData?.aiSuggestion?.documentType ||
+      (Array.isArray(docData.labels) && docData.labels.length > 0 ? docData.labels[0] : null);
+    const now = new Date().toISOString();
+    const verifiedFields = Array.from(new Set([...(docData.verifiedFields || []), 'documentType']));
+
+    await docRef.update({
+      labels: [labelSlug],
+      aiState: 'corrected',
+      correctedBy: req.user?.uid || null,
+      correctedByName: req.user?.name || null,
+      correctedAt: now,
+      verifiedFields,
+      updatedAt: now,
+      updatedBy: req.user?.uid || null,
+    });
+
+    try {
+      if (typeof docRef.collection === 'function') {
+        await docRef.collection('auditLogs').add({
+          action: 'classification_corrected',
+          performedBy: req.user?.uid || null,
+          performedByName: req.user?.name || null,
+          at: now,
+          details: { from: previous, to: labelSlug, reason: String(reason || '').trim() },
+        });
+      }
+    } catch (auditErr) {
+      console.warn('[AI] Non-fatal audit log write failed for correctClassification:', auditErr.message);
+    }
+
+    res.status(200).json({ ok: true, from: previous, to: labelSlug });
+  } catch (err) {
+    console.error('[AI] correctClassification error:', err);
+    res.status(500).json({ error: 'correctClassification failed', message: err.message });
   }
 });
 

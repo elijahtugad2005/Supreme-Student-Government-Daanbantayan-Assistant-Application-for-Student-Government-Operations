@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
+const {
+  authenticate,
+  requireRole,
+  DOCUMENT_ARCHIVE_ROLES,
+  DOCUMENT_DELETE_ROLES,
+} = require('../middleware/auth');
 const { upload, handleUploadError } = require('../middleware/upload');
 const {
   uploadFileToGridFS,
@@ -160,7 +165,7 @@ router.get('/health', async (req, res) => {
  * Used by admin/diagnostic tools to track which Firestore documents have
  * matching GridFS binaries.
  */
-router.get('/list', authenticate, async (req, res) => {
+router.get('/list', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const limitParam = parseInt(req.query.limit, 10) || 100;
     const search = req.query.search ? String(req.query.search).toLowerCase() : '';
@@ -202,7 +207,7 @@ router.get('/list', authenticate, async (req, res) => {
  * POST /api/documents/upload
  * Upload document file to MongoDB GridFS
  */
-router.post('/upload', authenticate, upload.single('file'), async (req, res) => {
+router.post('/upload', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -269,7 +274,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req, res) => 
  * GET /api/documents/:fileId/download
  * Download document file from MongoDB GridFS
  */
-router.get('/:fileId/download', authenticate, async (req, res) => {
+router.get('/:fileId/download', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { fileId } = req.params;
     console.log(`[Download] Request: ${fileId} by ${req.user.email}`);
@@ -351,7 +356,7 @@ router.get('/:fileId/download', authenticate, async (req, res) => {
  * GET /api/documents/:fileId/metadata
  * Get file metadata
  */
-router.get('/:fileId/metadata', authenticate, async (req, res) => {
+router.get('/:fileId/metadata', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { fileId } = req.params;
     const metadata = await getFileMetadata(fileId);
@@ -386,7 +391,7 @@ router.get('/:fileId/metadata', authenticate, async (req, res) => {
  * DELETE /api/documents/:fileId
  * Delete document file from MongoDB GridFS
  */
-router.delete('/:fileId', authenticate, async (req, res) => {
+router.delete('/:fileId', authenticate, requireRole(DOCUMENT_DELETE_ROLES), async (req, res) => {
   try {
     const { fileId } = req.params;
     console.log(`[Delete] Request: ${fileId} by ${req.user.email}`);
@@ -427,7 +432,7 @@ router.delete('/:fileId', authenticate, async (req, res) => {
  * Delete document metadata from Firestore using Firebase Admin SDK (bypasses client security rules)
  * and cleans up any linked GridFS file if mongoFileId is present.
  */
-router.delete('/firestore/:documentId', authenticate, async (req, res) => {
+router.delete('/firestore/:documentId', authenticate, requireRole(DOCUMENT_DELETE_ROLES), async (req, res) => {
   try {
     const { documentId } = req.params;
     const { getFirestore } = require('../services/firebase-admin');

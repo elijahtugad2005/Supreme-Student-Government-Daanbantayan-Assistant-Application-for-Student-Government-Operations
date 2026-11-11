@@ -1,4 +1,61 @@
-const { verifyIdToken } = require('../services/firebase-admin');
+const { verifyIdToken, getFirestore } = require('../services/firebase-admin');
+
+/**
+ * Authorized roles for Document Archive access & AI analysis (mirrors /documents route in App.jsx & permissions.js)
+ */
+const DOCUMENT_ARCHIVE_ROLES = [
+  'admin',
+  'president',
+  'vice_president',
+  'secretary',
+  'executive_secretary',
+  'press_secretary',
+  'linkages_secretary',
+  'deputy_secretary',
+  'finance_secretary',
+  'auditor',
+  'budget_officer',
+  'representative',
+  'senator',
+];
+
+/**
+ * Authorized roles for Document deletion (Admin, Executive Leadership, and Secretariat)
+ */
+const DOCUMENT_DELETE_ROLES = [
+  'admin',
+  'president',
+  'vice_president',
+  'secretary',
+  'executive_secretary',
+  'press_secretary',
+  'linkages_secretary',
+  'deputy_secretary',
+  'finance_secretary',
+  'auditor',
+  'budget_officer',
+];
+
+/**
+ * Authorized roles for Announcement & Telegram Broadcast publishing (mirrors /announcement route in permissions.js)
+ */
+const ANNOUNCEMENT_ROLES = [
+  'admin',
+  'superadmin',
+  'president',
+  'vice_president',
+  'secretary',
+  'general_secretary',
+  'executive_secretary',
+  'press_secretary',
+  'linkages_secretary',
+  'deputy_secretary',
+  'senator',
+  'representative',
+  'creatives',
+  'governor',
+  'adviser',
+];
 
 /**
  * Authentication middleware
@@ -41,7 +98,7 @@ async function authenticate(req, res, next) {
 
     console.log(`[Auth] Authenticated user: ${req.user.email} (${req.user.uid})`);
 
-    next();
+    return next();
   } catch (error) {
     console.error('[Auth] Token verification failed:', error.message);
 
@@ -103,10 +160,13 @@ async function optionalAuthenticate(req, res, next) {
 
 /**
  * Role-based authorization middleware
- * Use after authenticate() middleware
+ * Use after authenticate() middleware.
+ * Resolves the user's authoritative role from Firestore users/{uid}.role when the
+ * ID token custom claim is not yet populated or does not match allowedRoles.
  */
 function requireRole(...allowedRoles) {
-  return (req, res, next) => {
+  const flatRoles = allowedRoles.flat();
+  return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -115,20 +175,39 @@ function requireRole(...allowedRoles) {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!flatRoles.includes(req.user.role) && req.user.uid) {
+      try {
+        const db = getFirestore();
+        if (db && typeof db.collection === 'function') {
+          const snap = await db.collection('users').doc(req.user.uid).get();
+          if (snap && snap.exists) {
+            const userData = snap.data() || {};
+            if (userData.role) req.user.role = userData.role;
+            if (userData.name) req.user.name = userData.name;
+          }
+        }
+      } catch (err) {
+        console.warn(`[Auth] Firestore role lookup fallback failed for ${req.user.uid}:`, err.message);
+      }
+    }
+
+    if (!flatRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions',
-        message: `This action requires one of these roles: ${allowedRoles.join(', ')}`
+        message: `This action requires one of these roles: ${flatRoles.join(', ')}`
       });
     }
 
-    next();
+    return next();
   };
 }
 
 module.exports = {
   authenticate,
   optionalAuthenticate,
-  requireRole
+  requireRole,
+  DOCUMENT_ARCHIVE_ROLES,
+  DOCUMENT_DELETE_ROLES,
+  ANNOUNCEMENT_ROLES,
 };
