@@ -215,7 +215,10 @@ service cloud.firestore {
           && request.resource.data.role in ['member', 'guest']
           && (
             !('permissionOverrides' in request.resource.data)
-            || request.resource.data.permissionOverrides.size() == 0
+            || (
+              request.resource.data.permissionOverrides is map
+              && request.resource.data.permissionOverrides.size() == 0
+            )
           )
         );
 
@@ -281,27 +284,11 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // CATALOGUE — public catalogue, staff-managed stock records
+    // INVENTORY & BORROWING LOGS — public/signed-in readable, officer-managed writes
     // =========================================================================
-    match /products/{docId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
     match /inventory/{docId} {
       allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    // =========================================================================
-    // ORDERS
-    // =========================================================================
-    match /orders/{orderId} {
-      allow read: if isSignedIn();
-      // A signed-in member places their own order; staff manage any order.
-      allow create: if isSignedIn()
-        && (isOfficer() || isAdmin() || request.resource.data.userId == request.auth.uid);
-      allow update, delete: if isOfficer() || isAdmin();
+      allow write: if canManageOrders() || isAdmin() || hasOverride('canManageInventory');
     }
 
     // =========================================================================
@@ -309,7 +296,7 @@ service cloud.firestore {
     // =========================================================================
     match /members/{memberId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isOfficer() || isAdmin() || canManageOrders() || hasOverride('canManageMembers');
     }
 
     match /organizations/{orgId} {
@@ -319,7 +306,7 @@ service cloud.firestore {
 
     match /borrowingLogs/{logId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if canManageOrders() || isAdmin() || hasOverride('canManageInventory');
     }
 
     // =========================================================================
@@ -440,17 +427,29 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Append-only audit trail. Officers, members & guests may append their submission actions.
+    // Append-only audit trail. Officers, members & guests may append their submission actions,
+    // but cannot spoof another user's actorUid.
     match /deathAidAuditLog/{entryId} {
       allow read: if canManageDeathAid();
-      allow create: if true;
+      allow create: if request.resource.data.collectionId is string
+        && request.resource.data.action is string
+        && (
+          canManageDeathAid()
+          || (isSignedIn() && request.resource.data.actorUid == request.auth.uid)
+          || (!isSignedIn() && request.resource.data.actorUid == null)
+        );
       allow update, delete: if false;
     }
 
-    // Collection id allocation counter.
+    // Collection id allocation counter — strictly monotonic (+1 per transaction).
     match /deathAidCounters/{year} {
       allow read: if true;
-      allow create, update: if request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt']);
+      allow create: if request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt'])
+        && request.resource.data.count == 1
+        && request.resource.data.year is int;
+      allow update: if request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt'])
+        && request.resource.data.count == resource.data.count + 1
+        && request.resource.data.year == resource.data.year;
       allow delete: if isAdmin();
     }
 
@@ -609,8 +608,10 @@ service cloud.firestore {
     // Commerce / Merchandise Orders
     match /orders/{orderId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if canManageOrders() || isSignedIn();
+      allow create: if canManageOrders() || isAdmin()
+        || !('orderStatus' in request.resource.data)
+        || request.resource.data.orderStatus in ['Pending', 'Online Paid'];
+      allow update: if canManageOrders() || isAdmin();
       allow delete: if isAdmin() || canManageOrders();
     }
 

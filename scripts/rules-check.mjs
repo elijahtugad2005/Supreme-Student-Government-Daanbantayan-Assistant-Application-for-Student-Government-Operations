@@ -236,6 +236,25 @@ await check('Secretary CAN write the section registry', () =>
   )
 );
 
+console.log('=== 7. Commerce & Death Aid Counter Hardening ===');
+await check('Member CANNOT modify product catalog prices', () =>
+  assertFails(asUser('member1').collection('products').doc('prod-1').set({ productName: 'Uniform', price: 1 }))
+);
+await check('Secretary CAN modify product catalog', () =>
+  assertSucceeds(asUser('secretary1').collection('products').doc('prod-1').set({ productName: 'Uniform', price: 450 }))
+);
+await check('Member CAN place a Pending order', () =>
+  assertSucceeds(asUser('member1').collection('orders').doc('ord-1').set({ orderId: 'ORD-DB-0001', orderStatus: 'Pending' }))
+);
+await check('Member CANNOT mark their own order as Completed', () =>
+  assertFails(asUser('member1').collection('orders').doc('ord-1').update({ orderStatus: 'Completed' }))
+);
+await check('Anonymous CAN initialize deathAidCounters at 1 and increment by +1 only', async () => {
+  await assertSucceeds(anon().collection('deathAidCounters').doc('2026').set({ count: 1, year: 2026, updatedAt: new Date() }));
+  await assertSucceeds(anon().collection('deathAidCounters').doc('2026').update({ count: 2, year: 2026, updatedAt: new Date() }));
+  await assertFails(anon().collection('deathAidCounters').doc('2026').update({ count: 999999, year: 2026, updatedAt: new Date() }));
+});
+
 await testEnv.cleanup();
 
 console.log('\n' + results.join('\n'));

@@ -205,6 +205,30 @@ check(
     Array.isArray(ROUTE_ALLOWED_ROLES?.['/register'])
 );
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Slice 6: Firestore Rules Hardening (Products, Orders, Inventory, Death Aid)
+// ──────────────────────────────────────────────────────────────────────────────
+console.log('\n=== Slice 6: Firestore Rules Hardening (Commerce & Death Aid) ===');
+
+const productMatches = firestoreRulesSource.match(/match\s+\/products\//g) || [];
+const orderMatches = firestoreRulesSource.match(/match\s+\/orders\//g) || [];
+const ordersBlock = firestoreRulesSource.match(/match\s+\/orders\/\{orderId\}\s*\{([\s\S]*?)\n\s{4}\}/)?.[1] || '';
+const deathAidCountersBlock = firestoreRulesSource.match(/match\s+\/deathAidCounters\/\{year\}\s*\{([\s\S]*?)\n\s{4}\}/)?.[1] || '';
+
+check(
+  'firestore.rules has single canonical match block for /products and /orders (no permissive duplicate OR rules)',
+  productMatches.length === 1 &&
+    orderMatches.length === 1 &&
+    !ordersBlock.includes('allow update: if canManageOrders() || isSignedIn()') &&
+    ordersBlock.includes('allow update: if canManageOrders() || isAdmin()')
+);
+
+check(
+  'firestore.rules enforces monotonic +1 increment on deathAidCounters/{year}',
+  deathAidCountersBlock.includes('request.resource.data.count == 1') &&
+    deathAidCountersBlock.includes('request.resource.data.count == resource.data.count + 1')
+);
+
 console.log('\n=== Results Summary ===');
 for (const line of results) console.log(line);
 if (failed > 0) {
