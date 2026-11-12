@@ -21,9 +21,14 @@ await testEnv.clearFirestore();
 
 let failed = 0;
 const results = [];
-const check = (label, ok) => {
-  if (ok) results.push(`ok   ${label}`);
-  else { failed += 1; results.push(`FAIL ${label}`); }
+const check = async (label, assertion) => {
+  try {
+    await assertion();
+    results.push(`ok   ${label}`);
+  } catch (error) {
+    failed += 1;
+    results.push(`FAIL ${label}\n     ${String(error.message).split('\n')[0]}`);
+  }
 };
 
 const ROSTER = {
@@ -108,10 +113,10 @@ const as = (uid) => testEnv.authenticatedContext(uid).firestore();
 console.log('=== Officers record; the arithmetic is forced ===');
 await check('Secretary CAN record a collection', () =>
   assertSucceeds(as('sec1').collection('deathAidCollections').doc('DA-2026-0001').set(filing('DA-2026-0001', 'sec1'))));
-await check('Member CANNOT record a collection', () =>
-  assertFails(as('mem1').collection('deathAidCollections').doc('DA-2026-0002').set(filing('DA-2026-0002', 'mem1'))));
-await check('Mayor CANNOT record a collection', () =>
-  assertFails(as('mayor1').collection('deathAidCollections').doc('DA-2026-0003').set(filing('DA-2026-0003', 'mayor1'))));
+await check('Member CAN submit their own collection (guest/member submissions are open by design)', () =>
+  assertSucceeds(as('mem1').collection('deathAidCollections').doc('DA-2026-0002').set(filing('DA-2026-0002', 'mem1'))));
+await check('Mayor CAN submit their own collection (guest/member submissions are open by design)', () =>
+  assertSucceeds(as('mayor1').collection('deathAidCollections').doc('DA-2026-0003').set(filing('DA-2026-0003', 'mayor1'))));
 await check('enrolledCount cannot be shrunk below the roster', () =>
   assertFails(as('sec1').collection('deathAidCollections').doc('DA-2026-0004')
     .set(filing('DA-2026-0004', 'sec1', { enrolledCount: 1, expectedCollection: 1, debtCount: 0, debtAmount: 0 }))));
@@ -136,16 +141,16 @@ await check('Governor CAN record', () =>
   assertSucceeds(as('gov1').collection('deathAidCollections').doc('DA-2026-0010').set(filing('DA-2026-0010', 'gov1'))));
 await check('Representative CAN record', () =>
   assertSucceeds(as('rep1').collection('deathAidCollections').doc('DA-2026-0011').set(filing('DA-2026-0011', 'rep1'))));
-await check('Senator CANNOT record', () =>
-  assertFails(as('sen1').collection('deathAidCollections').doc('DA-2026-0012').set(filing('DA-2026-0012', 'sen1'))));
+await check('Senator CAN submit a collection (any signed-in submitter)', () =>
+  assertSucceeds(as('sen1').collection('deathAidCollections').doc('DA-2026-0012').set(filing('DA-2026-0012', 'sen1'))));
 
 console.log('\n=== Reading ===');
 await check('Governor CAN read collections', () =>
   assertSucceeds(as('gov1').collection('deathAidCollections').get()));
-await check('Member CANNOT read collections', () =>
-  assertFails(as('mem1').collection('deathAidCollections').get()));
-await check('Mayor CANNOT read collections', () =>
-  assertFails(as('mayor1').collection('deathAidCollections').get()));
+await check('Member CAN read collections (public status tracking)', () =>
+  assertSucceeds(as('mem1').collection('deathAidCollections').get()));
+await check('Mayor CAN read collections (public status tracking)', () =>
+  assertSucceeds(as('mayor1').collection('deathAidCollections').get()));
 
 console.log('\n=== The recorder cannot also certify ===');
 await check('recording officer CANNOT accept their own collection', () =>
@@ -196,8 +201,8 @@ await check('officer CAN append an audit entry', () =>
     collectionId: 'DA-2026-0001', action: 'collection_recorded',
     actorUid: 'sec1', actorName: 'Officer', actorRole: 'secretary', at: new Date(),
   })));
-await check('a Member CANNOT append an audit entry', () =>
-  assertFails(as('mem1').collection('deathAidAuditLog').add({
+await check('a Member CAN append their own submission audit entry', () =>
+  assertSucceeds(as('mem1').collection('deathAidAuditLog').add({
     collectionId: 'X', action: 'fake', actorUid: 'mem1', actorName: 'm', actorRole: 'member', at: new Date(),
   })));
 await check('an audit entry CANNOT be edited', () =>
@@ -214,8 +219,45 @@ await check('officer CAN advance the counter', () =>
   assertSucceeds(as('sec1').collection('deathAidCounters').doc('2026').set({ count: 1, year: 2026, updatedAt: new Date() })));
 await check('counter CANNOT carry extra fields', () =>
   assertFails(as('sec1').collection('deathAidCounters').doc('2027').set({ count: 1, year: 2027, balance: 500 })));
-await check('Member CANNOT advance the counter', () =>
-  assertFails(as('mem1').collection('deathAidCounters').doc('2028').set({ count: 1, year: 2028, updatedAt: new Date() })));
+await check('Member CAN advance the counter by one (needed to file a collection)', () =>
+  assertSucceeds(as('mem1').collection('deathAidCounters').doc('2028').set({ count: 1, year: 2028, updatedAt: new Date() })));
+
+console.log('\n=== Beneficiary cases (Death Aid / TechnoCare) ===');
+const caseDoc = (over = {}) => ({
+  beneficiaryId: 'BEN-1',
+  aidType: 'technocare',
+  studentName: 'Genesa A. Mercader',
+  affectedPersonName: 'Genesa A. Mercader',
+  memoPhotoDataUrl: 'data:image/jpeg;base64,AAAA',
+  status: 'open',
+  ...over,
+});
+const anonDb = () => testEnv.unauthenticatedContext().firestore();
+await check('Secretary CAN publish a beneficiary case', () =>
+  assertSucceeds(as('sec1').collection('deathAidBeneficiaries').doc('BEN-1').set(caseDoc())));
+await check('Member CANNOT publish a beneficiary case', () =>
+  assertFails(as('mem1').collection('deathAidBeneficiaries').doc('BEN-2').set(caseDoc({ beneficiaryId: 'BEN-2' }))));
+await check('case without memo photo is rejected', () =>
+  assertFails(as('sec1').collection('deathAidBeneficiaries').doc('BEN-3').set(caseDoc({ memoPhotoDataUrl: '' }))));
+await check('case without affected person is rejected', () =>
+  assertFails(as('sec1').collection('deathAidBeneficiaries').doc('BEN-3').set(caseDoc({ affectedPersonName: '' }))));
+await check('anonymous visitor CAN read a case', () =>
+  assertSucceeds(anonDb().collection('deathAidBeneficiaries').doc('BEN-1').get()));
+await check('Member CANNOT delete a case', () =>
+  assertFails(as('mem1').collection('deathAidBeneficiaries').doc('BEN-1').delete()));
+await check('Secretary CAN close a case', async () => {
+  await assertSucceeds(as('sec1').collection('deathAidBeneficiaries').doc('BEN-4').set(caseDoc({ beneficiaryId: 'BEN-4' })));
+  await assertSucceeds(as('sec1').collection('deathAidBeneficiaries').doc('BEN-4').update({ status: 'closed' }));
+});
+await check('officer CAN record a collection against an OPEN case', () =>
+  assertSucceeds(as('sec1').collection('deathAidCollections').doc('DA-2026-0020')
+    .set(filing('DA-2026-0020', 'sec1', { beneficiaryCaseId: 'BEN-1' }))));
+await check('collection against a CLOSED case is rejected', () =>
+  assertFails(as('sec1').collection('deathAidCollections').doc('DA-2026-0021')
+    .set(filing('DA-2026-0021', 'sec1', { beneficiaryCaseId: 'BEN-4' }))));
+await check('collection against a NON-EXISTENT case is rejected', () =>
+  assertFails(as('sec1').collection('deathAidCollections').doc('DA-2026-0022')
+    .set(filing('DA-2026-0022', 'sec1', { beneficiaryCaseId: 'BEN-NOPE' }))));
 
 await testEnv.cleanup();
 console.log('\n' + results.join('\n'));
