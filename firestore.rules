@@ -363,9 +363,33 @@ service cloud.firestore {
         && r.debtAmount == r.debtCount * r.contributionPerStudent
         && r.status == 'for_verification'
         && (
+          !('beneficiaryCaseId' in r)
+          || (
+            r.beneficiaryCaseId is string
+            && get(/databases/$(database)/documents/deathAidBeneficiaries/$(r.beneficiaryCaseId)).data.status == 'open'
+          )
+        )
+        && (
           (isSignedIn() && r.recordedByUid == request.auth.uid) ||
           (!isSignedIn() && r.recordedByUid == null && r.submittedByName is string && r.submittedByName.size() > 0)
         );
+    }
+
+    // Official Death Aid / TechnoCare beneficiary cases (memo + affected person).
+    // Public read so students and mayors can see the call for donation and pick
+    // the beneficiary; only Death Aid managers may publish or close a case.
+    match /deathAidBeneficiaries/{beneficiaryId} {
+      allow read: if true;
+      allow create, update: if canManageDeathAid()
+        && request.resource.data.studentName is string
+        && request.resource.data.studentName.size() > 0
+        && request.resource.data.affectedPersonName is string
+        && request.resource.data.affectedPersonName.size() > 0
+        && request.resource.data.memoPhotoDataUrl is string
+        && request.resource.data.memoPhotoDataUrl.size() > 0
+        && request.resource.data.aidType in ['death_aid', 'technocare']
+        && request.resource.data.status in ['open', 'closed'];
+      allow delete: if isAdmin();
     }
 
     match /deathAidCollections/{collectionId} {

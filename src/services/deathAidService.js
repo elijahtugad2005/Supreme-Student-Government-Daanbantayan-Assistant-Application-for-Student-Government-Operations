@@ -38,6 +38,54 @@ export const COLLECTION_COLLECTION = 'deathAidCollections';
 export const REMITTANCE_COLLECTION = 'deathAidRemittances';
 export const AUDIT_COLLECTION = 'deathAidAuditLog';
 export const COUNTER_COLLECTION = 'deathAidCounters';
+export const BENEFICIARY_COLLECTION = 'deathAidBeneficiaries';
+
+export const AID_TYPES = { DEATH_AID: 'death_aid', TECHNOCARE: 'technocare' };
+export const AID_TYPE_LABELS = { death_aid: 'Death Aid', technocare: 'TechnoCare' };
+export const BENEFICIARY_STATUS = { OPEN: 'open', CLOSED: 'closed' };
+
+/**
+ * Validate and shape a Death Aid / TechnoCare beneficiary case. Pure, so the
+ * rules the officer form relies on are testable without Firestore.
+ */
+export const buildBeneficiaryCase = (input, officer) => {
+  const text = (v) => String(v ?? '').trim();
+  if (!Object.values(AID_TYPES).includes(input?.aidType)) {
+    throw new Error('Choose a valid aid type (Death Aid or TechnoCare).');
+  }
+  if (!text(input.studentName)) throw new Error('Enter the name of the student.');
+  if (!text(input.affectedPersonName)) {
+    throw new Error('Enter the name of the affected relative or affected student.');
+  }
+  const photo = text(input.memoPhotoDataUrl);
+  if (!photo.startsWith('data:image/')) throw new Error('Attach a photo of the memo.');
+
+  return {
+    aidType: input.aidType,
+    studentName: text(input.studentName),
+    studentProgramSection: text(input.studentProgramSection),
+    affectedSubjectType: input.affectedSubjectType === 'relative' ? 'relative' : 'student',
+    affectedPersonName: text(input.affectedPersonName),
+    relationshipToStudent: text(input.relationshipToStudent),
+    caseSummary: text(input.caseSummary),
+    memoReference: text(input.memoReference),
+    memoPhotoDataUrl: photo,
+    defaultContribution: Math.max(0, Number(input.defaultContribution) || 0),
+    status: BENEFICIARY_STATUS.OPEN,
+    createdByUid: officer?.uid || null,
+    createdByName: officer?.name || 'Unknown',
+    createdByRole: officer?.role || 'unknown',
+  };
+};
+
+/** True when this section already has a filing awaiting verification for this case. */
+export const hasPendingForCase = (collections, rosterId, beneficiaryCaseId) =>
+  collections.some(
+    (c) =>
+      c.rosterId === rosterId &&
+      (c.beneficiaryCaseId || null) === (beneficiaryCaseId || null) &&
+      c.status === DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION
+  );
 
 const rethrowWithSpec = (label, error) => {
   if (error?.code === 'failed-precondition') {
@@ -101,20 +149,26 @@ export const computeTotals = (enrolledCount, contribution, beneficiaries) => {
  *
  * @param {Array} collections every filing for the sections of interest
  */
-export const computeOutstanding = (collections) => {
+export const computeOutstanding = (collections, { beneficiaryCaseId } = {}) => {
   const latestBySection = new Map();
 
   collections
     .filter((c) => c.status !== DEATH_AID_COLLECTION_STATUS.DENIED)
+    .filter((c) => !beneficiaryCaseId || c.beneficiaryCaseId === beneficiaryCaseId)
     .forEach((c) => {
-      const current = latestBySection.get(c.sectionKey);
+      // Latest filing wins per section AND per beneficiary case, so a new aid
+      // drive never erases debt still owed on an earlier one.
+      const key = `${c.beneficiaryCaseId || ''}::${c.sectionKey}`;
+      const current = latestBySection.get(key);
       if (!current || timeValue(c.submittedAt) > timeValue(current.submittedAt)) {
-        latestBySection.set(c.sectionKey, c);
+        latestBySection.set(key, c);
       }
     });
 
   return Array.from(latestBySection.values())
     .map((c) => ({
+      beneficiaryCaseId: c.beneficiaryCaseId || null,
+      beneficiaryStudentName: c.beneficiaryStudentName || '',
       sectionKey: c.sectionKey,
       section: c.section,
       program: c.program,
@@ -170,12 +224,59 @@ export const appendAudit = async ({ collectionId, action, actor, extra = {} }) =
 };
 
 // ────────────────────────────────────────────────────────────
+// BENEFICIARY CASES — officer publishes, everyone selects
+// ────────────────────────────────────────────────────────────
+
+export const createBeneficiaryCase = async (input, officer) => {
+  const payload = buildBeneficiaryCase(input, officer);
+  const year = new Date().getFullYear();
+  const snap = await getDocs(query(collection(db, BENEFICIARY_COLLECTION), limit(500)));
+  const beneficiaryId = `BEN-${year}-${String(snap.size + 1).padStart(4, '0')}-${Date.now().toString(36).slice(-3).toUpperCase()}`;
+
+  await setDoc(doc(db, BENEFICIARY_COLLECTION, beneficiaryId), {
+    ...payload,
+    beneficiaryId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  await appendAudit({
+    collectionId: beneficiaryId,
+    action: 'beneficiary_created',
+    actor: officer,
+    extra: { aidType: payload.aidType, studentName: payload.studentName, affectedPersonName: payload.affectedPersonName },
+  });
+  return beneficiaryId;
+};
+
+export const setBeneficiaryStatus = async (beneficiary, status, officer) => {
+  if (!Object.values(BENEFICIARY_STATUS).includes(status)) throw new Error('Invalid case status.');
+  await setDoc(
+    doc(db, BENEFICIARY_COLLECTION, beneficiary.beneficiaryId),
+    { ...beneficiary, status, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+  await appendAudit({
+    collectionId: beneficiary.beneficiaryId,
+    action: status === BENEFICIARY_STATUS.CLOSED ? 'beneficiary_closed' : 'beneficiary_reopened',
+    actor: officer,
+    extra: { studentName: beneficiary.studentName },
+  });
+};
+
+export const listBeneficiaryCases = async ({ onlyOpen = false } = {}) => {
+  const clauses = onlyOpen ? [where('status', '==', BENEFICIARY_STATUS.OPEN)] : [];
+  const snap = await getDocs(query(collection(db, BENEFICIARY_COLLECTION), ...clauses, limit(200)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst('createdAt'));
+};
+
+// ────────────────────────────────────────────────────────────
 // OFFICER RECORDS A COLLECTION
 // ────────────────────────────────────────────────────────────
 
 /**
  * @param {Object} p
  * @param {Object} p.roster          verified classroom roster for the section
+ * @param {Object} [p.beneficiary]   the Death Aid / TechnoCare case being funded
  * @param {number} p.contribution     pesos per beneficiary
  * @param {number} p.beneficiaries   how many students actually paid
  * @param {Array}  [p.debtRecords]   optional: who owes, and why
@@ -184,6 +285,7 @@ export const appendAudit = async ({ collectionId, action, actor, extra = {} }) =
  */
 export const recordSectionCollection = async ({
   roster,
+  beneficiary = null,
   contribution,
   beneficiaries,
   debtRecords = [],
@@ -191,6 +293,9 @@ export const recordSectionCollection = async ({
   recorder,
 }) => {
   if (!roster?.rosterId) throw new Error('Choose a section with a verified roster.');
+  if (beneficiary && beneficiary.status !== BENEFICIARY_STATUS.OPEN) {
+    throw new Error('That Death Aid / TechnoCare case is closed.');
+  }
   const trimmedName = String(submittedByName || '').trim();
   if (!trimmedName) {
     throw new Error('Please enter your full name as the submitter.');
@@ -199,18 +304,21 @@ export const recordSectionCollection = async ({
   const totals = computeTotals(roster.studentCount, contribution, beneficiaries);
   if (totals.enrolledCount === 0) throw new Error('That roster has no students enrolled.');
 
-  // Anti-Spam Failsafe: Check if an active collection for this section is already pending verification
-  const existingPendingQuery = query(
-    collection(db, COLLECTION_COLLECTION),
+  // Anti-Spam Failsafe: one active filing per section PER beneficiary case
+  const pendingClauses = [
     where('rosterId', '==', roster.rosterId),
     where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
-    limit(1)
+  ];
+  if (beneficiary) pendingClauses.push(where('beneficiaryCaseId', '==', beneficiary.beneficiaryId));
+  const existingPendingSnap = await getDocs(
+    query(collection(db, COLLECTION_COLLECTION), ...pendingClauses, limit(5))
   );
-  const existingPendingSnap = await getDocs(existingPendingQuery);
-  if (!existingPendingSnap.empty) {
-    const pendingDoc = existingPendingSnap.docs[0].data();
+  const conflict = existingPendingSnap.docs
+    .map((d) => d.data())
+    .find((d) => (beneficiary ? true : !d.beneficiaryCaseId));
+  if (conflict) {
     throw new Error(
-      `Section ${roster.section} already has an active submission (${pendingDoc.collectionId}) awaiting officer verification. Duplicate filings are locked until verified or settled.`
+      `Section ${roster.section} already has an active submission (${conflict.collectionId}) awaiting officer verification. Duplicate filings are locked until verified or settled.`
     );
   }
 
@@ -244,6 +352,15 @@ export const recordSectionCollection = async ({
     yearLevel: roster.yearLevel ?? null,
     mayorName: roster.mayorName || 'No Mayor Assigned',
     mayorUid: roster.mayorUid || null,
+
+    ...(beneficiary
+      ? {
+          beneficiaryCaseId: beneficiary.beneficiaryId,
+          beneficiaryStudentName: beneficiary.studentName,
+          affectedPersonName: beneficiary.affectedPersonName,
+          aidType: beneficiary.aidType,
+        }
+      : {}),
 
     ...totals,
 
@@ -528,18 +645,18 @@ export const listPendingCollections = () =>
  * Check if a section roster already has an active pending collection awaiting verification.
  * Anti-spam and duplicate-prevention failsafe.
  */
-export const getActivePendingForRoster = async (rosterId) => {
+export const getActivePendingForRoster = async (rosterId, beneficiaryCaseId = null) => {
   if (!rosterId) return null;
   try {
-    const q = query(
-      collection(db, COLLECTION_COLLECTION),
+    const clauses = [
       where('rosterId', '==', rosterId),
       where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
-      limit(1)
-    );
-    const snap = await getDocs(q);
-    if (snap.empty) return null;
-    return { id: snap.docs[0].id, ...snap.docs[0].data() };
+    ];
+    if (beneficiaryCaseId) clauses.push(where('beneficiaryCaseId', '==', beneficiaryCaseId));
+    const snap = await getDocs(query(collection(db, COLLECTION_COLLECTION), ...clauses, limit(5)));
+    const docs = snap.docs.filter((d) => (beneficiaryCaseId ? true : !d.data().beneficiaryCaseId));
+    if (docs.length === 0) return null;
+    return { id: docs[0].id, ...docs[0].data() };
   } catch (error) {
     console.error('Failed to check active pending collection for roster:', error);
     return null;

@@ -24,6 +24,7 @@ import {
   recordSectionCollection,
 } from '../services/deathAidService';
 import { S, T, banner as bannerStyle, statusPill } from '../utils/themeStyles';
+import { BeneficiariesView, BeneficiaryPicker } from './DeathAidBeneficiaries.jsx';
 import {
   HiClipboardCheck,
   HiExclamation,
@@ -50,6 +51,7 @@ const formatDate = (value) => {
 
 const OFFICER_TABS = [
   { id: 'record', label: 'Record Collection' },
+  { id: 'beneficiaries', label: 'Beneficiaries & Memos' },
   { id: 'pending', label: 'Pending Verification' },
   { id: 'confirmed', label: 'Confirmed' },
   { id: 'discrepancies', label: 'Discrepancies' },
@@ -197,6 +199,7 @@ function DeathAid() {
 
       {tab === 'record' && <RecordView actor={actor} say={say} isManager={isManager} />}
       {tab === 'my_submissions' && <MySubmissionsView actor={actor} say={say} />}
+      {isManager && tab === 'beneficiaries' && <BeneficiariesView actor={actor} say={say} />}
       {isManager && tab === 'pending' && <PendingView actor={actor} say={say} />}
       {tab === 'confirmed' && <StatusListView status={DEATH_AID_COLLECTION_STATUS.CONFIRMED} title="Confirmed Collections" say={say} />}
       {isManager && tab === 'discrepancies' && <DiscrepancyView say={say} />}
@@ -221,6 +224,7 @@ function RecordView({ actor, say, isManager = true }) {
   const [rosters, setRosters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rosterId, setRosterId] = useState('');
+  const [beneficiary, setBeneficiary] = useState(null);
   const [contribution, setContribution] = useState('1');
   const [beneficiaries, setBeneficiaries] = useState('');
   const [submittedByName, setSubmittedByName] = useState(actor?.name || '');
@@ -266,7 +270,7 @@ function RecordView({ actor, say, isManager = true }) {
     }
     let alive = true;
     setCheckingPending(true);
-    getActivePendingForRoster(rosterId)
+    getActivePendingForRoster(rosterId, beneficiary?.beneficiaryId || null)
       .then((pending) => {
         if (alive) setActivePending(pending);
       })
@@ -280,7 +284,7 @@ function RecordView({ actor, say, isManager = true }) {
     return () => {
       alive = false;
     };
-  }, [rosterId]);
+  }, [rosterId, beneficiary]);
 
   const totals = useMemo(
     () => computeTotals(roster?.studentCount ?? 0, contribution, beneficiaries),
@@ -324,6 +328,7 @@ function RecordView({ actor, say, isManager = true }) {
 
   const handleSave = async () => {
     if (!roster) return say('error', 'Select a section first.');
+    if (!beneficiary) return say('error', 'Choose the Death Aid / TechnoCare beneficiary first.');
     const trimmedName = submittedByName.trim();
     if (!trimmedName) {
       return say('error', 'Please enter your full name as the submitter.');
@@ -351,6 +356,7 @@ function RecordView({ actor, say, isManager = true }) {
     try {
       const id = await recordSectionCollection({
         roster,
+        beneficiary,
         contribution: Number(contribution) || 0,
         beneficiaries: Number(beneficiaries),
         debtRecords: effectiveDebts,
@@ -368,6 +374,7 @@ function RecordView({ actor, say, isManager = true }) {
       // Start 60-second anti-spam cooldown timer
       setCooldown(60);
       setRosterId('');
+      setBeneficiary(null);
       setBeneficiaries('');
       setSubmittedByName(actor?.name || '');
       setDebtRecords([]);
@@ -406,6 +413,16 @@ function RecordView({ actor, say, isManager = true }) {
         <p style={styles.helperText}>No verified rosters yet. A section needs one before its collection can be recorded.</p>
       ) : (
         <>
+          {/* STEP 0: WHICH DEATH AID / TECHNOCARE BENEFICIARY */}
+          <BeneficiaryPicker
+            value={beneficiary}
+            onChange={(item) => {
+              setBeneficiary(item);
+              if (item?.defaultContribution > 0) setContribution(String(item.defaultContribution));
+            }}
+            say={say}
+          />
+
           {/* STEP 1: SECTION & SUBMITTER NAME (REQUIRED FIRST) */}
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={styles.formRow}>
@@ -1823,6 +1840,15 @@ function CollectionTable({ rows, loading, empty, showDebts = false }) {
             <tr key={c.collectionId} style={styles.tableRow}>
               <td style={styles.tableCell}>
                 <strong>{c.collectionId}</strong>
+                {c.beneficiaryStudentName && (
+                  <div style={styles.muted}>
+                    For: {c.beneficiaryStudentName}
+                    {c.affectedPersonName && c.affectedPersonName !== c.beneficiaryStudentName
+                      ? ` (${c.affectedPersonName})`
+                      : ''}
+                    {c.aidType ? ` · ${c.aidType === 'technocare' ? 'TechnoCare' : 'Death Aid'}` : ''}
+                  </div>
+                )}
                 {c.denialReason && (
                   <div style={styles.denialReasonNote}>
                     <span style={{ fontWeight: 700, color: T.error }}>Denied:</span> {c.denialReason}
