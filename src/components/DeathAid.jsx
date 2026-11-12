@@ -402,15 +402,34 @@ function RecordView({ actor, say, isManager = true }) {
 
       {!isManager && (
         <div style={styles.notice}>
-          <HiInformationCircle style={{ fontSize: '1.2rem', color: T.accent, verticalAlign: 'middle', marginRight: '0.4rem' }} />
-          <strong>Guests & Section Members:</strong> You can submit your section's contributions. Please indicate your <strong>Section</strong> and <strong>Submitter Full Name</strong> below first before entering student counts.
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+            <HiInformationCircle style={{ fontSize: '1.3rem', color: T.accent, flexShrink: 0, marginTop: '0.15rem' }} />
+            <div>
+              <strong>Guests & Section Members:</strong> You can submit your section's contributions. Please indicate your <strong>Section</strong> and <strong>Submitter Full Name</strong> below first before entering student counts.
+              <div style={{ marginTop: '0.45rem', fontSize: '0.84rem', color: T.textMuted, lineHeight: '1.45' }}>
+                📌 <strong>Roster Requirement:</strong> A section requires a verified classroom roster to calculate expected contributions. If your section is missing from the list, please <strong>submit a roster first</strong> or use your <strong>registered account to submit a roster</strong> under{' '}
+                <a href="/sections-contributions?tab=roster" style={{ color: T.accent, textDecoration: 'underline', fontWeight: 600 }}>
+                  Sections &amp; Rosters
+                </a>{' '}
+                for officer verification.
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {loading ? (
         <p style={styles.helperText}>Loading sections…</p>
       ) : rosters.length === 0 ? (
-        <p style={styles.helperText}>No verified rosters yet. A section needs one before its collection can be recorded.</p>
+        <div style={{ ...styles.notice, borderLeft: `4px solid ${T.warning}`, margin: '1rem 0' }}>
+          <p style={{ margin: 0, fontWeight: 600, color: T.warning }}>No verified rosters available yet.</p>
+          <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: T.text }}>
+            A section needs a verified classroom roster before its collections can be recorded. Please <strong>submit a roster first</strong> or use a <strong>registered account to submit your roster</strong> in{' '}
+            <a href="/sections-contributions?tab=roster" style={{ color: T.accent, textDecoration: 'underline', fontWeight: 600 }}>
+              Sections &amp; Rosters
+            </a>.
+          </p>
+        </div>
       ) : (
         <>
           {/* STEP 0: WHICH DEATH AID / TECHNOCARE BENEFICIARY */}
