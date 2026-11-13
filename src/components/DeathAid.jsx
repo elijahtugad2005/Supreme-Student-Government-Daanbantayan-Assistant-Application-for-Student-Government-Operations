@@ -233,6 +233,7 @@ function RecordView({ actor, say, isManager = true }) {
   const [cooldown, setCooldown] = useState(0);
   const [activePending, setActivePending] = useState(null);
   const [checkingPending, setCheckingPending] = useState(false);
+  const [recordedModal, setRecordedModal] = useState(null);
 
   // Anti-Spam Rate-Limiting: 60-second cooldown countdown
   useEffect(() => {
@@ -370,6 +371,19 @@ function RecordView({ actor, say, isManager = true }) {
           ? `${id} recorded: ${totals.beneficiaryCount} beneficiary(ies), ${peso(totals.collectedAmount)} collected, ${totals.debtCount} student(s) owing ${peso(totals.debtAmount)}.`
           : `${id} submitted successfully! Please bring the collected cash (${peso(totals.collectedAmount)}) to an SSG officer to verify and complete the remittance.`
       );
+
+      setRecordedModal({
+        collectionId: id,
+        section: roster.section,
+        beneficiaryName: beneficiary.studentName,
+        aidType: beneficiary.aidType,
+        beneficiaryCount: totals.beneficiaryCount,
+        enrolledCount: totals.enrolledCount,
+        collectedAmount: totals.collectedAmount,
+        debtCount: totals.debtCount,
+        debtAmount: totals.debtAmount,
+        isManager,
+      });
 
       // Start 60-second anti-spam cooldown timer
       setCooldown(60);
@@ -702,6 +716,91 @@ function RecordView({ actor, say, isManager = true }) {
             </>
           )}
         </>
+      )}
+
+      {recordedModal && (
+        <div
+          style={styles.modalBackdrop}
+          onClick={() => setRecordedModal(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Death Aid contribution recorded"
+        >
+          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <div>
+                <div style={styles.modalTitleRow}>
+                  <HiCheckCircle style={{ fontSize: '1.6rem', color: T.success, flexShrink: 0 }} />
+                  <h3 style={styles.modalTitle}>
+                    {recordedModal.isManager ? 'Contribution Recorded' : 'Contribution Submitted'}
+                  </h3>
+                </div>
+                <p style={styles.modalSubtitle}>
+                  Reference ID: <strong>{recordedModal.collectionId}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRecordedModal(null)}
+                style={styles.modalCloseBtn}
+                aria-label="Close confirmation modal"
+              >
+                <HiX />
+              </button>
+            </div>
+
+            <div style={styles.modalBody}>
+              <div style={styles.modalIndicatorBox('success')}>
+                <div style={styles.modalIndicatorTitle('success')}>
+                  <HiCheck />
+                  <span>Saved to Death Aid / TechnoCare Ledger</span>
+                </div>
+                <p style={styles.modalIndicatorDesc}>
+                  {recordedModal.isManager
+                    ? `Your collection for ${recordedModal.section} has been recorded and is ready for remittance verification.`
+                    : `Your contribution for ${recordedModal.section} has been submitted! Please bring the collected cash (${peso(recordedModal.collectedAmount)}) to an SSG officer to verify and complete the remittance.`}
+                </p>
+              </div>
+
+              <div style={styles.modalCompareGrid}>
+                <div style={styles.modalCompareBox}>
+                  <span style={styles.modalCompareLabel}>Section</span>
+                  <span style={styles.modalCompareValue}>{recordedModal.section}</span>
+                  <span style={styles.modalCompareSub}>
+                    {recordedModal.beneficiaryCount}/{recordedModal.enrolledCount} paid
+                  </span>
+                </div>
+                <div style={styles.modalCompareBox}>
+                  <span style={styles.modalCompareLabel}>Collected</span>
+                  <span style={{ ...styles.modalCompareValue, color: T.success }}>
+                    {peso(recordedModal.collectedAmount)}
+                  </span>
+                  <span style={styles.modalCompareSub}>
+                    {recordedModal.debtCount} owing ({peso(recordedModal.debtAmount)})
+                  </span>
+                </div>
+              </div>
+
+              <div style={styles.modalNoteBox}>
+                <div style={{ fontSize: '0.8rem', color: T.textSoft }}>Beneficiary Case</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: T.text, marginTop: '0.2rem' }}>
+                  {recordedModal.beneficiaryName} (
+                  {recordedModal.aidType === 'technocare' ? 'TechnoCare' : 'Death Aid'})
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={() => setRecordedModal(null)}
+                style={{ ...styles.submitButton, width: '100%' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
