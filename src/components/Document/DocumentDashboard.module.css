@@ -162,6 +162,46 @@
   margin-top: 0.2rem !important;
 }
 
+.statCirclePending,
+:global(.theme-light) .statCirclePending,
+:global(.theme-dark) .statCirclePending {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 2.35rem !important;
+  height: 2.35rem !important;
+  padding: 0 0.5rem !important;
+  border-radius: 9999px !important;
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  margin-top: 0.25rem !important;
+  align-self: flex-start !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35) !important;
+}
+
+.statCircleApproved,
+:global(.theme-light) .statCircleApproved,
+:global(.theme-dark) .statCircleApproved {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 2.35rem !important;
+  height: 2.35rem !important;
+  padding: 0 0.5rem !important;
+  border-radius: 9999px !important;
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  margin-top: 0.25rem !important;
+  align-self: flex-start !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35) !important;
+}
+
 /* Cards & Sections */
 :global(.theme-light) .brutalistCard {
   background: #FFFFFF !important;

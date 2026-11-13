@@ -497,9 +497,9 @@ function DocumentDashboard() {
 
       <div className={stylesModule.statsGrid} style={styles.stats}>
         <Stat label="Documents" value={counts.total} />
-        <Stat label="Pending" value={counts[DOC_STATUS.PENDING] || 0} />
+        <Stat label="Pending" value={counts[DOC_STATUS.PENDING] || 0} tone="pending" />
         <Stat label="Under Review" value={counts[DOC_STATUS.UNDER_REVIEW] || 0} />
-        <Stat label="Approved" value={counts[DOC_STATUS.APPROVED] || 0} />
+        <Stat label="Approved" value={counts[DOC_STATUS.APPROVED] || 0} tone="approved" />
       </div>
 
       {/* ── Upload ── */}
@@ -1051,11 +1051,23 @@ function Field({ label, hint, children }) {
   );
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, tone }) {
+  const circleClass =
+    tone === 'pending'
+      ? stylesModule.statCirclePending
+      : tone === 'approved'
+        ? stylesModule.statCircleApproved
+        : '';
+
   return (
     <div className={stylesModule.statBox} style={styles.stat}>
       <span className={stylesModule.statBoxLabel} style={styles.statLabel}>{label}</span>
-      <span className={stylesModule.statBoxVal} style={styles.statValue}>{value}</span>
+      <span
+        className={`${stylesModule.statBoxVal} ${circleClass}`.trim()}
+        style={styles.statValue}
+      >
+        {value}
+      </span>
     </div>
   );
 }
