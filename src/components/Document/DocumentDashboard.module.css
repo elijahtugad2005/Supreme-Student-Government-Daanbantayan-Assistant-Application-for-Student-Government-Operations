@@ -1060,6 +1060,30 @@
   text-shadow: 0 2px 12px rgba(212, 175, 55, 0.2) !important;
 }
 
+.docClassic .statCirclePending,
+:global(.theme-dark) .container .statCirclePending {
+  background: #ef4444 !important;
+  background-color: #ef4444 !important;
+  -webkit-background-clip: border-box !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+  border: 2px solid #fca5a5 !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.75) !important;
+}
+
+.docClassic .statCircleApproved,
+:global(.theme-dark) .container .statCircleApproved {
+  background: #22c55e !important;
+  background-color: #22c55e !important;
+  -webkit-background-clip: border-box !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+  border: 2px solid #86efac !important;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.75) !important;
+}
+
 /* ─── Drag and Drop Upload Zone ─── */
 .dropZoneArea {
   position: relative;
