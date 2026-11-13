@@ -4105,15 +4105,58 @@
 @media (max-width: 768px) {
   .footerInner {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1.8rem;
+    align-items: center;
+    text-align: center;
+    gap: 1.75rem;
+    padding: 2.5rem 1.25rem 4.5rem;
+  }
+  .footerLeft {
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: 100%;
+  }
+  .footerBrandRow {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+  .footerBrand {
+    font-size: 1.15rem;
+    letter-spacing: 0.08em;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+  }
+  .footerSubBrand {
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    line-height: 1.4;
+  }
+  .footerTagline,
+  .footerMotto {
+    text-align: center;
+    max-width: 34ch;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+  }
+  .footerMotto {
+    letter-spacing: 0.08em;
   }
   .footerRight {
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+  }
+  .footerSocialLinks {
+    justify-content: center;
   }
   .footerCopyright,
   .footerCampus {
-    text-align: left;
+    text-align: center;
+    max-width: 36ch;
+    line-height: 1.5;
   }
 }
 
