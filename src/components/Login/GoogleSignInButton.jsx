@@ -11,40 +11,66 @@ import { useAuth } from '../AuthContext/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
 
+const GOOGLE_AUTH_ERROR_MESSAGES = {
+  'auth/popup-closed-by-user': 'Sign-in popup was closed. Please try again.',
+  'auth/cancelled-popup-request': 'Previous sign-in popup was superseded. Please try again.',
+  'auth/popup-blocked':
+    'Pop-up was blocked by your browser. Allow pop-ups or use Redirect Sign-In below.',
+  'auth/unauthorized-domain':
+    'This domain is not listed under Firebase Authentication Authorized Domains.',
+  'auth/configuration-not-found':
+    'Google Sign-In is not configured in Firebase Authentication.',
+  'auth/operation-not-allowed':
+    'Google Sign-In provider is disabled in Firebase Console.',
+  'auth/web-storage-unsupported':
+    'Browser blocked third-party storage required for Google pop-up sign-in. Disable strict tracking/cookie shields or try Redirect Sign-In below.',
+  'auth/internal-error':
+    'Google Auth failed internally (auth/internal-error). Commonly caused by strict browser tracker/cookie shields blocking third-party storage or apis.google.com, or mismatched VITE_FIREBASE_AUTH_DOMAIN / OAuth settings.',
+};
+
+const REDIRECT_FALLBACK_CODES = new Set([
+  'auth/popup-blocked',
+  'auth/internal-error',
+  'auth/web-storage-unsupported',
+]);
+
 function GoogleSignInButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const { loginWithGooglePopup } = useAuth();
+  const [offerRedirect, setOfferRedirect] = useState(false);
+
+  const { loginWithGooglePopup, loginWithGoogleRedirect } = useAuth();
   const navigate = useNavigate();
 
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
       setError('');
-      
+      setOfferRedirect(false);
+
       await loginWithGooglePopup();
-      
+
       // Redirect to home/dashboard after successful login
       navigate('/');
-      
-    } catch (error) {
-      console.error('Google Sign-In error:', error);
-      
-      // Handle specific Google OAuth errors
-      if (error.code === 'auth/popup-closed-by-user') {
-        setError('Sign-in popup was closed. Please try again.');
-      } else if (error.code === 'auth/popup-blocked') {
-        setError('Pop-up was blocked by your browser. Please allow pop-ups or try the redirect method.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        setError('This domain is not authorized for Google Sign-In. Please contact the administrator.');
-      } else if (error.code === 'auth/configuration-not-found') {
-        setError('Google Sign-In is not properly configured. Please check the setup.');
-      } else {
-        setError(`Google Sign-In failed: ${error.message}`);
-      }
-      
+    } catch (err) {
+      console.error('Google Sign-In error:', err);
+      const mapped = GOOGLE_AUTH_ERROR_MESSAGES[err.code];
+      setError(mapped || `Google Sign-In failed: ${err.message}`);
+      setOfferRedirect(REDIRECT_FALLBACK_CODES.has(err.code));
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRedirectSignIn = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      await loginWithGoogleRedirect();
+    } catch (err) {
+      console.error('Google Redirect Sign-In error:', err);
+      const mapped = GOOGLE_AUTH_ERROR_MESSAGES[err.code];
+      setError(mapped || `Google Redirect Sign-In failed: ${err.message}`);
       setLoading(false);
     }
   };
@@ -53,7 +79,27 @@ function GoogleSignInButton() {
     <div className={styles.googleSignInContainer}>
       {error && (
         <div className={styles.googleErrorBox}>
-          ⚠️ {error}
+          <div>⚠️ {error}</div>
+          {offerRedirect && (
+            <button
+              type="button"
+              onClick={handleRedirectSignIn}
+              disabled={loading}
+              style={{
+                marginTop: '0.6rem',
+                background: 'rgba(212, 175, 55, 0.16)',
+                color: '#ffea9f',
+                border: '1px solid rgba(212, 175, 55, 0.5)',
+                borderRadius: '6px',
+                padding: '0.4rem 0.75rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Try Redirect Sign-In instead
+            </button>
+          )}
         </div>
       )}
       

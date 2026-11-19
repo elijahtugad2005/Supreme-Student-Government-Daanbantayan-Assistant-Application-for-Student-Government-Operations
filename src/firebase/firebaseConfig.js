@@ -3,9 +3,18 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
+const normalizeAuthDomain = (rawDomain) => {
+  if (typeof rawDomain !== "string") return "ssg-prototype.firebaseapp.com";
+  const cleaned = rawDomain
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "");
+  return cleaned || "ssg-prototype.firebaseapp.com";
+};
+
 const firebaseConfig = {
   apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyBPxd8ag3HyPM6qywsDdpM-cgCXCdjWBVo",
-  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "ssg-prototype.firebaseapp.com",
+  authDomain: normalizeAuthDomain(import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN),
   projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "ssg-prototype",
   storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "ssg-prototype.firebasestorage.app",
   messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "661854012909",
@@ -18,6 +27,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 // Document binaries live in Storage, not Firestore. Firestore caps a document at
 // 1MB, which is smaller than most scanned administrative documents.
 export const storage = getStorage(app);

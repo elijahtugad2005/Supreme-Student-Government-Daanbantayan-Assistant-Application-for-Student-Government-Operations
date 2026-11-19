@@ -528,10 +528,11 @@ function OrderManagement() {
         await syncOrderStockDeduction({ order, deduct: true });
 
         // 2. Sync proceeds to IGF Ledger
-        // When Online Paid: money was already recorded in IGF upon payment, so ONLY stock changes on claim/completion (no duplicate IGF entry)
+        // When already Online Paid: money was recorded in IGF upon payment, so ONLY stock changes on claim/completion (no duplicate IGF entry)
         let igfSynced = order.igfSynced;
         const alreadyInIGF = order.igfSynced === true || Boolean(order.igfTxRef);
-        if (!alreadyInIGF && !isOnlinePayment) {
+        const wasAlreadyOnlinePaid = rawOrderStatus === 'ONLINE PAID' || rawOrderStatus === 'PAID';
+        if (!alreadyInIGF && !wasAlreadyOnlinePaid) {
           try {
             await financeService.syncOrderRevenueToIGF({
               order: { ...order, claimed: true, orderStatus: 'Claimed' },
@@ -555,7 +556,7 @@ function OrderManagement() {
           updatedAt: new Date().toISOString(),
         });
 
-        const claimMsg = (isOnlinePayment || alreadyInIGF)
+        const claimMsg = (wasAlreadyOnlinePaid || alreadyInIGF)
           ? `Order #${order.orderId} completed: stock deducted from inventory (IGF revenue was already recorded upon online payment).`
           : `Order #${order.orderId} claimed: status updated to Claimed & synced to Inventory/IGF!`;
 

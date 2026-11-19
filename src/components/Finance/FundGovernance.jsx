@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
@@ -13,6 +13,15 @@ import {
   toCentavos,
   PPMP_STATUSES,
 } from '../../utils/financeConstants.js';
+import {
+  RECEIPT_LABELS,
+  computeLedgerNetByAccount,
+  computeDisbursedByAccount,
+  computeEffectiveFiscalCeilingCentavos,
+  computeAuthoritativeFundBalanceCentavos,
+  filterValidLedgerTransactions,
+  inferTransactionStorageLocation,
+} from '../../utils/financeLedgerReconciliation.js';
 import styles from './FundGovernance.module.css';
 import BankCalibrationModal from './BankCalibrationModal.jsx';
 import { ReversalModal, RestoreAllocationModal } from './FinanceLedgerModal.jsx';
@@ -34,11 +43,15 @@ const FundGovernance = () => {
     fundAccounts,
     budgetAllocations,
     transactions,
+    ledgerBalancesByAccount,
+    disbursedByAccount,
     recordTransaction,
     reverseTransaction,
     refreshFinanceData,
     updateFiscalBudget,
     updateFundBalance,
+    reconcileFundBalance,
+    uploadReceiptToDrive,
     loading,
     budgets,
     archivedBudgets = [],
@@ -47,6 +60,29 @@ const FundGovernance = () => {
   } = useFinance();
   const { currentUser, userName, userRole } = useAuth();
   const { canEditFinance, canPostFinanceLedger, canReverseFinanceLedger } = usePermissions();
+
+  useEffect(() => {
+    refreshFinanceData();
+  }, [refreshFinanceData]);
+
+  const visibleTransactions = useMemo(
+    () => filterValidLedgerTransactions(transactions, fundAccounts),
+    [transactions, fundAccounts]
+  );
+
+  const computedLedgerByAccount = useMemo(
+    () => ledgerBalancesByAccount || computeLedgerNetByAccount(visibleTransactions),
+    [ledgerBalancesByAccount, visibleTransactions]
+  );
+
+  const computedDisbursedByAccount = useMemo(
+    () => disbursedByAccount || computeDisbursedByAccount(visibleTransactions),
+    [disbursedByAccount, visibleTransactions]
+  );
+
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+  const [receiptUploadProgress, setReceiptUploadProgress] = useState(0);
+  const [receiptUploadNotice, setReceiptUploadNotice] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReversalModalOpen, setIsReversalModalOpen] = useState(false);
@@ -93,15 +129,23 @@ const FundGovernance = () => {
     custodianUserId: currentUser?.uid || '',
     custodianName: userName || '',
     receiptUrl: '',
+    receiptDriveLink: '',
+    receiptFileId: '',
+    receiptOrNumber: '',
+    receiptDetails: '',
+    receiptLabel: RECEIPT_LABELS[0],
+    storageLocation: '',
   });
 
   const activeFund = fundAccounts.find((a) => a.id === txForm.fundAccountId);
 
-  // Handlers for Unified Fiscal Budget
+  // Handlers for Unified Fiscal Budget (edits the initial term ceiling directly)
   const handleOpenFiscalBudgetModal = (fund) => {
-    const amt = fund.balanceCentavos
-      ? (fund.balanceCentavos / 100).toString()
-      : (fund.appropriatedCeilingCentavos ? (fund.appropriatedCeilingCentavos / 100).toString() : '');
+    const ceilingCentavos =
+      fund.appropriatedCeilingCentavos !== undefined && fund.appropriatedCeilingCentavos > 0
+        ? fund.appropriatedCeilingCentavos
+        : (fund.balanceCentavos || 0);
+    const amt = ceilingCentavos ? (ceilingCentavos / 100).toString() : '';
     setFiscalBudgetForm({
       budgetAmount: amt,
       resolutionRef: fund.appropriationResolutionRef || '',
@@ -136,10 +180,14 @@ const FundGovernance = () => {
     }
   };
 
-  // Handlers for Non-Fiscal Fund Balance (FSG, IGF, IGP)
+  // Handlers for Non-Fiscal Fund Balance (FSG)
   const handleOpenFundBalanceModal = (fund) => {
     setSelectedFundForBalance(fund);
-    setFundBalanceInput(fund.balanceCentavos ? (fund.balanceCentavos / 100).toString() : '0');
+    const baseCentavos =
+      fund.appropriatedCeilingCentavos !== undefined && fund.appropriatedCeilingCentavos > 0
+        ? fund.appropriatedCeilingCentavos
+        : (fund.balanceCentavos || 0);
+    setFundBalanceInput(baseCentavos ? (baseCentavos / 100).toString() : '0');
     setFundBalanceReason('');
     setFundBalanceError(null);
     setIsFundBalanceModalOpen(true);
@@ -249,7 +297,15 @@ const FundGovernance = () => {
         custodianUserId: currentUser?.uid || '',
         custodianName: userName || '',
         receiptUrl: '',
+        receiptDriveLink: '',
+        receiptFileId: '',
+        receiptOrNumber: '',
+        receiptDetails: '',
+        receiptLabel: RECEIPT_LABELS[0],
+        storageLocation: '',
       });
+      setReceiptUploadNotice('');
+      setReceiptUploadProgress(0);
     } catch (err) {
       setSubmitError(err.message);
     }
@@ -340,13 +396,27 @@ const FundGovernance = () => {
           else if (isIGF) badgeClass = styles.badgeIGF;
           else if (isIGP) badgeClass = styles.badgeIGP;
 
-          const balanceCentavos = fund.balanceCentavos || 0;
+          const balanceCentavos = computeAuthoritativeFundBalanceCentavos(fund, visibleTransactions);
+          const ceilingCentavos =
+            isFiscal || isFSG
+              ? computeEffectiveFiscalCeilingCentavos(fund, visibleTransactions)
+              : balanceCentavos;
+          const disbursedCentavos = computedDisbursedByAccount.get(fund.id) || 0;
+          const storageLabel =
+            fund.bankAccountReference ||
+            (isFiscal
+              ? 'BDO Institutional Account ****2005'
+              : isFSG
+              ? 'BDO Institutional Account ****2005 (Sub-Treasury)'
+              : isIGF
+              ? 'Treasury Safe / Cash Box'
+              : 'Custodial Lockbox');
           const allocatedCentavos = isFiscal
             ? toCentavos(displayFiscalAllocated)
             : isFSG
             ? toCentavos(displayFsgAllocated)
             : 0;
-          const surplusCentavos = Math.max(0, balanceCentavos - allocatedCentavos);
+          const surplusCentavos = Math.max(0, ceilingCentavos - allocatedCentavos);
 
           return (
             <div key={fund.id} className={styles.fundCard}>
@@ -369,7 +439,7 @@ const FundGovernance = () => {
 
                 {/* Sub-Metrics for Fiscal Year Budget (2026-2027 Indicator & PPMP Earmarks) */}
                 {isFiscal && (() => {
-                  const unallocatedReserveCentavos = Math.max(0, balanceCentavos - allocatedCentavos);
+                  const unallocatedReserveCentavos = Math.max(0, ceilingCentavos - allocatedCentavos);
 
                   return (
                     <div className={styles.fundCardSubStats}>
@@ -380,9 +450,25 @@ const FundGovernance = () => {
                         </span>
                       </div>
                       <div className={styles.fundStatRow}>
+                        <span className={styles.fundStatLabel}>Stored In:</span>
+                        <span className={styles.fundStatValue}>{storageLabel}</span>
+                      </div>
+                      <div className={styles.fundStatRow}>
+                        <span className={styles.fundStatLabel}>Initial Fiscal Ceiling:</span>
+                        <span className={styles.fundStatValue}>
+                          {formatPHP(ceilingCentavos, true)}
+                        </span>
+                      </div>
+                      <div className={styles.fundStatRow}>
                         <span className={styles.fundStatLabel}>PPMP Programmed:</span>
                         <span className={styles.fundStatValue}>
                           {formatPHP(allocatedCentavos, true)}
+                        </span>
+                      </div>
+                      <div className={styles.fundStatRow}>
+                        <span className={styles.fundStatLabel}>Released to Ledger:</span>
+                        <span className={styles.fundStatValue} style={{ color: disbursedCentavos > 0 ? '#ef4444' : undefined }}>
+                          {disbursedCentavos > 0 ? `-${formatPHP(disbursedCentavos, true)}` : formatPHP(0, true)}
                         </span>
                       </div>
                       <div className={styles.fundStatRow}>
@@ -399,9 +485,25 @@ const FundGovernance = () => {
                 {isFSG && (
                   <div className={styles.fundCardSubStats}>
                     <div className={styles.fundStatRow}>
+                      <span className={styles.fundStatLabel}>Stored In:</span>
+                      <span className={styles.fundStatValue}>{storageLabel}</span>
+                    </div>
+                    <div className={styles.fundStatRow}>
+                      <span className={styles.fundStatLabel}>Initial FSG Balance:</span>
+                      <span className={styles.fundStatValue}>
+                        {formatPHP(ceilingCentavos, true)}
+                      </span>
+                    </div>
+                    <div className={styles.fundStatRow}>
                       <span className={styles.fundStatLabel}>FSG Sub-Allocated:</span>
                       <span className={styles.fundStatValue}>
                         {formatPHP(allocatedCentavos, true)}
+                      </span>
+                    </div>
+                    <div className={styles.fundStatRow}>
+                      <span className={styles.fundStatLabel}>Released to Ledger:</span>
+                      <span className={styles.fundStatValue} style={{ color: disbursedCentavos > 0 ? '#ef4444' : undefined }}>
+                        {disbursedCentavos > 0 ? `-${formatPHP(disbursedCentavos, true)}` : formatPHP(0, true)}
                       </span>
                     </div>
                     <div className={styles.fundStatRow}>
@@ -416,6 +518,10 @@ const FundGovernance = () => {
                 {/* IGF / IGP Operational Notes */}
                 {(isIGF || isIGP) && (
                   <div className={styles.fundCardSubStats}>
+                    <div className={styles.fundStatRow}>
+                      <span className={styles.fundStatLabel}>Stored In:</span>
+                      <span className={styles.fundStatValue}>{storageLabel}</span>
+                    </div>
                     <div className={styles.fundStatRow}>
                       <span className={styles.fundStatLabel}>Disbursement Mode:</span>
                       <span className={styles.fundStatValue}>
@@ -447,7 +553,7 @@ const FundGovernance = () => {
                   </div>
                 )}
 
-                {canEditFinance && !isFiscal && (
+                {canEditFinance && isFSG && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.85rem' }}>
                     <button
                       type="button"
@@ -465,10 +571,16 @@ const FundGovernance = () => {
                     type="button"
                     className={styles.quickTxBtn}
                     onClick={() => {
+                      setSubmitError(null);
+                      setReceiptUploadNotice('');
+                      setReceiptUploadProgress(0);
                       setTxForm((prev) => ({
                         ...prev,
                         fundAccountId: fund.id,
+                        transactionType: TRANSACTION_TYPES.EXPENSE,
                         expensePurpose: EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES,
+                        storageLocation: storageLabel,
+                        budgetAllocationId: '',
                       }));
                       setIsModalOpen(true);
                     }}
@@ -478,7 +590,7 @@ const FundGovernance = () => {
                 )}
 
                 <div className={styles.fundMeta}>
-                  <span>{fund.bankAccountReference || (isFiscal ? 'BDO Institutional Account' : 'General Holding')}</span>
+                  <span>{storageLabel}</span>
                   <span>FY {fund.fiscalYear}</span>
                 </div>
               </div>
@@ -614,7 +726,7 @@ const FundGovernance = () => {
                   return (
                     <tr key={b.id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary, #0f172a)' }}>
+                        <div style={{ fontWeight: 600, color: '#ffffff' }}>
                           {b.eventName}
                         </div>
                         <div
@@ -729,13 +841,13 @@ const FundGovernance = () => {
         <div className={styles.tableHeader}>
           <h2 className={styles.tableTitle}>Append-Only Financial Ledger</h2>
           <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            {transactions.length} immutable entries recorded
+            {visibleTransactions.length} immutable entries recorded
           </span>
         </div>
 
-        {transactions.length === 0 ? (
+        {visibleTransactions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-            No transactions posted yet. Post a receipt, collection, or authorized expense to build the ledger.
+            No transactions posted yet. Post an authorized expense or IGF/IGP collection to build the ledger.
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -745,19 +857,22 @@ const FundGovernance = () => {
                   <th>Ref #</th>
                   <th>Date</th>
                   <th>Fund Source</th>
+                  <th>Stored In</th>
                   <th>Type &amp; Purpose</th>
                   <th>Description</th>
                   <th>Amount</th>
                   <th>Status</th>
-                  {canEditFinance && <th>Actions</th>}
+                  {(canReverseFinanceLedger || canEditFinance) && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((tx) => {
+                {visibleTransactions.map((tx) => {
                   const isOutflow =
                     tx.transactionType === TRANSACTION_TYPES.EXPENSE ||
                     tx.transactionType === TRANSACTION_TYPES.PAYMENT ||
                     tx.transactionType === TRANSACTION_TYPES.REFUND;
+                  const matchedFundAcc = fundAccounts.find((a) => a.id === tx.fundAccountId);
+                  const txStorageLocation = inferTransactionStorageLocation(tx, matchedFundAcc);
 
                   return (
                     <tr key={tx.id}>
@@ -772,6 +887,11 @@ const FundGovernance = () => {
                       <td>
                         <span style={{ fontWeight: 500 }}>
                           {TOP_LEVEL_FUND_LABELS[tx.fundCategory] || tx.fundCategory}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                          {txStorageLocation}
                         </span>
                       </td>
                       <td>
@@ -791,6 +911,35 @@ const FundGovernance = () => {
                         {tx.resolutionRef && (
                           <div style={{ fontSize: '0.75rem', color: '#2563eb' }}>
                             Res: {tx.resolutionRef}
+                          </div>
+                        )}
+                        {(tx.receiptLabel || tx.receiptOrNumber || tx.receiptDetails || tx.receiptDriveLink || tx.receiptUrl) && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.74rem' }}>
+                            {tx.receiptLabel && (
+                              <span style={{ padding: '0.1rem 0.45rem', borderRadius: '999px', background: 'rgba(212, 175, 55, 0.16)', color: '#fbbf24' }}>
+                                🏷️ {tx.receiptLabel}
+                              </span>
+                            )}
+                            {tx.receiptOrNumber && (
+                              <span style={{ color: '#cbd5e1' }}>
+                                OR #: {tx.receiptOrNumber}
+                              </span>
+                            )}
+                            {tx.receiptDetails && (
+                              <span style={{ color: '#94a3b8' }}>
+                                • {tx.receiptDetails}
+                              </span>
+                            )}
+                            {(tx.receiptDriveLink || tx.receiptUrl) && (
+                              <a
+                                href={tx.receiptDriveLink || tx.receiptUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: '#38bdf8', textDecoration: 'underline', fontWeight: 600 }}
+                              >
+                                📎 View Receipt (Drive)
+                              </a>
+                            )}
                           </div>
                         )}
                       </td>
@@ -815,7 +964,8 @@ const FundGovernance = () => {
                       </td>
                       {canReverseFinanceLedger && (
                         <td>
-                          {tx.status === TRANSACTION_STATUSES.POSTED && (
+                          {tx.status === TRANSACTION_STATUSES.POSTED &&
+                            (tx.transactionType || '').toLowerCase() !== TRANSACTION_TYPES.REVERSAL && (
                             <button
                               type="button"
                               className={styles.secondaryBtn}
@@ -882,6 +1032,11 @@ const FundGovernance = () => {
                       ...txForm,
                       fundAccountId: e.target.value,
                       budgetAllocationId: '',
+                      storageLocation: chosenAcc?.bankAccountReference || '',
+                      transactionType:
+                        isFiscalAcc || isFsgAcc
+                          ? TRANSACTION_TYPES.EXPENSE
+                          : txForm.transactionType,
                       expensePurpose: isFiscalAcc
                         ? EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE
                         : isFsgAcc
@@ -908,10 +1063,15 @@ const FundGovernance = () => {
                       setTxForm({ ...txForm, transactionType: e.target.value })
                     }
                   >
-                    <option value={TRANSACTION_TYPES.EXPENSE}>Expense / Disbursement</option>
-                    <option value={TRANSACTION_TYPES.RECEIPT}>Fund Receipt / Deposit</option>
-                    <option value={TRANSACTION_TYPES.COLLECTION}>Sales Collection</option>
-                    <option value={TRANSACTION_TYPES.REFUND}>Refund</option>
+                    <option value={TRANSACTION_TYPES.EXPENSE}>Expense / Disbursement (-)</option>
+                    {(activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGF ||
+                      activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGP) && (
+                      <>
+                        <option value={TRANSACTION_TYPES.COLLECTION}>Sales Collection (+)</option>
+                        <option value={TRANSACTION_TYPES.RECEIPT}>Fund Receipt / Deposit (+)</option>
+                        <option value={TRANSACTION_TYPES.REFUND}>Refund (-)</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -1076,6 +1236,143 @@ const FundGovernance = () => {
                 )}
 
               <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Stored In (Holding / Depository Location)</label>
+                <input
+                  type="text"
+                  className={styles.formInput}
+                  placeholder={activeFund?.bankAccountReference || 'e.g. Treasury Safe / Cash Box or GCash / Online Holding'}
+                  value={txForm.storageLocation}
+                  onChange={(e) =>
+                    setTxForm({ ...txForm, storageLocation: e.target.value })
+                  }
+                />
+              </div>
+
+              {/* Receipt & Proof of Purchase (Google Drive 'Receipts' Folder or OR # & Details) */}
+              {(txForm.transactionType === TRANSACTION_TYPES.EXPENSE ||
+                txForm.transactionType === TRANSACTION_TYPES.PAYMENT) && (
+                <div
+                  style={{
+                    padding: '0.85rem 1rem',
+                    marginBottom: '1rem',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(212, 175, 55, 0.35)',
+                    background: 'rgba(212, 175, 55, 0.06)',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '0.86rem', marginBottom: '0.55rem' }}>
+                    🧾 Receipt &amp; Proof of Purchase (Required for Expenses — Uploads to Google Drive &rarr; Receipts)
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className={styles.formGroup} style={{ marginBottom: '0.6rem' }}>
+                      <label className={styles.formLabel}>Receipt Label / Category</label>
+                      <select
+                        className={styles.formSelect}
+                        value={txForm.receiptLabel}
+                        onChange={(e) => setTxForm({ ...txForm, receiptLabel: e.target.value })}
+                      >
+                        {RECEIPT_LABELS.map((lbl) => (
+                          <option key={lbl} value={lbl}>
+                            {lbl}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.formGroup} style={{ marginBottom: '0.6rem' }}>
+                      <label className={styles.formLabel}>Official Receipt (OR #) — Optional if Picture Uploaded</label>
+                      <input
+                        type="text"
+                        className={styles.formInput}
+                        placeholder="e.g. OR #10492"
+                        value={txForm.receiptOrNumber}
+                        onChange={(e) => setTxForm({ ...txForm, receiptOrNumber: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.formGroup} style={{ marginBottom: '0.6rem' }}>
+                    <label className={styles.formLabel}>Receipt Item Details (e.g. Cooked chicken for lunch during event prep)</label>
+                    <input
+                      type="text"
+                      className={styles.formInput}
+                      placeholder="Describe the purchased item or receipt details if no picture is available..."
+                      value={txForm.receiptDetails}
+                      onChange={(e) => setTxForm({ ...txForm, receiptDetails: e.target.value })}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                    <label className={styles.formLabel}>
+                      Upload Receipt Picture / PDF (Synced to Google Drive &rarr; Receipts folder)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      className={styles.formInput}
+                      disabled={isUploadingReceipt}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setSubmitError(null);
+                        setIsUploadingReceipt(true);
+                        setReceiptUploadProgress(0);
+                        setReceiptUploadNotice('Uploading receipt to Google Drive (Receipts folder)...');
+                        try {
+                          const res = await uploadReceiptToDrive(
+                            file,
+                            {
+                              title: `Receipt_${txForm.receiptLabel || 'Expense'}_${file.name}`,
+                              office: 'SSG Finance',
+                            },
+                            (pct) => setReceiptUploadProgress(pct)
+                          );
+                          const link = res.driveWebViewLink || res.downloadUrl || '';
+                          setTxForm((prev) => ({
+                            ...prev,
+                            receiptFileId: res.fileId || '',
+                            receiptDriveLink: res.driveWebViewLink || '',
+                            receiptUrl: link,
+                          }));
+                          setReceiptUploadNotice(
+                            res.driveWebViewLink
+                              ? `✓ Uploaded "${res.filename}" to Google Drive → Receipts folder!`
+                              : `✓ Uploaded "${res.filename}" (queued for Google Drive → Receipts)`
+                          );
+                        } catch (uploadErr) {
+                          setReceiptUploadNotice('');
+                          setSubmitError(uploadErr.message || 'Receipt upload failed.');
+                        } finally {
+                          setIsUploadingReceipt(false);
+                        }
+                      }}
+                    />
+                    {isUploadingReceipt && (
+                      <div style={{ fontSize: '0.76rem', marginTop: '0.3rem', color: '#fbbf24' }}>
+                        Uploading receipt... {receiptUploadProgress}%
+                      </div>
+                    )}
+                    {receiptUploadNotice && !isUploadingReceipt && (
+                      <div style={{ fontSize: '0.76rem', marginTop: '0.3rem', color: '#4ade80' }}>
+                        {receiptUploadNotice}{' '}
+                        {txForm.receiptDriveLink && (
+                          <a
+                            href={txForm.receiptDriveLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#38bdf8', marginLeft: '0.35rem', textDecoration: 'underline' }}
+                          >
+                            Open in Google Drive
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Payee or Payer</label>
                 <input
                   type="text"
@@ -1132,6 +1429,7 @@ const FundGovernance = () => {
         isOpen={isReversalModalOpen}
         transaction={selectedTxForReversal}
         isSubmitting={isSubmittingReversal}
+        externalError={reversalModalError}
         onClose={() => {
           setIsReversalModalOpen(false);
           setSelectedTxForReversal(null);
@@ -1205,11 +1503,12 @@ const FundGovernance = () => {
         initialValues={{
           fundBalance: fundBalanceInput,
           fundBalanceReason: fundBalanceReason,
+          storageLocation: selectedFundForBalance?.bankAccountReference || '',
         }}
         isSaving={isSavingFundBalance}
         error={fundBalanceError}
         onClose={() => setIsFundBalanceModalOpen(false)}
-        onSubmit={async ({ balance, reason }) => {
+        onSubmit={async ({ balance, reason, storageLocation }) => {
           setFundBalanceError(null);
           const amountNum = parseFloat(balance);
           if (isNaN(amountNum) || amountNum < 0) {
@@ -1221,7 +1520,8 @@ const FundGovernance = () => {
             await updateFundBalance(
               selectedFundForBalance.id,
               amountNum,
-              reason?.trim() || 'Fund Balance Calibration'
+              reason?.trim() || 'Fund Balance Calibration',
+              storageLocation
             );
             setIsFundBalanceModalOpen(false);
           } catch (err) {

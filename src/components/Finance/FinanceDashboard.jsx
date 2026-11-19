@@ -140,7 +140,7 @@ const FinanceDashboard = () => {
 
         {activeTab === 'igp' && (
           <section className={styles.tabPane} key="igp">
-            <IgpProjectManager onNavigateToMap={handleNavigateToMap} />
+            <IgpProjectManager roleMode="full" onNavigateToMap={handleNavigateToMap} />
           </section>
         )}
 

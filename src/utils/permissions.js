@@ -798,6 +798,9 @@ export const ROUTE_ALLOWED_ROLES = {
   // Finance — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
   '/finance': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer', 'secretary', 'executive_secretary'],
 
+  // Standalone Role-Scoped IGP Projects (Representatives -> Vendo Machine, Governors -> Campus Lockers)
+  '/igp-projects': ['admin', 'president', 'vice_president', 'finance_secretary', 'auditor', 'budget_officer', 'secretary', 'executive_secretary', 'representative', 'governor'],
+
   // Inventory — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
   '/inventory': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
 

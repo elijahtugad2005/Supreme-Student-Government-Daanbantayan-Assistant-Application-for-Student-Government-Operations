@@ -5,15 +5,10 @@ import {
   Lock,
   PlusCircle,
   MapPin,
-  Calendar,
-  User,
   History,
-  CheckCircle,
-  AlertCircle,
   AlertTriangle,
   Trash2,
   X,
-  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import { hasPermission } from '../../utils/permissions.js';
@@ -43,8 +38,11 @@ function formatCollectionAmountPHP(c) {
   return '0.00';
 }
 
-export default function IgpProjectManager({ user = null, onNavigateToMap = null }) {
+export default function IgpProjectManager({ user = null, onNavigateToMap = null, roleMode = 'full' }) {
   const { currentUser, userName, userRole } = useAuth();
+  const isVendingOnly = roleMode === 'vending';
+  const isLockersOnly = roleMode === 'lockers';
+
   const effectiveUser = useMemo(() => {
     if (user) return user;
     return {
@@ -62,9 +60,16 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
     );
   }, [effectiveUser]);
 
+  const canManageLockers = useMemo(() => {
+    return canEditFinance || isLockersOnly || effectiveUser?.role === 'governor';
+  }, [canEditFinance, isLockersOnly, effectiveUser]);
+
   const service = useMemo(() => createBrowserIgpProjectService(), []);
 
-  const [activeSubTab, setActiveSubTab] = useState('lockers'); // 'lockers' | 'vending' | 'future' | 'history'
+  const [activeSubTab, setActiveSubTab] = useState(isVendingOnly ? 'vending' : 'lockers'); // 'lockers' | 'vending' | 'future' | 'history'
+  useEffect(() => {
+    setActiveSubTab(isVendingOnly ? 'vending' : 'lockers');
+  }, [isVendingOnly, isLockersOnly]);
   const [lockers, setLockers] = useState([]);
   const [collections, setCollections] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,9 +80,19 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [rentModalLocker, setRentModalLocker] = useState(null);
   const [detailModalLocker, setDetailModalLocker] = useState(null);
+  const [confirmingVacate, setConfirmingVacate] = useState(false);
+  const [lockerStatusFilter, setLockerStatusFilter] = useState('ALL');
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [priceModalOpen, setPriceModalOpen] = useState(false);
+  const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
+  const [priceForm, setPriceForm] = useState({
+    scope: 'ALL',
+    buildingName: LOCKER_BUILDINGS.HM,
+    lockerId: '',
+    monthlyRatePHP: '100',
+  });
 
   // Form states
   const [vendingForm, setVendingForm] = useState({
@@ -96,6 +111,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
     program: '',
     phoneNumber: '',
     months: 1,
+    monthlyRatePHP: 100,
     startDate: new Date().toISOString().split('T')[0],
     officerName: '',
   });
@@ -223,6 +239,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
         program: '',
         phoneNumber: '',
         months: 1,
+        monthlyRatePHP: 100,
         startDate: new Date().toISOString().split('T')[0],
         officerName: '',
       });
@@ -232,11 +249,42 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
     }
   };
 
+  const handleUpdateLockerRates = async (e) => {
+    e.preventDefault();
+    const rateNum = parseFloat(priceForm.monthlyRatePHP);
+    if (Number.isNaN(rateNum) || rateNum <= 0) {
+      showToast('Please enter a valid monthly rate greater than ₱0.00.', 'error');
+      return;
+    }
+    setIsUpdatingPrice(true);
+    try {
+      const res = await service.updateLockerRates(
+        {
+          scope: priceForm.scope,
+          buildingName: priceForm.buildingName,
+          lockerId: priceForm.lockerId,
+          monthlyRatePHP: rateNum,
+        },
+        effectiveUser
+      );
+      showToast(
+        `Updated ${res.updatedCount} locker unit${res.updatedCount > 1 ? 's' : ''} to ₱${res.monthlyRatePHP.toFixed(2)}/month.`,
+        'success'
+      );
+      setPriceModalOpen(false);
+      await loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to update locker rates.', 'error');
+    } finally {
+      setIsUpdatingPrice(false);
+    }
+  };
+
   const handleReleaseLocker = async (lockerId) => {
-    if (!window.confirm(`Vacate Locker ${lockerId}? Unit will be set to Available.`)) return;
     try {
       await service.releaseLockerUnit(lockerId, effectiveUser);
-      showToast(`✓ Locker ${lockerId} is now Available.`, 'success');
+      showToast(`Locker ${lockerId} is now Available.`, 'success');
+      setConfirmingVacate(false);
       setDetailModalLocker(null);
       loadData();
     } catch (err) {
@@ -310,6 +358,15 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
 
   const hmLockers = lockers.filter((l) => l.buildingName === LOCKER_BUILDINGS.HM);
   const edLockers = lockers.filter((l) => l.buildingName === LOCKER_BUILDINGS.EDUCATION);
+  const lockerRateSummary = useMemo(() => {
+    const rates = lockers.map((l) => Number(l.monthlyRatePHP) || 100);
+    if (rates.length === 0) return '₱100.00/month';
+    const min = Math.min(...rates);
+    const max = Math.max(...rates);
+    return min === max
+      ? `₱${min.toFixed(2)}/month`
+      : `₱${min.toFixed(2)}–₱${max.toFixed(2)}/month`;
+  }, [lockers]);
 
   return (
     <div className={styles.wrapper}>
@@ -341,70 +398,84 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
       )}
       {/* Overview Cards */}
       <div className={styles.metricsGrid}>
-        <div className={styles.metricCard}>
-          <div className={styles.metricHeader}>
-            <span>TOTAL IGP COLLECTIONS</span>
-            <Coins size={16} color="#f7d070" />
+        {!isVendingOnly && !isLockersOnly && (
+          <div className={styles.metricCard}>
+            <div className={styles.metricHeader}>
+              <span>TOTAL IGP COLLECTIONS</span>
+              <span className={styles.metricIconWrap}><Coins size={16} /></span>
+            </div>
+            <div className={styles.metricValue}>₱{metrics.totalPHP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className={styles.metricSubtext}>Credited to Custodial Lockbox / IGP Fund</div>
           </div>
-          <div className={styles.metricValue}>₱{metrics.totalPHP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-          <div className={styles.metricSubtext}>Credited to Custodial Lockbox / IGP Fund</div>
-        </div>
+        )}
 
-        <div className={styles.metricCard}>
-          <div className={styles.metricHeader}>
-            <span>CAMPUS LOCKERS (30 UNITS)</span>
-            <Lock size={16} color="#e5c07b" />
+        {!isVendingOnly && (
+          <div className={styles.metricCard}>
+            <div className={styles.metricHeader}>
+              <span>CAMPUS LOCKERS ({metrics.totalLockers || 30} UNITS)</span>
+              <span className={styles.metricIconWrap}><Lock size={16} /></span>
+            </div>
+            <div className={styles.metricValue}>
+              {metrics.occupiedLockers} / {metrics.totalLockers}
+            </div>
+            <div className={styles.metricSubtext}>
+              {metrics.availableLockers} Available • ₱{(metrics.lockersPHP || 0).toFixed(2)} Collected
+            </div>
           </div>
-          <div className={styles.metricValue}>
-            {metrics.occupiedLockers} / {metrics.totalLockers}
-          </div>
-          <div className={styles.metricSubtext}>
-            {metrics.availableLockers} Available • ₱{(metrics.lockersPHP || 0).toFixed(2)} Collected
-          </div>
-        </div>
+        )}
 
-        <div className={styles.metricCard}>
-          <div className={styles.metricHeader}>
-            <span>VENDING MACHINE PROFIT</span>
-            <CupSoda size={16} color="#98c379" />
+        {!isLockersOnly && (
+          <div className={styles.metricCard}>
+            <div className={styles.metricHeader}>
+              <span>VENDING MACHINE PROFIT</span>
+              <span className={styles.metricIconWrap}><CupSoda size={16} /></span>
+            </div>
+            <div className={styles.metricValue}>₱{metrics.vendingPHP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className={styles.metricSubtext}>Physical cash box collections</div>
           </div>
-          <div className={styles.metricValue}>₱{metrics.vendingPHP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-          <div className={styles.metricSubtext}>Physical cash box collections</div>
-        </div>
+        )}
 
-        <div className={styles.metricCard}>
-          <div className={styles.metricHeader}>
-            <span>FUTURE IGP PROJECTS</span>
-            <PlusCircle size={16} color="#61afef" />
+        {!isVendingOnly && !isLockersOnly && (
+          <div className={styles.metricCard}>
+            <div className={styles.metricHeader}>
+              <span>FUTURE IGP PROJECTS</span>
+              <span className={styles.metricIconWrap}><PlusCircle size={16} /></span>
+            </div>
+            <div className={styles.metricValue}>₱{metrics.customPHP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className={styles.metricSubtext}>Other student enterprise revenues</div>
           </div>
-          <div className={styles.metricValue}>₱{metrics.customPHP.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-          <div className={styles.metricSubtext}>Other student enterprise revenues</div>
-        </div>
+        )}
       </div>
 
       {/* Sub Navigation */}
       <div className={styles.actionNav}>
-        <button
-          type="button"
-          className={`${styles.navButton} ${activeSubTab === 'lockers' ? styles.navButtonActive : ''}`}
-          onClick={() => setActiveSubTab('lockers')}
-        >
-          <Lock size={16} /> Campus Lockers (30 Units)
-        </button>
-        <button
-          type="button"
-          className={`${styles.navButton} ${activeSubTab === 'vending' ? styles.navButtonActive : ''}`}
-          onClick={() => setActiveSubTab('vending')}
-        >
-          <CupSoda size={16} /> Vending Machine Collections
-        </button>
-        <button
-          type="button"
-          className={`${styles.navButton} ${activeSubTab === 'future' ? styles.navButtonActive : ''}`}
-          onClick={() => setActiveSubTab('future')}
-        >
-          <PlusCircle size={16} /> Record Future IGP Project
-        </button>
+        {!isVendingOnly && (
+          <button
+            type="button"
+            className={`${styles.navButton} ${activeSubTab === 'lockers' ? styles.navButtonActive : ''}`}
+            onClick={() => setActiveSubTab('lockers')}
+          >
+            <Lock size={16} /> Campus Lockers ({metrics.totalLockers || 30} Units)
+          </button>
+        )}
+        {!isLockersOnly && (
+          <button
+            type="button"
+            className={`${styles.navButton} ${activeSubTab === 'vending' ? styles.navButtonActive : ''}`}
+            onClick={() => setActiveSubTab('vending')}
+          >
+            <CupSoda size={16} /> Vending Machine Collections
+          </button>
+        )}
+        {!isVendingOnly && !isLockersOnly && (
+          <button
+            type="button"
+            className={`${styles.navButton} ${activeSubTab === 'future' ? styles.navButtonActive : ''}`}
+            onClick={() => setActiveSubTab('future')}
+          >
+            <PlusCircle size={16} /> Record Future IGP Project
+          </button>
+        )}
         <button
           type="button"
           className={`${styles.navButton} ${activeSubTab === 'history' ? styles.navButtonActive : ''}`}
@@ -415,122 +486,177 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
       </div>
 
       {/* Lockers Tab */}
-      {activeSubTab === 'lockers' && (
+      {!isVendingOnly && activeSubTab === 'lockers' && (
         <div className={styles.contentCard}>
           <div className={styles.cardHeaderRow}>
             <div>
               <h3 className={styles.cardTitle}>
-                <Lock size={18} color="#f7d070" /> Campus Locker Management System
+                <Lock size={18} /> Campus Locker Management System
               </h3>
               <p className={styles.cardDesc}>
-                30 student locker units (₱100.00/month). Click any unit to rent, view lease records, or vacate.
+                {lockers.length || 30} student locker units ({lockerRateSummary}). Select any unit to assign a rental, inspect active leases, or vacate.
               </p>
             </div>
-            {onNavigateToMap && (
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={() => onNavigateToMap('bldg-hm')}
-              >
-                <MapPin size={15} /> Locate on Campus Map
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {canManageLockers && (
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => {
+                    const defaultRate = lockers[0]?.monthlyRatePHP || 100;
+                    setPriceForm({
+                      scope: 'ALL',
+                      buildingName: LOCKER_BUILDINGS.HM,
+                      lockerId: lockers[0]?.lockerId || '',
+                      monthlyRatePHP: String(defaultRate),
+                    });
+                    setPriceModalOpen(true);
+                  }}
+                >
+                  <Coins size={15} /> Update Locker Rates
+                </button>
+              )}
+              {onNavigateToMap && (
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => onNavigateToMap('bldg-hm')}
+                >
+                  <MapPin size={15} /> Locate on Campus Map
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.lockerToolbar}>
+            <div className={styles.filterChipGroup} role="group" aria-label="Filter locker units by status">
+              {[
+                { key: 'ALL', label: `All (${lockers.length})` },
+                { key: LOCKER_STATUSES.AVAILABLE, label: `Available (${metrics.availableLockers})` },
+                { key: LOCKER_STATUSES.OCCUPIED, label: `Occupied (${metrics.occupiedLockers})` },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`${styles.filterChip} ${lockerStatusFilter === opt.key ? styles.filterChipActive : ''}`}
+                  onClick={() => setLockerStatusFilter(opt.key)}
+                  aria-pressed={lockerStatusFilter === opt.key}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.legendRow} aria-hidden="true">
+              <span className={styles.legendItem}>
+                <span className={styles.legendDotAvailable} /> Available
+              </span>
+              <span className={styles.legendItem}>
+                <span className={styles.legendDotOccupied} /> Occupied
+              </span>
+              <span className={styles.legendItem}>
+                <span className={styles.legendDotMaintenance} /> Maintenance
+              </span>
+            </div>
           </div>
 
           <div className={styles.lockersBankWrap}>
-            {/* HM Building Bank */}
-            <div className={styles.bankSection}>
-              <div className={styles.bankHeader}>
-                <span className={styles.bankTitle}>
-                  <MapPin size={15} /> Hospitality Management (HM) Building — 15 Units
-                </span>
-                <span className={styles.cardDesc}>Ground Floor West Wing</span>
-              </div>
-              <div className={styles.lockersGrid}>
-                {hmLockers.map((locker) => (
-                  <div
-                    key={locker.lockerId}
-                    className={`${styles.lockerTile} ${
-                      locker.status === LOCKER_STATUSES.OCCUPIED
-                        ? styles.lockerTileOccupied
-                        : locker.status === LOCKER_STATUSES.MAINTENANCE
-                        ? styles.lockerTileMaintenance
-                        : styles.lockerTileAvailable
-                    }`}
-                    onClick={() => {
-                      if (locker.status === LOCKER_STATUSES.OCCUPIED) setDetailModalLocker(locker);
-                      else setRentModalLocker(locker);
-                    }}
-                  >
-                    <span className={styles.lockerNumber}>{locker.lockerId}</span>
-                    <span
-                      className={`${styles.lockerBadge} ${
-                        locker.status === LOCKER_STATUSES.OCCUPIED
-                          ? styles.badgeOccupied
-                          : locker.status === LOCKER_STATUSES.MAINTENANCE
-                          ? styles.badgeMaintenance
-                          : styles.badgeAvailable
-                      }`}
-                    >
-                      {locker.status}
-                    </span>
-                    <span className={styles.lockerRenterShort}>
-                      {locker.currentLease?.renterName || '₱100/mo'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {[
+              {
+                title: 'Hospitality Management (HM) Building — 15 Units',
+                subtitle: 'Ground Floor West Wing',
+                units: hmLockers,
+              },
+              {
+                title: 'Education Building — 15 Units',
+                subtitle: 'Main Corridor Lockers',
+                units: edLockers,
+              },
+            ].map((bank) => {
+              const occupiedCount = bank.units.filter((l) => l.status === LOCKER_STATUSES.OCCUPIED).length;
+              const visibleUnits =
+                lockerStatusFilter === 'ALL'
+                  ? bank.units
+                  : bank.units.filter((l) => l.status === lockerStatusFilter);
 
-            {/* Education Building Bank */}
-            <div className={styles.bankSection}>
-              <div className={styles.bankHeader}>
-                <span className={styles.bankTitle}>
-                  <MapPin size={15} /> Education Building — 15 Units
-                </span>
-                <span className={styles.cardDesc}>Main Corridor Lockers</span>
-              </div>
-              <div className={styles.lockersGrid}>
-                {edLockers.map((locker) => (
-                  <div
-                    key={locker.lockerId}
-                    className={`${styles.lockerTile} ${
-                      locker.status === LOCKER_STATUSES.OCCUPIED
-                        ? styles.lockerTileOccupied
-                        : locker.status === LOCKER_STATUSES.MAINTENANCE
-                        ? styles.lockerTileMaintenance
-                        : styles.lockerTileAvailable
-                    }`}
-                    onClick={() => {
-                      if (locker.status === LOCKER_STATUSES.OCCUPIED) setDetailModalLocker(locker);
-                      else setRentModalLocker(locker);
-                    }}
-                  >
-                    <span className={styles.lockerNumber}>{locker.lockerId}</span>
-                    <span
-                      className={`${styles.lockerBadge} ${
-                        locker.status === LOCKER_STATUSES.OCCUPIED
-                          ? styles.badgeOccupied
-                          : locker.status === LOCKER_STATUSES.MAINTENANCE
-                          ? styles.badgeMaintenance
-                          : styles.badgeAvailable
-                      }`}
-                    >
-                      {locker.status}
+              return (
+                <div key={bank.title} className={styles.bankSection}>
+                  <div className={styles.bankHeader}>
+                    <span className={styles.bankTitle}>
+                      <MapPin size={15} /> {bank.title}
                     </span>
-                    <span className={styles.lockerRenterShort}>
-                      {locker.currentLease?.renterName || '₱100/mo'}
-                    </span>
+                    <div className={styles.bankMetaRight}>
+                      <span>{bank.subtitle}</span>
+                      <span className={styles.bankOccupancyPill}>
+                        {occupiedCount} / {bank.units.length} Occupied
+                      </span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div className={styles.lockersGrid}>
+                    {visibleUnits.map((locker) => {
+                      const isOccupied = locker.status === LOCKER_STATUSES.OCCUPIED;
+                      const isMaint = locker.status === LOCKER_STATUSES.MAINTENANCE;
+                      return (
+                        <button
+                          key={locker.lockerId}
+                          type="button"
+                          className={`${styles.lockerTile} ${
+                            isOccupied
+                              ? styles.lockerTileOccupied
+                              : isMaint
+                              ? styles.lockerTileMaintenance
+                              : styles.lockerTileAvailable
+                          }`}
+                          onClick={() => {
+                            setConfirmingVacate(false);
+                            if (isOccupied) {
+                              setDetailModalLocker(locker);
+                            } else {
+                              setRentForm((prev) => ({
+                                ...prev,
+                                monthlyRatePHP: locker.monthlyRatePHP || 100,
+                              }));
+                              setRentModalLocker(locker);
+                            }
+                          }}
+                          aria-label={`Locker ${locker.lockerId}, ${locker.status}${
+                            locker.currentLease?.renterName ? `, rented by ${locker.currentLease.renterName}` : ''
+                          }`}
+                        >
+                          <div className={styles.lockerVents} aria-hidden="true">
+                            <span />
+                            <span />
+                          </div>
+                          <div className={styles.lockerNumberPlate}>
+                            <span className={styles.lockerNumber}>{locker.lockerId}</span>
+                          </div>
+                          <span
+                            className={`${styles.lockerBadge} ${
+                              isOccupied
+                                ? styles.badgeOccupied
+                                : isMaint
+                                ? styles.badgeMaintenance
+                                : styles.badgeAvailable
+                            }`}
+                          >
+                            {locker.status}
+                          </span>
+                          <span className={styles.lockerRenterShort}>
+                            {locker.currentLease?.renterName || `₱${locker.monthlyRatePHP || 100}/mo`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Vending Machine Tab */}
-      {activeSubTab === 'vending' && (
+      {!isLockersOnly && activeSubTab === 'vending' && (
         <div className={styles.contentCard}>
           <div className={styles.cardHeaderRow}>
             <div>
@@ -608,7 +734,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
       )}
 
       {/* Future IGP Projects Tab */}
-      {activeSubTab === 'future' && (
+      {!isVendingOnly && !isLockersOnly && activeSubTab === 'future' && (
         <div className={styles.contentCard}>
           <div className={styles.cardHeaderRow}>
             <div>
@@ -710,7 +836,13 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                 </tr>
               </thead>
               <tbody>
-                {collections.map((c) => (
+                {collections
+                  .filter((c) => {
+                    if (isVendingOnly) return c.projectType === IGP_PROJECT_TYPES.VENDING_MACHINE;
+                    if (isLockersOnly) return c.projectType === IGP_PROJECT_TYPES.LOCKER_RENTAL;
+                    return true;
+                  })
+                  .map((c) => (
                   <tr key={c.id}>
                     <td>{new Date(c.collectedAt || c.createdAt).toLocaleString()}</td>
                     <td>
@@ -813,17 +945,35 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
               </div>
 
               <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Monthly Rate (₱/Month) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.5"
+                  required
+                  disabled={!canManageLockers}
+                  className={styles.textInput}
+                  value={rentForm.monthlyRatePHP}
+                  onChange={(e) => setRentForm({ ...rentForm, monthlyRatePHP: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Rental Duration (Months) *</label>
                 <select
                   className={styles.selectInput}
                   value={rentForm.months}
                   onChange={(e) => setRentForm({ ...rentForm, months: parseInt(e.target.value, 10) })}
                 >
-                  <option value={1}>1 Month — ₱100.00</option>
-                  <option value={2}>2 Months — ₱200.00</option>
-                  <option value={3}>3 Months — ₱300.00</option>
-                  <option value={4}>4 Months — ₱400.00</option>
-                  <option value={5}>5 Months (Semester) — ₱500.00</option>
+                  {[1, 2, 3, 4, 5].map((m) => {
+                    const rate = parseFloat(rentForm.monthlyRatePHP) || rentModalLocker.monthlyRatePHP || 100;
+                    const subtotal = (m * rate).toFixed(2);
+                    return (
+                      <option key={m} value={m}>
+                        {m} {m === 1 ? 'Month' : m === 5 ? 'Months (Semester)' : 'Months'} — ₱{subtotal}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -848,7 +998,134 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
                   Cancel
                 </button>
                 <button type="submit" className={styles.btnPrimary}>
-                  Confirm Rental &amp; Collect ₱{rentForm.months * 100}.00
+                  Confirm Rental &amp; Collect ₱
+                  {(
+                    rentForm.months *
+                    (parseFloat(rentForm.monthlyRatePHP) || rentModalLocker.monthlyRatePHP || 100)
+                  ).toFixed(2)}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Update Locker Pricing Modal */}
+      {priceModalOpen && (
+        <div className={styles.modalBackdrop} onClick={() => !isUpdatingPrice && setPriceModalOpen(false)}>
+          <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.cardHeaderRow}>
+              <h4 className={styles.cardTitle}>
+                <Coins size={18} /> Update Campus Locker Rates
+              </h4>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setPriceModalOpen(false)}
+                disabled={isUpdatingPrice}
+                aria-label="Close pricing modal"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className={styles.cardDesc}>
+              Set a new monthly rental fee across all lockers, a specific building wing, or an individual unit. Existing active leases keep their agreed rate until vacated.
+            </p>
+
+            <form onSubmit={handleUpdateLockerRates} className={styles.formGrid}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Update Scope *</label>
+                <select
+                  className={styles.selectInput}
+                  value={priceForm.scope}
+                  onChange={(e) => setPriceForm({ ...priceForm, scope: e.target.value })}
+                >
+                  <option value="ALL">All Campus Lockers ({lockers.length} Units)</option>
+                  <option value="BUILDING">Specific Building Wing</option>
+                  <option value="SINGLE">Single Locker Unit</option>
+                </select>
+              </div>
+
+              {priceForm.scope === 'BUILDING' && (
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>Target Building *</label>
+                  <select
+                    className={styles.selectInput}
+                    value={priceForm.buildingName}
+                    onChange={(e) => setPriceForm({ ...priceForm, buildingName: e.target.value })}
+                  >
+                    <option value={LOCKER_BUILDINGS.HM}>{LOCKER_BUILDINGS.HM} (15 Units)</option>
+                    <option value={LOCKER_BUILDINGS.EDUCATION}>{LOCKER_BUILDINGS.EDUCATION} (15 Units)</option>
+                  </select>
+                </div>
+              )}
+
+              {priceForm.scope === 'SINGLE' && (
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>Target Locker Unit *</label>
+                  <select
+                    className={styles.selectInput}
+                    value={priceForm.lockerId}
+                    onChange={(e) => {
+                      const chosen = lockers.find((l) => l.lockerId === e.target.value);
+                      setPriceForm({
+                        ...priceForm,
+                        lockerId: e.target.value,
+                        monthlyRatePHP: chosen ? String(chosen.monthlyRatePHP || 100) : priceForm.monthlyRatePHP,
+                      });
+                    }}
+                  >
+                    {lockers.map((l) => (
+                      <option key={l.lockerId} value={l.lockerId}>
+                        {l.lockerId} — {l.buildingName} (Currently ₱{Number(l.monthlyRatePHP || 100).toFixed(2)}/mo)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>New Monthly Rental Rate (₱) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.5"
+                  required
+                  className={styles.textInput}
+                  placeholder="e.g. 150.00"
+                  value={priceForm.monthlyRatePHP}
+                  onChange={(e) => setPriceForm({ ...priceForm, monthlyRatePHP: e.target.value })}
+                  autoFocus
+                />
+                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                  {[50, 75, 100, 120, 150, 200].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={`${styles.filterChip} ${
+                        parseFloat(priceForm.monthlyRatePHP) === preset ? styles.filterChipActive : ''
+                      }`}
+                      onClick={() => setPriceForm({ ...priceForm, monthlyRatePHP: String(preset) })}
+                    >
+                      ₱{preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => setPriceModalOpen(false)}
+                  disabled={isUpdatingPrice}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className={styles.btnPrimary} disabled={isUpdatingPrice}>
+                  {isUpdatingPrice
+                    ? 'Saving Rates...'
+                    : `Apply ₱${(parseFloat(priceForm.monthlyRatePHP) || 0).toFixed(2)}/mo Rate`}
                 </button>
               </div>
             </form>
@@ -858,71 +1135,98 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null 
 
       {/* Locker Detail / Vacate Modal */}
       {detailModalLocker && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalBox}>
+        <div className={styles.modalBackdrop} onClick={() => setDetailModalLocker(null)}>
+          <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
             <div className={styles.cardHeaderRow}>
               <h4 className={styles.cardTitle}>
-                <Lock size={18} color="#e06c75" /> Locker {detailModalLocker.lockerId} (Occupied)
+                <Lock size={18} /> Locker {detailModalLocker.lockerId} — Active Lease
               </h4>
               <button
                 type="button"
                 className={styles.btnGhost}
                 onClick={() => setDetailModalLocker(null)}
+                aria-label="Close modal"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.9rem' }}>
-              <div>
-                <strong>Tenant:</strong> {detailModalLocker.currentLease?.renterName}
+            <div className={styles.leaseDetailsGrid}>
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Tenant</span>
+                <span className={styles.leaseDetailVal}>{detailModalLocker.currentLease?.renterName || '—'}</span>
               </div>
-              <div>
-                <strong>Student ID:</strong> {detailModalLocker.currentLease?.studentId}
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Student ID</span>
+                <span className={styles.leaseDetailVal}>{detailModalLocker.currentLease?.studentId || '—'}</span>
               </div>
-              <div>
-                <strong>Program:</strong> {detailModalLocker.currentLease?.program || '—'}
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Program</span>
+                <span className={styles.leaseDetailVal}>{detailModalLocker.currentLease?.program || '—'}</span>
               </div>
-              <div>
-                <strong>Phone:</strong> {detailModalLocker.currentLease?.phoneNumber || '—'}
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Contact</span>
+                <span className={styles.leaseDetailVal}>{detailModalLocker.currentLease?.phoneNumber || '—'}</span>
               </div>
-              <div>
-                <strong>Rental Start:</strong> {detailModalLocker.currentLease?.startDate}
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Rental Start</span>
+                <span className={styles.leaseDetailVal}>{detailModalLocker.currentLease?.startDate || '—'}</span>
               </div>
-              <div>
-                <strong>Lease Expiry:</strong>{' '}
-                <span style={{ color: '#f7d070', fontWeight: 700 }}>
-                  {new Date(detailModalLocker.currentLease?.expiryDate).toLocaleDateString()}
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Lease Expiry</span>
+                <span className={styles.leaseDetailVal} style={{ color: '#ffea9f' }}>
+                  {detailModalLocker.currentLease?.expiryDate
+                    ? new Date(detailModalLocker.currentLease.expiryDate).toLocaleDateString()
+                    : '—'}
                 </span>
               </div>
-              <div>
-                <strong>Recorded By:</strong> {detailModalLocker.currentLease?.recordedBy}
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Building</span>
+                <span className={styles.leaseDetailVal}>{detailModalLocker.buildingName || '—'}</span>
+              </div>
+              <div className={styles.leaseDetailItem}>
+                <span className={styles.leaseDetailLabel}>Recorded By</span>
+                <span className={styles.leaseDetailVal}>{detailModalLocker.currentLease?.recordedBy || '—'}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+            {confirmingVacate ? (
+              <div className={styles.warningBox}>
+                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ flex: 1 }}>
+                  Vacating <strong>{detailModalLocker.lockerId}</strong> will clear the current tenant lease and mark the locker Available again.
+                </div>
+              </div>
+            ) : null}
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 className={styles.btnSecondary}
-                onClick={() => setDetailModalLocker(null)}
+                onClick={() => {
+                  setConfirmingVacate(false);
+                  setDetailModalLocker(null);
+                }}
               >
                 Close
               </button>
-              <button
-                type="button"
-                style={{
-                  background: '#7a1c22',
-                  color: '#fff',
-                  border: '1px solid #9e2a32',
-                  padding: '0.55rem 1rem',
-                  borderRadius: 8,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-                onClick={() => handleReleaseLocker(detailModalLocker.lockerId)}
-              >
-                Vacate Locker (Return to Available)
-              </button>
+              {confirmingVacate ? (
+                <button
+                  type="button"
+                  className={styles.btnDanger}
+                  onClick={() => handleReleaseLocker(detailModalLocker.lockerId)}
+                >
+                  Confirm Vacate Locker
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => setConfirmingVacate(true)}
+                >
+                  Vacate Locker (Return to Available)
+                </button>
+              )}
             </div>
           </div>
         </div>

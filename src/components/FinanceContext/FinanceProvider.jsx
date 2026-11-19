@@ -1,7 +1,15 @@
 // context/FinanceContext.jsx
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { FinanceContext, useFinance } from './financeContext.js';
 import { useAuth } from '../AuthContext/AuthContext';
 import financeService from '../../services/financeService';
+import {
+  computeLedgerNetByAccount,
+  computeDisbursedByAccount,
+  computeEffectiveFiscalCeilingCentavos,
+  computeAuthoritativeFundBalanceCentavos,
+  filterValidLedgerTransactions,
+} from '../../utils/financeLedgerReconciliation';
 import {
   TOP_LEVEL_FUNDS,
   TOP_LEVEL_FUND_LABELS,
@@ -18,15 +26,7 @@ import {
   formatPHP,
 } from '../../utils/financeConstants';
 
-const FinanceContext = createContext();
-
-export const useFinance = () => {
-  const context = useContext(FinanceContext);
-  if (!context) {
-    throw new Error('useFinance must be used within FinanceProvider');
-  }
-  return context;
-};
+export { useFinance };
 
 export const FinanceProvider = ({ children }) => {
   const { userRole, userName, currentUser } = useAuth();
@@ -58,7 +58,18 @@ export const FinanceProvider = ({ children }) => {
   });
 
   // Calculate legacy compatible projections from allocations & fundAccounts
-  const computeProjections = useCallback((accounts, allocations) => {
+  const computeProjections = useCallback((accounts, allocations, txList = []) => {
+    const postedAllocationIds = new Set(
+      (txList || [])
+        .filter(
+          (tx) =>
+            tx &&
+            tx.budgetAllocationId &&
+            (tx.status || '').toLowerCase() === TRANSACTION_STATUSES.POSTED &&
+            (tx.transactionType || '').toLowerCase() !== TRANSACTION_TYPES.REVERSAL
+        )
+        .map((tx) => tx.budgetAllocationId)
+    );
     let fiscalBalance = 0;
     let igfBalance = 0;
     let igpBalance = 0;
@@ -139,9 +150,13 @@ export const FinanceProvider = ({ children }) => {
         procurementType: determinedProcurementType,
         committee: alloc.committee || 'General',
         resolution: alloc.resolutionRef || '',
+        resolutionDocumentId: alloc.resolutionDocumentId || null,
+        startDate: alloc.startDate || '',
+        endDate: alloc.endDate || '',
         description: alloc.description || '',
         receiptUrl: (alloc.supportingDocumentIds && alloc.supportingDocumentIds[0]) || '',
         status: alloc.status || 'approved',
+        isPostedToLedger: Boolean(postedAllocationIds.has(alloc.id) || spentCentavos > 0),
         isArchived,
         isActive: alloc.isActive !== false && alloc.status !== 'archived',
         ppmpStatus,
@@ -224,19 +239,58 @@ export const FinanceProvider = ({ children }) => {
       // Ensure default 4 fund accounts exist
       await financeService.ensureDefaultFundAccounts(currentUser?.uid, userName);
 
-      const [accounts, allocations, txList, batches] = await Promise.all([
+      const [rawAccounts, allocations, rawTxList, batches] = await Promise.all([
         financeService.getFundAccounts(),
         financeService.getBudgetAllocations(),
         financeService.getTransactions(100),
         financeService.getPreOrderBatches(),
       ]);
 
+      // Exclude legacy bogus '+' inflows on Fiscal/FSG only when explicit calibration already exists
+      const txList = filterValidLedgerTransactions(rawTxList, rawAccounts);
+
+      // Derive authoritative balances:
+      //  - Fiscal & FSG: Effective Ceiling (stored or ledger-recorded fallback) minus Posted Ledger Disbursements
+      //  - IGF & IGP: Live Ledger Net (+Collections minus -Expenses)
+      const accounts = rawAccounts.map((acc) => {
+        const authoritativeCentavos = computeAuthoritativeFundBalanceCentavos(acc, txList);
+        const isFiscalOrFsg =
+          acc.id === 'fund_fiscal_year_budget' ||
+          acc.id === 'fund_fsg_remittance' ||
+          acc.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ||
+          acc.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE;
+        const ceilingCentavos = isFiscalOrFsg
+          ? computeEffectiveFiscalCeilingCentavos(acc, txList)
+          : undefined;
+
+        // Auto-heal stored balanceCentavos on IGF/IGP if Firestore drifted from posted ledger
+        if (!isFiscalOrFsg && (acc.balanceCentavos || 0) !== authoritativeCentavos) {
+          const hasTxs = txList.some(
+            (tx) => tx?.fundAccountId === acc.id || tx?.transferDestinationAccountId === acc.id
+          );
+          if (hasTxs) {
+            financeService
+              .reconcileFundBalanceFromLedger(acc.id, {
+                uid: currentUser?.uid || 'system',
+                userName: userName || 'Auto-Ledger Sync',
+              })
+              .catch(() => {});
+          }
+        }
+
+        return {
+          ...acc,
+          balanceCentavos: authoritativeCentavos,
+          ...(isFiscalOrFsg ? { appropriatedCeilingCentavos: ceilingCentavos } : {}),
+        };
+      });
+
       setFundAccounts(accounts);
       setBudgetAllocations(allocations);
       setTransactions(txList);
       setPreOrderBatches(batches);
 
-      computeProjections(accounts, allocations);
+      computeProjections(accounts, allocations, txList);
     } catch (err) {
       console.error('Error refreshing finance data:', err);
       setError('Failed to load financial records. Please try again.');
@@ -245,10 +299,33 @@ export const FinanceProvider = ({ children }) => {
     }
   }, [currentUser?.uid, userName, computeProjections]);
 
-  // Initial load
+  // Initial load + live synchronization when order/IGP modules post to IGF/IGP
   useEffect(() => {
     refreshFinanceData();
   }, [refreshFinanceData]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleFinanceUpdated = () => {
+      refreshFinanceData();
+    };
+    window.addEventListener('ssg-finance-updated', handleFinanceUpdated);
+    return () => window.removeEventListener('ssg-finance-updated', handleFinanceUpdated);
+  }, [refreshFinanceData]);
+
+  const ledgerBalancesByAccount = useMemo(
+    () => computeLedgerNetByAccount(transactions),
+    [transactions]
+  );
+
+  const disbursedByAccount = useMemo(
+    () => computeDisbursedByAccount(transactions),
+    [transactions]
+  );
+
+  const uploadReceiptToDrive = useCallback(async (file, meta = {}, onProgress = null) => {
+    return financeService.uploadReceiptToDrive(file, meta, onProgress);
+  }, []);
 
   // Add a budget allocation
   const addBudget = async (budgetData) => {
@@ -265,6 +342,9 @@ export const FinanceProvider = ({ children }) => {
           category: budgetData.category || 'Event',
           procurementType: budgetData.procurementType,
           committee: budgetData.committee || 'General',
+          resolutionDocumentId: budgetData.resolutionDocumentId || null,
+          startDate: budgetData.startDate || null,
+          endDate: budgetData.endDate || null,
           status: budgetData.status || 'approved',
           approvedLineItems: budgetData.approvedLineItems || [],
           supportingDocumentIds: budgetData.receiptUrl ? [budgetData.receiptUrl] : [],
@@ -388,14 +468,27 @@ export const FinanceProvider = ({ children }) => {
   };
 
   // Update Fund Balance (for non-fiscal funds e.g. FSG, IGF, IGP)
-  const updateFundBalance = async (fundAccountId, balanceAmount, reason) => {
+  const updateFundBalance = async (fundAccountId, balanceAmount, reason, storageLocation) => {
     try {
       const user = { uid: currentUser?.uid || 'anon', userName, userRole };
-      await financeService.updateFundBalance(fundAccountId, balanceAmount, user, reason);
+      await financeService.updateFundBalance(fundAccountId, balanceAmount, user, reason, storageLocation);
       await refreshFinanceData();
       return true;
     } catch (err) {
       console.error('Error updating fund balance in provider:', err);
+      throw err;
+    }
+  };
+
+  // Reconcile Fund Account card balance with its Append-Only Financial Ledger entries
+  const reconcileFundBalance = async (fundAccountId) => {
+    try {
+      const user = { uid: currentUser?.uid || 'anon', userName, userRole };
+      const res = await financeService.reconcileFundBalanceFromLedger(fundAccountId, user);
+      await refreshFinanceData();
+      return res;
+    } catch (err) {
+      console.error('Error reconciling fund balance from ledger:', err);
       throw err;
     }
   };
@@ -415,11 +508,15 @@ export const FinanceProvider = ({ children }) => {
     budgetAllocations,
     transactions,
     preOrderBatches,
+    ledgerBalancesByAccount,
+    disbursedByAccount,
     refreshFinanceData,
     recordTransaction,
     reverseTransaction,
     updateFiscalBudget,
     updateFundBalance,
+    reconcileFundBalance,
+    uploadReceiptToDrive,
     updateFiscalCeiling,
     updateFundHoldingBalance,
 

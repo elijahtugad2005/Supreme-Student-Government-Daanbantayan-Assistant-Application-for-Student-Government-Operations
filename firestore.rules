@@ -694,13 +694,13 @@ service cloud.firestore {
     // Income-Generating Projects (IGP): Lockers & Collections
     match /lockers/{lockerId} {
       allow read: if isSignedIn();
-      allow create, update: if (canEditFinance() || isOfficer()) && isSignedIn();
+      allow create, update: if (canEditFinance() || isOfficer() || myRole() == 'governor') && isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /igpCollections/{collectionId} {
       allow read: if isSignedIn();
-      allow create: if (canEditFinance() || isOfficer()) && isSignedIn();
+      allow create: if (canEditFinance() || isOfficer() || myRole() == 'governor' || myRole() == 'representative') && isSignedIn();
       allow update, delete: if (isAdmin() || canEditFinance()) && isSignedIn();
     }
 

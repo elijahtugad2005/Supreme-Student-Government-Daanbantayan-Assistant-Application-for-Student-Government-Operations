@@ -1,90 +1,148 @@
+/* ==========================================================================
+   IGP PROJECTS & CAMPUS LOCKERS — ROYAL MAROON & IMPERIAL GOLD CLASSIC THEME
+   ========================================================================== */
+
 .wrapper {
+  --maroon-950: #100205;
+  --maroon-900: #180409;
+  --maroon-850: #21070d;
+  --maroon-800: #2e0a13;
+  --maroon-700: #4c0f1c;
+  --maroon-600: #7a121d;
+  --gold-200: #fff6d6;
+  --gold-300: #ffea9f;
+  --gold-400: #e6c660;
+  --gold-500: #d4af37;
+  --ink-primary: #fdf4ea;
+  --ink-muted: #cfa9ad;
+  --border-gold: rgba(212, 175, 55, 0.28);
+  --border-gold-strong: rgba(212, 175, 55, 0.55);
+
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   padding: 0.25rem 0;
+  color: var(--ink-primary);
 }
 
+/* ─── Overview KPI Cards ─── */
 .metricsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
   gap: 1rem;
 }
 
 .metricCard {
-  background: var(--surface-card, #1c1514);
-  border: 1px solid var(--border-color, #382c2a);
-  border-radius: 12px;
-  padding: 1.25rem;
+  background: linear-gradient(160deg, var(--maroon-800) 0%, var(--maroon-950) 100%);
+  border: 1px solid var(--border-gold);
+  border-radius: 14px;
+  padding: 1.25rem 1.35rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  gap: 0.45rem;
+  box-shadow: 0 10px 26px rgba(8, 1, 3, 0.55), inset 0 1px 0 rgba(255, 234, 159, 0.08);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-gold-strong);
+  box-shadow: 0 14px 32px rgba(8, 1, 3, 0.72), 0 0 18px rgba(212, 175, 55, 0.12);
 }
 
 .metricHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--text-muted, #9e8e8c);
-  font-size: 0.85rem;
-  font-weight: 500;
+  color: var(--gold-500);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.metricIconWrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  color: var(--gold-300);
 }
 
 .metricValue {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-primary, #f5efe6);
-  letter-spacing: -0.02em;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--gold-300);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
 .metricSubtext {
   font-size: 0.78rem;
-  color: var(--text-muted, #9e8e8c);
+  color: var(--ink-muted);
 }
 
+/* ─── Sub Navigation ─── */
 .actionNav {
   display: flex;
-  gap: 0.75rem;
-  border-bottom: 1px solid var(--border-color, #382c2a);
-  padding-bottom: 0.5rem;
+  gap: 0.65rem;
+  border-bottom: 1px solid var(--border-gold);
+  padding-bottom: 0.75rem;
   flex-wrap: wrap;
 }
 
 .navButton {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1.1rem;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-muted, #9e8e8c);
-  border: 1px solid transparent;
-  font-size: 0.9rem;
+  padding: 0.62rem 1.1rem;
+  border-radius: 10px;
+  background: rgba(24, 4, 9, 0.7);
+  color: var(--ink-muted);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .navButton:hover {
-  color: var(--text-primary, #f5efe6);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--gold-200);
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(76, 15, 28, 0.55);
 }
 
 .navButtonActive {
-  color: var(--accent-gold, #f7d070);
-  background: rgba(247, 208, 112, 0.08);
-  border-color: rgba(247, 208, 112, 0.3);
+  color: var(--gold-300);
+  background: linear-gradient(135deg, var(--maroon-600) 0%, var(--maroon-700) 100%);
+  border-color: var(--gold-500);
+  box-shadow: 0 4px 14px rgba(122, 18, 29, 0.45);
 }
 
+.navButton:focus-visible,
+.btnPrimary:focus-visible,
+.btnSecondary:focus-visible,
+.btnGhost:focus-visible,
+.lockerTile:focus-visible,
+.filterChip:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+/* ─── Content Panels ─── */
 .contentCard {
-  background: var(--surface-card, #1c1514);
-  border: 1px solid var(--border-color, #382c2a);
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: linear-gradient(180deg, var(--maroon-850) 0%, var(--maroon-950) 100%);
+  border: 1px solid var(--border-gold);
+  border-radius: 16px;
+  padding: 1.65rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.35rem;
+  box-shadow: 0 14px 36px rgba(5, 0, 2, 0.6);
 }
 
 .cardHeaderRow {
@@ -96,292 +154,112 @@
 }
 
 .cardTitle {
-  font-size: 1.15rem;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 1.22rem;
   font-weight: 700;
-  color: var(--text-primary, #f5efe6);
+  color: var(--gold-300);
   display: flex;
   align-items: center;
   gap: 0.6rem;
   margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .cardDesc {
-  font-size: 0.85rem;
-  color: var(--text-muted, #9e8e8c);
-  margin: 0;
+  font-size: 0.84rem;
+  color: var(--ink-muted);
+  margin: 0.25rem 0 0;
 }
 
+/* ─── Buttons ─── */
 .btnPrimary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  background: #7a1c22;
-  color: #fff;
-  border: 1px solid #9e2a32;
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
+  background: linear-gradient(135deg, var(--maroon-600) 0%, #520912 100%);
+  color: var(--gold-300);
+  border: 1px solid var(--gold-500);
+  padding: 0.6rem 1.15rem;
+  border-radius: 9px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: transform 0.16s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
-.btnPrimary:hover {
-  background: #912229;
+.btnPrimary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #931724 0%, var(--maroon-600) 100%);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.3);
+  transform: translateY(-1px);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btnSecondary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-primary, #f5efe6);
-  border: 1px solid var(--border-color, #382c2a);
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
+  background: rgba(33, 7, 13, 0.9);
+  color: var(--gold-300);
+  border: 1px solid var(--border-gold);
+  padding: 0.58rem 1.05rem;
+  border-radius: 9px;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.18s ease;
 }
 
-.btnSecondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+.btnSecondary:hover:not(:disabled) {
+  background: rgba(76, 15, 28, 0.8);
+  border-color: var(--gold-500);
+  color: #ffffff;
 }
 
 .btnGhost {
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #9e8e8c);
+  background: rgba(33, 7, 13, 0.65);
+  border: 1px solid var(--border-gold);
+  color: var(--ink-muted);
   cursor: pointer;
-  padding: 0.4rem;
-  border-radius: 6px;
+  padding: 0.42rem;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  transition: all 0.18s ease;
 }
 
 .btnGhost:hover {
-  color: var(--text-primary, #f5efe6);
+  color: var(--gold-300);
+  border-color: var(--gold-500);
 }
-
-/* Lockers Bank Styling */
-.lockersBankWrap {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.bankSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.bankHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-color, #382c2a);
-  padding-bottom: 0.4rem;
-}
-
-.bankTitle {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent-gold, #f7d070);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.lockersGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 0.85rem;
-}
-
-.lockerTile {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-color, #382c2a);
-  border-radius: 8px;
-  padding: 0.85rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.lockerTile:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent-gold, #f7d070);
-  background: rgba(247, 208, 112, 0.05);
-}
-
-.lockerTileOccupied {
-  border-left: 3px solid #e06c75;
-}
-
-.lockerTileAvailable {
-  border-left: 3px solid #98c379;
-}
-
-.lockerTileMaintenance {
-  border-left: 3px solid #e5c07b;
-}
-
-.lockerNumber {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary, #f5efe6);
-}
-
-.lockerBadge {
-  font-size: 0.68rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.badgeAvailable {
-  background: rgba(152, 195, 121, 0.15);
-  color: #98c379;
-}
-
-.badgeOccupied {
-  background: rgba(224, 108, 117, 0.15);
-  color: #e06c75;
-}
-
-.badgeMaintenance {
-  background: rgba(229, 192, 123, 0.15);
-  color: #e5c07b;
-}
-
-.lockerRenterShort {
-  font-size: 0.72rem;
-  color: var(--text-muted, #9e8e8c);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-/* Modal Form Styles */
-.modalBackdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  z-index: 9999;
-}
-
-.modalBox {
-  background: var(--surface-card, #1c1514);
-  border: 1px solid var(--border-color, #382c2a);
-  border-radius: 12px;
-  max-width: 540px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
-}
-
-.formGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.fieldLabel {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-primary, #f5efe6);
-}
-
-.textInput,
-.selectInput {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-color, #382c2a);
-  border-radius: 8px;
-  padding: 0.6rem 0.85rem;
-  color: var(--text-primary, #f5efe6);
-  font-size: 0.9rem;
-  outline: none;
-}
-
-.textInput:focus,
-.selectInput:focus {
-  border-color: var(--accent-gold, #f7d070);
-  background: rgba(247, 208, 112, 0.03);
-}
-
-.tableWrap {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  text-align: left;
-}
-
-.table th {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--border-color, #382c2a);
-  color: var(--text-muted, #9e8e8c);
-  font-weight: 600;
-}
-
-.table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: var(--text-primary, #f5efe6);
-}
-
-.table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
-}
-
 
 .btnDanger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  background: #9e2a32;
-  color: #fff;
-  border: 1px solid #c93b46;
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  color: #fee2e2;
+  border: 1px solid #f87171;
+  padding: 0.58rem 1.05rem;
+  border-radius: 9px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.18s ease;
 }
 
-.btnDanger:hover {
-  background: #b5323c;
+.btnDanger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  color: #ffffff;
 }
 
 .btnDanger:disabled {
@@ -393,32 +271,446 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  background: rgba(224, 108, 117, 0.12);
-  color: #e06c75;
-  border: 1px solid rgba(224, 108, 117, 0.3);
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
+  background: rgba(185, 28, 28, 0.16);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.38);
+  padding: 0.35rem 0.68rem;
+  border-radius: 7px;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .btnDangerSmall:hover {
-  background: rgba(224, 108, 117, 0.22);
-  border-color: #e06c75;
-  color: #fff;
+  background: rgba(185, 28, 28, 0.32);
+  border-color: #f87171;
+  color: #ffffff;
+}
+
+/* ─── Locker Toolbar & Legend ─── */
+.lockerToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(16, 2, 5, 0.75);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.filterChipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.filterChip {
+  padding: 0.38rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  background: rgba(29, 7, 13, 0.85);
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.filterChip:hover {
+  border-color: var(--gold-500);
+  color: var(--gold-300);
+}
+
+.filterChipActive {
+  background: linear-gradient(135deg, var(--maroon-600) 0%, var(--maroon-700) 100%);
+  border-color: var(--gold-500);
+  color: var(--gold-300);
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legendDotAvailable,
+.legendDotOccupied,
+.legendDotMaintenance {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.legendDotAvailable {
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.55);
+}
+
+.legendDotOccupied {
+  background: var(--gold-400);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.55);
+}
+
+.legendDotMaintenance {
+  background: #f59e0b;
+}
+
+/* ─── Lockers Bank Cabinets ─── */
+.lockersBankWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.65rem;
+}
+
+.bankSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 14px;
+  background: rgba(16, 2, 5, 0.62);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+.bankHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding-bottom: 0.65rem;
+}
+
+.bankTitle {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold-300);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bankMetaRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.bankOccupancyPill {
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: var(--gold-300);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.lockersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+  gap: 0.9rem;
+}
+
+/* ─── Individual Locker Door Tile (Interactive Button) ─── */
+.lockerTile {
+  appearance: none;
+  font: inherit;
+  border-radius: 11px;
+  padding: 0.85rem 0.7rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.48rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lockerTileAvailable {
+  background: linear-gradient(180deg, #1b070c 0%, #110205 100%);
+  border: 1px solid rgba(212, 175, 55, 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 234, 159, 0.08), 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.lockerTileOccupied {
+  background: linear-gradient(180deg, #5c0f1b 0%, #2b060d 100%);
+  border: 1px solid rgba(212, 175, 55, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 234, 159, 0.18), 0 8px 18px rgba(122, 18, 29, 0.42);
+}
+
+.lockerTileMaintenance {
+  background: linear-gradient(180deg, #2d180a 0%, #170a04 100%);
+  border: 1px solid rgba(245, 158, 11, 0.42);
+}
+
+.lockerTile:hover {
+  transform: translateY(-3px);
+  border-color: var(--gold-300);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.22);
+}
+
+/* Decorative locker louver vents */
+.lockerVents {
+  display: grid;
+  gap: 3px;
+  width: 54%;
+  margin-bottom: 0.15rem;
+  opacity: 0.55;
+}
+
+.lockerVents span {
+  display: block;
+  height: 2px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+}
+
+/* Brass locker nameplate */
+.lockerNumberPlate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(16, 2, 5, 0.72);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.lockerNumber {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--gold-300);
+  letter-spacing: 0.04em;
+}
+
+.lockerBadge {
+  font-size: 0.64rem;
+  padding: 0.18rem 0.52rem;
+  border-radius: 999px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.badgeAvailable {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.badgeOccupied {
+  background: rgba(212, 175, 55, 0.2);
+  color: var(--gold-300);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+}
+
+.badgeMaintenance {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.lockerRenterShort {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.lockerTileOccupied .lockerRenterShort {
+  color: var(--gold-200);
+}
+
+/* ─── Modals ─── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 1, 3, 0.78);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 9999;
+}
+
+.modalBox {
+  background: linear-gradient(180deg, var(--maroon-800) 0%, var(--maroon-950) 100%);
+  border: 1px solid var(--border-gold-strong);
+  border-radius: 16px;
+  max-width: 540px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 1.65rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 28px rgba(122, 18, 29, 0.35);
+}
+
+.leaseDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(16, 2, 5, 0.75);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+.leaseDetailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.leaseDetailLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold-500);
+  font-weight: 700;
+}
+
+.leaseDetailVal {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.fieldLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--gold-300);
+}
+
+.textInput,
+.selectInput {
+  background: var(--maroon-900);
+  border: 1px solid var(--border-gold);
+  border-radius: 9px;
+  padding: 0.65rem 0.88rem;
+  color: var(--ink-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.selectInput option {
+  background: #180409;
+  color: #fdf4ea;
+}
+
+.textInput::placeholder {
+  color: rgba(207, 169, 173, 0.55);
+}
+
+.textInput:focus,
+.selectInput:focus {
+  border-color: var(--gold-500);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+}
+
+/* ─── Tables ─── */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  padding: 0.8rem 0.75rem;
+  border-bottom: 1px solid var(--border-gold);
+  color: var(--gold-400);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(16, 2, 5, 0.65);
+}
+
+.table td {
+  padding: 0.8rem 0.75rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  color: var(--ink-primary);
+}
+
+.table tr:hover td {
+  background: rgba(122, 18, 29, 0.18);
 }
 
 .warningBox {
-  background: rgba(224, 108, 117, 0.08);
-  border: 1px solid rgba(224, 108, 117, 0.3);
-  border-radius: 8px;
-  padding: 0.85rem;
-  font-size: 0.82rem;
-  color: #e06c75;
-  line-height: 1.4;
+  background: rgba(185, 28, 28, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  font-size: 0.83rem;
+  color: #fecaca;
+  line-height: 1.45;
   display: flex;
   gap: 0.6rem;
   align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .leaseDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .lockersGrid {
+    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metricCard,
+  .lockerTile,
+  .btnPrimary {
+    transition: none;
+  }
 }

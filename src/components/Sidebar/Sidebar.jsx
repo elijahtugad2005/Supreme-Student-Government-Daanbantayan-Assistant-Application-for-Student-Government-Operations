@@ -22,7 +22,9 @@ import {
   HiMoon,
   HiSun,
   HiX,
-  HiLocationMarker
+  HiLocationMarker,
+  HiLockClosed,
+  HiCash
 } from 'react-icons/hi';
 
 const THEMES = [
@@ -68,6 +70,10 @@ const NAV_ITEMS = [
 
   // Finance & Analytics — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
   { to: "/finance", text: "Finance", icon: HiCurrencyDollar, roles: ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', ...ALL_FINANCE_ROLES], permissions: ['canViewFinance'] },
+
+  // Role-Scoped IGP & Lockers Sidebar Links (Representatives -> Vendo Machine, Governors -> Campus Lockers)
+  { to: "/igp-projects", text: "Vendo Machine", icon: HiCash, roles: ['representative'] },
+  { to: "/igp-projects", text: "Campus Lockers", icon: HiLockClosed, roles: ['governor'] },
 
   // Sections & Contributions (Combined Class Roster & Death Aid) — Mayors submit without signing up, so 'public' is included
   { to: "/sections-contributions", text: "Sections & Contributions", icon: HiDocumentText, roles: ['public', ...ALL_EXECUTIVE_ROLES, ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES, 'governor', 'member', 'guest'], permissions: ['canSubmitRoster'], publicAccess: true },
@@ -171,7 +177,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
             {visibleNavItems.map((item) => {
               const IconComponent = item.icon;
               return (
-                <li key={item.to}>
+                <li key={`${item.to}-${item.text}`}>
                   <NavLink
                     to={item.to}
                     className={({ isActive }) =>

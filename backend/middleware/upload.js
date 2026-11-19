@@ -16,7 +16,8 @@ const ALLOWED_MIME_TYPES = process.env.ALLOWED_MIME_TYPES
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
       'image/jpeg',
       'image/jpg',
-      'image/png'
+      'image/png',
+      'image/webp'
     ];
 
 /**

@@ -13,6 +13,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import AccessDenied from '../AccessDenied/AccessDenied.jsx';
 import { hasPermission, getRoleName, canAccessRoute } from '../../utils/permissions.js';
 
 function ProtectedRoute({ 
@@ -119,119 +120,8 @@ function renderAccessDenied(message, customComponent) {
   if (customComponent) {
     return React.cloneElement(customComponent, { message });
   }
-  
-  return (
-    <div style={styles.accessDenied}>
-      <h1 style={styles.deniedTitle}>🚫 Access Denied</h1>
-      <p style={styles.deniedText}>{message}</p>
-      
-      <div style={styles.actions}>
-        <button 
-          onClick={() => window.history.back()}
-          style={styles.backButton}
-        >
-          ← Go Back
-        </button>
-        
-        <button 
-          onClick={() => window.location.href = '/'}
-          style={styles.homeButton}
-        >
-          🏠 Go to Home
-        </button>
-      </div>
-      
-      <div style={styles.helpText}>
-        <p>Need elevated access? Contact your system administrator.</p>
-        <p style={styles.timestamp}>Access denied at: {new Date().toLocaleString()}</p>
-      </div>
-    </div>
-  );
+
+  return <AccessDenied message={message} />;
 }
-
-// Inline styles for access denied page
-const styles = {
-  accessDenied: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1a1a1a',
-    padding: '2rem',
-    textAlign: 'center',
-    color: '#f0f0f0',
-    fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
-  },
-  deniedTitle: {
-    fontSize: '3rem',
-    color: '#f44336',
-    marginBottom: '1.5rem',
-    fontWeight: '700',
-  },
-  deniedText: {
-    fontSize: '1.2rem',
-    color: '#ccc',
-    marginBottom: '2rem',
-    maxWidth: '600px',
-    lineHeight: '1.6',
-  },
-  actions: {
-    display: 'flex',
-    gap: '1rem',
-    marginBottom: '2rem',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  backButton: {
-    padding: '1rem 2rem',
-    backgroundColor: '#2196F3',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    minWidth: '140px',
-  },
-  homeButton: {
-    padding: '1rem 2rem',
-    backgroundColor: '#4CAF50',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    minWidth: '140px',
-  },
-  helpText: {
-    marginTop: '2rem',
-    paddingTop: '1.5rem',
-    borderTop: '1px solid #333',
-    maxWidth: '500px',
-  },
-  timestamp: {
-    fontSize: '0.85rem',
-    color: '#777',
-    marginTop: '0.5rem',
-    fontFamily: "'Monaco', 'Courier New', monospace",
-  },
-};
-
-// Hover effects
-styles.backButton[':hover'] = {
-  backgroundColor: '#1976D2',
-  transform: 'translateY(-2px)',
-  boxShadow: '0 4px 8px rgba(33, 150, 243, 0.3)',
-};
-
-styles.homeButton[':hover'] = {
-  backgroundColor: '#45a049',
-  transform: 'translateY(-2px)',
-  boxShadow: '0 4px 8px rgba(76, 175, 80, 0.3)',
-};
 
 export default ProtectedRoute;

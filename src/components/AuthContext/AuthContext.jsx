@@ -136,67 +136,53 @@ export function AuthProvider({ children }) {
   // Handles Google OAuth authentication
   // ========================================
   
+  // Shared Firestore profile sync for both popup and redirect Google sign-ins.
+  const syncGoogleUserProfile = async (user, createdNotes) => {
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      const defaultPermissions = getDefaultPermissionsForRole('member');
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || 'Google User',
+        photoURL: user.photoURL,
+        role: 'member',
+        permissions: defaultPermissions,
+        provider: 'google',
+        isEmailVerified: user.emailVerified,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        lastUpdatedAt: new Date().toISOString(),
+        department: '',
+        phone: '',
+        address: '',
+        notes: createdNotes,
+      };
+
+      await setDoc(userDocRef, userData);
+      setUserRole('member');
+      setUserName(user.displayName || 'Google User');
+      setUserPermissions(defaultPermissions);
+      setUserPermissionOverrides({});
+      return;
+    }
+
+    const userData = userDoc.data();
+    await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
+    setUserRole(userData.role);
+    setUserName(userData.name || user.displayName || 'Google User');
+    setUserPermissions(userData.permissions || {});
+    setUserPermissionOverrides(userData.permissionOverrides || {});
+  };
+
   // Sign in with Google using popup (recommended for web)
   const loginWithGooglePopup = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
-      // Check if user exists in Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      
-      if (!userDoc.exists()) {
-        // Get default permissions for member role (default for Google users)
-        const defaultPermissions = getDefaultPermissionsForRole('member');
-        
-        // First-time Google sign-in, create comprehensive user record
-        const userData = {
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName || 'Google User',
-          photoURL: user.photoURL,
-          
-          // Role and permissions
-          role: 'member', // Default role for new Google users
-          permissions: defaultPermissions,
-          
-          // Authentication information
-          provider: 'google',
-          isEmailVerified: user.emailVerified,
-          isActive: true,
-          
-          // Timestamps
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          lastUpdatedAt: new Date().toISOString(),
-          
-          // Additional information
-          department: '',
-          phone: '',
-          address: '',
-          notes: 'Created via Google Sign-In',
-        };
-        
-        await setDoc(doc(db, 'users', user.uid), userData);
-        
-        // Set local state
-        setUserRole('member');
-        setUserName(user.displayName || 'Google User');
-      } else {
-        // Existing user, fetch their data and update last login
-        const userData = userDoc.data();
-        
-        // Update last login timestamp
-        await setDoc(doc(db, 'users', user.uid), {
-          lastLoginAt: new Date().toISOString()
-        }, { merge: true });
-        
-        setUserRole(userData.role);
-        setUserName(userData.name || user.displayName || 'Google User');
-        setUserPermissions(userData.permissions || {});
-        setUserPermissionOverrides(userData.permissionOverrides || {});
-      }
-      
+      await syncGoogleUserProfile(result.user, 'Created via Google Sign-In');
       return result;
     } catch (error) {
       console.error('Google sign-in error:', error);
@@ -214,48 +200,7 @@ export function AuthProvider({ children }) {
     try {
       const result = await getRedirectResult(auth);
       if (result) {
-        const user = result.user;
-        
-        // Check if user exists in Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        
-        if (!userDoc.exists()) {
-          // Get default permissions for member role
-          const defaultPermissions = getDefaultPermissionsForRole('member');
-          
-          // First-time Google sign-in, create comprehensive user record
-          const userData = {
-            uid: user.uid,
-            email: user.email,
-            name: user.displayName || 'Google User',
-            photoURL: user.photoURL,
-            
-            // Role and permissions
-            role: 'member', // Default role for new Google users
-            permissions: defaultPermissions,
-            
-            // Authentication information
-            provider: 'google',
-            isEmailVerified: user.emailVerified,
-            isActive: true,
-            
-            // Timestamps
-            createdAt: new Date().toISOString(),
-            lastLoginAt: new Date().toISOString(),
-            lastUpdatedAt: new Date().toISOString(),
-            
-            // Additional information
-            department: '',
-            phone: '',
-            address: '',
-            notes: 'Created via Google Sign-In (Redirect)',
-          };
-          
-          await setDoc(doc(db, 'users', user.uid), userData);
-          
-          setUserRole('member');
-          setUserName(user.displayName || 'Google User');
-        }
+        await syncGoogleUserProfile(result.user, 'Created via Google Sign-In (Redirect)');
       }
     } catch (error) {
       console.error('Redirect result error:', error);

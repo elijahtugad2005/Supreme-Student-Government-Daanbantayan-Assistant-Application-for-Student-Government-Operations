@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HiX } from 'react-icons/hi';
 import styles from './FundGovernance.module.css';
 
@@ -6,7 +6,7 @@ import styles from './FundGovernance.module.css';
  * BankCalibrationModal
  * Reusable modal for institutional depository calibrations:
  * - Fiscal Budget Calibration (Annual Appropriation ceiling & bank account reference)
- * - Holding Fund Balance Calibration (FSG, IGF, IGP holding account balance & reconciliation notes)
+ * - Holding Fund Balance Calibration (FSG, IGF, IGP holding account balance, storage location & reconciliation notes)
  */
 export const BankCalibrationModal = ({
   isOpen,
@@ -31,6 +31,25 @@ export const BankCalibrationModal = ({
   const [fundBalanceReason, setFundBalanceReason] = useState(
     initialValues.fundBalanceReason || ''
   );
+  const [storageLocation, setStorageLocation] = useState(
+    initialValues.storageLocation || fund?.bankAccountReference || ''
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (mode === 'fiscal') {
+      setFiscalForm({
+        budgetAmount: initialValues.budgetAmount || '',
+        bankAccountReference: initialValues.bankAccountReference || 'BDO Institutional Account ****2005',
+        resolutionRef: initialValues.resolutionRef || '',
+        note: initialValues.note || '',
+      });
+    } else {
+      setFundBalanceInput(initialValues.fundBalance || '');
+      setFundBalanceReason(initialValues.fundBalanceReason || '');
+      setStorageLocation(initialValues.storageLocation || fund?.bankAccountReference || '');
+    }
+  }, [isOpen, mode, fund?.id, fund?.bankAccountReference, initialValues.budgetAmount, initialValues.bankAccountReference, initialValues.resolutionRef, initialValues.note, initialValues.fundBalance, initialValues.fundBalanceReason, initialValues.storageLocation]);
 
   if (!isOpen) return null;
 
@@ -44,6 +63,7 @@ export const BankCalibrationModal = ({
     onSubmit({
       balance: fundBalanceInput,
       reason: fundBalanceReason,
+      storageLocation,
     });
   };
 
@@ -167,6 +187,17 @@ export const BankCalibrationModal = ({
                 value={fundBalanceInput}
                 onChange={(e) => setFundBalanceInput(e.target.value)}
                 required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Where Is This Fund Stored? (Holding / Depository Location)</label>
+              <input
+                type="text"
+                className={styles.formInput}
+                placeholder="e.g. Treasury Safe / Cash Box, GCash Wallet, or BDO Account"
+                value={storageLocation}
+                onChange={(e) => setStorageLocation(e.target.value)}
               />
             </div>
 

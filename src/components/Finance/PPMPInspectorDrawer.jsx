@@ -13,6 +13,7 @@ import {
   toCentavos,
 } from '../../utils/financeConstants.js';
 import styles from './PPMPInspectorDrawer.module.css';
+import { getDocument, getDocumentUrl } from '../../services/documentService.js';
 import {
   HiX,
   HiLightningBolt,
@@ -266,7 +267,25 @@ const PPMPInspectorDrawer = ({ item, onClose }) => {
             </div>
             <h2 className={styles.drawerTitle}>{item.eventName}</h2>
             <p className={styles.drawerSubtitle}>
-              {item.committee || 'General'} • {item.resolution ? `Resolution: ${item.resolution}` : 'Approved Allocation'}
+              {item.committee || 'General'} •{' '}
+              {item.resolutionDocumentId ? (
+                <button
+                  type="button"
+                  title="Download the approved resolution"
+                  onClick={async () => {
+                    try {
+                      const d = await getDocument(item.resolutionDocumentId);
+                      const u = await getDocumentUrl(d, { download: true });
+                      if (u) window.open(u, '_blank', 'noopener');
+                    } catch {
+                      /* document no longer available */
+                    }
+                  }}
+                  style={{ background: 'none', border: 0, padding: 0, color: '#e6c660', textDecoration: 'underline', textUnderlineOffset: '3px', cursor: 'pointer', font: 'inherit' }}
+                >
+                  Resolution: {item.resolution || 'Download'}
+                </button>
+              ) : item.resolution ? `Resolution: ${item.resolution}` : 'Approved Allocation'}
             </p>
           </div>
 

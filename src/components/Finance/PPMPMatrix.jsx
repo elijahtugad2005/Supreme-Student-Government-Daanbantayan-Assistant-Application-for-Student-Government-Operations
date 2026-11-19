@@ -26,6 +26,7 @@ import {
   HiArrowRight,
   HiX,
   HiTrash,
+  HiRefresh,
   HiExclamationCircle,
 } from 'react-icons/hi';
 import {
@@ -43,8 +44,6 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
     budgets = [],
     archivedBudgets = [],
     fundAccounts = [],
-    statistics = {},
-    loading,
     refreshFinanceData,
     updateFiscalCeiling,
     deleteBudget,
@@ -240,12 +239,13 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
     }
   };
 
-  const handleOpenCreateAllocation = (type = PROCUREMENT_TYPES.EVENT) => {
+  const handleOpenCreateAllocation = () => {
     setSelectedAllocationForEdit(null);
     setIsAllocationModalOpen(true);
   };
 
   const handleEditItem = (item) => {
+    if (item?.isPostedToLedger || (item?.spent || 0) > 0) return;
     setSelectedAllocationForEdit(item);
     setIsAllocationModalOpen(true);
   };
@@ -603,18 +603,22 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
 
             const subItems = item.approvedLineItems || [];
             const subItemsCount = subItems.length;
+            const isPostedToLedger = Boolean(item.isPostedToLedger || (item.spent || 0) > 0);
 
             return (
               <div key={item.id} className={styles.matrixCard}>
                 <div>
                   <div className={styles.cardHeaderTop}>
-                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                       <span className={`${styles.packageTag} ${packageClass}`}>
                         {packageLabel}
                       </span>
                       {item.status === 'draft' && (
-                        <span style={{ fontSize: '0.7rem', background: '#f1f5f9', color: '#475569', padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: 700, border: '1px solid #cbd5e1' }} title="Draft allocation cannot be posted to financial ledger until approved">
-                          📝 Draft
+                        <span
+                          className={styles.draftBadge}
+                          title="Draft allocation cannot be posted to financial ledger until approved"
+                        >
+                          Draft
                         </span>
                       )}
                     </div>
@@ -626,7 +630,18 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
 
                   <h3 className={styles.itemTitle}>{item.eventName}</h3>
                   <div className={styles.itemCommittee}>
-                    {item.committee || 'General'} • FY {item.fiscalYear} • {item.isFSG || item.fundAccountId === 'fund_fsg_remittance' ? 'FSG Remittance' : 'Fiscal Budget'}
+                    <span>{item.committee || 'General'}</span>
+                    <span aria-hidden="true"> • </span>
+                    <span>FY {item.fiscalYear}</span>
+                    <span aria-hidden="true"> • </span>
+                    <span>
+                      {item.isFSG || item.fundAccountId === 'fund_fsg_remittance'
+                        ? 'FSG Remittance'
+                        : 'Fiscal Budget'}
+                    </span>
+                    {item.resolution && (
+                      <span className={styles.itemResolution}> • {item.resolution}</span>
+                    )}
                   </div>
 
                   {/* Financial Figures */}
@@ -651,14 +666,17 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
                       <span>
                         Spent: ₱{(item.spent || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                         {(item.spent || 0) > (item.allocated || 0) && (
-                          <span style={{ color: '#ea580c', fontWeight: 700, marginLeft: '0.35rem' }} title="Expenses exceed allocation due to real-world price inflation">
-                            📈 +₱{((item.spent || 0) - (item.allocated || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2 })} (Inflation)
+                          <span
+                            className={styles.inflationTag}
+                            title="Expenses exceed allocation due to real-world price inflation"
+                          >
+                            +₱{((item.spent || 0) - (item.allocated || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2 })} overrun
                           </span>
                         )}
                       </span>
                       <span>{item.utilizationRate || 0}% Utilized</span>
                     </div>
-                    <div className={styles.progressBarTrack} style={{ height: '7px' }}>
+                    <div className={styles.progressBarTrack}>
                       <div
                         className={`${styles.progressBarFill} ${
                           item.utilizationRate >= 100
@@ -677,21 +695,28 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
                     <div className={styles.subItemsPreview}>
                       <div className={styles.subItemsHeader}>
                         <span>Itemized Package ({subItemsCount} components)</span>
-                        <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Live Status</span>
+                        <span className={styles.subItemsHeaderMeta}>Planned</span>
                       </div>
                       {subItems.slice(0, 3).map((sub, idx) => (
                         <div key={sub.id || idx} className={styles.subItemRow}>
-                          <span className={styles.subItemName} title={sub.name}>
-                            <span
-                              className={`${styles.statusDot} ${
-                                sub.status === PPMP_STATUSES.DEPLETED
-                                  ? styles.dotDepleted
-                                  : sub.status === PPMP_STATUSES.PARTIALLY_USED
-                                  ? styles.dotPartial
-                                  : styles.dotFresh
-                              }`}
-                            />
-                            {sub.name}
+                          <span className={styles.subItemNameWrap}>
+                            <span className={styles.subItemName} title={sub.name}>
+                              <span
+                                className={`${styles.statusDot} ${
+                                  sub.status === PPMP_STATUSES.DEPLETED
+                                    ? styles.dotDepleted
+                                    : sub.status === PPMP_STATUSES.PARTIALLY_USED
+                                    ? styles.dotPartial
+                                    : styles.dotFresh
+                                }`}
+                              />
+                              {sub.name}
+                            </span>
+                            {Number(sub.quantity) > 1 && Number(sub.unitCost) > 0 && (
+                              <span className={styles.subItemQty}>
+                                {sub.quantity} × ₱{Number(sub.unitCost).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
                           </span>
                           <span className={styles.subItemAmount}>
                             ₱{(sub.plannedAmount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
@@ -699,15 +724,15 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
                         </div>
                       ))}
                       {subItemsCount > 3 && (
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center', paddingTop: '0.2rem' }}>
-                          +{subItemsCount - 3} more sub-items...
+                        <div className={styles.subItemsMore}>
+                          +{subItemsCount - 3} more line item{subItemsCount - 3 > 1 ? 's' : ''}
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className={styles.subItemsPreview} style={{ borderStyle: 'dotted', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        No sub-line items itemized yet. Click edit to break down package costs.
+                    <div className={`${styles.subItemsPreview} ${styles.subItemsEmpty}`}>
+                      <span className={styles.subItemsEmptyText}>
+                        No line items itemized yet — click Edit to break down costs.
                       </span>
                     </div>
                   )}
@@ -737,7 +762,7 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
                         }}
                         title="Approve this draft allocation"
                       >
-                        ✓ Approve
+                        <HiCheckCircle size={14} /> Approve
                       </button>
                     )}
 
@@ -746,22 +771,27 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
                         type="button"
                         className={styles.disburseQuickBtn}
                         onClick={() => handleEditItem(item)}
-                        title="Edit this allocation package"
+                        disabled={isPostedToLedger}
+                        style={isPostedToLedger ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                        title={
+                          isPostedToLedger
+                            ? 'Cannot edit allocation: Budget has already been posted to the financial ledger.'
+                            : 'Edit this allocation package'
+                        }
                       >
-                        Edit <HiArrowRight size={13} />
+                        {isPostedToLedger ? 'Locked (Posted)' : <>Edit <HiArrowRight size={13} /></>}
                       </button>
                     )}
 
                     {canEditFinance && (item.status === 'archived' || item.isArchived) ? (
                       <button
                         type="button"
-                        className={styles.actionBtn}
+                        className={styles.restoreCardBtn}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRestoreItem(item);
                         }}
                         title="Restore this archived PPMP item back to active matrix"
-                        style={{ color: '#059669', borderColor: '#a7f3d0', fontSize: '0.72rem', padding: '0.3rem 0.5rem' }}
                       >
                         <HiRefresh size={13} /> Restore
                       </button>
@@ -914,15 +944,15 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
         >
           <div
             style={{
-              background: '#ffffff',
-              borderRadius: '20px',
-              maxWidth: '960px',
+              background: 'transparent',
+              borderRadius: '18px',
+              maxWidth: '900px',
               width: '100%',
               maxHeight: '92vh',
               overflowY: 'auto',
-              padding: '2rem',
+              padding: 0,
               position: 'relative',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.35)',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -930,14 +960,18 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
               type="button"
               style={{
                 position: 'absolute',
-                top: '1.25rem',
-                right: '1.25rem',
-                background: 'transparent',
-                border: 'none',
-                color: '#64748b',
+                top: '1.1rem',
+                right: '1.1rem',
+                zIndex: 20,
+                width: '36px',
+                height: '36px',
+                display: 'inline-grid',
+                placeItems: 'center',
+                background: 'rgba(44, 11, 20, 0.9)',
+                border: '1px solid rgba(212, 175, 55, 0.4)',
+                color: '#ffea9f',
                 cursor: 'pointer',
-                padding: '0.35rem',
-                borderRadius: '8px',
+                borderRadius: '10px',
               }}
               onClick={() => {
                 setIsAllocationModalOpen(false);
@@ -945,7 +979,7 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
               }}
               aria-label="Close Allocation Modal"
             >
-              <HiX size={22} />
+              <HiX size={20} />
             </button>
             <BudgetForm
               editingBudget={selectedAllocationForEdit}

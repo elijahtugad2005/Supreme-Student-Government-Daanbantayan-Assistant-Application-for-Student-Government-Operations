@@ -25,10 +25,12 @@ const fs = require('fs');
 
 const DEFAULT_FOLDER_NAME = process.env.GOOGLE_DRIVE_FOLDER_NAME || 'SSG Document Archive';
 const SUBFOLDER_NAME = process.env.GOOGLE_DRIVE_SUBFOLDER_NAME || 'Documents';
+const RECEIPTS_SUBFOLDER_NAME = process.env.GOOGLE_DRIVE_RECEIPTS_SUBFOLDER_NAME || 'Receipts';
 
 let driveClient = null;
 let resolvedFolderId = null;
 let resolvedDocumentsSubfolderId = null;
+const resolvedSubfoldersByName = new Map();
 
 /**
  * Sanitizes a folder or file name for safe interpolation in Drive v3 query strings.
@@ -142,32 +144,47 @@ async function getRootFolderId() {
 }
 
 /**
- * Gets or creates the dedicated 'Documents' subfolder inside the root Drive folder.
+ * Gets or creates a named subfolder (e.g., 'Documents' or 'Receipts') inside the root Drive folder.
  */
-async function getDocumentsSubfolderId() {
-  if (resolvedDocumentsSubfolderId) return resolvedDocumentsSubfolderId;
+async function getNamedSubfolderId(targetName = SUBFOLDER_NAME) {
+  const cleanTarget = sanitizeDriveQueryName(targetName) || SUBFOLDER_NAME;
+  const cacheKey = cleanTarget.toLowerCase();
+  if (cacheKey === SUBFOLDER_NAME.toLowerCase() && resolvedDocumentsSubfolderId) {
+    return resolvedDocumentsSubfolderId;
+  }
+  if (resolvedSubfoldersByName.has(cacheKey)) {
+    return resolvedSubfoldersByName.get(cacheKey);
+  }
 
   const drive = getDrive();
-  const parentId = await getRootFolderId();
+  let parentId = await getRootFolderId();
 
-  // If the configured parent folder is ALREADY named 'Documents', use it directly!
   try {
     const parentMeta = await drive.files.get({
       fileId: parentId,
-      fields: 'id, name, mimeType',
+      fields: 'id, name, mimeType, parents',
       supportsAllDrives: true,
     });
-    if (parentMeta.data?.name?.toLowerCase() === SUBFOLDER_NAME.toLowerCase()) {
-      resolvedDocumentsSubfolderId = parentId;
-      return resolvedDocumentsSubfolderId;
+    const parentNameLower = (parentMeta.data?.name || '').toLowerCase();
+    if (parentNameLower === cacheKey) {
+      resolvedSubfoldersByName.set(cacheKey, parentId);
+      if (cacheKey === SUBFOLDER_NAME.toLowerCase()) resolvedDocumentsSubfolderId = parentId;
+      return parentId;
+    }
+    // If GOOGLE_DRIVE_FOLDER_ID points directly to 'Documents' and we want 'Receipts',
+    // try placing 'Receipts' inside the same parent directory if accessible, else inside parentId.
+    if (
+      parentNameLower === SUBFOLDER_NAME.toLowerCase() &&
+      cacheKey !== SUBFOLDER_NAME.toLowerCase() &&
+      Array.isArray(parentMeta.data?.parents) &&
+      parentMeta.data.parents.length > 0
+    ) {
+      parentId = parentMeta.data.parents[0];
     }
   } catch (_) {}
 
-  const safeSubName = sanitizeDriveQueryName(SUBFOLDER_NAME);
-
-  // Check if the 'Documents' subfolder already exists inside the root parent folder
   const { data } = await drive.files.list({
-    q: `mimeType='application/vnd.google-apps.folder' and name='${safeSubName}' and '${parentId}' in parents and trashed=false`,
+    q: `mimeType='application/vnd.google-apps.folder' and name='${cleanTarget}' and '${parentId}' in parents and trashed=false`,
     fields: 'files(id, name)',
     pageSize: 1,
     supportsAllDrives: true,
@@ -175,14 +192,15 @@ async function getDocumentsSubfolderId() {
   });
 
   if (data.files && data.files.length > 0) {
-    resolvedDocumentsSubfolderId = data.files[0].id;
-    return resolvedDocumentsSubfolderId;
+    const foundId = data.files[0].id;
+    resolvedSubfoldersByName.set(cacheKey, foundId);
+    if (cacheKey === SUBFOLDER_NAME.toLowerCase()) resolvedDocumentsSubfolderId = foundId;
+    return foundId;
   }
 
-  // Create the subfolder inside parentId
   const created = await drive.files.create({
     requestBody: {
-      name: SUBFOLDER_NAME,
+      name: cleanTarget,
       mimeType: 'application/vnd.google-apps.folder',
       parents: [parentId],
     },
@@ -190,18 +208,40 @@ async function getDocumentsSubfolderId() {
     supportsAllDrives: true,
   });
 
-  resolvedDocumentsSubfolderId = created.data.id;
-  console.log(`[DriveSync] Created subfolder "${SUBFOLDER_NAME}" (${resolvedDocumentsSubfolderId}) inside folder (${parentId})`);
-  return resolvedDocumentsSubfolderId;
+  const createdId = created.data.id;
+  resolvedSubfoldersByName.set(cacheKey, createdId);
+  if (cacheKey === SUBFOLDER_NAME.toLowerCase()) resolvedDocumentsSubfolderId = createdId;
+  console.log(`[DriveSync] Created subfolder "${cleanTarget}" (${createdId}) inside folder (${parentId})`);
+  return createdId;
 }
 
 /**
- * Upload a copy of a file to the Documents subfolder in Google Drive.
- * @returns {Promise<{driveFileId: string, webViewLink: string|null}>}
+ * Gets or creates the dedicated 'Documents' subfolder inside the root Drive folder.
+ */
+async function getDocumentsSubfolderId() {
+  return getNamedSubfolderId(SUBFOLDER_NAME);
+}
+
+/**
+ * Gets or creates the dedicated 'Receipts' subfolder inside the Google Drive archive.
+ */
+async function getReceiptsSubfolderId() {
+  return getNamedSubfolderId(RECEIPTS_SUBFOLDER_NAME);
+}
+
+/**
+ * Upload a copy of a file to the Documents (or Receipts) subfolder in Google Drive.
+ * @returns {Promise<{driveFileId: string, webViewLink: string|null, folderName: string}>}
  */
 async function mirrorUpload(buffer, filename, mimeType, appProperties = {}) {
   const drive = getDrive();
-  const targetFolderId = await getDocumentsSubfolderId();
+  const isReceipt =
+    String(appProperties?.folder || '').toLowerCase() === 'receipts' ||
+    String(appProperties?.documentType || '').toLowerCase() === 'receipt';
+  const folderName = isReceipt ? RECEIPTS_SUBFOLDER_NAME : SUBFOLDER_NAME;
+  const targetFolderId = isReceipt
+    ? await getReceiptsSubfolderId()
+    : await getDocumentsSubfolderId();
   const { data } = await drive.files.create({
     requestBody: {
       name: filename,
@@ -217,7 +257,7 @@ async function mirrorUpload(buffer, filename, mimeType, appProperties = {}) {
     fields: 'id, webViewLink',
     supportsAllDrives: true,
   });
-  return { driveFileId: data.id, webViewLink: data.webViewLink || null };
+  return { driveFileId: data.id, webViewLink: data.webViewLink || null, folderName };
 }
 
 /** Remove a mirrored file. Missing files are treated as already deleted. */
@@ -239,4 +279,6 @@ module.exports = {
   resolveKeyFilePath,
   sanitizeDriveQueryName,
   getDocumentsSubfolderId,
+  getReceiptsSubfolderId,
+  getNamedSubfolderId,
 };

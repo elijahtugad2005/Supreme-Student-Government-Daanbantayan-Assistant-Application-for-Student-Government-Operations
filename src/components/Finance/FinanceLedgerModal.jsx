@@ -12,11 +12,14 @@ export const ReversalModal = ({
   onClose,
   onConfirm,
   isSubmitting = false,
+  externalError = null,
 }) => {
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
 
   if (!isOpen || !transaction) return null;
+
+  const displayedError = error || externalError;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -61,9 +64,9 @@ export const ReversalModal = ({
           Ledger entries are immutable. Confirming will append an opposing balancing transaction to preserve institutional double-entry integrity.
         </p>
 
-        {error && (
-          <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
-            {error}
+        {displayedError && (
+          <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }} role="alert">
+            {displayedError}
           </div>
         )}
 

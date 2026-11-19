@@ -79,8 +79,7 @@ export async function executeOrderStatusUpdate({ docId, newStatus, order, deps }
     const isOnlinePaid = newStatus === 'Online Paid' || newStatus === 'Paid';
     const wasOnlinePaid =
       oldStatus === 'Online Paid' ||
-      oldStatus === 'Paid' ||
-      order.paymentInfo?.paymentMethod === 'Online';
+      oldStatus === 'Paid';
     const wasClaimAction =
       oldStatus === 'Claimed' ||
       oldStatus === 'Completed' ||

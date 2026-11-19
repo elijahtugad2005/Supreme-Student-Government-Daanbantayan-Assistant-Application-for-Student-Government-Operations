@@ -23,8 +23,10 @@ import {
   History,
   Sparkles,
   ShieldCheck,
-  FileText
+  FileText,
+  Receipt
 } from 'lucide-react';
+import ConsumableExpenseDialog from './ConsumableExpenseDialog';
 import styles from './InventoryManagement.module.css';
 
 const InventoryManagement = () => {
@@ -37,8 +39,11 @@ const InventoryManagement = () => {
     addCategory,
     loading,
     borrowedItems,
+    consumableExpenses = [],
     fundBalances,
     addInventoryItem,
+    recordConsumableExpense,
+    uploadReceiptToDrive,
     updateInventoryItem,
     deleteInventoryItem,
     borrowItem,
@@ -56,6 +61,7 @@ const InventoryManagement = () => {
 
   // Dialog & Modal state
   const [openDialog, setOpenDialog] = useState(false);
+  const [openExpenseDialog, setOpenExpenseDialog] = useState(false);
   const [openBorrowDialog, setOpenBorrowDialog] = useState(false);
   const [openReturnDialog, setOpenReturnDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -304,8 +310,17 @@ const InventoryManagement = () => {
           </p>
         </div>
 
-        {canEdit && tabValue === 0 && (
-          <div className={styles.headerActions}>
+        {canEdit && (tabValue === 0 || tabValue === 3) && (
+          <div className={styles.headerActions} style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setOpenExpenseDialog(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <Receipt size={16} />
+              <span>Record Food / Consumable Expense</span>
+            </button>
             <button
               type="button"
               className={styles.primaryButton}
@@ -434,6 +449,15 @@ const InventoryManagement = () => {
               <span>Asset Categories</span>
             </button>
           )}
+
+          <button
+            type="button"
+            className={`${styles.tab} ${tabValue === 3 ? styles.activeTab : ''}`}
+            onClick={() => setTabValue(3)}
+          >
+            <Receipt size={17} className={styles.tabIcon} />
+            <span>Consumables &amp; Food Expenses ({consumableExpenses.length})</span>
+          </button>
         </div>
       </nav>
 
@@ -666,6 +690,109 @@ const InventoryManagement = () => {
         </section>
       )}
 
+      {/* TAB 3: CONSUMABLES & FOOD EXPENSES */}
+      {tabValue === 3 && (
+        <section className={styles.tabSection}>
+          <div className={styles.tableCard}>
+            <div className={styles.tableContainer}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Ref #</th>
+                    <th>Date</th>
+                    <th>Food / Consumable Item</th>
+                    <th>Label</th>
+                    <th>Fund Source</th>
+                    <th className={styles.textRight}>Total Cost</th>
+                    <th>Receipt Proof</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {consumableExpenses.length === 0 ? (
+                    <tr>
+                      <td colSpan="8">
+                        <div className={styles.emptyState}>
+                          <Receipt size={38} className={styles.emptyIcon} />
+                          <h3>No Consumable or Food Expenses Recorded</h3>
+                          <p>
+                            Record food, snacks, or event preparation consumables (e.g., Chooks-to-Go lunch) using &ldquo;Record Food / Consumable Expense&rdquo;.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    consumableExpenses.map((exp) => {
+                      const fundLabel = exp.fundAccountId === 'fund_igp_main' ? 'IGP' : 'IGF';
+                      return (
+                        <tr key={exp.id}>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                            {exp.refNumber || exp.id.slice(0, 8)}
+                          </td>
+                          <td>{formatDate(exp.createdAt)}</td>
+                          <td>
+                            <div className={styles.itemNameWrapper}>
+                              <span className={styles.itemNameText}>{exp.description || exp.expensePurpose}</span>
+                              {exp.receiptDetails && (
+                                <span className={styles.itemDescriptionText}>{exp.receiptDetails}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={styles.categoryBadge}>{exp.receiptLabel || 'Food & Meals'}</span>
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                color: fundLabel === 'IGP' ? '#059669' : '#d97706',
+                                background: fundLabel === 'IGP' ? 'rgba(5, 150, 105, 0.12)' : 'rgba(217, 119, 6, 0.12)',
+                                border: `1px solid ${fundLabel === 'IGP' ? 'rgba(5, 150, 105, 0.35)' : 'rgba(217, 119, 6, 0.3)'}`,
+                              }}
+                            >
+                              {fundLabel}
+                            </span>
+                          </td>
+                          <td className={styles.textRight}>
+                            <span className={styles.priceNum}>
+                              {formatCurrency((exp.amountCentavos || 0) / 100)}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.78rem' }}>
+                              {exp.receiptOrNumber && <span>OR #: {exp.receiptOrNumber}</span>}
+                              {(exp.receiptDriveLink || exp.receiptUrl) && (
+                                <a
+                                  href={exp.receiptDriveLink || exp.receiptUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#38bdf8', textDecoration: 'underline', fontWeight: 600 }}
+                                >
+                                  View Receipt (Drive)
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`${styles.statusBadge} ${exp.status === 'reversed' ? styles.statusOut : styles.statusIn}`}>
+                              <span className={styles.statusDot} />
+                              {exp.status || 'posted'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* DIALOG: ADD / EDIT ITEM */}
       {openDialog && (
         <AssetDialog
@@ -677,6 +804,24 @@ const InventoryManagement = () => {
           onClose={handleCloseDialog}
           onSave={handleSaveItem}
           convertImageToBase64={convertImageToBase64}
+        />
+      )}
+
+      {/* DIALOG: RECORD CONSUMABLE / FOOD EXPENSE */}
+      {openExpenseDialog && (
+        <ConsumableExpenseDialog
+          isOpen={openExpenseDialog}
+          fundBalances={fundBalances}
+          isClassic={isClassic}
+          userName={userName}
+          uploadReceiptToDrive={uploadReceiptToDrive}
+          onClose={() => setOpenExpenseDialog(false)}
+          onSave={async (expenseData) => {
+            await recordConsumableExpense(expenseData);
+            setOpenExpenseDialog(false);
+            setTabValue(3);
+            showToast(`Expense "${expenseData.name}" recorded to ${expenseData.fundSource} ledger`);
+          }}
         />
       )}
 

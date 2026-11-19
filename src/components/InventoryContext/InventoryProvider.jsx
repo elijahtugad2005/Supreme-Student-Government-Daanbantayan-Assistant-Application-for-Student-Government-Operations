@@ -3,7 +3,6 @@ import { db } from "../../firebase/firebaseConfig.js";
 import { 
   collection, 
   doc, 
-  addDoc, 
   updateDoc, 
   deleteDoc, 
   getDocs,
@@ -12,10 +11,13 @@ import {
   where,
   orderBy,
   serverTimestamp,
-  runTransaction,
-  increment
+  runTransaction
 } from 'firebase/firestore';
 import { INVENTORY_FUND_SOURCES, FUND_ACCOUNT_IDS } from '../../services/inventoryService.js';
+import financeService from '../../services/financeService.js';
+import { TOP_LEVEL_FUNDS, TRANSACTION_TYPES, TRANSACTION_STATUSES, toCentavos } from '../../utils/financeConstants.js';
+import { validateTransactionRules } from '../../utils/financeValidation.js';
+import { notifyFinanceUpdated } from '../../utils/financeLedgerReconciliation.js';
 
 const InventoryContext = createContext();
 
@@ -36,6 +38,7 @@ export function InventoryProvider({ children }) {
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(false);
   const [borrowedItems, setBorrowedItems] = useState([]);
+  const [consumableExpenses, setConsumableExpenses] = useState([]);
   const [fundBalances, setFundBalances] = useState({
     IGF: 0,
     IGP: 0,
@@ -91,6 +94,27 @@ export function InventoryProvider({ children }) {
     }
   };
 
+  // Fetch consumable / food expenses recorded from Inventory
+  const fetchConsumableExpenses = useCallback(async () => {
+    try {
+      const q = query(
+        collection(db, 'transactions'),
+        where('source', '==', 'INVENTORY_CONSUMABLE_EXPENSE')
+      );
+      const snap = await getDocs(q);
+      const rows = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => {
+          const tA = a.createdAt?.toMillis?.() || 0;
+          const tB = b.createdAt?.toMillis?.() || 0;
+          return tB - tA;
+        });
+      setConsumableExpenses(rows);
+    } catch (error) {
+      console.error('Error fetching consumable expenses:', error);
+    }
+  }, []);
+
   // Add category persistence
   const addCategory = useCallback((newCat) => {
     const trimmed = (newCat || '').trim();
@@ -137,19 +161,32 @@ export function InventoryProvider({ children }) {
             { merge: true }
           );
 
-          // Auto-generate expense ledger record in financeTransactions
-          const txRef = doc(collection(db, 'financeTransactions'));
+          // Auto-generate expense ledger record in transactions (Append-Only Financial Ledger)
+          const txRef = doc(collection(db, 'transactions'));
           const refNumber = `INV-${fundSource}-${Date.now().toString().slice(-6)}`;
+          const defaultStorage =
+            fundSnap.exists() && fundSnap.data().bankAccountReference
+              ? fundSnap.data().bankAccountReference
+              : fundSource === 'IGF'
+              ? 'Treasury Safe / Cash Box'
+              : 'Custodial Lockbox';
           tx.set(txRef, {
             refNumber,
             fundAccountId: accountId,
             fundCategory: fundSource,
-            transactionType: 'EXPENSE',
+            transactionType: 'expense',
             expensePurpose: `Inventory Procurement: ${itemData.name}`,
             amountCentavos: costCentavos,
+            payeeOrPayer: itemData.lastUpdatedBy || 'Authorized Officer',
             description: `Procured ${quantity} units of "${itemData.name}" @ ₱${amount.toFixed(2)}/unit`,
+            storageLocation: defaultStorage,
+            receiptUrl: itemData.receipt || '',
+            receiptOrNumber: itemData.receipt || '',
+            receiptLabel: 'Equipment & Physical Assets',
+            receiptDetails: itemData.description || `Inventory procurement: ${itemData.name}`,
+            createdBy: itemData.lastUpdatedBy || 'Authorized Officer',
             performer: itemData.lastUpdatedBy || 'Authorized Officer',
-            status: 'POSTED',
+            status: 'posted',
             createdAt: serverTimestamp(),
             postedAt: serverTimestamp(),
           });
@@ -181,11 +218,108 @@ export function InventoryProvider({ children }) {
       });
 
       await Promise.all([fetchInventory(), fetchFundBalances()]);
+      notifyFinanceUpdated({ source: 'INVENTORY_PROCUREMENT', fundSource });
       return newDocId;
     } catch (error) {
       console.error('Error adding inventory:', error);
       throw error;
     }
+  };
+
+  // Record a consumable / food / snack expense (e.g., Chooks-to-Go lunch, student snacks)
+  const recordConsumableExpense = async (expenseData) => {
+    const fundSource = (expenseData.fundSource || INVENTORY_FUND_SOURCES.IGF).toUpperCase();
+    if (fundSource !== INVENTORY_FUND_SOURCES.IGF && fundSource !== INVENTORY_FUND_SOURCES.IGP) {
+      throw new Error(`Expense must be funded via IGF or IGP. Received: ${expenseData.fundSource}`);
+    }
+
+    const quantity = Math.max(1, parseInt(expenseData.quantity, 10) || 1);
+    const unitCost = parseFloat(expenseData.unitCost) || 0;
+    const totalCostPhp = Math.round(quantity * unitCost * 100) / 100;
+    const costCentavos = toCentavos(totalCostPhp);
+    const accountId = FUND_ACCOUNT_IDS[fundSource];
+    const itemName = (expenseData.name || '').trim();
+    if (!itemName) throw new Error('Expense item name is required.');
+    if (costCentavos <= 0) throw new Error('Total expense amount must be greater than ₱0.00.');
+
+    const receiptLabel = (expenseData.receiptLabel || 'Food & Meals').trim();
+    const receiptOrNumber = (expenseData.receiptOrNumber || '').trim();
+    const receiptDetails = (expenseData.receiptDetails || '').trim();
+    const receiptDriveLink = (expenseData.receiptDriveLink || '').trim();
+    const receiptFileId = (expenseData.receiptFileId || '').trim();
+    const receiptUrl = receiptDriveLink || (expenseData.receiptUrl || '').trim();
+
+    const newTxId = await runTransaction(db, async (tx) => {
+      const fundRef = doc(db, 'fundAccounts', accountId);
+      const fundSnap = await tx.get(fundRef);
+      const currentBalanceCentavos = fundSnap.exists() ? fundSnap.data().balanceCentavos || 0 : 0;
+
+      const validation = validateTransactionRules({
+        fundCategory: fundSource === 'IGF' ? TOP_LEVEL_FUNDS.IGF : TOP_LEVEL_FUNDS.IGP,
+        transactionType: TRANSACTION_TYPES.EXPENSE,
+        amountCentavos: costCentavos,
+        receiptUrl,
+        receiptDriveLink,
+        receiptOrNumber,
+        receiptDetails,
+        availableBalanceCentavos: currentBalanceCentavos,
+      });
+
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(' '));
+      }
+
+      const newBal = currentBalanceCentavos - costCentavos;
+      tx.set(
+        fundRef,
+        {
+          balanceCentavos: newBal,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+
+      const txRef = doc(collection(db, 'transactions'));
+      const refNumber = `INV-EXP-${fundSource}-${Date.now().toString().slice(-6)}`;
+      const defaultStorage =
+        fundSnap.exists() && fundSnap.data().bankAccountReference
+          ? fundSnap.data().bankAccountReference
+          : fundSource === 'IGF'
+          ? 'Treasury Safe / Cash Box'
+          : 'Custodial Lockbox';
+
+      tx.set(txRef, {
+        refNumber,
+        fundAccountId: accountId,
+        fundCategory: fundSource === 'IGF' ? TOP_LEVEL_FUNDS.IGF : TOP_LEVEL_FUNDS.IGP,
+        transactionType: TRANSACTION_TYPES.EXPENSE,
+        expensePurpose: `${receiptLabel}: ${itemName}`,
+        amountCentavos: costCentavos,
+        payeeOrPayer: expenseData.recordedBy || 'Authorized Officer',
+        description: `${itemName} (${quantity} × ₱${unitCost.toFixed(2)})`,
+        quantity,
+        unitCost,
+        source: 'INVENTORY_CONSUMABLE_EXPENSE',
+        storageLocation: defaultStorage,
+        receiptUrl,
+        receiptDriveLink,
+        receiptFileId,
+        receiptOrNumber,
+        receiptDetails: receiptDetails || `${itemName} (${quantity} × ₱${unitCost.toFixed(2)})`,
+        receiptLabel,
+        createdBy: expenseData.recordedBy || 'Authorized Officer',
+        performer: expenseData.recordedBy || 'Authorized Officer',
+        status: TRANSACTION_STATUSES.POSTED,
+        createdAt: serverTimestamp(),
+        postedAt: serverTimestamp(),
+      });
+
+      return txRef.id;
+    });
+
+    await Promise.all([fetchFundBalances(), fetchConsumableExpenses()]);
+    notifyFinanceUpdated({ source: 'INVENTORY_CONSUMABLE_EXPENSE', fundSource });
+    return newTxId;
   };
 
   // Update inventory item
@@ -352,11 +486,26 @@ export function InventoryProvider({ children }) {
     });
   };
 
+  const uploadReceiptToDrive = useCallback(async (file, meta = {}, onProgress = null) => {
+    return financeService.uploadReceiptToDrive(file, meta, onProgress);
+  }, []);
+
   useEffect(() => {
     fetchInventory();
     fetchBorrowedItems();
     fetchFundBalances();
-  }, [fetchFundBalances]);
+    fetchConsumableExpenses();
+  }, [fetchFundBalances, fetchConsumableExpenses]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleFinanceSync = () => {
+      fetchFundBalances();
+      fetchConsumableExpenses();
+    };
+    window.addEventListener('ssg-finance-updated', handleFinanceSync);
+    return () => window.removeEventListener('ssg-finance-updated', handleFinanceSync);
+  }, [fetchFundBalances, fetchConsumableExpenses]);
 
   const value = {
     inventory,
@@ -364,9 +513,13 @@ export function InventoryProvider({ children }) {
     addCategory,
     loading,
     borrowedItems,
+    consumableExpenses,
     fundBalances,
     fetchFundBalances,
+    fetchConsumableExpenses,
     addInventoryItem,
+    recordConsumableExpense,
+    uploadReceiptToDrive,
     updateInventoryItem,
     deleteInventoryItem,
     borrowItem,

@@ -24,6 +24,9 @@ export const validateTransactionRules = ({
   resolutionRef,
   supportingDocumentIds = [],
   receiptUrl,
+  receiptDriveLink,
+  receiptOrNumber,
+  receiptDetails,
   custodianUserId,
   availableBalanceCentavos = 0,
   availableAllocationCentavos = 0,
@@ -46,6 +49,19 @@ export const validateTransactionRules = ({
     fundCategory === 'PPMP' ||
     fundCategory === 'FISCAL_YEAR_BUDGET' ||
     fundCategory === 'FSG_REMITTANCE';
+
+  const txTypeLower = (transactionType || '').toLowerCase();
+  const isInflow =
+    txTypeLower === TRANSACTION_TYPES.RECEIPT ||
+    txTypeLower === TRANSACTION_TYPES.COLLECTION;
+
+  // Fiscal Year Budget & FSG Remittance are set via Edit Fiscal Budget / Edit Fund Balance;
+  // they never increment via '+' ledger receipts/collections — they only deplete (-) when PPMP projects release funds.
+  if (isFormalFiscal && isInflow) {
+    errors.push(
+      'Fiscal Year Budget and FSG Remittance are fixed term appropriations edited via Edit Budget/Balance; only expense disbursements (-) are permitted in the ledger.'
+    );
+  }
 
   const isPocketMoney =
     expensePurpose === EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES ||
@@ -123,14 +139,32 @@ export const validateTransactionRules = ({
     errors.push('This fund does not have enough available balance for this expense.');
   }
 
-  // 5. Rule 3: Flexible IGF / IGP Preparation Expense requires Custodian
+  // 5. Rule 3: Flexible IGF / IGP Expense requires Custodian (for prep consumables) & Receipt Proof (Picture or OR#/Details)
+  const isIgfOrIgp =
+    fundCategory === TOP_LEVEL_FUNDS.IGF || fundCategory === TOP_LEVEL_FUNDS.IGP;
+
   if (
-    (fundCategory === TOP_LEVEL_FUNDS.IGF || fundCategory === TOP_LEVEL_FUNDS.IGP) &&
+    isIgfOrIgp &&
     expensePurpose === EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES
   ) {
     if (!custodianUserId) {
       errors.push('A responsible custodian or officer must be assigned for flexible preparation consumables.');
       missingRequirements.push('Responsible Custodian');
+    }
+  }
+
+  if (isIgfOrIgp && isExpenseOrPayment) {
+    const hasReceiptProof =
+      Boolean(receiptUrl && String(receiptUrl).trim()) ||
+      Boolean(receiptDriveLink && String(receiptDriveLink).trim()) ||
+      Boolean(receiptOrNumber && String(receiptOrNumber).trim()) ||
+      Boolean(receiptDetails && String(receiptDetails).trim()) ||
+      (Array.isArray(supportingDocumentIds) && supportingDocumentIds.length > 0);
+    if (!hasReceiptProof) {
+      errors.push(
+        'A receipt picture (uploaded to Google Drive Receipts) or Official Receipt (OR #) / receipt details is required to record an IGF or IGP expense.'
+      );
+      missingRequirements.push('Receipt Picture or OR # / Details');
     }
   }
 

@@ -1,295 +1,398 @@
 /* components/AccessDenied/AccessDenied.module.css */
+/* Classic Royal Maroon & Imperial Gold Institutional Access Barrier */
 
 .container {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #1a1a1a;
-  padding: 2rem;
-  color: #f0f0f0;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: 2.5rem 1.25rem;
+  background-color: #120205;
+  background-image:
+    radial-gradient(ellipse 80% 55% at 50% 15%, rgba(102, 16, 28, 0.55) 0%, rgba(28, 5, 9, 0.92) 58%, #0d0103 100%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(212, 175, 55, 0.018) 0,
+      rgba(212, 175, 55, 0.018) 1px,
+      transparent 0,
+      transparent 28px
+    );
+  color: #f7efe2;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  box-sizing: border-box;
 }
 
-.content {
-  max-width: 800px;
+.container ::selection {
+  background: rgba(212, 175, 55, 0.32);
+  color: #fff8e7;
+}
+
+.panel {
+  position: relative;
   width: 100%;
-  background-color: #2a2a2a;
-  border-radius: 12px;
-  padding: 3rem;
-  border: 2px solid #444;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 680px;
+  padding: 3rem 2.75rem 2.25rem;
+  background: linear-gradient(165deg, rgba(40, 8, 14, 0.96) 0%, rgba(22, 4, 8, 0.98) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 14px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 234, 159, 0.14);
+  animation: panelReveal 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes panelReveal {
+  from {
+    opacity: 0.92;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ornamental Gold Corner Brackets */
+.corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  color: rgba(212, 175, 55, 0.72);
+  pointer-events: none;
+}
+
+.cornerTL {
+  top: 12px;
+  left: 12px;
+}
+
+.cornerTR {
+  top: 12px;
+  right: 12px;
+  transform: scaleX(-1);
+}
+
+.cornerBL {
+  bottom: 12px;
+  left: 12px;
+  transform: scaleY(-1);
+}
+
+.cornerBR {
+  bottom: 12px;
+  right: 12px;
+  transform: scale(-1);
 }
 
 /* Header */
 .header {
   text-align: center;
-  margin-bottom: 2.5rem;
-  border-bottom: 1px solid #444;
-  padding-bottom: 1.5rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
 }
 
-.icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  color: #f44336;
+.crestWrap {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, rgba(128, 20, 36, 0.9), rgba(52, 9, 16, 0.95));
+  border: 1px solid rgba(212, 175, 55, 0.58);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.crestIcon {
+  font-size: 2rem;
+  color: #e5c158;
 }
 
 .title {
-  font-size: 2.5rem;
-  color: #ffffff;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.65rem;
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.75rem, 3.2vw, 2.35rem);
   font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff6e0;
+  text-wrap: balance;
 }
 
 .subtitle {
-  color: #ccc;
-  font-size: 1.1rem;
-  line-height: 1.5;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 52ch;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #decbb0;
 }
 
-/* Section Titles */
+/* Details Band (Flat hairline-separated sections, no nested cards) */
+.detailsBand {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.75rem 0;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.detailSection + .detailSection {
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(212, 175, 55, 0.14);
+}
+
 .sectionTitle {
-  font-size: 1.25rem;
-  color: #fff;
-  margin: 0 0 1rem 0;
-  font-weight: 600;
-  border-bottom: 2px solid #444;
-  padding-bottom: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e5c158;
 }
 
-/* User Information */
-.userInfo {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background-color: #333;
-  border-radius: 8px;
-  border: 1px solid #444;
+.sectionIcon {
+  font-size: 1.15rem;
+  color: #d4af37;
 }
 
 .infoGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
 }
 
 .infoItem {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .infoLabel {
-  font-size: 0.9rem;
-  color: #a0a0a0;
-  font-weight: 500;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #bfa584;
 }
 
 .infoValue {
-  font-size: 1rem;
-  color: #fff;
-  font-family: 'Monaco', 'Courier New', monospace;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #f7efe2;
+  overflow-wrap: anywhere;
+}
+
+.monoValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  color: #e6d5bc;
 }
 
 .roleBadge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  background-color: #4CAF50;
-  color: white;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(122, 18, 29, 0.55);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #ffea9f;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
-/* Requirements */
-.requirements {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background-color: #333;
-  border-radius: 8px;
-  border: 1px solid #444;
+.requirementsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .requirementItem {
-  margin-bottom: 1rem;
-}
-
-.requirementItem:last-child {
-  margin-bottom: 0;
-}
-
-.requirementLabel {
-  display: block;
-  font-size: 0.9rem;
-  color: #a0a0a0;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.requirementValue {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
 }
 
 .requiredRoleBadge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  background-color: #2196F3;
-  color: white;
-  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.16);
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  color: #ffea9f;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .permissionsList {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 
 .permissionBadge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  background-color: #FF9800;
-  color: #000;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
   border-radius: 6px;
-  font-size: 0.8rem;
+  background: rgba(82, 14, 24, 0.75);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  color: #f3dfb8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
   font-weight: 500;
-  font-family: 'Monaco', 'Courier New', monospace;
 }
 
 /* Actions */
 .actions {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background-color: #333;
-  border-radius: 8px;
-  border: 1px solid #444;
+  padding-top: 1.75rem;
 }
 
 .actionButtons {
   display: flex;
-  gap: 1rem;
   flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
-.backButton,
 .homeButton,
+.backButton,
 .contactButton {
-  flex: 1;
-  min-width: 140px;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-  display: flex;
+  flex: 1 1 150px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
-.backButton {
-  background-color: #2196F3;
-  color: white;
+.homeButton:focus-visible,
+.backButton:focus-visible,
+.contactButton:focus-visible {
+  outline: 2px solid #e5c158;
+  outline-offset: 2px;
 }
 
-.backButton:hover {
-  background-color: #1976D2;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-}
-
+/* Primary Recovery CTA — Imperial Gold */
 .homeButton {
-  background-color: #4CAF50;
-  color: white;
+  background: linear-gradient(135deg, #d4af37 0%, #e5c158 100%);
+  color: #1c0408;
+  border: 1px solid #f0d379;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .homeButton:hover {
-  background-color: #45a049;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  background: linear-gradient(135deg, #e0bd49 0%, #f0cf6c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
 }
 
+/* Secondary CTA — Maroon Surface with Gold Hairline */
+.backButton {
+  background: rgba(68, 12, 22, 0.65);
+  color: #f7efe2;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+}
+
+.backButton:hover {
+  background: rgba(92, 16, 29, 0.85);
+  border-color: rgba(229, 193, 88, 0.75);
+  transform: translateY(-1px);
+}
+
+/* Tertiary CTA — Quiet Gold Ghost */
 .contactButton {
-  background-color: #9C27B0;
-  color: white;
+  background: transparent;
+  color: #e5c158;
+  border: 1px solid rgba(212, 175, 55, 0.28);
 }
 
 .contactButton:hover {
-  background-color: #7b1fa2;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.55);
+  color: #ffea9f;
+  transform: translateY(-1px);
 }
 
-/* Help Text */
+/* Footer Help Text */
 .helpText {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #444;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(212, 175, 55, 0.15);
   text-align: center;
 }
 
 .helpParagraph {
-  color: #ccc;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin: 0 0 0.75rem 0;
+  margin: 0 auto 0.6rem;
+  max-width: 58ch;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #cbb597;
 }
 
 .timestamp {
-  font-size: 0.85rem;
-  color: #777;
-  margin-top: 1rem;
-  font-family: 'Monaco', 'Courier New', monospace;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: #9e8465;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Responsive */
+@media (max-width: 640px) {
   .container {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
   }
-  
-  .content {
-    padding: 2rem;
+
+  .panel {
+    padding: 2.25rem 1.35rem 1.75rem;
   }
-  
-  .title {
-    font-size: 2rem;
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
   }
-  
-  .icon {
-    font-size: 3rem;
-  }
-  
+
   .actionButtons {
     flex-direction: column;
   }
-  
-  .backButton,
+
   .homeButton,
+  .backButton,
   .contactButton {
     width: 100%;
+    flex: none;
   }
 }
 
-@media (max-width: 480px) {
-  .content {
-    padding: 1.5rem;
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
   }
-  
-  .title {
-    font-size: 1.75rem;
-  }
-  
-  .subtitle {
-    font-size: 1rem;
-  }
-  
-  .infoGrid {
-    grid-template-columns: 1fr;
+
+  .homeButton,
+  .backButton,
+  .contactButton {
+    transition: none;
   }
 }

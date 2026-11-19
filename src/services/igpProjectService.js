@@ -21,7 +21,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig.js';
 import { auditService } from './auditService.js';
-import { toCentavos, fromCentavos } from '../utils/financeConstants.js';
 
 export const IGP_PROJECT_TYPES = {
   VENDING_MACHINE: 'VENDING_MACHINE',
@@ -198,8 +197,9 @@ export function createIgpProjectService({ db }) {
       }
 
       const months = Math.max(1, parseInt(rentalData.months, 10) || 1);
-      const ratePHP = locker.monthlyRatePHP || 100;
-      const totalAmountPHP = months * ratePHP;
+      const overrideRate = parseFloat(rentalData.monthlyRatePHP);
+      const ratePHP = !Number.isNaN(overrideRate) && overrideRate > 0 ? overrideRate : (locker.monthlyRatePHP || 100);
+      const totalAmountPHP = Math.round(months * ratePHP * 100) / 100;
       const totalPaidCentavos = toCentavosSafe(totalAmountPHP);
 
       const nowIso = new Date().toISOString();
@@ -222,6 +222,7 @@ export function createIgpProjectService({ db }) {
 
       const updatedLocker = {
         ...locker,
+        monthlyRatePHP: ratePHP,
         status: LOCKER_STATUSES.OCCUPIED,
         currentLease: lease,
         updatedAt: nowIso,
@@ -302,6 +303,59 @@ export function createIgpProjectService({ db }) {
       }
 
       return updated;
+    },
+
+    async updateLockerRates({ scope = 'ALL', lockerId = '', buildingName = '', monthlyRatePHP }, actorUser) {
+      const parsedRate = Math.round((parseFloat(monthlyRatePHP) || 0) * 100) / 100;
+      if (parsedRate <= 0) {
+        throw new Error('Monthly locker rate must be greater than ₱0.00.');
+      }
+
+      const allLockers = await db.listLockers();
+      let targets = [];
+      if (scope === 'SINGLE' && lockerId) {
+        targets = allLockers.filter((l) => l.lockerId === lockerId);
+      } else if (scope === 'BUILDING' && buildingName) {
+        targets = allLockers.filter((l) => l.buildingName === buildingName);
+      } else {
+        targets = allLockers;
+      }
+
+      if (targets.length === 0) {
+        throw new Error('No matching locker units found to update.');
+      }
+
+      const nowIso = new Date().toISOString();
+      await Promise.all(
+        targets.map((locker) =>
+          db.saveLocker(locker.lockerId, {
+            ...locker,
+            monthlyRatePHP: parsedRate,
+            updatedAt: nowIso,
+          })
+        )
+      );
+
+      if (typeof db.logAudit === 'function') {
+        const targetLabel =
+          scope === 'SINGLE'
+            ? `Locker ${lockerId}`
+            : scope === 'BUILDING'
+            ? buildingName
+            : 'All 30 Campus Lockers';
+        await db.logAudit({
+          actionCode: 'IGP',
+          projectType: IGP_PROJECT_TYPES.LOCKER_RENTAL,
+          module: 'Finance & IGP',
+          performedBy: actorUser?.name || actorUser?.displayName || 'Authorized Officer',
+          itemName: targetLabel,
+          itemType: 'Locker Price Update',
+          amountPHP: parsedRate,
+          summary: `Updated monthly rental rate for ${targetLabel} (${targets.length} unit${targets.length > 1 ? 's' : ''}) to ₱${parsedRate.toFixed(2)}/month.`,
+        });
+      }
+
+      return { updatedCount: targets.length, monthlyRatePHP: parsedRate };
     },
 
     async recordCustomIgpRevenue(projectData, actorUser) {

@@ -216,6 +216,7 @@ const BudgetManager = () => {
   // --- Handlers ---
 
   const handleEditClick = (budget) => {
+    if (budget?.isPostedToLedger || (budget?.spent || 0) > 0) return;
     setSelectedBudget(budget);
     setIsModalOpen(true);
   };
@@ -587,13 +588,20 @@ const BudgetManager = () => {
                     >
                       {isExpanded ? <HiChevronUp size={16} /> : <HiChevronDown size={16} />}
                     </button>
-                    <button 
-                      className={`${styles.actionBtn} ${styles.editBtn}`}
-                      onClick={() => handleEditClick(budget)}
-                      title="Edit Budget"
-                    >
-                      <HiPencil size={15} />
-                    </button>
+                    {(() => {
+                      const isPostedToLedger = Boolean(budget.isPostedToLedger || (budget.spent || 0) > 0);
+                      return (
+                        <button 
+                          className={`${styles.actionBtn} ${styles.editBtn}`}
+                          onClick={() => handleEditClick(budget)}
+                          disabled={isPostedToLedger}
+                          style={isPostedToLedger ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                          title={isPostedToLedger ? 'Cannot edit budget: Already posted to the financial ledger' : 'Edit Budget'}
+                        >
+                          <HiPencil size={15} />
+                        </button>
+                      );
+                    })()}
                     <button 
                       className={`${styles.actionBtn} ${styles.deleteBtn}`}
                       onClick={() => handleDeleteClick(budget)}

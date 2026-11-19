@@ -1,9 +1,9 @@
 // --- CORE IMPORTS ---
 import React from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom'; 
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'; 
 
 // --- CONTEXT IMPORTS ---
-import { AuthProvider } from './components/AuthContext/AuthContext.jsx'; // Make sure this path is correct
+import { AuthProvider, useAuth } from './components/AuthContext/AuthContext.jsx'; // Make sure this path is correct
 import { InventoryProvider , useInventory } from './components/InventoryContext/InventoryProvider.jsx'; 
 import { FinanceProvider } from './components/FinanceContext/FinanceProvider.jsx';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -26,6 +26,7 @@ import Login from './components/Login/Login.jsx';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute.jsx';
 import { ROUTE_ALLOWED_ROLES } from './utils/permissions.js';
 import FinanceDashboard from './components/Finance/FinanceDashboard.jsx';
+import IgpProjectManager from './components/Finance/IgpProjectManager.jsx';
 import InventoryManagement from './components/InventoryDashboard/InventoryManagement.jsx';
 import DocumentDashboard from './components/Document/DocumentDashboard.jsx';
 import AccessDenied from './components/AccessDenied/AccessDenied.jsx';
@@ -74,6 +75,35 @@ const DashboardLayout = ({ children }) => {
           {React.cloneElement(children, { toggleSidebar, sidebarOpen })}
         </div>
       </div>
+    </div>
+  );
+};
+
+const IgpRoleWorkspace = () => {
+  const { userRole } = useAuth();
+  const navigate = useNavigate();
+  const roleMode =
+    userRole === 'representative'
+      ? 'vending'
+      : userRole === 'governor'
+      ? 'lockers'
+      : 'full';
+  const heading =
+    roleMode === 'vending'
+      ? 'Vendo Machine Collections'
+      : roleMode === 'lockers'
+      ? 'Campus Lockers Management'
+      : 'IGP Projects & Lockers';
+
+  return (
+    <div style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+      <h1 style={{ fontFamily: "'Cinzel', Georgia, serif", color: '#ffea9f', margin: '0 0 1rem', fontSize: '1.6rem' }}>
+        {heading}
+      </h1>
+      <IgpProjectManager
+        roleMode={roleMode}
+        onNavigateToMap={(buildingId) => navigate('/campus-map', { state: { selectedBuildingId: buildingId } })}
+      />
     </div>
   );
 };
@@ -227,6 +257,25 @@ function App() {
           >
             <DashboardLayout>
               <FinanceDashboard />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* 3.1 STANDALONE IGP PROJECTS (Representatives -> Vendo Machine, Governors -> Campus Lockers) */}
+        <Route path="/igp-projects" element={
+          <ProtectedRoute
+            allowedRoles={ROUTE_ALLOWED_ROLES['/igp-projects']}
+            customAccessDenied={
+              <DashboardLayout>
+                <AccessDenied
+                  message="Only Representatives, Governors, or Finance Officers can access IGP Projects & Lockers."
+                  showUserInfo={true}
+                />
+              </DashboardLayout>
+            }
+          >
+            <DashboardLayout>
+              <IgpRoleWorkspace />
             </DashboardLayout>
           </ProtectedRoute>
         } />

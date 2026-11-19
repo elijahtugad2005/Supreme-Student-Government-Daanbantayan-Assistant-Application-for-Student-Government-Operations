@@ -47,19 +47,22 @@ async function syncToDrive(fileId, buffer, filename, mimeType, meta = {}) {
     return { status: 'disabled' };
   }
   try {
-    const { driveFileId, webViewLink } = await driveSync.mirrorUpload(buffer, filename, mimeType, {
+    const { driveFileId, webViewLink, folderName } = await driveSync.mirrorUpload(buffer, filename, mimeType, {
       mongoFileId: fileId,
       documentId: meta.documentId,
+      folder: meta.folder || '',
+      documentType: meta.documentType || '',
     });
     await setDriveState(fileId, {
       driveSyncStatus: 'synced',
       driveFileId,
       driveWebViewLink: webViewLink,
+      driveFolderName: folderName || 'Documents',
       driveSyncedAt: new Date(),
       driveSyncError: null,
     });
-    console.log(`[DriveSync] Mirrored ${fileId} -> ${driveFileId}`);
-    return { status: 'synced', driveFileId, webViewLink };
+    console.log(`[DriveSync] Mirrored ${fileId} -> ${driveFileId} (${folderName || 'Documents'})`);
+    return { status: 'synced', driveFileId, webViewLink, folderName: folderName || 'Documents' };
   } catch (err) {
     console.warn(`[DriveSync] Failed for ${fileId}:`, err.message);
     await setDriveState(fileId, { driveSyncStatus: 'failed', driveSyncError: err.message }).catch(() => {});
@@ -118,6 +121,8 @@ router.post('/:fileId/drive-sync', authenticate, async (req, res) => {
     const buffer = await downloadFileFromGridFS(fileId);
     const result = await syncToDrive(fileId, buffer, metadata.filename, metadata.metadata?.mimeType, {
       documentId: metadata.metadata?.documentId,
+      folder: metadata.metadata?.folder || '',
+      documentType: metadata.metadata?.documentType || '',
     });
     res.status(result.status === 'failed' ? 502 : 200).json({ success: result.status !== 'failed', data: result });
   } catch (error) {
@@ -217,11 +222,14 @@ router.post('/upload', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), upload
       });
     }
 
-    const { title, documentType, office } = req.body;
+    const { title, documentType, office, folder } = req.body;
     const documentId = req.body.documentId || ('doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
+    const isReceiptUpload =
+      String(folder || '').toLowerCase() === 'receipts' ||
+      String(documentType || '').toLowerCase() === 'receipt';
 
     console.log(`[Upload] Processing: ${req.file.originalname} (${req.file.size} bytes)`);
-    console.log(`[Upload] Document ID: ${documentId}, User: ${req.user.email}`);
+    console.log(`[Upload] Document ID: ${documentId}, User: ${req.user.email}, Folder: ${isReceiptUpload ? 'Receipts' : 'Documents'}`);
 
     const result = await uploadFileToGridFS(
       req.file.buffer,
@@ -233,12 +241,38 @@ router.post('/upload', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), upload
         uploadedByName: req.user.name,
         documentId: documentId,
         title: title || req.file.originalname,
-        documentType: documentType || 'other',
+        documentType: documentType || (isReceiptUpload ? 'receipt' : 'other'),
+        folder: isReceiptUpload ? 'Receipts' : (folder || 'Documents'),
         office: office || ''
       }
     );
 
     console.log(`[Upload] Success: ${result.fileId}`);
+
+    // For receipt uploads, wait briefly for Drive sync so the caller immediately gets the Drive webViewLink if Drive is enabled.
+    if (isReceiptUpload && driveSync.isEnabled()) {
+      const driveRes = await syncToDrive(result.fileId, req.file.buffer, req.file.originalname, req.file.mimetype, {
+        documentId,
+        folder: 'Receipts',
+        documentType: 'receipt',
+      }).catch((err) => ({ status: 'failed', error: err.message }));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Receipt uploaded and synced to Google Drive (Receipts)',
+        fileId: result.fileId,
+        data: {
+          fileId: result.fileId,
+          filename: result.filename,
+          size: result.size,
+          uploadedAt: new Date().toISOString(),
+          driveSyncStatus: driveRes.status || 'pending',
+          driveFileId: driveRes.driveFileId || null,
+          driveWebViewLink: driveRes.webViewLink || null,
+          driveFolderName: 'Receipts',
+        },
+      });
+    }
 
     const driveSyncStatus = driveSync.isEnabled() ? 'pending' : 'disabled';
 
@@ -256,7 +290,11 @@ router.post('/upload', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), upload
     });
 
     // Mirror to Drive after responding so upload latency is unchanged.
-    syncToDrive(result.fileId, req.file.buffer, req.file.originalname, req.file.mimetype, { documentId }).catch((err) => {
+    syncToDrive(result.fileId, req.file.buffer, req.file.originalname, req.file.mimetype, {
+      documentId,
+      folder: isReceiptUpload ? 'Receipts' : 'Documents',
+      documentType: documentType || 'other',
+    }).catch((err) => {
       console.warn(`[DriveSync] Async background mirror failed for ${result.fileId}:`, err.message);
     });
 

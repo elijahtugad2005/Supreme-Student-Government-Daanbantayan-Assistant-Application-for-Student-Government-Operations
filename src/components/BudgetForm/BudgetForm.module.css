@@ -43,7 +43,7 @@
   flex-direction: column;
   gap: 1.5rem;
   margin: 0 auto;
-  background-color: #171a1f;
+  background-color: transparent;
 }
 
 /* Error Alert */
@@ -1574,11 +1574,12 @@
 /* ─── Classic Container Surface ─── */
 .formClassic,
 :global(.theme-dark) .container {
-  background: radial-gradient(circle at 50% 0%, rgba(122, 18, 29, 0.22) 0%, rgba(18, 3, 5, 0.98) 55%, #100204 100%) !important;
-  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  background: radial-gradient(circle at 50% 0%, #420913 0%, #1a0408 50%, #100204 100%) !important;
+  background-color: #120305 !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
   border-radius: 18px !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(122, 18, 29, 0.2) !important;
-  color: #ffffff !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 28px rgba(122, 18, 29, 0.28) !important;
+  color: #fbeee6 !important;
 }
 
 /* ─── Classic Header ─── */
@@ -1594,9 +1595,10 @@
 .formClassic .title,
 :global(.theme-dark) .container .title {
   font-family: 'Cinzel', Georgia, serif !important;
-  background: linear-gradient(135deg, #FFF6E5 0%, #FFDF80 40%, #D4AF37 80%, #AA8010 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: #ffea9f !important;
+  color: #ffea9f !important;
   font-weight: 800 !important;
 }
 
@@ -1607,16 +1609,16 @@
 
 .formClassic .subtitle,
 :global(.theme-dark) .container .subtitle {
-  color: #c9a9ad !important;
+  color: #e0bfc3 !important;
 }
 
 /* ─── Classic Form Body ─── */
 .formClassic .form,
 :global(.theme-dark) .container .form {
-  background: rgba(18, 3, 5, 0.95) !important;
-  border: 1px solid rgba(212, 175, 55, 0.22) !important;
-  border-radius: 14px !important;
-  padding: 1.75rem !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
 }
 
 /* ─── Live Preview Telemetry Card ─── */
@@ -2046,4 +2048,31 @@
 .fundOptionSurplusGold {
   color: #eab308 !important;
 }
-
+
+/* ─── PPMP form: display-only spent readout, full-width groups ─── */
+.fullSpan {
+  grid-column: 1 / -1;
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #2c0b14 0%, #1d070e 100%);
+  color: #ffe9a8;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.readout small {
+  font-family: inherit;
+  font-family: system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: #cfa9ad;
+}

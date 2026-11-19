@@ -83,8 +83,8 @@ function DeathAid() {
   const tabs = isManager
     ? OFFICER_TABS
     : currentUser
-    ? SUBMITTER_TABS
-    : GUEST_TABS;
+      ? SUBMITTER_TABS
+      : GUEST_TABS;
 
   const [tab, setTab] = useState('record');
   const [banner, setBanner] = useState(null);
@@ -118,7 +118,7 @@ function DeathAid() {
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={styles.headerTopRow}>
-          <h2 style={styles.mainTitle}>Death Aid Collection</h2>
+          <h2 style={styles.mainTitle}>TECHNOCARES</h2>
           {isManager ? (
             pendingCount > 0 ? (
               <div style={styles.headerPendingPill} title={`${pendingCount} pending verification`}>
@@ -700,12 +700,12 @@ function RecordView({ actor, say, isManager = true }) {
                   {saving
                     ? 'Submitting Collection…'
                     : cooldown > 0
-                    ? `Rate-Limited: Wait ${cooldown}s`
-                    : activePending
-                    ? 'Section Collection Already Pending'
-                    : isManager
-                    ? 'Record Collection'
-                    : 'Submit Collection for Verification'}
+                      ? `Rate-Limited: Wait ${cooldown}s`
+                      : activePending
+                        ? 'Section Collection Already Pending'
+                        : isManager
+                          ? 'Record Collection'
+                          : 'Submit Collection for Verification'}
                 </button>
                 {cooldown > 0 && (
                   <span style={styles.muted}>
@@ -930,10 +930,10 @@ function MySubmissionsView({ actor, say }) {
                     isConfirmed
                       ? 'Verified'
                       : isDiscrepancy
-                      ? `Recv: ${peso(sub.amountReceived)}`
-                      : isDenied
-                      ? 'Denied'
-                      : 'Awaiting Officer'
+                        ? `Recv: ${peso(sub.amountReceived)}`
+                        : isDenied
+                          ? 'Denied'
+                          : 'Awaiting Officer'
                   }
                   tone={isConfirmed ? T.success : isDenied ? T.error : T.warning}
                 />

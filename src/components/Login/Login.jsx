@@ -50,7 +50,7 @@ const EthnicCornerBracket = ({ className }) => (
 function Login({ initialMode = 'login' }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
+  const { currentUser, login, signup } = useAuth();
 
   const [mode, setMode] = useState(
     location.pathname === '/register' ? 'register' : initialMode
@@ -77,6 +77,13 @@ function Login({ initialMode = 'login' }) {
 
   // Get the page user tried to access before being redirected to login
   const from = location.state?.from?.pathname || '/';
+
+  // Automatically leave /login when redirect-based auth (e.g. signInWithRedirect) completes
+  useEffect(() => {
+    if (currentUser) {
+      navigate(from, { replace: true });
+    }
+  }, [currentUser, from, navigate]);
 
   const switchMode = (targetMode) => {
     setError('');

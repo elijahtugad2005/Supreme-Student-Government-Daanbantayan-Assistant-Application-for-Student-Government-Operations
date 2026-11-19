@@ -174,7 +174,7 @@ export default function SectionsAndContributions() {
           className={`${styles.navButton} ${activeTab === 'death-aid' ? styles.navButtonActive : ''}`}
         >
           <HiCurrencyDollar className={styles.navIcon} />
-          <span className={styles.navLabel}>Death Aid Contributions</span>
+          <span className={styles.navLabel}>TECHNOCARES</span>
           {collectionCount !== null && (
             <span className={styles.tabBadge} title={`${collectionCount} Records Tracked`}>
               {collectionCount} {collectionCount === 1 ? 'Record' : 'Records'}
