@@ -45,7 +45,7 @@ const PPMPInspectorDrawer = ({ item, onClose }) => {
     refreshFinanceData,
   } = useFinance();
   const { currentUser, userName } = useAuth();
-  const { canEditFinance } = usePermissions();
+  const { canEditFinance, canPostFinanceLedger } = usePermissions();
 
   // Active Disbursement Target (null if closed, or lineItem object, or 'GENERAL')
   const [activeDisburseTarget, setActiveDisburseTarget] = useState(null);
@@ -543,7 +543,7 @@ const PPMPInspectorDrawer = ({ item, onClose }) => {
               <h3 className={styles.sectionTitle}>
                 <Layers size={14} /> Itemized Package Components ({subItems.length})
               </h3>
-              {canEditFinance && activeDisburseTarget === null && !isArchived && (
+              {canPostFinanceLedger && activeDisburseTarget === null && !isArchived && (
                 <button
                   type="button"
                   className={styles.disburseLineBtn}
@@ -632,7 +632,7 @@ const PPMPInspectorDrawer = ({ item, onClose }) => {
                       </div>
 
                       {/* Action Button */}
-                      {canEditFinance && !isArchived && (
+                      {canPostFinanceLedger && !isArchived && (
                         <div className={styles.subItemActions}>
                           <button
                             type="button"

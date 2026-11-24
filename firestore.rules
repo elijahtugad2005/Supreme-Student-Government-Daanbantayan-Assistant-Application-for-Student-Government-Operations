@@ -36,34 +36,68 @@ service cloud.firestore {
       return isSignedIn() && exists(userPath());
     }
 
-    // The role stored on the user document. Anonymous callers get null.
+    // Single-lookup check on a user doc map: legacy docs omitting `isActive`
+    // remain active; only explicit `isActive == false` is deactivated.
+    function isActiveData(d) {
+      return d.get('isActive', true) != false;
+    }
+
+    // True when the user has a profile document and has NOT been deactivated.
+    function isActiveUser() {
+      return hasUserDoc() && isActiveData(get(userPath()).data);
+    }
+
+    // True when signed in and NOT explicitly deactivated in users/{uid}.
+    function isNotDeactivated() {
+      return isSignedIn() && (!hasUserDoc() || isActiveUser());
+    }
+
+    // The role stored on an active user document. Anonymous and deactivated callers get null.
     function myRole() {
-      return hasUserDoc() ? get(userPath()).data.role : null;
+      return hasUserDoc() ? activeRoleOf(get(userPath()).data) : null;
+    }
+
+    function activeRoleOf(d) {
+      return isActiveData(d) ? d.get('role', null) : null;
+    }
+
+    // Authenticated account with a verified non-guest institutional/student role.
+    // Blocks anonymous callers and guest accounts from brute-force submissions
+    // against Class Rosters, Death Aid collections, counters, and audit trails.
+    function isAuthenticatedNonGuest() {
+      let r = myRole();
+      return r != null && r != 'guest';
     }
 
     function isAdmin() {
-      return myRole() == 'admin' || myRole() == 'president';
+      return myRole() in ['admin', 'president'];
     }
 
     // SSG Officers: roles allowed to verify rosters and manage institutional records.
     function isOfficer() {
-      return myRole() == 'admin'
-        || myRole() == 'president'
-        || myRole() == 'vice_president'
-        || myRole() == 'secretary'
-        || myRole() == 'executive_secretary'
-        || myRole() == 'press_secretary'
-        || myRole() == 'linkages_secretary'
-        || myRole() == 'deputy_secretary';
+      return myRole() in [
+        'admin',
+        'president',
+        'vice_president',
+        'secretary',
+        'executive_secretary',
+        'press_secretary',
+        'linkages_secretary',
+        'deputy_secretary'
+      ];
     }
 
     // True when an Admin has individually granted this account a permission.
     // Mirrors the `permissionOverrides` map written by User Management, so the
     // database agrees with what the UI offers. Without this the roster browser
     // would appear for a granted user and then fail on every query.
+    function dataHasOverride(d, permission) {
+      let ov = d.get('permissionOverrides', {});
+      return isActiveData(d) && ov is map && ov.get(permission, false) == true;
+    }
+
     function hasOverride(permission) {
-      return hasUserDoc()
-        && get(userPath()).data.permissionOverrides[permission] == true;
+      return hasUserDoc() && dataHasOverride(get(userPath()).data, permission);
     }
 
     // Roles allowed to read student lists. Mayors (who are Guests) and Members
@@ -71,39 +105,45 @@ service cloud.firestore {
     // `canViewRosters` in src/utils/permissions.js. The Secretary is included
     // because verifying a submission requires reading it.
     function canReadRosters() {
-      return myRole() == 'admin'
-        || myRole() == 'secretary'
-        || myRole() == 'governor'
-        || hasOverride('canViewRosters');
+      return hasUserDoc() && canReadRostersData(get(userPath()).data);
+    }
+
+    function canReadRostersData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in ['admin', 'secretary', 'governor']
+        || dataHasOverride(d, 'canViewRosters')
+      );
     }
 
     // Roles allowed to accept a remittance and confirm it. Must stay in step with
     // DEATH_AID_MANAGER_ROLES in src/utils/permissions.js. An allowlist, so any
-    // role not named here — Members, Guests, Senators, Creatives — is excluded.
+    // role not named here — Members, Guests, Creatives — is excluded.
     // Note this is wider than isOfficer(), which still governs roster
     // verification and the section registry.
     function canManageDeathAid() {
-      return myRole() == 'admin'
-        || myRole() == 'president'
-        || myRole() == 'vice_president'
-        || myRole() == 'secretary'
-        || myRole() == 'executive_secretary'
-        || myRole() == 'press_secretary'
-        || myRole() == 'linkages_secretary'
-        || myRole() == 'deputy_secretary'
-        || myRole() == 'finance_secretary'
-        || myRole() == 'auditor'
-        || myRole() == 'budget_officer'
-        || myRole() == 'governor'
-        || myRole() == 'representative'
-        || myRole() == 'senator';
+      return myRole() in [
+        'admin',
+        'president',
+        'vice_president',
+        'secretary',
+        'executive_secretary',
+        'press_secretary',
+        'linkages_secretary',
+        'deputy_secretary',
+        'finance_secretary',
+        'auditor',
+        'budget_officer',
+        'governor',
+        'representative',
+        'senator'
+      ];
     }
 
     // A Mayor may read exactly one roster: the one they submitted. They cannot
     // browse the roster registry, but Death Aid payment marks have to be made
     // against their own students.
     function isOwnRoster() {
-      return isSignedIn() && resource.data.mayorUid == request.auth.uid;
+      return isActiveUser() && resource.data.mayorUid == request.auth.uid;
     }
 
     // A submission is only ever a proposal. `status`, `isCurrent` and `version`
@@ -138,9 +178,12 @@ service cloud.firestore {
       // Everyone else may still create a roster (see `allow create` below).
       allow read: if canReadRosters() || isOwnRoster();
 
-      // Anyone may submit a proposal, signed in or not — provided it arrives
-      // explicitly unverified.
-      allow create: if isUnverifiedProposal() && hasRosterShape();
+      // Only authenticated non-guest accounts (e.g. signed-in students/mayors or officers)
+      // may submit a roster proposal, preventing anonymous/guest spam attacks.
+      allow create: if isAuthenticatedNonGuest()
+        && isUnverifiedProposal()
+        && hasRosterShape()
+        && request.resource.data.mayorUid == request.auth.uid;
 
       // Only officers may act on a roster arbitrarily.
       // A roster that is already verified has its student list frozen, so an
@@ -160,14 +203,16 @@ service cloud.firestore {
           || request.resource.data.students == resource.data.students
         )
       ) || (
-        isSignedIn()
+        isAuthenticatedNonGuest()
         && resource.data.mayorUid == request.auth.uid
+        && request.resource.data.mayorUid == resource.data.mayorUid
+        && isUnverifiedProposal()
+        && hasRosterShape()
         && (
           resource.data.status != 'verified'
           || (
             // Transfers must be declared, and re-verified before they count.
-            request.resource.data.status == 'pending'
-            && request.resource.data.hasTransfers == true
+            request.resource.data.hasTransfers == true
             && request.resource.data.transferCount is int
             && request.resource.data.transferCount > 0
             && request.resource.data.transferReason is string
@@ -176,27 +221,37 @@ service cloud.firestore {
         )
       );
 
-      // Deleting a VERIFIED roster stays officer/admin-only: it is the source of
-      // the enrolled count that every Death Aid collection is checked against,
-      // so removing it would orphan the financial records built on it. A
-      // submitter may withdraw their own submission before it is verified.
-      allow delete: if isAdmin() || (
-        isSignedIn()
-        && resource.data.mayorUid == request.auth.uid
-        && resource.data.status != 'verified'
-      );
+      // Deleting a VERIFIED roster stays admin-only: it is the source of the
+      // enrolled count behind historical Death Aid collections (officers revoke
+      // verification via update instead). Officers may remove unverified
+      // submissions, and submitters may withdraw their own unverified submission.
+      allow delete: if isAdmin()
+        || (isOfficer() && resource.data.status != 'verified')
+        || (
+          isActiveUser()
+          && resource.data.mayorUid == request.auth.uid
+          && resource.data.status != 'verified'
+        );
     }
 
     // =========================================================================
     // CLASS SECTIONS (the registry)
     //
-    // Maintained by officers on verification. The `currentRosterId` pointer
-    // here is what retires a superseded version, so it is never writable by a
-    // submitter.
+    // Maintained by officers on verification. Authorized Death Aid officers may
+    // also seed a `placeholder` section when recording an unlisted section so
+    // Class Mayors can see and claim it by uploading the official class roster.
     // =========================================================================
     match /classSections/{sectionId} {
-      allow read: if canReadRosters();
-      allow write: if isOfficer();
+      allow read: if canReadRosters()
+        || (isAuthenticatedNonGuest() && resource.data.status == 'placeholder');
+      allow create: if isOfficer()
+        || (
+          canManageDeathAid()
+          && request.resource.data.status == 'placeholder'
+          && request.resource.data.isPlaceholder == true
+          && request.resource.data.currentRosterId == null
+        );
+      allow update, delete: if isOfficer();
     }
 
     // =========================================================================
@@ -207,8 +262,10 @@ service cloud.firestore {
 
       // Self-registration may only ever assign 'member' or 'guest' with no
       // permissionOverrides — otherwise a new user could create their profile
-      // with role: 'admin'. Admins and officers may provision any role.
-      allow create: if isAdmin() || isOfficer()
+      // with role: 'admin'. Only Admins (admin/president, matching
+      // canManageUsers: true in permissions.js) may provision arbitrary user
+      // accounts; non-admin isOfficer() roles must never create user docs.
+      allow create: if isAdmin()
         || (
           isSignedIn()
           && request.auth.uid == userId
@@ -222,15 +279,18 @@ service cloud.firestore {
           )
         );
 
-      // Changing the role or the individual access map is an administrative act.
-      // A user may edit the rest of their own profile, but never their own
-      // authority — otherwise a Member could promote themselves to admin.
-      allow update: if isAdmin() || isOfficer()
+      // Changing role, permissions, permissionOverrides, or active/deletion
+      // status is strictly an administrative act (isAdmin() only — never
+      // isOfficer(), whose vice_president and Secretariat roles have
+      // canManageUsers: false and could otherwise self-promote to admin and
+      // trigger onUserRoleUpdated). Any signed-in user may still edit benign
+      // fields on their own profile.
+      allow update: if isAdmin()
         || (
-          isSignedIn()
+          isActiveUser()
           && request.auth.uid == userId
           && !request.resource.data.diff(resource.data).affectedKeys()
-                .hasAny(['role', 'permissionOverrides'])
+                .hasAny(['role', 'permissionOverrides', 'permissions', 'isActive', 'deletedAt', 'deletedBy'])
         );
 
       allow delete: if isAdmin();
@@ -241,7 +301,7 @@ service cloud.firestore {
     // =========================================================================
     match /audit_logs/{logId} {
       allow read: if isAdmin() || isOfficer();
-      allow create: if isSignedIn();
+      allow create: if isNotDeactivated();
       allow update, delete: if false;
     }
 
@@ -249,18 +309,32 @@ service cloud.firestore {
     // PUBLIC-FACING CONTENT — readable without signing in, writable by officers
     // =========================================================================
     function canManageAnnouncements() {
-      return isAdmin()
-        || isOfficer()
-        || myRole() == 'superadmin'
-        || myRole() == 'general_secretary'
-        || myRole() == 'creatives'
-        || myRole() == 'governor'
-        || myRole() == 'adviser'
-        || myRole() == 'senator'
-        || myRole() == 'representative'
-        || hasOverride('canSendNotifications')
-        || hasOverride('canManageAnnouncements')
-        || hasOverride('canCreateAnnouncements');
+      return hasUserDoc() && canManageAnnouncementsData(get(userPath()).data);
+    }
+
+    function canManageAnnouncementsData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'superadmin',
+          'president',
+          'vice_president',
+          'secretary',
+          'general_secretary',
+          'executive_secretary',
+          'press_secretary',
+          'linkages_secretary',
+          'deputy_secretary',
+          'creatives',
+          'governor',
+          'adviser',
+          'senator',
+          'representative'
+        ]
+        || dataHasOverride(d, 'canSendNotifications')
+        || dataHasOverride(d, 'canManageAnnouncements')
+        || dataHasOverride(d, 'canCreateAnnouncements')
+      );
     }
 
     match /announcements/{docId} {
@@ -305,21 +379,21 @@ service cloud.firestore {
     }
 
     match /borrowingLogs/{logId} {
-      allow read: if isSignedIn();
+      allow read: if isNotDeactivated();
       allow write: if canManageOrders() || isAdmin() || hasOverride('canManageInventory');
     }
 
     // =========================================================================
     // FINANCE — officers only. Members may still see their own dues, so finance
-    // documents are readable by any signed-in user but never written by one.
+    // documents are readable by any active signed-in user but never written by one.
     // =========================================================================
     match /budgets/{budgetId} {
-      allow read: if isSignedIn();
+      allow read: if isNotDeactivated();
       allow write: if isOfficer() || isAdmin();
     }
 
     match /funds/{fundId} {
-      allow read: if isSignedIn();
+      allow read: if isNotDeactivated();
       allow write: if myRole() == 'finance_secretary' 
         || myRole() == 'auditor' 
         || myRole() == 'budget_officer' 
@@ -344,23 +418,34 @@ service cloud.firestore {
     }
 
     // A collection whose arithmetic is self-consistent and whose enrolled count
-    // matches the verified roster it was recorded against.
-    //
-    // The roster cross-check is the important one: enrolledCount is what the
-    // debt is calculated against, so an officer (or anyone who reaches this
-    // rule) cannot shrink it to erase an outstanding balance.
+    // either matches the verified roster it was recorded against, OR (strictly
+    // for authorized Death Aid officers) records an unlisted placeholder section
+    // awaiting a Class Mayor's official roster upload.
     function hasValidCollectionTotals() {
       let r = request.resource.data;
-      let roster = rosterFor(r.rosterId);
-      return roster.status == 'verified'
-        && r.enrolledCount == roster.studentCount
+      return isAuthenticatedNonGuest()
+        && r.recordedByUid == request.auth.uid
+        && r.enrolledCount is int
+        && r.enrolledCount > 0
         && r.beneficiaryCount >= 0
         && r.beneficiaryCount <= r.enrolledCount
         && r.contributionPerStudent >= 0
-        && r.collectedAmount == r.beneficiaryCount * r.contributionPerStudent
         && r.expectedCollection == r.enrolledCount * r.contributionPerStudent
         && r.debtCount == r.enrolledCount - r.beneficiaryCount
-        && r.debtAmount == r.debtCount * r.contributionPerStudent
+        && (
+          (
+            r.collectedAmount == r.beneficiaryCount * r.contributionPerStudent
+            && r.debtAmount == r.debtCount * r.contributionPerStudent
+          )
+          || (
+            canManageDeathAid()
+            && r.entryMode == 'amount'
+            && r.collectedAmount is number
+            && r.collectedAmount >= 0
+            && r.debtAmount is number
+            && r.debtAmount >= 0
+          )
+        )
         && r.status == 'for_verification'
         && (
           !('beneficiaryCaseId' in r)
@@ -370,16 +455,29 @@ service cloud.firestore {
           )
         )
         && (
-          (isSignedIn() && r.recordedByUid == request.auth.uid) ||
-          (!isSignedIn() && r.recordedByUid == null && r.submittedByName is string && r.submittedByName.size() > 0)
+          (
+            r.rosterId is string
+            && r.rosterId.size() > 0
+            && rosterFor(r.rosterId).status == 'verified'
+            && r.enrolledCount == rosterFor(r.rosterId).studentCount
+          )
+          || (
+            canManageDeathAid()
+            && r.isPlaceholderSection == true
+            && r.rosterId == null
+            && r.section is string
+            && r.section.size() > 0
+            && r.sectionKey is string
+            && r.sectionKey.size() > 0
+          )
         );
     }
 
-    // Official Death Aid / TechnoCare beneficiary cases (memo + affected person).
-    // Public read so students and mayors can see the call for donation and pick
-    // the beneficiary; only Death Aid managers may publish or close a case.
+    // Official Death Aid / TechnoCare beneficiary cases (memo + affected person + release photo evidence).
+    // Readable by authenticated non-guest accounts; only Death Aid managers may publish, close, or release.
+    // Releasing a beneficiary case strictly requires handover photo evidence.
     match /deathAidBeneficiaries/{beneficiaryId} {
-      allow read: if true;
+      allow read: if isAuthenticatedNonGuest();
       allow create, update: if canManageDeathAid()
         && request.resource.data.studentName is string
         && request.resource.data.studentName.size() > 0
@@ -388,15 +486,27 @@ service cloud.firestore {
         && request.resource.data.memoPhotoDataUrl is string
         && request.resource.data.memoPhotoDataUrl.size() > 0
         && request.resource.data.aidType in ['death_aid', 'technocare']
-        && request.resource.data.status in ['open', 'closed'];
+        && request.resource.data.status in ['open', 'closed', 'released']
+        && (
+          request.resource.data.status != 'released'
+          || (
+            request.resource.data.releasePhotoDataUrl is string
+            && request.resource.data.releasePhotoDataUrl.size() > 0
+            && request.resource.data.recipientName is string
+            && request.resource.data.recipientName.size() > 0
+            && request.resource.data.releasedAmount is number
+            && request.resource.data.releasedAmount >= 0
+            && request.resource.data.releasedByUid == request.auth.uid
+          )
+        );
       allow delete: if isAdmin();
     }
 
     match /deathAidCollections/{collectionId} {
-      // Publicly readable so students, members, and guests can track verification status.
-      allow read: if true;
+      // Authenticated non-guest users only; blocks guest/unauthenticated scraping and brute-force requests.
+      allow read: if isAuthenticatedNonGuest();
 
-      // Recorded by an officer, signed-in member, or guest with required name indicator.
+      // Recorded by an authenticated non-guest account (student/mayor or officer).
       // Arithmetic totals MUST strictly balance against beneficiaryCount * contributionPerStudent.
       allow create: if hasValidCollectionTotals();
 
@@ -439,39 +549,65 @@ service cloud.firestore {
              )
         && request.resource.data.receivedByUid == request.auth.uid;
 
-      // Amounts are immutable. An officer may only later mark a discrepancy
-      // resolved; the figures that were verified can never change.
-      allow update: if canManageDeathAid()
-        && request.resource.data.reportedAmount == resource.data.reportedAmount
-        && request.resource.data.amountReceived == resource.data.amountReceived
-        && request.resource.data.difference == resource.data.difference
-        && request.resource.data.receivedByUid == resource.data.receivedByUid
-        && request.resource.data.status == 'resolved';
+      // Amounts are immutable on resolution/revocation. An officer may mark a
+      // discrepancy resolved, revoke verification (returning the collection to
+      // pending), or re-verify a previously revoked remittance when the parent
+      // collection is back in `for_verification`.
+      allow update: if canManageDeathAid() && (
+        (
+          request.resource.data.reportedAmount == resource.data.reportedAmount
+          && request.resource.data.amountReceived == resource.data.amountReceived
+          && request.resource.data.difference == resource.data.difference
+          && request.resource.data.receivedByUid == resource.data.receivedByUid
+          && request.resource.data.status in ['resolved', 'revoked']
+        )
+        || (
+          resource.data.status == 'revoked'
+          && get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.status
+               == 'for_verification'
+          && (
+            request.auth.uid != get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.recordedByUid
+            || get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.recordedByUid == null
+          )
+          && request.resource.data.collectionId == remittanceId
+          && request.resource.data.reportedAmount
+               == get(/databases/$(database)/documents/deathAidCollections/$(remittanceId)).data.collectedAmount
+          && request.resource.data.difference
+               == request.resource.data.amountReceived - request.resource.data.reportedAmount
+          && request.resource.data.status == (
+                 request.resource.data.difference == 0 ? 'confirmed' : 'discrepancy'
+               )
+          && request.resource.data.receivedByUid == request.auth.uid
+        )
+      );
 
       allow delete: if isAdmin();
     }
 
-    // Append-only audit trail. Officers, members & guests may append their submission actions,
-    // but cannot spoof another user's actorUid.
+    // Append-only audit trail. Authenticated non-guest users may append their own submission actions,
+    // blocking anonymous/guest spam and UID spoofing.
     match /deathAidAuditLog/{entryId} {
       allow read: if canManageDeathAid();
-      allow create: if request.resource.data.collectionId is string
+      allow create: if isAuthenticatedNonGuest()
+        && request.resource.data.collectionId is string
         && request.resource.data.action is string
         && (
           canManageDeathAid()
-          || (isSignedIn() && request.resource.data.actorUid == request.auth.uid)
-          || (!isSignedIn() && request.resource.data.actorUid == null)
+          || request.resource.data.actorUid == request.auth.uid
         );
       allow update, delete: if false;
     }
 
-    // Collection id allocation counter — strictly monotonic (+1 per transaction).
+    // Collection id allocation counter — strictly monotonic (+1 per transaction),
+    // restricted to authenticated non-guest accounts to prevent counter exhaustion attacks.
     match /deathAidCounters/{year} {
-      allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt'])
+      allow read: if isAuthenticatedNonGuest();
+      allow create: if isAuthenticatedNonGuest()
+        && request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt'])
         && request.resource.data.count == 1
         && request.resource.data.year is int;
-      allow update: if request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt'])
+      allow update: if isAuthenticatedNonGuest()
+        && request.resource.data.keys().hasOnly(['count', 'year', 'updatedAt'])
         && request.resource.data.count == resource.data.count + 1
         && request.resource.data.year == resource.data.year;
       allow delete: if isAdmin();
@@ -488,25 +624,58 @@ service cloud.firestore {
 
     // Roles permitted to work with the document archive.
     function canManageDocuments() {
-      return isAdmin()
-        || isOfficer()
-        || myRole() == 'finance_secretary'
-        || myRole() == 'auditor'
-        || myRole() == 'budget_officer'
-        || myRole() == 'representative'
-        || myRole() == 'senator'
-        || hasOverride('canExportData');
+      return hasUserDoc() && canManageDocumentsData(get(userPath()).data);
+    }
+
+    function canManageDocumentsData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'president',
+          'vice_president',
+          'secretary',
+          'executive_secretary',
+          'press_secretary',
+          'linkages_secretary',
+          'deputy_secretary',
+          'finance_secretary',
+          'auditor',
+          'budget_officer',
+          'representative',
+          'senator'
+        ]
+        || dataHasOverride(d, 'canExportData')
+      );
+    }
+
+    function canDeleteDocuments() {
+      return hasUserDoc() && canDeleteDocumentsData(get(userPath()).data);
+    }
+
+    function canDeleteDocumentsData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'president',
+          'vice_president',
+          'secretary',
+          'executive_secretary',
+          'press_secretary',
+          'linkages_secretary',
+          'deputy_secretary',
+          'finance_secretary',
+          'auditor',
+          'budget_officer'
+        ]
+        || dataHasOverride(d, 'canDeleteData')
+      );
     }
 
     match /documents/{documentId} {
       allow read: if canManageDocuments();
       allow create: if canManageDocuments() && isSignedIn();
       allow update: if canManageDocuments() && isSignedIn();
-      allow delete: if isAdmin() || isOfficer()
-        || myRole() == 'finance_secretary'
-        || myRole() == 'auditor'
-        || myRole() == 'budget_officer'
-        || hasOverride('canDeleteData');
+      allow delete: if canDeleteDocuments();
 
       // Reserved for Phase 4: per-document signature checklists.
       match /signatures/{signatureId} {
@@ -555,75 +724,120 @@ service cloud.firestore {
     // FINANCE & TREASURY GOVERNANCE
     // =========================================================================
     function canViewFinance() {
-      return myRole() == 'admin'
-        || myRole() == 'president'
-        || myRole() == 'vice_president'
-        || myRole() == 'secretary'
-        || myRole() == 'executive_secretary'
-        || myRole() == 'finance_secretary'
-        || myRole() == 'auditor'
-        || myRole() == 'budget_officer'
-        || hasOverride('canViewFinance');
+      return hasUserDoc() && canViewFinanceData(get(userPath()).data);
+    }
+
+    function canViewFinanceData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'president',
+          'vice_president',
+          'secretary',
+          'executive_secretary',
+          'finance_secretary',
+          'auditor',
+          'budget_officer'
+        ]
+        || dataHasOverride(d, 'canViewFinance')
+      );
     }
 
     function canEditFinance() {
-      return myRole() == 'admin'
-        || myRole() == 'president'
-        || myRole() == 'vice_president'
-        || myRole() == 'finance_secretary'
-        || myRole() == 'auditor'
-        || myRole() == 'budget_officer'
-        || hasOverride('canEditFinance');
+      return hasUserDoc() && canEditFinanceData(get(userPath()).data);
+    }
+
+    function canEditFinanceData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'president',
+          'vice_president',
+          'finance_secretary',
+          'auditor',
+          'budget_officer'
+        ]
+        || dataHasOverride(d, 'canEditFinance')
+      );
     }
 
     function canApproveFinance() {
-      return myRole() == 'admin'
-        || myRole() == 'president'
-        || myRole() == 'vice_president'
-        || myRole() == 'finance_secretary'
-        || myRole() == 'budget_officer'
-        || hasOverride('canApproveFinance');
+      return hasUserDoc() && canApproveFinanceData(get(userPath()).data);
+    }
+
+    function canApproveFinanceData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'president',
+          'vice_president',
+          'finance_secretary',
+          'auditor',
+          'budget_officer'
+        ]
+        || dataHasOverride(d, 'canApproveFinance')
+      );
     }
 
     function canAuditClear() {
-      return myRole() == 'admin'
-        || myRole() == 'president'
-        || myRole() == 'auditor'
-        || hasOverride('canAuditFinance');
+      return hasUserDoc() && canAuditClearData(get(userPath()).data);
+    }
+
+    function canAuditClearData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in ['admin', 'president', 'auditor']
+        || dataHasOverride(d, 'canAuditFinance')
+      );
     }
 
     function canManageCentralizedOrderSheet() {
-      return myRole() == 'admin'
-        || myRole() == 'secretary'
-        || myRole() == 'executive_secretary'
-        || myRole() == 'deputy_secretary'
-        || myRole() == 'press_secretary'
-        || myRole() == 'linkages_secretary'
-        || myRole() == 'finance_secretary'
-        || hasOverride('canManageCentralizedOrderSheet');
+      return hasUserDoc() && canManageCentralizedOrderSheetData(get(userPath()).data);
+    }
+
+    function canManageCentralizedOrderSheetData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'secretary',
+          'executive_secretary',
+          'deputy_secretary',
+          'press_secretary',
+          'linkages_secretary',
+          'finance_secretary'
+        ]
+        || dataHasOverride(d, 'canManageCentralizedOrderSheet')
+      );
     }
 
     function canManageOrders() {
-      return myRole() == 'admin'
-        || myRole() == 'president'
-        || myRole() == 'vice_president'
-        || myRole() == 'secretary'
-        || myRole() == 'executive_secretary'
-        || myRole() == 'deputy_secretary'
-        || myRole() == 'press_secretary'
-        || myRole() == 'linkages_secretary'
-        || myRole() == 'finance_secretary'
-        || myRole() == 'auditor'
-        || myRole() == 'budget_officer'
-        || myRole() == 'governor'
-        || myRole() == 'representative'
-        || myRole() == 'senator'
-        || hasOverride('canManageOrders');
+      return hasUserDoc() && canManageOrdersData(get(userPath()).data);
+    }
+
+    function canManageOrdersData(d) {
+      return isActiveData(d) && (
+        d.get('role', null) in [
+          'admin',
+          'president',
+          'vice_president',
+          'secretary',
+          'executive_secretary',
+          'deputy_secretary',
+          'press_secretary',
+          'linkages_secretary',
+          'finance_secretary',
+          'auditor',
+          'budget_officer',
+          'governor',
+          'representative',
+          'senator'
+        ]
+        || dataHasOverride(d, 'canManageOrders')
+      );
     }
 
     // System & Centralized Sheet Settings
     match /settings/{settingId} {
-      allow read: if settingId == 'app' || isSignedIn();
+      allow read: if settingId == 'app' || isNotDeactivated();
       allow write: if settingId == 'commerceOrderSheet'
         ? canManageCentralizedOrderSheet()
         : (isAdmin() || isOfficer() || myRole() == 'finance_secretary');
@@ -633,8 +847,13 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if true;
       allow create: if canManageOrders() || isAdmin()
-        || !('orderStatus' in request.resource.data)
-        || request.resource.data.orderStatus in ['Pending', 'Online Paid'];
+        || (
+          (request.auth == null || isNotDeactivated())
+          && (
+            !('orderStatus' in request.resource.data)
+            || request.resource.data.orderStatus in ['Pending', 'Online Paid']
+          )
+        );
       allow update: if canManageOrders() || isAdmin();
       allow delete: if isAdmin() || canManageOrders();
     }
@@ -664,21 +883,27 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if canViewFinance() || canManageOrders();
       allow create: if (canEditFinance() || canManageOrders()) && isSignedIn();
-      // Only draft/incomplete can be modified or soft-deleted; posted rows require a linked reversal
+      // Draft/incomplete/pending rows may be edited; posted rows may ONLY flip status
+      // to 'reversed' while keeping immutable financial fields intact.
       allow update: if (canEditFinance() || canManageOrders()) && (
-        resource.data.status == 'draft' ||
-        resource.data.status == 'incomplete' ||
-        resource.data.status == 'pending_approval' ||
-        request.resource.data.status == 'reversed'
+        resource.data.status in ['draft', 'incomplete', 'pending_approval']
+        || (
+          resource.data.status == 'posted'
+          && request.resource.data.status == 'reversed'
+          && request.resource.data.amountCentavos == resource.data.amountCentavos
+          && request.resource.data.fundAccountId == resource.data.fundAccountId
+          && request.resource.data.transactionType == resource.data.transactionType
+          && request.resource.data.refNumber == resource.data.refNumber
+        )
       );
-      allow delete: if isAdmin() || (
-        canEditFinance() && (resource.data.status == 'draft' || resource.data.status == 'incomplete')
-      );
+      // Append-only ledger immutability: posted & reversed entries can never be physically deleted
+      allow delete: if (isAdmin() || canEditFinance())
+        && resource.data.status in ['draft', 'incomplete'];
     }
 
     // Pre-Order Batches (IGF merchandise and uniform runs)
     match /preOrderBatches/{batchId} {
-      allow read: if isSignedIn();
+      allow read: if isNotDeactivated();
       allow create: if canEditFinance() && isSignedIn();
       allow update: if canEditFinance() || canAuditClear();
       allow delete: if isAdmin();
@@ -686,20 +911,20 @@ service cloud.firestore {
 
     // Pre-Order Entries (Per-student order ledger)
     match /preOrderEntries/{entryId} {
-      allow read: if isSignedIn();
+      allow read: if isNotDeactivated();
       allow create, update: if canEditFinance() && isSignedIn();
       allow delete: if isAdmin();
     }
 
     // Income-Generating Projects (IGP): Lockers & Collections
     match /lockers/{lockerId} {
-      allow read: if isSignedIn();
+      allow read: if isNotDeactivated();
       allow create, update: if (canEditFinance() || isOfficer() || myRole() == 'governor') && isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /igpCollections/{collectionId} {
-      allow read: if isSignedIn();
+      allow read: if isNotDeactivated();
       allow create: if (canEditFinance() || isOfficer() || myRole() == 'governor' || myRole() == 'representative') && isSignedIn();
       allow update, delete: if (isAdmin() || canEditFinance()) && isSignedIn();
     }

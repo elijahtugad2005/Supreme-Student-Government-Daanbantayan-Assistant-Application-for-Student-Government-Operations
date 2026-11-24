@@ -14,6 +14,7 @@ import {
 } from './financeConstants.js';
 
 export const validateTransactionRules = ({
+  fundAccountId = null,
   fundCategory,
   transactionType,
   expensePurpose,
@@ -28,6 +29,7 @@ export const validateTransactionRules = ({
   receiptOrNumber,
   receiptDetails,
   custodianUserId,
+  transferDestinationAccountId = null,
   availableBalanceCentavos = 0,
   availableAllocationCentavos = 0,
   availableLineItemCentavos,
@@ -87,10 +89,16 @@ export const validateTransactionRules = ({
       missingRequirements.push('Approved Allocation');
     }
 
-    // Restriction: Draft status allocations cannot receive ledger postings
-    if (allocationId && allocationStatus === 'draft') {
+    // Restriction: Draft or Archived allocations cannot receive ledger postings
+    const normalizedAllocStatus = String(allocationStatus || '').toLowerCase();
+    if (allocationId && normalizedAllocStatus === 'draft') {
       errors.push(
         'Cannot post expense against a draft budget allocation. The allocation must be approved in the PPMP Procurement Matrix first.'
+      );
+    }
+    if (allocationId && normalizedAllocStatus === 'archived') {
+      errors.push(
+        'Cannot post expense against an archived budget allocation. Restore the allocation in the PPMP Procurement Matrix first.'
       );
     }
 
@@ -129,11 +137,28 @@ export const validateTransactionRules = ({
     }
   }
 
-  // 4. Rule 4: Balance Checks for Outflows (Cash availability is a hard block)
+  // 4. Rule 4: Balance Checks for Outflows & Transfer Destination Integrity (Cash availability is a hard block)
+  const isTransfer = txTypeLower === TRANSACTION_TYPES.TRANSFER;
   const isOutflow =
     isExpenseOrPayment ||
-    transactionType === TRANSACTION_TYPES.REFUND ||
-    transactionType === 'REFUND';
+    txTypeLower === TRANSACTION_TYPES.REFUND ||
+    isTransfer;
+
+  if (isTransfer) {
+    if (!transferDestinationAccountId || !String(transferDestinationAccountId).trim()) {
+      errors.push('Choose a destination fund account for this transfer.');
+      missingRequirements.push('Destination Fund Account');
+    } else if (fundAccountId && transferDestinationAccountId === fundAccountId) {
+      errors.push('Source and destination fund accounts must be different for a transfer.');
+    } else if (
+      transferDestinationAccountId === 'fund_fiscal_year_budget' ||
+      transferDestinationAccountId === 'fund_fsg_remittance'
+    ) {
+      errors.push(
+        'Transfers into Fiscal Year Budget or FSG Remittance are not permitted; adjust those fixed term appropriation ceilings via Edit Fiscal Budget / Edit Fund Balance.'
+      );
+    }
+  }
 
   if (isOutflow && availableBalanceCentavos !== undefined && amountCentavos > availableBalanceCentavos) {
     errors.push('This fund does not have enough available balance for this expense.');
@@ -194,10 +219,10 @@ export const validateSupplierPaymentApproval = ({
     errors.push('Creator cannot approve their own supplier payment entry.');
   }
 
-  // Approver must be budget_officer, finance_secretary, admin, or president
-  const eligibleRoles = ['budget_officer', 'finance_secretary', 'admin', 'president'];
+  // Approver must hold finance approval authority (Budget Officer, Finance Secretary, Auditor, VP, President, Admin)
+  const eligibleRoles = ['budget_officer', 'finance_secretary', 'auditor', 'vice_president', 'admin', 'president'];
   if (!eligibleRoles.includes(approverRole)) {
-    errors.push('Only Budget Officer or Finance Secretary can approve supplier payments.');
+    errors.push('Only authorized Finance Approvers (Budget Officer, Finance Secretary, Auditor, Vice President, President, or Admin) can approve supplier payments.');
   }
 
   // Check if same user already approved

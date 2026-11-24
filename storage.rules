@@ -8,9 +8,8 @@ rules_version = '2';
 //   Storage   -> the original binary, at documents/{id}/{filename}
 //
 // The two must agree. A rule here cannot check the Firestore record, so it
-// repeats the role check. If these lists drift apart, someone either gets a
-// permission error on a visible document or a file whose record is hidden.
-// `canManageDocuments` below must stay in step with firestore.rules.
+// repeats the role check via the synced `role` JWT custom claim.
+// `canManageDocuments` and `canDeleteDocuments` mirror firestore.rules.
 // =============================================================================
 
 service firebase.storage {
@@ -27,28 +26,71 @@ service firebase.storage {
         : null;
     }
 
-    // NOTE: role comes from a custom claim, not the Firestore user document.
-    // Storage rules cannot make a Firestore read. If your users do not carry a
-    // `role` custom claim, every request below fails and uploads will appear to
-    // break with "permission denied".
-    function canManageDocuments() {
-      return myRole() == 'admin'
+    function isAdmin() {
+      return myRole() == 'admin' || myRole() == 'president';
+    }
+
+    function isOfficer() {
+      return isAdmin()
+        || myRole() == 'vice_president'
         || myRole() == 'secretary'
+        || myRole() == 'executive_secretary'
+        || myRole() == 'press_secretary'
+        || myRole() == 'linkages_secretary'
+        || myRole() == 'deputy_secretary';
+    }
+
+    // NOTE: role comes from a custom claim, not the Firestore user document.
+    // Storage rules cannot make a Firestore read. Mirrors firestore.rules
+    // `canManageDocuments()` for role-based access.
+    function canManageDocuments() {
+      return isAdmin()
+        || isOfficer()
+        || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer'
         || myRole() == 'representative'
         || myRole() == 'senator';
+    }
+
+    // Mirrors firestore.rules documents/{documentId} allow delete:
+    // Representatives and Senators can read/upload documents, but only
+    // Admins, Secretariat Officers, and Finance Officers may delete binaries.
+    function canDeleteDocuments() {
+      return isAdmin()
+        || isOfficer()
+        || myRole() == 'finance_secretary'
+        || myRole() == 'auditor'
+        || myRole() == 'budget_officer';
+    }
+
+    // Strict upload guard:
+    //  - Non-empty and strictly under 25 MB
+    //  - Exact anchored MIME allowlist (blocks executables, HTML, SVG XSS,
+    //    and spoofed `.*word.*` content types)
+    function isValidDocumentUpload() {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType != null
+        && request.resource.contentType.matches(
+          '^(application/pdf|application/msword|application/vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document|text/plain|image/(jpeg|jpg|png|webp|gif))$'
+        );
     }
 
     match /documents/{documentId}/{fileName} {
       // Reading a document requires the same role as reading its metadata.
       allow read: if canManageDocuments();
 
-      allow write: if canManageDocuments() && isSignedIn();
+      // Uploads and replacements ALWAYS enforce size and MIME-type restrictions.
+      // Never add an unconditional `allow write:` here (Firebase Rules ORs
+      // sibling allow statements, which would silently bypass these checks).
+      allow create, update: if canManageDocuments()
+        && isValidDocumentUpload();
 
-      // Type and size are enforced here as well as in the client. The client
-      // check is a courtesy; this one is the guarantee.
-      allow write: if canManageDocuments()
-        && request.resource.size < 25 * 1024 * 1024
-        && request.resource.contentType.matches('application/pdf|application/.*word.*|text/plain|image/.*');
+      // Deletes carry request.resource == null, so they are authorized
+      // separately with delete-tier RBAC matching firestore.rules.
+      allow delete: if canDeleteDocuments();
     }
 
     match /{allPaths=**} {

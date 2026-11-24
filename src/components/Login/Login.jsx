@@ -50,7 +50,7 @@ const EthnicCornerBracket = ({ className }) => (
 function Login({ initialMode = 'login' }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, login, signup } = useAuth();
+  const { currentUser, isAccountActive, authError, clearAuthError, login, signup } = useAuth();
 
   const [mode, setMode] = useState(
     location.pathname === '/register' ? 'register' : initialMode
@@ -80,13 +80,14 @@ function Login({ initialMode = 'login' }) {
 
   // Automatically leave /login when redirect-based auth (e.g. signInWithRedirect) completes
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && isAccountActive !== false) {
       navigate(from, { replace: true });
     }
-  }, [currentUser, from, navigate]);
+  }, [currentUser, isAccountActive, from, navigate]);
 
   const switchMode = (targetMode) => {
     setError('');
+    clearAuthError?.();
     setMode(targetMode);
   };
 
@@ -98,6 +99,7 @@ function Login({ initialMode = 'login' }) {
 
     try {
       setError('');
+      clearAuthError?.();
 
       if (mode === 'register') {
         if (!fullName.trim()) {
@@ -156,8 +158,8 @@ function Login({ initialMode = 'login' }) {
         setError('Password is too weak. Please use at least 6 characters.');
       } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
-      } else if (error.code === 'auth/user-disabled') {
-        setError('This account has been disabled. Please contact your administrator.');
+      } else if (error.code === 'auth/user-disabled' || error.code === 'auth/account-deactivated') {
+        setError('Your account has been deactivated. Please contact an SSG administrator.');
       } else if (error.code === 'auth/too-many-requests') {
         setError('Too many failed login attempts. Please wait a moment.');
       } else {
@@ -234,10 +236,10 @@ function Login({ initialMode = 'login' }) {
             </button>
           </div>
 
-          {error && (
+          {(error || authError) && (
             <div className={styles.errorBox} role="alert">
               <span className={styles.errorIcon}>⚠️</span>
-              <span className={styles.errorText}>{error}</span>
+              <span className={styles.errorText}>{error || authError}</span>
             </div>
           )}
 

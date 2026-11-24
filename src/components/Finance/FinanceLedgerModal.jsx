@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { HiX, HiExclamation, HiCheckCircle, HiArrowSmLeft, HiShieldCheck } from 'react-icons/hi';
 import styles from './FundGovernance.module.css';
 
@@ -17,6 +18,11 @@ export const ReversalModal = ({
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    setReason('');
+    setError(null);
+  }, [isOpen, transaction?.id]);
+
   if (!isOpen || !transaction) return null;
 
   const displayedError = error || externalError;
@@ -31,7 +37,7 @@ export const ReversalModal = ({
     onConfirm(reason.trim());
   };
 
-  return (
+  return createPortal(
     <div className={styles.modalBackdrop} onClick={onClose} role="dialog" aria-modal="true">
       <div className={styles.modalContent} style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -104,7 +110,8 @@ export const ReversalModal = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -120,7 +127,7 @@ export const OverspendingNoticeModal = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className={styles.modalBackdrop} onClick={onClose} role="dialog" aria-modal="true">
       <div className={styles.modalContent} style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -159,7 +166,8 @@ export const OverspendingNoticeModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -176,7 +184,7 @@ export const RestoreAllocationModal = ({
 }) => {
   if (!isOpen || !budget) return null;
 
-  return (
+  return createPortal(
     <div className={styles.modalBackdrop} onClick={onClose} role="dialog" aria-modal="true">
       <div className={styles.modalContent} style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -206,7 +214,8 @@ export const RestoreAllocationModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

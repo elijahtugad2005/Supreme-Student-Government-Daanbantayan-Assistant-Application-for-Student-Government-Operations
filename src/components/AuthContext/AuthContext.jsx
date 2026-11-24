@@ -9,7 +9,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { auth, db, googleProvider } from "../../firebase/firebaseConfig.js";
 // Statically imported: this module is also imported by many others, so the
 // dynamic import only produced a mixed-import warning without saving anything.
-import { getDefaultPermissionsForRole } from '../../utils/permissions.js';
+import { getDefaultPermissionsForRole, isProfileActive } from '../../utils/permissions.js';
 import { ensureRoleClaim } from '../../services/roleClaims.js';
 import { usingEmulators } from '../../firebase/emulators.js';
 import { 
@@ -21,7 +21,16 @@ import {
   signInWithRedirect,
   getRedirectResult
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+
+const DEACTIVATED_ACCOUNT_MESSAGE =
+  'Your account has been deactivated. Please contact an SSG administrator.';
+
+const createDeactivatedAccountError = () => {
+  const err = new Error(DEACTIVATED_ACCOUNT_MESSAGE);
+  err.code = 'auth/account-deactivated';
+  return err;
+};
 
 // Create context to share auth data across app
 const AuthContext = createContext();
@@ -40,6 +49,19 @@ export function AuthProvider({ children }) {
   // these decide what this account can actually reach.
   const [userPermissions, setUserPermissions] = useState({});
   const [userPermissionOverrides, setUserPermissionOverrides] = useState({});
+  const [isAccountActive, setIsAccountActive] = useState(true);
+  const [authError, setAuthError] = useState(null);
+
+  const clearAuthError = () => setAuthError(null);
+
+  const clearUserProfileState = ({ active = true } = {}) => {
+    setCurrentUser(null);
+    setUserRole(null);
+    setUserName(null);
+    setUserPermissions({});
+    setUserPermissionOverrides({});
+    setIsAccountActive(active);
+  };
 
   // ========================================
   // SIGNUP FUNCTION
@@ -113,12 +135,20 @@ export function AuthProvider({ children }) {
   // ========================================
   const login = async (email, password) => {
     try {
+      setAuthError(null);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Fetch user data from Firestore
+      // Fetch user data from Firestore and verify account is not deactivated
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        if (!isProfileActive(userData)) {
+          clearUserProfileState({ active: false });
+          setAuthError(DEACTIVATED_ACCOUNT_MESSAGE);
+          await signOut(auth);
+          throw createDeactivatedAccountError();
+        }
+        setIsAccountActive(true);
         setUserRole(userData.role);
         setUserName(userData.name || null);
         setUserPermissions(userData.permissions || {});
@@ -163,6 +193,8 @@ export function AuthProvider({ children }) {
       };
 
       await setDoc(userDocRef, userData);
+      setIsAccountActive(true);
+      setAuthError(null);
       setUserRole('member');
       setUserName(user.displayName || 'Google User');
       setUserPermissions(defaultPermissions);
@@ -171,7 +203,16 @@ export function AuthProvider({ children }) {
     }
 
     const userData = userDoc.data();
+    if (!isProfileActive(userData)) {
+      clearUserProfileState({ active: false });
+      setAuthError(DEACTIVATED_ACCOUNT_MESSAGE);
+      await signOut(auth);
+      throw createDeactivatedAccountError();
+    }
+
     await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
+    setIsAccountActive(true);
+    setAuthError(null);
     setUserRole(userData.role);
     setUserName(userData.name || user.displayName || 'Google User');
     setUserPermissions(userData.permissions || {});
@@ -181,6 +222,7 @@ export function AuthProvider({ children }) {
   // Sign in with Google using popup (recommended for web)
   const loginWithGooglePopup = async () => {
     try {
+      setAuthError(null);
       const result = await signInWithPopup(auth, googleProvider);
       await syncGoogleUserProfile(result.user, 'Created via Google Sign-In');
       return result;
@@ -192,6 +234,7 @@ export function AuthProvider({ children }) {
 
   // Sign in with Google using redirect (for mobile or popup-blocked environments)
   const loginWithGoogleRedirect = () => {
+    setAuthError(null);
     return signInWithRedirect(auth, googleProvider);
   };
 
@@ -213,83 +256,102 @@ export function AuthProvider({ children }) {
   // ========================================
   const logout = () => {
     // Clear all auth state before signing out
-    setUserRole(null);
-    setUserName(null);
-    setUserPermissions({});
-    setUserPermissionOverrides({});
+    setAuthError(null);
+    clearUserProfileState({ active: true });
     return signOut(auth);
   };
 
   // ========================================
   // AUTH STATE LISTENER
-  // Runs on app load and whenever auth state changes
-  // Automatically fetches user data from Firestore
+  // Runs on app load and whenever auth state changes.
+  // Subscribes in real time to users/{uid} so deactivating an officer in
+  // User Management immediately terminates their live session.
   // ========================================
   useEffect(() => {
     // Check for redirect result on initial load
     handleRedirectResult();
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('Auth state changed - User:', user);
-      setCurrentUser(user);
-      
-      if (user) {
-        // User is logged in, fetch their data
-        try {
-          console.log('Fetching user data for UID:', user.uid);
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          console.log('User document exists:', userDoc.exists());
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            console.log('User data:', userData);
-            console.log('User role:', userData.role);
-            console.log('User name:', userData.name);
-            
-            setUserRole(userData.role);
-            setUserName(userData.name || user.displayName || null); // Set name or null if not present
-            // Access data is read from the Firestore profile, not the Auth
-            // object â€” Firebase Auth users carry no role or permission fields.
-            // Without these, per-user permission overrides from User Management
-            // would never reach the app.
-            setUserPermissions(userData.permissions || {});
-            setUserPermissionOverrides(userData.permissionOverrides || {});
+    let unsubscribeUserDoc = null;
 
-            // Storage rules authorise on the role claim in the ID token, which
-            // is separate from this Firestore document. Fire-and-forget: a
-            // failure here must not interrupt sign-in, and most of the app works
-            // without the claim because Firestore rules read the document.
-            ensureRoleClaim(user, userData.role);
-          } else {
-            // No profile document.
-            //
-            // With the Firestore emulator active, its data does NOT survive a
-            // restart, so every fresh emulator begins empty. The user's role
-            // lives in that Firestore, so without a document the role resolves
-            // to null and EVERY route denies — including the home page — with a
-            // confusing "role (Unknown)" message.
-            //
-            // Auto-provisioning fixes that loop. It is deliberately gated on the
-            // emulator flag: production never has it set, so this can never
-            // create an admin document in a real database.
-            if (usingEmulators()) {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (unsubscribeUserDoc) {
+        unsubscribeUserDoc();
+        unsubscribeUserDoc = null;
+      }
+
+      if (!user) {
+        // User is logged out — preserve authError if sign-out was triggered by deactivation
+        setCurrentUser(null);
+        setUserRole(null);
+        setUserName(null);
+        setUserPermissions({});
+        setUserPermissionOverrides({});
+        setLoading(false);
+        return;
+      }
+
+      // Subscribe in real time to the user's Firestore profile BEFORE exposing
+      // currentUser so a deactivated account can never flash past /login.
+      unsubscribeUserDoc = onSnapshot(
+        doc(db, 'users', user.uid),
+        async (userDoc) => {
+          try {
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+
+              if (!isProfileActive(userData)) {
+                console.warn('[auth] Account deactivated — forcing immediate sign-out for UID:', user.uid);
+                clearUserProfileState({ active: false });
+                setAuthError(DEACTIVATED_ACCOUNT_MESSAGE);
+                setLoading(false);
+                try {
+                  await signOut(auth);
+                } catch (signOutError) {
+                  console.error('[auth] Forced sign-out after deactivation failed:', signOutError);
+                }
+                return;
+              }
+
+              setIsAccountActive(true);
+              setAuthError(null);
+              setCurrentUser(user);
+              setUserRole(userData.role);
+              setUserName(userData.name || user.displayName || null);
+              // Access data is read from the Firestore profile, not the Auth
+              // object — Firebase Auth users carry no role or permission fields.
+              // Without these, per-user permission overrides from User Management
+              // would never reach the app.
+              setUserPermissions(userData.permissions || {});
+              setUserPermissionOverrides(userData.permissionOverrides || {});
+
+              // Storage rules authorise on the role claim in the ID token, which
+              // is separate from this Firestore document. Fire-and-forget: a
+              // failure here must not interrupt sign-in, and most of the app works
+              // without the claim because Firestore rules read the document.
+              ensureRoleClaim(user, userData.role);
+            } else if (usingEmulators()) {
+              // With the Firestore emulator active, its data does NOT survive a
+              // restart, so every fresh emulator begins empty. Auto-provisioning
+              // is strictly gated on the emulator flag and never runs in production.
               try {
-                const { setDoc } = await import('firebase/firestore');
                 await setDoc(
                   doc(db, 'users', user.uid),
                   {
                     role: 'admin',
                     name: user.displayName || user.email || 'Local developer',
                     permissions: getDefaultPermissionsForRole('admin'),
+                    isActive: true,
                     provisionedLocally: true,
                     provisionedAt: new Date().toISOString(),
                   },
                   { merge: true }
                 );
                 console.warn(
-                  `[auth] No profile found, so one was created with role=admin in the ` +
+                  '[auth] No profile found, so one was created with role=admin in the ' +
                     'EMULATOR database. This does not happen in production.'
                 );
+                setIsAccountActive(true);
+                setCurrentUser(user);
                 setUserRole('admin');
                 setUserName(user.displayName || user.email || 'Local developer');
                 setUserPermissions(getDefaultPermissionsForRole('admin'));
@@ -297,6 +359,7 @@ export function AuthProvider({ children }) {
                 ensureRoleClaim(user, 'admin');
               } catch (provisionError) {
                 console.error('[auth] Could not provision a local profile:', provisionError);
+                setCurrentUser(user);
                 setUserRole(null);
                 setUserName(null);
                 setUserPermissions({});
@@ -304,33 +367,40 @@ export function AuthProvider({ children }) {
               }
             } else {
               console.log('No user document found for UID:', user.uid);
+              setIsAccountActive(true);
+              setCurrentUser(user);
               setUserRole(null);
               setUserName(null);
               setUserPermissions({});
               setUserPermissionOverrides({});
             }
+          } catch (error) {
+            console.error('Error processing user profile snapshot:', error);
+            setUserRole(null);
+            setUserName(null);
+            setUserPermissions({});
+            setUserPermissionOverrides({});
+          } finally {
+            setLoading(false);
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
+        },
+        (error) => {
+          console.error('Error subscribing to user profile:', error);
+          setCurrentUser(null);
           setUserRole(null);
           setUserName(null);
           setUserPermissions({});
           setUserPermissionOverrides({});
+          setLoading(false);
         }
-      } else {
-        // User is logged out
-        console.log('No user logged in');
-        setUserRole(null);
-        setUserName(null);
-        setUserPermissions({});
-        setUserPermissionOverrides({});
-      }
-      
-      setLoading(false);
+      );
     });
 
-    // Cleanup listener on unmount
-    return unsubscribe;
+    // Cleanup listeners on unmount
+    return () => {
+      if (unsubscribeUserDoc) unsubscribeUserDoc();
+      unsubscribeAuth();
+    };
   }, []);
 
   // Values accessible to all components via useAuth()
@@ -340,6 +410,9 @@ export function AuthProvider({ children }) {
     userName,         // User's display name from Firestore
     userPermissions,  // Role defaults snapshot from Firestore
     userPermissionOverrides, // Per-user grants/revocations set by an Admin
+    isAccountActive,  // False when Firestore users/{uid}.isActive === false
+    authError,        // Surfaced on Login page after forced deactivation sign-out
+    clearAuthError,   // Resets authError when starting a fresh auth attempt
     login,            // Function to log in with email/password
     signup,           // Function to create account with email/password
     loginWithGooglePopup,  // Function to sign in with Google (popup)

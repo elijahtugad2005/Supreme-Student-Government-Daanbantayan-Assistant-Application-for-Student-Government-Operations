@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const DOCS_DIR = path.resolve('Obisidian Documentation');
+const DOCS_DIR = path.resolve('Obsidian Documentation');
 
 // Subdirectories under Documents/
 const CATEGORIES = {
@@ -21,15 +21,15 @@ const NEURAL_SYNAPSES = {
   'FINANCE_MODULE_REDESIGN_SPEC.md': [
     '[[02_Commerce_Merchandising/COMMERCE_HUB_FEATURE|Commerce Hub Revenue Integration]]',
     '[[02_Commerce_Merchandising/ORDER_STOCK_MANAGEMENT|Order Stock & IGF Sync]]',
-    '[[db-atlas/fundAccounts|fundAccounts Collection]]',
-    '[[db-atlas/budgetAllocations|budgetAllocations Collection]]',
-    '[[db-atlas/transactions|transactions Double-Entry Ledger]]',
+    '[[db-atlas/03-finance-ppmp-igp/fundAccounts|fundAccounts Collection]]',
+    '[[db-atlas/03-finance-ppmp-igp/budgetAllocations|budgetAllocations Collection]]',
+    '[[db-atlas/03-finance-ppmp-igp/transactions|transactions Double-Entry Ledger]]',
     '[[01_Architecture_Database/COMPLETE_CODEBASE_ERD_AND_DATABASE_SPECIFICATION|Codebase ERD]]'
   ],
   'FINANCE_CLARIFICATION.MD': [
     '[[03_Finance_Ledger/FINANCE_MODULE_REDESIGN_SPEC|Finance Redesign Spec]]',
-    '[[db-atlas/transactions|transactions Ledger]]',
-    '[[db-atlas/fundAccounts|fundAccounts Balance Invariants]]'
+    '[[db-atlas/03-finance-ppmp-igp/transactions|transactions Ledger]]',
+    '[[db-atlas/03-finance-ppmp-igp/fundAccounts|fundAccounts Balance Invariants]]'
   ],
 
   // Commerce cross-links
@@ -37,19 +37,19 @@ const NEURAL_SYNAPSES = {
     '[[03_Finance_Ledger/FINANCE_MODULE_REDESIGN_SPEC|Finance IGF Sync]]',
     '[[02_Commerce_Merchandising/ORDER_STOCK_MANAGEMENT|Order Stock Management]]',
     '[[02_Commerce_Merchandising/TRACK_ORDER_ARCHITECTURE|Track Order Architecture]]',
-    '[[db-atlas/products|products Collection]]',
-    '[[db-atlas/orders|orders Collection]]',
-    '[[db-atlas/inventory|inventory Collection]]'
+    '[[db-atlas/04-commerce-inventory-preorders/products|products Collection]]',
+    '[[db-atlas/04-commerce-inventory-preorders/orders|orders Collection]]',
+    '[[db-atlas/04-commerce-inventory-preorders/inventory|inventory Collection]]'
   ],
   'ORDER_STOCK_MANAGEMENT.md': [
     '[[02_Commerce_Merchandising/COMMERCE_HUB_FEATURE|Commerce Hub Dashboard]]',
     '[[03_Finance_Ledger/FINANCE_MODULE_REDESIGN_SPEC|Finance Module Spec]]',
-    '[[db-atlas/orders|orders Lifecycle]]',
-    '[[db-atlas/inventory|inventory Deductions]]'
+    '[[db-atlas/04-commerce-inventory-preorders/orders|orders Lifecycle]]',
+    '[[db-atlas/04-commerce-inventory-preorders/inventory|inventory Deductions]]'
   ],
   'TRACK_ORDER_ARCHITECTURE.md': [
     '[[02_Commerce_Merchandising/COMMERCE_HUB_FEATURE|Commerce Hub]]',
-    '[[db-atlas/orders|orders Status Machine]]',
+    '[[db-atlas/04-commerce-inventory-preorders/orders|orders Status Machine]]',
     '[[01_Architecture_Database/COMPLETE_CODEBASE_ERD_AND_DATABASE_SPECIFICATION|Codebase ERD Topology]]'
   ],
 
@@ -64,9 +64,9 @@ const NEURAL_SYNAPSES = {
   ],
   'DB_ATLAS_OBSIDIAN_CONFIGURATION_REVIEW.md': [
     '[[01_Architecture_Database/COMPLETE_CODEBASE_ERD_AND_DATABASE_SPECIFICATION|Codebase ERD Specification]]',
-    '[[db-atlas/orders|orders Table Note]]',
-    '[[db-atlas/transactions|transactions Table Note]]',
-    '[[db-atlas/fundAccounts|fundAccounts Table Note]]'
+    '[[db-atlas/04-commerce-inventory-preorders/orders|orders Table Note]]',
+    '[[db-atlas/03-finance-ppmp-igp/transactions|transactions Table Note]]',
+    '[[db-atlas/03-finance-ppmp-igp/fundAccounts|fundAccounts Table Note]]'
   ],
   'MONGODB_AI_INTEGRATION_COMPLETE.md': [
     '[[01_Architecture_Database/MONGODB_ATLAS_SETUP_GUIDE|MongoDB Atlas Setup]]',
@@ -76,9 +76,8 @@ const NEURAL_SYNAPSES = {
 
   // Academics & Governance cross-links
   'DOCUMENT_MANAGEMENT_WALKTHROUGH.md': [
-    '[[db-atlas/documents|documents Collection]]',
-    '[[db-atlas/documentLabels|documentLabels Collection]]',
-    '[[db-atlas/documentTemplates|documentTemplates Collection]]',
+    '[[db-atlas/05-documents-comms-campus/documents|documents Collection]]',
+    '[[db-atlas/05-documents-comms-campus/documentLabels|documentLabels Collection]]',
     '[[04_Academics_Governance_Docs/PDF_DASHBOARD_DESIGN_TRANSFORMATION|PDF Dashboard UI]]'
   ],
 
@@ -120,6 +119,7 @@ const FILE_MAP = {
   '0002-university-appropriation-and-ppmp-matrix.md': { cat: CATEGORIES.ARCH, domain: 'architecture', type: 'adr' },
   'MONGODB_AI_INTEGRATION_COMPLETE.md': { cat: CATEGORIES.ARCH, domain: 'architecture', type: 'integration' },
   'MONGODB_AI_INTEGRATION_SUMMARY.md': { cat: CATEGORIES.ARCH, domain: 'architecture', type: 'summary' },
+  'MONGODB_AI_POST_IMPLEMENTATION_CHECKLIST.md': { cat: CATEGORIES.ARCH, domain: 'architecture', type: 'checklist' },
   'MONGODB_AI_STORAGE_AND_CLEANUP_DIAGNOSTICS.md': { cat: CATEGORIES.ARCH, domain: 'architecture', type: 'diagnostics' },
   'MONGODB_AI_TECHNICAL_FINDINGS.md': { cat: CATEGORIES.ARCH, domain: 'architecture', type: 'technical-findings' },
   'MONGODB_ATLAS_SETUP_GUIDE.md': { cat: CATEGORIES.ARCH, domain: 'architecture', type: 'guide' },
@@ -235,7 +235,7 @@ const FILE_MAP = {
 };
 
 // Search paths in priority order
-const SEARCH_DIRS = ['Obisidian Documentation', 'Markdownfiles', 'Paperworks', 'docs/adr', '.'];
+const SEARCH_DIRS = ['Obsidian Documentation', 'Markdownfiles', 'Paperworks', 'docs/adr', '.'];
 
 function findSourcePath(fileName) {
   for (const dir of SEARCH_DIRS) {
@@ -339,15 +339,10 @@ category: "${meta.cat}"
     }
   }
 
-  // Copy / update db-atlas notes
-  const srcDbAtlas = path.join('Obisidian Documentation', 'db-atlas');
+  // Ensure db-atlas directory exists (managed by scripts/generate-db-atlas-notes.mjs)
   const targetDbAtlas = path.join(targetRoot, 'db-atlas');
-  if (fs.existsSync(srcDbAtlas) && targetDbAtlas !== srcDbAtlas) {
-    if (!fs.existsSync(targetDbAtlas)) fs.mkdirSync(targetDbAtlas, { recursive: true });
-    const dbFiles = fs.readdirSync(srcDbAtlas).filter(f => f.endsWith('.md'));
-    for (const f of dbFiles) {
-      fs.copyFileSync(path.join(srcDbAtlas, f), path.join(targetDbAtlas, f));
-    }
+  if (!fs.existsSync(targetDbAtlas)) {
+    fs.mkdirSync(targetDbAtlas, { recursive: true });
   }
 
   // Generate Domain MOCs
@@ -452,11 +447,46 @@ tags:
     fs.writeFileSync(mocPath, mocContent, 'utf-8');
   }
 
-  // Copy or write 00_VAULT_INDEX.md
-  const masterIndexPath = path.join('Obisidian Documentation', '00_VAULT_INDEX.md');
-  if (fs.existsSync(masterIndexPath) && path.join(targetRoot, '00_VAULT_INDEX.md') !== masterIndexPath) {
-    fs.copyFileSync(masterIndexPath, path.join(targetRoot, '00_VAULT_INDEX.md'));
-  }
+  // Always refresh 00_VAULT_INDEX.md in targetRoot so ERD links stay synchronized
+  const masterIndexPath = path.join(targetRoot, '00_VAULT_INDEX.md');
+  const indexContent = `---
+title: "SSG Office Assistant — Master Knowledge Graph & Vault Index"
+tags:
+  - nucleus/core
+  - type/moc
+  - status/production
+  - ctu-daanbantayan
+---
+
+# 🧠 CTU-DB SSG Office Assistant — Master Vault Index
+
+Welcome to the unified **Obsidian Documentation** vault for the **CTU–Daanbantayan SSG Office Assistant** platform.
+
+## 🗂️ Domain Knowledge Hubs (MOCs)
+
+- [[01_Architecture_Database/01_Architecture_Database_MOC|🏛️ 01 — Architecture, Database & System Topology]]
+- [[02_Commerce_Merchandising/02_Commerce_Merchandising_MOC|🛍️ 02 — Commerce Hub, Orders & Inventory]]
+- [[03_Finance_Ledger/03_Finance_Ledger_MOC|💳 03 — Finance, PPMP & IGF Double-Entry Ledger]]
+- [[04_Academics_Governance_Docs/04_Academics_Governance_Docs_MOC|🎓 04 — Academics, Governance & Document Repository]]
+- [[05_System_UI_Components/05_System_UI_Components_MOC|🎨 05 — UI Design System, Modals & Components]]
+- [[06_Research_Manuscripts/06_Research_Manuscripts_MOC|📚 06 — Thesis Manuscripts & Progress Reports]]
+- [[07_DevOps_Deployment/07_DevOps_Deployment_MOC|🚀 07 — DevOps, Infrastructure & Deployment Guides]]
+
+## 🗄️ Color-Coded DB Atlas ERDs (\`db-atlas/\`)
+
+Each folder renders as an independent ERD canvas in the **DB Atlas** plugin with color-coded section headers (\`table_color\`):
+
+- **Master Combined ERD** (\`db-atlas/00-all-entities-combined\`, **32 live entities**, color-coded across all 5 domains with every verified intra-domain & cross-domain connection)
+
+| Section | Color Code | Folder | Tables |
+| :--- | :---: | :--- | :--- |
+| **1 · Identity, Organizations & Audit** | \`#8B1E3F\` Royal Crimson | \`db-atlas/01-identity-org-audit\` | [[db-atlas/01-identity-org-audit/users|users]], [[db-atlas/01-identity-org-audit/organizations|organizations]], [[db-atlas/01-identity-org-audit/members|members]], [[db-atlas/01-identity-org-audit/terms|terms]], [[db-atlas/01-identity-org-audit/audit_logs|audit_logs]] |
+| **2 · Class Rosters & TechnoCares** | \`#0F766E\` Deep Emerald Teal | \`db-atlas/02-rosters-technocares\` | [[db-atlas/02-rosters-technocares/classSections|classSections]], [[db-atlas/02-rosters-technocares/classRosters|classRosters]], [[db-atlas/02-rosters-technocares/deathAidBeneficiaries|deathAidBeneficiaries]], [[db-atlas/02-rosters-technocares/deathAidCollections|deathAidCollections]], [[db-atlas/02-rosters-technocares/deathAidRemittances|deathAidRemittances]], [[db-atlas/02-rosters-technocares/deathAidAuditLog|deathAidAuditLog]], [[db-atlas/02-rosters-technocares/deathAidCounters|deathAidCounters]] (+ \`users\` anchor) |
+| **3 · Centavo Finance, PPMP & IGP** | \`#1D4ED8\` Executive Sapphire | \`db-atlas/03-finance-ppmp-igp\` | [[db-atlas/03-finance-ppmp-igp/fundAccounts|fundAccounts]], [[db-atlas/03-finance-ppmp-igp/budgetAllocations|budgetAllocations]], [[db-atlas/03-finance-ppmp-igp/transactions|transactions]], [[db-atlas/03-finance-ppmp-igp/lockers|lockers]], [[db-atlas/03-finance-ppmp-igp/igpCollections|igpCollections]] (+ \`users\`, \`documents\`, \`orders\` anchors) |
+| **4 · Commerce, Inventory & Pre-Orders** | \`#B45309\` Burnished Amber Gold | \`db-atlas/04-commerce-inventory-preorders\` | [[db-atlas/04-commerce-inventory-preorders/products|products]], [[db-atlas/04-commerce-inventory-preorders/orders|orders]], [[db-atlas/04-commerce-inventory-preorders/inventory|inventory]], [[db-atlas/04-commerce-inventory-preorders/borrowingLogs|borrowingLogs]], [[db-atlas/04-commerce-inventory-preorders/preOrderBatches|preOrderBatches]], [[db-atlas/04-commerce-inventory-preorders/preOrderEntries|preOrderEntries]], [[db-atlas/04-commerce-inventory-preorders/settings|settings]] (+ \`users\`, \`terms\` anchors) |
+| **5 · Documents, GridFS, AI & Campus** | \`#6D28D9\` Imperial Violet | \`db-atlas/05-documents-comms-campus\` | [[db-atlas/05-documents-comms-campus/documents|documents]], [[db-atlas/05-documents-comms-campus/gridfs_files|gridfs_files]], [[db-atlas/05-documents-comms-campus/documentLabels|documentLabels]], [[db-atlas/05-documents-comms-campus/documentAuditLogs|documentAuditLogs]], [[db-atlas/05-documents-comms-campus/announcements|announcements]], [[db-atlas/05-documents-comms-campus/newsArticles|newsArticles]], [[db-atlas/05-documents-comms-campus/calendarEvents|calendarEvents]], [[db-atlas/05-documents-comms-campus/campusMetadata|campusMetadata]] (+ \`users\` anchor) |
+`;
+  fs.writeFileSync(masterIndexPath, indexContent, 'utf-8');
 
   // Configure .obsidian/graph.json
   const graphConfig = {
@@ -512,5 +542,5 @@ tags:
   console.log(`🌟 ${targetRoot} is now a 100% organized, clean, neural Obsidian Vault!`);
 }
 
-// Run for Obisidian Documentation
+// Run for Obsidian Documentation
 organizeVault(DOCS_DIR);

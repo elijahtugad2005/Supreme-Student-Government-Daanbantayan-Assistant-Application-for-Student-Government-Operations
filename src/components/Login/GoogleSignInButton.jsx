@@ -24,6 +24,10 @@ const GOOGLE_AUTH_ERROR_MESSAGES = {
     'Google Sign-In provider is disabled in Firebase Console.',
   'auth/web-storage-unsupported':
     'Browser blocked third-party storage required for Google pop-up sign-in. Disable strict tracking/cookie shields or try Redirect Sign-In below.',
+  'auth/user-disabled':
+    'Your account has been deactivated. Please contact an SSG administrator.',
+  'auth/account-deactivated':
+    'Your account has been deactivated. Please contact an SSG administrator.',
   'auth/internal-error':
     'Google Auth failed internally (auth/internal-error). Commonly caused by strict browser tracker/cookie shields blocking third-party storage or apis.google.com, or mismatched VITE_FIREBASE_AUTH_DOMAIN / OAuth settings.',
 };

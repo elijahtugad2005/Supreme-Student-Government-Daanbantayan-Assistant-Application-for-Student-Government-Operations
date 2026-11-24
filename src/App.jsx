@@ -1,10 +1,10 @@
 // --- CORE IMPORTS ---
 import React from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'; 
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 // --- CONTEXT IMPORTS ---
 import { AuthProvider, useAuth } from './components/AuthContext/AuthContext.jsx'; // Make sure this path is correct
-import { InventoryProvider , useInventory } from './components/InventoryContext/InventoryProvider.jsx'; 
+import { InventoryProvider, useInventory } from './components/InventoryContext/InventoryProvider.jsx';
 import { FinanceProvider } from './components/FinanceContext/FinanceProvider.jsx';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
@@ -22,7 +22,7 @@ import Announcement from './components/Announcement.jsx';
 import ClassUpload from './components/ClassUpload.jsx';
 import DeathAid from './components/DeathAid.jsx';
 import SectionsAndContributions from './components/SectionsAndContributions/SectionsAndContributions.jsx';
-import Login from './components/Login/Login.jsx'; 
+import Login from './components/Login/Login.jsx';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute.jsx';
 import { ROUTE_ALLOWED_ROLES } from './utils/permissions.js';
 import FinanceDashboard from './components/Finance/FinanceDashboard.jsx';
@@ -86,14 +86,14 @@ const IgpRoleWorkspace = () => {
     userRole === 'representative'
       ? 'vending'
       : userRole === 'governor'
-      ? 'lockers'
-      : 'full';
+        ? 'lockers'
+        : 'full';
   const heading =
     roleMode === 'vending'
       ? 'Vendo Machine Collections'
       : roleMode === 'lockers'
-      ? 'Campus Lockers Management'
-      : 'IGP Projects & Lockers';
+        ? 'Campus Lockers Management'
+        : 'IGP Projects & Lockers';
 
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
@@ -112,342 +112,339 @@ function App() {
   return (
     // NOTE: Removed <BrowserRouter> and <CardProvider> here as they are now in main.jsx
     <ThemeProvider>
-      <AuthProvider> 
-        <InventoryProvider> 
-        <FinanceProvider>
-        <Routes>
-        {/* ========================================
+      <AuthProvider>
+        <InventoryProvider>
+          <FinanceProvider>
+            <Routes>
+              {/* ========================================
             PUBLIC ROUTES (No Sidebar/Header)
             ======================================== */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Login initialMode="register" />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Login initialMode="register" />} />
 
-        {/* ========================================
+              {/* ========================================
             DASHBOARD ROUTES (Wrapped in Layout)
             ======================================== */}
-        
-        {/* 1. Public Dashboard Pages */}
-        <Route path="/" element={
-          <DashboardLayout>
-            <Homepage />
-          </DashboardLayout>
-        } />
 
-        {/* 1.1 ORDER PLACEMENT (UNIFIED PLACE & TRACK ORDER) */}
-        <Route path="/order" element={
-          <ProtectedRoute
-            allowGuest
-            allowedRoles={ROUTE_ALLOWED_ROLES['/order']}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need to be signed in to access order placement."
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <OrderHub />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+              {/* 1. Public Dashboard Pages */}
+              <Route path="/" element={
+                <DashboardLayout>
+                  <Homepage />
+                </DashboardLayout>
+              } />
 
-        {/* 1.2 ORDER TRACKING (DEEP-LINK COMPATIBILITY -> ORDER HUB) */}
-        <Route path="/track-order" element={
-          <ProtectedRoute
-            allowGuest
-            allowedRoles={ROUTE_ALLOWED_ROLES['/track-order']}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need to be signed in to track orders."
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <OrderHub />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+              {/* 1.1 ORDER PLACEMENT (UNIFIED PLACE & TRACK ORDER) */}
+              <Route path="/order" element={
+                <ProtectedRoute
+                  allowGuest
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/order']}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need to be signed in to access order placement."
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <OrderHub />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 2. ADMIN ONLY ROUTES */}
-        <Route path="/admin" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/admin']}
-            requiredPermissions={['canManageUsers']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="Administrator access is required to view the admin dashboard."
-                  requiredRole="admin"
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <AdminPage />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+              {/* 1.2 ORDER TRACKING (DEEP-LINK COMPATIBILITY -> ORDER HUB) */}
+              <Route path="/track-order" element={
+                <ProtectedRoute
+                  allowGuest
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/track-order']}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need to be signed in to track orders."
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <OrderHub />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 2.1 ADMIN USER MANAGEMENT */}
-        <Route path="/admin/users" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/admin/users']}
-            requiredPermissions={['canManageUsers']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need user management permissions to access this page."
+              {/* 2. ADMIN ONLY ROUTES */}
+              <Route path="/admin" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/admin']}
                   requiredPermissions={['canManageUsers']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <UserManagement />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="Administrator access is required to view the admin dashboard."
+                        requiredRole="admin"
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <AdminPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 2.2 ADMIN AUDIT TRAIL */}
-        <Route path="/admin/audit" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/admin/audit']}
-            requiredPermissions={['canManageUsers', 'canViewFinance']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need audit or finance oversight permissions to view the audit trail."
+              {/* 2.1 ADMIN USER MANAGEMENT */}
+              <Route path="/admin/users" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/admin/users']}
+                  requiredPermissions={['canManageUsers']}
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need user management permissions to access this page."
+                        requiredPermissions={['canManageUsers']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <UserManagement />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* 2.2 ADMIN AUDIT TRAIL */}
+              <Route path="/admin/audit" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/admin/audit']}
                   requiredPermissions={['canManageUsers', 'canViewFinance']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <AuditTrail />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need audit or finance oversight permissions to view the audit trail."
+                        requiredPermissions={['canManageUsers', 'canViewFinance']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <AuditTrail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 3. FINANCE DASHBOARD */}
-        <Route path="/finance" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/finance']}
-            requiredPermissions={['canViewFinance']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need finance viewing permissions to access the finance dashboard."
+              {/* 3. FINANCE DASHBOARD */}
+              <Route path="/finance" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/finance']}
                   requiredPermissions={['canViewFinance']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <FinanceDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need finance viewing permissions to access the finance dashboard."
+                        requiredPermissions={['canViewFinance']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <FinanceDashboard />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 3.1 STANDALONE IGP PROJECTS (Representatives -> Vendo Machine, Governors -> Campus Lockers) */}
-        <Route path="/igp-projects" element={
-          <ProtectedRoute
-            allowedRoles={ROUTE_ALLOWED_ROLES['/igp-projects']}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied
-                  message="Only Representatives, Governors, or Finance Officers can access IGP Projects & Lockers."
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <IgpRoleWorkspace />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+              {/* 3.1 STANDALONE IGP PROJECTS (Representatives -> Vendo Machine, Governors -> Campus Lockers) */}
+              <Route path="/igp-projects" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/igp-projects']}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="Only Representatives, Governors, or Finance Officers can access IGP Projects & Lockers."
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <IgpRoleWorkspace />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 4. INVENTORY MANAGEMENT */}
-        <Route path="/inventory" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/inventory']}
-            requiredPermissions={['canManageProducts']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need product management permissions to access inventory."
+              {/* 4. INVENTORY MANAGEMENT */}
+              <Route path="/inventory" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/inventory']}
                   requiredPermissions={['canManageProducts']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <InventoryManagement/>
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need product management permissions to access inventory."
+                        requiredPermissions={['canManageProducts']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <InventoryManagement />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 5. COMMERCE HUB */}
-        <Route path="/commerce" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/commerce']}
-            requiredPermissions={['canManageOrders']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need order management permissions to access the commerce hub."
+              {/* 5. COMMERCE HUB */}
+              <Route path="/commerce" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/commerce']}
                   requiredPermissions={['canManageOrders']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <CommerceHub />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need order management permissions to access the commerce hub."
+                        requiredPermissions={['canManageOrders']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <CommerceHub />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 6. DOCUMENTS */}
-        <Route path="/documents" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/documents']}
-            requiredPermissions={['canExportData']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need data export permissions to access documents."
+              {/* 6. DOCUMENTS */}
+              <Route path="/documents" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/documents']}
                   requiredPermissions={['canExportData']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <DocumentDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need data export permissions to access documents."
+                        requiredPermissions={['canExportData']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <DocumentDashboard />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 6.9 SECTIONS & CONTRIBUTIONS (UNIFIED CLASS ROSTER & DEATH AID) */}
-        <Route path="/sections-contributions" element={
-          <ProtectedRoute
-            allowedRoles={ROUTE_ALLOWED_ROLES['/sections-contributions']}
-            requiredPermissions={['canSubmitRoster']}
-            allowGuest
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied
-                  message="You need to be signed in to access Sections and Contributions."
+              {/* 6.9 SECTIONS & CONTRIBUTIONS (UNIFIED CLASS ROSTER & DEATH AID — AUTHENTICATED NON-GUEST ONLY) */}
+              <Route path="/sections-contributions" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/sections-contributions']}
                   requiredPermissions={['canSubmitRoster']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <SectionsAndContributions />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="Sign in with a verified student or officer account to access Sections and Contributions. Guest access is restricted."
+                        requiredPermissions={['canSubmitRoster']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <SectionsAndContributions />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 7. REPORTS / ROSTER REGISTRY */}
-        <Route path="/reports" element={
-          <ProtectedRoute
-            allowedRoles={ROUTE_ALLOWED_ROLES['/reports']}
-            requiredPermissions={['canSubmitRoster']}
-            allowGuest
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied
-                  message="You need to be signed in to submit a class roster."
+              {/* 7. REPORTS / ROSTER REGISTRY */}
+              <Route path="/reports" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/reports']}
                   requiredPermissions={['canSubmitRoster']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <ClassUpload />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="Sign in with a verified student or officer account to submit a class roster. Guest access is restricted."
+                        requiredPermissions={['canSubmitRoster']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <ClassUpload />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 7b. DEATH AID COLLECTION & REMITTANCE */}
-        <Route path="/death-aid" element={
-          <ProtectedRoute
-            allowedRoles={ROUTE_ALLOWED_ROLES['/death-aid']}
-            requiredPermissions={['canSubmitRoster']}
-            allowGuest
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied
-                  message="Enter your name and select a section to submit Death Aid contributions."
+              {/* 7b. DEATH AID COLLECTION & REMITTANCE */}
+              <Route path="/death-aid" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/death-aid']}
                   requiredPermissions={['canSubmitRoster']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <DeathAid />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="Sign in with a verified student or officer account to access Death Aid contributions. Guest access is restricted."
+                        requiredPermissions={['canSubmitRoster']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <DeathAid />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 8. ANNOUNCEMENTS */}
-        <Route path="/announcement" element={
-          <ProtectedRoute 
-            allowedRoles={ROUTE_ALLOWED_ROLES['/announcement']}
-            requiredPermissions={['canSendNotifications']}
-            anyPermission={true}
-            customAccessDenied={
-              <DashboardLayout>
-                <AccessDenied 
-                  message="You need notification sending permissions to access announcements."
+              {/* 8. ANNOUNCEMENTS */}
+              <Route path="/announcement" element={
+                <ProtectedRoute
+                  allowedRoles={ROUTE_ALLOWED_ROLES['/announcement']}
                   requiredPermissions={['canSendNotifications']}
-                  showUserInfo={true}
-                />
-              </DashboardLayout>
-            }
-          >
-            <DashboardLayout>
-              <Announcement />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+                  anyPermission={true}
+                  customAccessDenied={
+                    <DashboardLayout>
+                      <AccessDenied
+                        message="You need notification sending permissions to access announcements."
+                        requiredPermissions={['canSendNotifications']}
+                        showUserInfo={true}
+                      />
+                    </DashboardLayout>
+                  }
+                >
+                  <DashboardLayout>
+                    <Announcement />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-        {/* 9. CAMPUS INTERACTIVE 2D EAGLE-EYE MAP */}
-        <Route path="/campus-map" element={
-          <DashboardLayout>
-            <CampusMap />
-          </DashboardLayout>
-        } />
+              {/* 9. CAMPUS INTERACTIVE 2D EAGLE-EYE MAP */}
+              <Route path="/campus-map" element={
+                <DashboardLayout>
+                  <CampusMap />
+                </DashboardLayout>
+              } />
 
-        {/* 4. CATCH ALL */}
-        <Route path="*" element={<div>404 - Page Not Found</div>} />
+              {/* 4. CATCH ALL */}
+              <Route path="*" element={<div>404 - Page Not Found</div>} />
 
-      </Routes>
-      </FinanceProvider>
-      </InventoryProvider>
-    </AuthProvider>
+            </Routes>
+          </FinanceProvider>
+        </InventoryProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

@@ -58,42 +58,75 @@ const ANNOUNCEMENT_ROLES = [
 ];
 
 /**
+ * Fetch the authoritative Firestore profile for a user UID.
+ * Returns null if Firestore is unavailable or the document does not exist.
+ */
+async function loadUserProfile(uid) {
+  if (!uid) return null;
+  try {
+    const db = getFirestore();
+    if (db && typeof db.collection === 'function') {
+      const snap = await db.collection('users').doc(uid).get();
+      if (snap && snap.exists) {
+        return snap.data() || {};
+      }
+    }
+  } catch (err) {
+    console.warn(`[Auth] Firestore profile lookup failed for ${uid}:`, err.message);
+  }
+  return null;
+}
+
+/**
  * Authentication middleware
- * Verifies Firebase JWT token from Authorization header
+ * Verifies Firebase JWT token from Authorization header with revocation check
+ * and rejects accounts deactivated (`isActive === false`) in Firestore.
  * 
  * Expected header format: "Bearer <firebase-id-token>"
  */
 async function authenticate(req, res, next) {
   try {
-    // Accept token from Authorization header (API calls) OR
-    // ?token= query param (direct download anchor links via mongoStore.getUrl())
+    // Strictly require Authorization: Bearer <firebase-id-token> header.
+    // Query-string tokens (?token=) are forbidden across all endpoints because
+    // URLs leak bearer JWTs into browser history, Referer headers, and proxy logs.
     let idToken = null;
 
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      idToken = authHeader.split('Bearer ')[1];
-    } else if (req.query.token) {
-      idToken = req.query.token;
+      idToken = authHeader.slice('Bearer '.length).trim();
     }
 
-    if (!idToken || idToken.trim() === '') {
+    if (!idToken) {
       return res.status(401).json({
         success: false,
         error: 'Authorization required',
-        message: 'Provide a Firebase ID token via Authorization: Bearer header or ?token= query param'
+        message: 'Provide a Firebase ID token via Authorization: Bearer header'
       });
     }
 
-    // Verify token with Firebase Admin
-    const decodedToken = await verifyIdToken(idToken);
+    // Verify token with Firebase Admin (checkRevoked = true enforces token revocation)
+    const decodedToken = await verifyIdToken(idToken, true);
 
-    // Attach user info to request object
+    // Check Firestore user profile so deactivated accounts (`isActive === false`)
+    // lose API access immediately even before JWT expiration.
+    const userProfile = await loadUserProfile(decodedToken.uid);
+    if (userProfile && userProfile.isActive === false) {
+      console.warn(`[Auth] Blocked deactivated user: ${decodedToken.email || decodedToken.uid}`);
+      return res.status(403).json({
+        success: false,
+        error: 'Account deactivated',
+        message: 'Your account has been deactivated. Access has been revoked.'
+      });
+    }
+
+    // Attach user info to request object (prefer authoritative Firestore role/name when present)
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
-      name: decodedToken.name || decodedToken.email?.split('@')[0] || 'Unknown',
-      role: decodedToken.role || 'member', // Custom claim if set
-      emailVerified: decodedToken.email_verified
+      name: userProfile?.name || decodedToken.name || decodedToken.email?.split('@')[0] || 'Unknown',
+      role: userProfile?.role || decodedToken.role || 'member',
+      emailVerified: decodedToken.email_verified,
+      isActive: true
     };
 
     console.log(`[Auth] Authenticated user: ${req.user.email} (${req.user.uid})`);
@@ -101,6 +134,22 @@ async function authenticate(req, res, next) {
     return next();
   } catch (error) {
     console.error('[Auth] Token verification failed:', error.message);
+
+    if (error.code === 'auth/id-token-revoked') {
+      return res.status(401).json({
+        success: false,
+        error: 'Token revoked',
+        message: 'Your session has been revoked or deactivated. Please sign in again.'
+      });
+    }
+
+    if (error.code === 'auth/user-disabled') {
+      return res.status(401).json({
+        success: false,
+        error: 'Account disabled',
+        message: 'This account has been disabled or deactivated.'
+      });
+    }
 
     if (error.code === 'auth/id-token-expired') {
       return res.status(401).json({
@@ -128,7 +177,7 @@ async function authenticate(req, res, next) {
 
 /**
  * Optional authentication middleware
- * Tries to authenticate but doesn't fail if no token provided
+ * Tries to authenticate (with revocation + active check) but doesn't fail if no token provided
  */
 async function optionalAuthenticate(req, res, next) {
   try {
@@ -140,29 +189,35 @@ async function optionalAuthenticate(req, res, next) {
     }
 
     const idToken = authHeader.split('Bearer ')[1];
-    const decodedToken = await verifyIdToken(idToken);
+    const decodedToken = await verifyIdToken(idToken, true);
+    const userProfile = await loadUserProfile(decodedToken.uid);
+    if (userProfile && userProfile.isActive === false) {
+      req.user = null;
+      return next();
+    }
 
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
-      name: decodedToken.name || decodedToken.email?.split('@')[0] || 'Unknown',
-      role: decodedToken.role || 'member'
+      name: userProfile?.name || decodedToken.name || decodedToken.email?.split('@')[0] || 'Unknown',
+      role: userProfile?.role || decodedToken.role || 'member',
+      isActive: true
     };
 
-    next();
+    return next();
   } catch (error) {
     // Don't fail on auth error, just set user to null
     console.warn('[Auth] Optional authentication failed:', error.message);
     req.user = null;
-    next();
+    return next();
   }
 }
 
 /**
  * Role-based authorization middleware
  * Use after authenticate() middleware.
- * Resolves the user's authoritative role from Firestore users/{uid}.role when the
- * ID token custom claim is not yet populated or does not match allowedRoles.
+ * Verifies the user is active and resolves the authoritative role from
+ * Firestore users/{uid} when needed.
  */
 function requireRole(...allowedRoles) {
   const flatRoles = allowedRoles.flat();
@@ -175,19 +230,28 @@ function requireRole(...allowedRoles) {
       });
     }
 
-    if (!flatRoles.includes(req.user.role) && req.user.uid) {
-      try {
-        const db = getFirestore();
-        if (db && typeof db.collection === 'function') {
-          const snap = await db.collection('users').doc(req.user.uid).get();
-          if (snap && snap.exists) {
-            const userData = snap.data() || {};
-            if (userData.role) req.user.role = userData.role;
-            if (userData.name) req.user.name = userData.name;
-          }
+    if (req.user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        error: 'Account deactivated',
+        message: 'Your account has been deactivated. Access has been revoked.'
+      });
+    }
+
+    if ((req.user.isActive !== true || !flatRoles.includes(req.user.role)) && req.user.uid) {
+      const userData = await loadUserProfile(req.user.uid);
+      if (userData) {
+        if (userData.isActive === false) {
+          req.user.isActive = false;
+          return res.status(403).json({
+            success: false,
+            error: 'Account deactivated',
+            message: 'Your account has been deactivated. Access has been revoked.'
+          });
         }
-      } catch (err) {
-        console.warn(`[Auth] Firestore role lookup fallback failed for ${req.user.uid}:`, err.message);
+        if (userData.role) req.user.role = userData.role;
+        if (userData.name) req.user.name = userData.name;
+        req.user.isActive = true;
       }
     }
 

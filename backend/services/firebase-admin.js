@@ -73,13 +73,15 @@ function getFirebaseAdmin() {
 }
 
 /**
- * Verify Firebase ID token
+ * Verify Firebase ID token (checks token revocation by default so deactivated
+ * or signed-out accounts cannot keep using previously issued JWTs).
  * @param {string} idToken - Firebase ID token from client
+ * @param {boolean} [checkRevoked=true] - Enforce refresh-token revocation check
  * @returns {Promise<DecodedIdToken>}
  */
-async function verifyIdToken(idToken) {
+async function verifyIdToken(idToken, checkRevoked = true) {
   const admin = getFirebaseAdmin();
-  return await admin.auth().verifyIdToken(idToken);
+  return await admin.auth().verifyIdToken(idToken, checkRevoked);
 }
 
 /**

@@ -6,7 +6,6 @@
  * because Cloud Function instances are short-lived and connection pooling
  * across invocations is unreliable.
  */
-import { MongoClient, GridFSBucket, ObjectId } from 'mongodb';
 
 /**
  * Fetch a file from MongoDB GridFS by its ObjectId string.
@@ -29,6 +28,10 @@ export async function fetchFromGridFS(mongoFileId, mongoUri) {
       { code: 'GRIDFS_NO_FILE_ID' }
     );
   }
+
+  // Loaded lazily on first GridFS fetch so module discovery stays within the
+  // 10-second Cloud Functions startup budget.
+  const { MongoClient, GridFSBucket, ObjectId } = await import('mongodb');
 
   const client = new MongoClient(mongoUri, {
     serverSelectionTimeoutMS: 10000,

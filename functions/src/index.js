@@ -31,6 +31,10 @@ import { defineSecret } from 'firebase-functions/params';
 let adminMemo = null;
 const admin = async () => {
   if (!adminMemo) {
+    // The bucket must be named explicitly. Left to infer it, the Admin SDK derives
+    // "<projectId>.appspot.com", which does not match the bucket the web app writes
+    // to ("<projectId>.firebasestorage.app") — the file upload would then appear to
+    // have vanished.
     if (!getApps().length) initializeApp({
       storageBucket:
         process.env.STORAGE_BUCKET ||
@@ -45,13 +49,6 @@ const admin = async () => {
   }
   return adminMemo;
 };
-
-// The bucket name is needed before any handler runs, and costs nothing to read.
-initializeApp({
-  storageBucket:
-    process.env.STORAGE_BUCKET ||
-    `${process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'ssg-prototype'}.firebasestorage.app`,
-});
 
 import {
   CLASSIFIER_SCHEMA,
@@ -68,16 +65,6 @@ import { openrouterGenerate } from './providers/openrouter.js';
 import { AiProviderError, PROVIDER } from './providers/errors.js';
 import { describeProviders, runWithFallback } from './ai/fallback.js';
 import { fetchFromGridFS } from './mongodb.js';
-
-// The bucket must be named explicitly. Left to infer it, the Admin SDK derives
-// "<projectId>.appspot.com", which does not match the bucket the web app writes
-// to ("<projectId>.firebasestorage.app") — the file upload would then appear to
-// have vanished.
-initializeApp({
-  storageBucket:
-    process.env.STORAGE_BUCKET ||
-    `${process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'ssg-prototype'}.firebasestorage.app`,
-});
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 // gemini-2.5-flash returns HTTP 404 for new Gemini projects ("no longer
@@ -123,17 +110,16 @@ const now = async () => (await admin()).firestore.FieldValue.serverTimestamp();
 const MANAGER_ROLES = ['admin', 'secretary', 'representative', 'senator'];
 const VERIFIER_ROLES = ['admin', 'secretary'];
 
+/** Legacy user docs omitting `isActive` stay active; only explicit `false` is deactivated. */
+const isUserDocActive = (userData) => userData?.isActive !== false;
+
 /**
  * Resolve and authorise the caller.
  *
- * The role is read from the ID token's custom claim first, then from the
- * Firestore user document.
- *
- * The claim is checked first for two reasons. It avoids a Firestore round trip
- * on every call, and — more importantly — it is the ONLY source that survives
- * when the function runs in the emulator against an empty emulator Firestore
- * while the browser is signed in against the real project. In that setup the
- * role exists in production Firestore, which the function cannot see.
+ * Firestore `users/{uid}` is checked FIRST so deactivated accounts (`isActive === false`)
+ * or demoted roles can never bypass authorization using a cached JWT custom claim.
+ * When no Firestore document exists (e.g. emulator running against an empty local
+ * Firestore while authenticated against production Auth), we fall back to the ID token claim.
  *
  * Callables already guarantee `request.auth` is set.
  */
@@ -142,27 +128,38 @@ const requireRole = async (request, allowed) => {
 
   const uid = request.auth.uid;
 
+  const snap = await (await db()).collection('users').doc(uid).get();
+  if (snap.exists) {
+    const userData = snap.data() || {};
+    if (!isUserDocActive(userData)) {
+      throw new HttpsError('permission-denied', 'Your account has been deactivated.');
+    }
+    const docRole = userData.role || null;
+    if (docRole && allowed.includes(docRole)) {
+      return { uid, role: docRole, name: userData.name || request.auth.token?.name || 'Unknown' };
+    }
+    throw new HttpsError(
+      'permission-denied',
+      `This action requires one of: ${allowed.join(', ')}. ` +
+        `Your account (uid ${uid}) does not have an authorized active role.`
+    );
+  }
+
   const claimRole = request.auth.token?.role || null;
   if (claimRole && allowed.includes(claimRole)) {
     return { uid, role: claimRole, name: request.auth.token?.name || 'Unknown' };
   }
 
-  const snap = await (await db()).collection('users').doc(uid).get();
-  const role = snap.exists ? snap.data()?.role || null : null;
-
-  if (!role || !allowed.includes(role)) {
-    // The uid is included because, during emulator development, the fix is to
-    // seed that user into the emulator Firestore — and the operator needs to
-    // know which uid to seed.
-    throw new HttpsError(
-      'permission-denied',
-      `This action requires one of: ${allowed.join(', ')}. ` +
-        `Your account (uid ${uid}) has no matching role in the database this function reads. ` +
-        'During local development run: npm run seed:role -- --uid ' +
-        uid + ' --role admin'
-    );
-  }
-  return { uid, role, name: snap.data()?.name || 'Unknown' };
+  // The uid is included because, during emulator development, the fix is to
+  // seed that user into the emulator Firestore — and the operator needs to
+  // know which uid to seed.
+  throw new HttpsError(
+    'permission-denied',
+    `This action requires one of: ${allowed.join(', ')}. ` +
+      `Your account (uid ${uid}) has no matching role in the database this function reads. ` +
+      'During local development run: npm run seed:role -- --uid ' +
+      uid + ' --role admin'
+  );
 };
 
 /** Map transport failures onto error codes the client can present sensibly. */
@@ -287,22 +284,36 @@ const writeAudit = async (documentId, entry) => {
 //   document, which firestore.rules already restricts to admins.
 // ════════════════════════════════════════════════════════════
 
-/** Roles that grant nothing and are safe to treat as "no role". */
+/** Canonical 17 organizational roles matching ROLE_PERMISSIONS in src/utils/permissions.js. */
 const ROLE_VALUES = [
   'admin',
+  'president',
+  'vice_president',
   'secretary',
+  'executive_secretary',
+  'press_secretary',
+  'linkages_secretary',
+  'deputy_secretary',
   'finance_secretary',
-  'governor',
+  'auditor',
+  'budget_officer',
   'senator',
   'representative',
+  'creatives',
+  'governor',
   'member',
   'guest',
 ];
 
 const setRoleClaim = async (uid, role) => {
+  const safeRole = role && ROLE_VALUES.includes(role) ? role : null;
+  if (role && !safeRole) {
+    logger.warn('refusing to mint unknown role onto custom claims', { uid, role });
+  }
   const user = await (await admin()).auth.getAuth().getUser(uid);
   // Preserving the existing claims keeps unrelated custom claims intact.
-  await (await admin()).auth.getAuth().setCustomUserClaims(uid, { ...(user.customClaims || {}), role: role || null });
+  await (await admin()).auth.getAuth().setCustomUserClaims(uid, { ...(user.customClaims || {}), role: safeRole });
+  return safeRole;
 };
 
 /**
@@ -314,21 +325,28 @@ export const syncClaims = onCall(async (request) => {
 
   const uid = request.auth.uid;
   const snap = await (await db()).collection('users').doc(uid).get();
-  const role = snap.exists ? snap.data()?.role : null;
+  if (snap.exists && !isUserDocActive(snap.data())) {
+    await setRoleClaim(uid, null);
+    await (await admin()).auth.getAuth().revokeRefreshTokens(uid);
+    throw new HttpsError('permission-denied', 'Your account has been deactivated.');
+  }
 
-  if (role && !ROLE_VALUES.includes(role)) {
-    logger.warn('unknown role on user document', { uid, role });
+  const rawRole = snap.exists ? snap.data()?.role : null;
+  const role = rawRole && ROLE_VALUES.includes(rawRole) ? rawRole : null;
+
+  if (rawRole && !role) {
+    logger.warn('unknown role on user document', { uid, role: rawRole });
   }
 
   // Only write when it differs, so a routine sign-in does not invalidate the
   // caller's existing token and force a refresh for nothing.
   const current = request.auth.token?.role || null;
-  if (current === (role || null)) {
-    return { ok: true, role: role || null, changed: false };
+  if (current === role) {
+    return { ok: true, role, changed: false };
   }
 
   await setRoleClaim(uid, role);
-  return { ok: true, role: role || null, changed: true };
+  return { ok: true, role, changed: true };
 });
 
 /**
@@ -337,7 +355,7 @@ export const syncClaims = onCall(async (request) => {
  * waiting for their next token refresh.
  */
 export const setRoleClaims = onCall(async (request) => {
-  const actor = await requireRole(request, ['admin']);
+  const actor = await requireRole(request, ['admin', 'president']);
   const { targetUid } = request.data || {};
 
   if (!targetUid) throw new HttpsError('invalid-argument', 'targetUid is required.');
@@ -348,7 +366,20 @@ export const setRoleClaims = onCall(async (request) => {
   const snap = await (await db()).collection('users').doc(targetUid).get();
   if (!snap.exists) throw new HttpsError('not-found', 'That user has no profile document.');
 
-  const role = snap.data()?.role || null;
+  const targetData = snap.data() || {};
+  if (!isUserDocActive(targetData)) {
+    await setRoleClaim(targetUid, null);
+    await (await admin()).auth.getAuth().revokeRefreshTokens(targetUid);
+    await writeAudit(targetUid, {
+      action: 'role_claim_revoked_deactivated',
+      performedBy: actor.uid,
+      performedByName: actor.name,
+      details: { role: null, isActive: false },
+    });
+    return { ok: true, role: null, uid: targetUid, revoked: true };
+  }
+
+  const role = targetData.role || null;
   await setRoleClaim(targetUid, role);
 
   await writeAudit(targetUid, {
@@ -362,10 +393,12 @@ export const setRoleClaims = onCall(async (request) => {
 });
 
 /**
- * Authoritative Server-Side Role Claim Sync Trigger.
- * Whenever a user document's 'role' field is modified in Firestore,
- * this trigger ensures their Firebase Auth custom claims are updated immediately,
- * regardless of whether the client's direct callable succeeded or failed.
+ * Authoritative Server-Side Role Claim & Account Activation Sync Trigger.
+ * Whenever a user document's `role` or `isActive` field is modified in Firestore:
+ * - On deactivation (`isActive === false`): clears custom role claims (revoking Storage),
+ *   revokes refresh tokens (enforced by checkRevoked = true), and disables Firebase Auth login.
+ * - On reactivation (`isActive !== false`): re-enables Firebase Auth login and restores role claim.
+ * - On role mutation (while active): syncs the new role claim immediately.
  */
 export const onUserRoleUpdated = onDocumentUpdated('users/{userId}', async (event) => {
   const before = event.data?.before?.data();
@@ -375,17 +408,42 @@ export const onUserRoleUpdated = onDocumentUpdated('users/{userId}', async (even
 
   const oldRole = before?.role || null;
   const newRole = after?.role || null;
+  const wasActive = isUserDocActive(before);
+  const isNowActive = isUserDocActive(after);
 
-  if (oldRole === newRole) return null;
+  if (oldRole === newRole && wasActive === isNowActive) return null;
 
   const userId = event.params.userId;
-  logger.info('Detected role mutation in Firestore, syncing custom claims:', { userId, oldRole, newRole });
 
   try {
+    const authHandle = (await admin()).auth.getAuth();
+
+    if (!isNowActive) {
+      logger.info('Detected user deactivation in Firestore; revoking claims, tokens, and Auth access:', { userId });
+      await setRoleClaim(userId, null);
+      await authHandle.revokeRefreshTokens(userId);
+      await authHandle.updateUser(userId, { disabled: true });
+      logger.info('Deactivated user fully terminated in Firebase Auth:', { userId });
+      return null;
+    }
+
+    if (!wasActive && isNowActive) {
+      logger.info('Detected user reactivation in Firestore; re-enabling Auth and restoring role claim:', { userId, newRole });
+      await authHandle.updateUser(userId, { disabled: false });
+      await setRoleClaim(userId, newRole);
+      return null;
+    }
+
+    logger.info('Detected role mutation in Firestore, syncing custom claims:', { userId, oldRole, newRole });
     await setRoleClaim(userId, newRole);
     logger.info('Authoritative role claim synced successfully for user:', { userId, newRole });
   } catch (err) {
-    logger.error('Failed to sync role claim on document update:', { userId, newRole, error: err.message });
+    logger.error('Failed to sync role/active state on document update:', {
+      userId,
+      newRole,
+      isNowActive,
+      error: err.message,
+    });
   }
   return null;
 });

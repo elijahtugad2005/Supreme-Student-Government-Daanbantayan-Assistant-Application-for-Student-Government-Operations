@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { HiX } from 'react-icons/hi';
 import styles from './FundGovernance.module.css';
 
@@ -12,6 +13,7 @@ export const BankCalibrationModal = ({
   isOpen,
   mode = 'fiscal', // 'fiscal' | 'fund'
   fund = null,
+  disbursedCentavos = 0,
   initialValues = {},
   isSaving = false,
   error = null,
@@ -67,7 +69,7 @@ export const BankCalibrationModal = ({
     });
   };
 
-  return (
+  return createPortal(
     <div className={styles.modalBackdrop} onClick={onClose}>
       <div
         className={styles.modalContent}
@@ -120,6 +122,40 @@ export const BankCalibrationModal = ({
               <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
                 The total approved fiscal budget allocation for this term.
               </span>
+              {disbursedCentavos > 0 && (() => {
+                const parsedPhp = parseFloat(fiscalForm.budgetAmount);
+                const enteredCentavos = Number.isFinite(parsedPhp) && parsedPhp >= 0 ? Math.round(parsedPhp * 100) : 0;
+                const remainingCentavos = Math.max(0, enteredCentavos - disbursedCentavos);
+                const exceedsCeiling = enteredCentavos > 0 && enteredCentavos < disbursedCentavos;
+                return (
+                  <div
+                    style={{
+                      marginTop: '0.6rem',
+                      padding: '0.65rem 0.8rem',
+                      borderRadius: '8px',
+                      background: exceedsCeiling ? '#fffbeb' : '#f8fafc',
+                      border: `1px solid ${exceedsCeiling ? '#fcd34d' : '#e2e8f0'}`,
+                      fontSize: '0.78rem',
+                      color: '#334155',
+                    }}
+                  >
+                    <div>
+                      <strong>Ledger Auto-Recalculation:</strong> ₱{(disbursedCentavos / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })} already released via PPMP disbursements.
+                    </div>
+                    <div style={{ marginTop: '0.2rem' }}>
+                      Remaining available Fiscal Balance after save:{' '}
+                      <strong style={{ color: exceedsCeiling ? '#b45309' : '#0f766e' }}>
+                        ₱{(remainingCentavos / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                      </strong>
+                    </div>
+                    {exceedsCeiling && (
+                      <div style={{ marginTop: '0.25rem', color: '#b45309', fontWeight: 600 }}>
+                        Warning: Entered ceiling is lower than already-released PPMP disbursements, so remaining balance will be ₱0.00.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className={styles.formGroup}>
@@ -232,7 +268,8 @@ export const BankCalibrationModal = ({
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

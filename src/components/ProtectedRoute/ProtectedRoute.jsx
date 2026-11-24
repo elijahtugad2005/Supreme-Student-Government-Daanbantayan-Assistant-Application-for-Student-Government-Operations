@@ -30,7 +30,8 @@ function ProtectedRoute({
     userRole,
     userName,
     userPermissions,
-    userPermissionOverrides
+    userPermissionOverrides,
+    isAccountActive
   } = useAuth();
   const location = useLocation();
 
@@ -50,6 +51,14 @@ function ProtectedRoute({
   // the route itself opted in, and guests hold no permissions anyway.
   if (isGuest) {
     return children;
+  }
+
+  // Defense-in-depth: block deactivated accounts even during sign-out transition
+  if (isAccountActive === false) {
+    return renderAccessDenied(
+      'Your account has been deactivated. Please contact an SSG administrator.',
+      customAccessDenied
+    );
   }
 
   // Create user object for permission checking (guests already returned above)

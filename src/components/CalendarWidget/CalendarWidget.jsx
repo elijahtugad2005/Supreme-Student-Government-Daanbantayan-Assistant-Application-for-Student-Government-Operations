@@ -11,6 +11,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../AuthContext/AuthContext';
+import { canManageCalendarEvents } from '../../utils/permissions';
 import { 
   FiCalendar, 
   FiClock, 
@@ -44,7 +45,14 @@ const EVENT_TYPES = [
 ];
 
 function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
-  const { currentUser } = useAuth() || {};
+  const {
+    currentUser,
+    userRole,
+    userName,
+    userPermissions,
+    userPermissionOverrides,
+    isAccountActive,
+  } = useAuth() || {};
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -77,23 +85,20 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
   const [undoState, setUndoState] = useState(null); // { message, previousEvent, isCreate, isDelete }
   const calendarGridRef = useRef(null);
 
-  // User permission check (Disabled if readOnly is true, else defaults for officers/admins/creatives)
-  const userRole = (currentUser?.role || '').toLowerCase();
-  const canManageEvents = Boolean(
-    !readOnly &&
-    currentUser && (
-      !currentUser.role ||
-      userRole === 'admin' ||
-      userRole === 'secretary' ||
-      userRole === 'governor' ||
-      userRole === 'finance_secretary' ||
-      userRole === 'representative' ||
-      userRole === 'senator' ||
-      userRole === 'creatives' ||
-      userRole === 'officer' ||
-      userRole === 'member' ||
-      currentUser?.canManageCreatives
-    )
+  // Fail-closed RBAC check mirroring firestore.rules `canManageAnnouncements()`.
+  // Excludes unauthenticated callers, raw Firebase Auth objects lacking a verified
+  // role, deactivated accounts, and low-privilege `member`/`guest` accounts.
+  const canManageEvents = canManageCalendarEvents(
+    currentUser
+      ? {
+          uid: currentUser.uid,
+          role: userRole,
+          isActive: isAccountActive,
+          permissions: userPermissions,
+          permissionOverrides: userPermissionOverrides,
+        }
+      : null,
+    { readOnly }
   );
   const canEditEvents = canManageEvents;
 
@@ -252,6 +257,31 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
     return dates;
   };
 
+  // Cleanup drag range if pointer is released outside a calendar cell
+  useEffect(() => {
+    if (!isDraggingRange) return undefined;
+    const handleWindowMouseUp = () => {
+      setIsDraggingRange(false);
+    };
+    window.addEventListener('mouseup', handleWindowMouseUp);
+    return () => window.removeEventListener('mouseup', handleWindowMouseUp);
+  }, [isDraggingRange]);
+
+  const handleQuickAddClick = () => {
+    if (readOnly || !canManageEvents) return;
+    const today = new Date();
+    const fallbackDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const targetDate = activeDateKey || fallbackDate;
+    setHoverCard(null);
+    setQuickPopover({
+      isOpen: true,
+      position: { x: 0, y: 0 },
+      anchorRect: null,
+      selectedDates: [targetDate],
+      existingEvent: null,
+    });
+  };
+
   // Cell Mouse Down (Starts Range Drag or Single Cell Click)
   const handleCellMouseDown = (e, day) => {
     if (e.button !== 0) return;
@@ -307,10 +337,17 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
     const end = day;
     const selectedDays = getDaysBetween(start, end);
 
-    // Calculate anchor position for popover relative to calendarGrid
+    // Capture viewport rect for viewport-clamped desktop popover positioning
     const rect = e.currentTarget.getBoundingClientRect();
+    const anchorRect = {
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
+      right: rect.right,
+      width: rect.width,
+      height: rect.height,
+    };
     const parentRect = calendarGridRef.current?.getBoundingClientRect() || { top: 0, left: 0 };
-    
     const posX = Math.max(10, rect.left - parentRect.left);
     const posY = Math.max(10, rect.bottom - parentRect.top);
 
@@ -321,10 +358,11 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
     setActiveDateKey(dateStr);
     setSelectedDayEvents(allEventsOnDay);
 
-    // Open Inline Quick Popover
+    // Open Inline Quick Popover (Desktop anchored / Mobile bottom sheet)
     setQuickPopover({
       isOpen: true,
       position: { x: posX, y: posY },
+      anchorRect,
       selectedDates: selectedDays,
       existingEvent: null,
     });
@@ -345,11 +383,20 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
     }
 
     const rect = e.currentTarget.getBoundingClientRect();
+    const anchorRect = {
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
+      right: rect.right,
+      width: rect.width,
+      height: rect.height,
+    };
     const parentRect = calendarGridRef.current?.getBoundingClientRect() || { top: 0, left: 0 };
 
     setQuickPopover({
       isOpen: true,
       position: { x: Math.max(10, rect.left - parentRect.left), y: Math.max(10, rect.bottom - parentRect.top) },
+      anchorRect,
       selectedDates: Array.isArray(event.dates) ? event.dates : [event.eventDate],
       existingEvent: event,
     });
@@ -379,6 +426,7 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
 
   // Save Inline Quick Event (Create or Update)
   const handleSaveQuickEvent = async (eventData, eventId) => {
+    if (!canManageEvents) return;
     try {
       if (eventId) {
         // Updating existing event
@@ -397,10 +445,10 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
         const docRef = await addDoc(collection(db, 'calendarEvents'), {
           ...eventData,
           createdBy: {
-            uid: currentUser?.uid || 'guest',
-            email: currentUser?.email || 'officer@ctu.edu.ph',
-            name: currentUser?.displayName || 'Officer',
-            role: userRole || 'officer',
+            uid: currentUser?.uid || '',
+            email: currentUser?.email || '',
+            name: userName || currentUser?.displayName || currentUser?.email || 'Unknown',
+            role: userRole || 'unknown',
           }
         });
 
@@ -417,12 +465,13 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
       setRangeEndDay(null);
     } catch (err) {
       console.error('Failed to save quick event:', err);
-      alert('Action failed. Administrative credentials required.');
+      throw err;
     }
   };
 
   // Delete Inline Quick Event
   const handleDeleteQuickEvent = async (event) => {
+    if (!canManageEvents) return;
     if (!window.confirm(`Delete event "${event.eventName}"?`)) return;
     try {
       await deleteDoc(doc(db, 'calendarEvents', event.id));
@@ -443,20 +492,21 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
 
   // ── BATCH SELECTION HANDLERS ──
   const handleBatchEdit = () => {
+    if (!canManageEvents) return;
     if (selectedDateKeys.size === 0) return;
     const sortedDates = Array.from(selectedDateKeys).sort();
 
-    // Center popover relative to calendar grid
-    const parentRect = calendarGridRef.current?.getBoundingClientRect() || { width: 500, height: 400 };
     setQuickPopover({
       isOpen: true,
-      position: { x: Math.max(20, (parentRect.width / 2) - 180), y: 80 },
+      position: { x: 0, y: 0 },
+      anchorRect: null,
       selectedDates: sortedDates,
       existingEvent: null,
     });
   };
 
   const handleBatchDelete = async () => {
+    if (!canManageEvents) return;
     if (selectedDateKeys.size === 0) return;
     const datesArr = Array.from(selectedDateKeys);
     
@@ -527,6 +577,7 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
 
   const handleSaveEdit = async (e) => {
     e.preventDefault();
+    if (!canManageEvents) return;
     if (!editingEvent?.id) return;
     setIsSaving(true);
     setActionMessage(null);
@@ -560,6 +611,7 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
   };
 
   const handleDeleteEvent = async (eventId, eventName) => {
+    if (!canManageEvents) return;
     if (!window.confirm(`Delete calendar record "${eventName}"? This cannot be undone.`)) {
       return;
     }
@@ -637,7 +689,7 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
             <span className={styles.dayNumber}>{day}</span>
             {isMultiSelected && (
               <span className={styles.dayCheckPill}>
-                <FiCheckCircle style={{ color: '#38BDF8' }} />
+                <FiCheckCircle style={{ color: isClassicHomepage ? '#D4AF37' : '#38BDF8' }} />
               </span>
             )}
             {!isMultiSelected && events.length > 0 && (
@@ -660,6 +712,8 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
                       borderLeftColor: eventColor,
                       backgroundColor: meta.badgeBg,
                     }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onMouseUp={(e) => e.stopPropagation()}
                     onClick={(e) => handleQuickEditEvent(e, event)}
                     onMouseEnter={(e) => handleEventMouseEnter(e, event)}
                     onMouseLeave={handleEventMouseLeave}
@@ -767,6 +821,7 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
               selectedDates={quickPopover.selectedDates}
               existingEvent={quickPopover.existingEvent}
               position={quickPopover.position}
+              anchorRect={quickPopover.anchorRect}
               canManage={canManageEvents}
               orgList={organizations}
               onClose={() => {
@@ -794,32 +849,46 @@ function CalendarWidget({ readOnly = false, isClassicHomepage = false }) {
               <h4 className={styles.monthHeading}>
                 {monthNames[selectedMonth]} <span className={styles.yearHighlight}>{selectedYear}</span>
               </h4>
-              <button 
-                type="button" 
-                onClick={handleJumpToToday}
-                className={styles.todayButton}
-              >
-                Current Day
-              </button>
-
-              {/* Multi-Date / Weekly Selection Mode Toggle */}
-              {canManageEvents && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSelectMode(prev => !prev);
-                    if (isSelectMode) {
-                      setSelectedDateKeys(new Set());
-                    }
-                  }}
-                  className={`${styles.todayButton} ${isSelectMode ? styles.selectModeActive : ''}`}
-                  style={isSelectMode ? { borderColor: '#38BDF8', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.2)' } : { borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38BDF8' }}
-                  title="Toggle multi-date selection for batch editing & weekly series"
+              <div className={styles.toolbarActionRow}>
+                <button 
+                  type="button" 
+                  onClick={handleJumpToToday}
+                  className={styles.todayButton}
                 >
-                  <FiCheckSquare style={{ marginRight: '5px', verticalAlign: 'middle', fontSize: '0.85rem' }} />
-                  {isSelectMode ? 'Selecting Dates...' : 'Select Dates'}
+                  Today
                 </button>
-              )}
+
+                {/* Primary Quick Add Trigger (Desktop & Mobile) */}
+                {canManageEvents && (
+                  <button
+                    type="button"
+                    onClick={handleQuickAddClick}
+                    className={styles.quickAddTriggerBtn}
+                    title="Quickly schedule a campus activity"
+                  >
+                    <FiPlus aria-hidden="true" />
+                    <span>Quick Add</span>
+                  </button>
+                )}
+
+                {/* Multi-Date / Weekly Selection Mode Toggle */}
+                {canManageEvents && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSelectMode(prev => !prev);
+                      if (isSelectMode) {
+                        setSelectedDateKeys(new Set());
+                      }
+                    }}
+                    className={`${styles.selectModeBtn} ${isSelectMode ? styles.selectModeActive : ''}`}
+                    title="Toggle multi-date selection for batch editing & weekly series"
+                  >
+                    <FiCheckSquare aria-hidden="true" />
+                    <span>{isSelectMode ? 'Selecting...' : 'Select Dates'}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className={styles.navControls}>

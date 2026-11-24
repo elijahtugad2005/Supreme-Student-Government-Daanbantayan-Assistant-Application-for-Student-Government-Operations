@@ -75,8 +75,8 @@ const NAV_ITEMS = [
   { to: "/igp-projects", text: "Vendo Machine", icon: HiCash, roles: ['representative'] },
   { to: "/igp-projects", text: "Campus Lockers", icon: HiLockClosed, roles: ['governor'] },
 
-  // Sections & Contributions (Combined Class Roster & Death Aid) — Mayors submit without signing up, so 'public' is included
-  { to: "/sections-contributions", text: "Sections & Contributions", icon: HiDocumentText, roles: ['public', ...ALL_EXECUTIVE_ROLES, ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES, 'governor', 'member', 'guest'], permissions: ['canSubmitRoster'], publicAccess: true },
+  // Sections & Contributions (Combined Class Roster & Death Aid) — Authenticated non-guest roles only
+  { to: "/sections-contributions", text: "Sections & Contributions", icon: HiDocumentText, roles: [...ALL_EXECUTIVE_ROLES, ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES, 'governor', 'member'], permissions: ['canSubmitRoster'] },
 
   // Inventory & Products — President, VP, Secretaries, Finance/Audit, Senators, Representatives
   { to: "/inventory", text: "Inventory", icon: HiCube, roles: ['admin', 'president', 'vice_president', ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES], permissions: ['canManageProducts'] },

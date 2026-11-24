@@ -349,6 +349,59 @@ check('the function imports nothing from outside functions/',
   !/from '\.\.\/\.\.\/src\//.test(fnIndex),
   'found an import reaching into src/ — that fails on deploy');
 
+console.log('\n=== Cloud Functions module startup & lazy Admin SDK initialization ===');
+{
+  const { initializeApp, getApps, deleteApp } = await import(
+    '../functions/node_modules/firebase-admin/lib/app/index.js'
+  );
+  // Simulate a runtime or test environment where a default Firebase app already
+  // exists before functions/src/index.js is imported.
+  for (const app of getApps()) await deleteApp(app);
+  const preExistingApp = initializeApp();
+
+  let exportedModule = null;
+  let bootError = null;
+  try {
+    exportedModule = await import('../functions/src/index.js');
+  } catch (err) {
+    bootError = err;
+  }
+
+  check(
+    'importing functions/src/index.js does not throw FirebaseAppError when a default app exists',
+    bootError === null,
+    bootError ? `${bootError.code || bootError.name}: ${bootError.message}` : ''
+  );
+
+  const expectedHandlers = [
+    'syncClaims',
+    'setRoleClaims',
+    'onUserRoleUpdated',
+    'analyzeDocument',
+    'recordSignature',
+    'confirmAnalysis',
+    'correctClassification',
+    'aiStatus',
+  ];
+  check(
+    'all 8 Cloud Functions boot and are exported from functions/src/index.js',
+    exportedModule !== null &&
+      expectedHandlers.every((name) => typeof exportedModule[name] === 'function'),
+    exportedModule
+      ? `exported=${Object.keys(exportedModule).join(',')}`
+      : 'module failed to import'
+  );
+
+  const topLevelInitCalls = (fnIndex.match(/\binitializeApp\s*\(/g) || []).length;
+  check(
+    'initializeApp() is invoked only once inside the lazy if (!getApps().length) guard',
+    topLevelInitCalls === 1 && /if\s*\(\s*!getApps\(\)\.length\s*\)\s*initializeApp\s*\(/.test(fnIndex),
+    `found ${topLevelInitCalls} initializeApp() call(s) in functions/src/index.js`
+  );
+
+  await deleteApp(preExistingApp);
+}
+
 console.log('\n' + results.join('\n'));
 console.log(failed === 0 ? '\nAI logic is correct.' : `\n${failed} CHECKS FAILED`);
 process.exit(failed === 0 ? 0 : 1);

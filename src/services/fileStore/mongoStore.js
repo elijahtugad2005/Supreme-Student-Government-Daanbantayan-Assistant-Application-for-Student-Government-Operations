@@ -25,6 +25,7 @@ const getAuthToken = async () => {
  */
 export const mongoStore = {
   name: 'mongodb',
+  _urls: new Map(),
 
   /**
    * Upload file to MongoDB GridFS via backend API
@@ -92,16 +93,34 @@ export const mongoStore = {
   },
 
   /**
-   * Get download URL for a MongoDB file
+   * Fetch an authenticated document binary via Authorization: Bearer header and
+   * return a same-origin blob: Object URL for safe inline preview or download.
+   * Never embeds Firebase ID tokens in URL query strings.
+   *
    * @param {string} fileId - MongoDB ObjectId
-   * @returns {Promise<string>} Download URL with auth token
+   * @param {object} [options]
+   * @param {'inline'|'attachment'} [options.disposition]
+   * @param {boolean} [options.fresh] - Revoke any cached Object URL and re-fetch
+   * @returns {Promise<string|null>} Same-origin blob: Object URL
    */
   async getUrl(fileId, options = {}) {
     if (!fileId) return null;
+
+    if (options.fresh && this._urls.has(fileId)) {
+      URL.revokeObjectURL(this._urls.get(fileId));
+      this._urls.delete(fileId);
+    }
+
+    if (!options.fresh && this._urls.has(fileId)) {
+      return this._urls.get(fileId);
+    }
+
     try {
-      const token = await getAuthToken();
-      const disposition = options.disposition || 'inline';
-      return `${BACKEND_URL}/api/documents/${fileId}/download?token=${token}&disposition=${disposition}`;
+      const blob = await this.get(fileId, options);
+      if (!blob) return null;
+      const objectUrl = URL.createObjectURL(blob);
+      this._urls.set(fileId, objectUrl);
+      return objectUrl;
     } catch (error) {
       console.error('MongoDB getUrl error:', error);
       return null;
@@ -109,21 +128,30 @@ export const mongoStore = {
   },
 
   /**
-   * Download file as Blob
+   * Download file as Blob using Authorization: Bearer header (no token in URL).
    * @param {string} fileId - MongoDB ObjectId
+   * @param {object} [options]
    * @returns {Promise<Blob|null>}
    */
-  async get(fileId) {
+  async get(fileId, options = {}) {
     if (!fileId) return null;
-    
+
     try {
       const token = await getAuthToken();
-      const response = await fetch(`${BACKEND_URL}/api/documents/${fileId}/download`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const disposition =
+        options.disposition === 'attachment' || options.download ? 'attachment' : 'inline';
+      const url = `${BACKEND_URL}/api/documents/${encodeURIComponent(fileId)}/download?disposition=${disposition}`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (!response.ok) return null;
-      return await response.blob();
+      const blob = await response.blob();
+      const contentType = response.headers?.get?.('content-type');
+      if (contentType && !blob.type) {
+        return new Blob([blob], { type: contentType.split(';')[0].trim() });
+      }
+      return blob;
     } catch (error) {
       console.error('MongoDB get error:', error);
       return null;
@@ -137,12 +165,15 @@ export const mongoStore = {
    */
   async exists(fileId) {
     if (!fileId) return false;
-    
+
     try {
       const token = await getAuthToken();
-      const response = await fetch(`${BACKEND_URL}/api/documents/${fileId}/metadata`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(
+        `${BACKEND_URL}/api/documents/${encodeURIComponent(fileId)}/metadata`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       return response.ok;
     } catch {
       return false;
@@ -150,21 +181,26 @@ export const mongoStore = {
   },
 
   /**
-   * Delete file from MongoDB GridFS
+   * Delete file from MongoDB GridFS and revoke any cached Object URL.
    * @param {string} fileId - MongoDB ObjectId
    */
   async delete(fileId) {
     if (!fileId) return;
-    
+
     const token = await getAuthToken();
-    const response = await fetch(`${BACKEND_URL}/api/documents/${fileId}`, {
+    const response = await fetch(`${BACKEND_URL}/api/documents/${encodeURIComponent(fileId)}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Delete failed' }));
       throw new Error(error.error || 'Delete failed');
+    }
+
+    if (this._urls.has(fileId)) {
+      URL.revokeObjectURL(this._urls.get(fileId));
+      this._urls.delete(fileId);
     }
   },
 
@@ -184,9 +220,12 @@ export const mongoStore = {
   },
 
   /**
-   * Revoke object URLs - no-op for MongoDB (no client-side URLs created)
+   * Revoke all cached blob: Object URLs created by getUrl().
    */
   revokeAll() {
-    // No object URLs created, nothing to revoke
+    for (const url of this._urls.values()) {
+      URL.revokeObjectURL(url);
+    }
+    this._urls.clear();
   }
 };

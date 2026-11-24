@@ -2,10 +2,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FinanceContext, useFinance } from './financeContext.js';
 import { useAuth } from '../AuthContext/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 import financeService from '../../services/financeService';
 import {
   computeLedgerNetByAccount,
   computeDisbursedByAccount,
+  computeDisbursedByAllocation,
   computeEffectiveFiscalCeilingCentavos,
   computeAuthoritativeFundBalanceCentavos,
   filterValidLedgerTransactions,
@@ -29,12 +31,24 @@ import {
 export { useFinance };
 
 export const FinanceProvider = ({ children }) => {
-  const { userRole, userName, currentUser } = useAuth();
+  const { userRole, userName, currentUser, userPermissions, userPermissionOverrides } = useAuth();
+  const canEditFinanceAccount = hasPermission(
+    currentUser
+      ? {
+          uid: currentUser.uid,
+          role: userRole,
+          permissions: userPermissions || {},
+          permissionOverrides: userPermissionOverrides || {},
+        }
+      : null,
+    'canEditFinance'
+  );
 
   // Redesigned Core State
   const [fundAccounts, setFundAccounts] = useState([]);
   const [budgetAllocations, setBudgetAllocations] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [igpCollections, setIgpCollections] = useState([]);
   const [preOrderBatches, setPreOrderBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,6 +73,7 @@ export const FinanceProvider = ({ children }) => {
 
   // Calculate legacy compatible projections from allocations & fundAccounts
   const computeProjections = useCallback((accounts, allocations, txList = []) => {
+    const disbursedByAllocMap = computeDisbursedByAllocation(txList);
     const postedAllocationIds = new Set(
       (txList || [])
         .filter(
@@ -103,6 +118,8 @@ export const FinanceProvider = ({ children }) => {
         : toCentavos(alloc.spent || alloc.spentAmount || 0);
       const allocated = fromCentavos(approvedCentavos);
       const spent = fromCentavos(spentCentavos);
+      const ledgerPostedCentavos = disbursedByAllocMap.get(alloc.id) || 0;
+      const unpostedDisbursedCentavos = Math.max(0, spentCentavos - ledgerPostedCentavos);
       const remaining = Math.max(0, allocated - spent);
       const ppmpStatus = getPPMPStatus(spentCentavos, approvedCentavos);
       const utilizationRate = getUtilizationRate(spentCentavos, approvedCentavos);
@@ -146,6 +163,10 @@ export const FinanceProvider = ({ children }) => {
         allocated,
         spent,
         remaining,
+        ledgerPostedCentavos,
+        ledgerPosted: fromCentavos(ledgerPostedCentavos),
+        unpostedDisbursedCentavos,
+        unpostedDisbursed: fromCentavos(unpostedDisbursedCentavos),
         category: alloc.category || 'Event',
         procurementType: determinedProcurementType,
         committee: alloc.committee || 'General',
@@ -156,7 +177,7 @@ export const FinanceProvider = ({ children }) => {
         description: alloc.description || '',
         receiptUrl: (alloc.supportingDocumentIds && alloc.supportingDocumentIds[0]) || '',
         status: alloc.status || 'approved',
-        isPostedToLedger: Boolean(postedAllocationIds.has(alloc.id) || spentCentavos > 0),
+        isPostedToLedger: Boolean(postedAllocationIds.has(alloc.id) || ledgerPostedCentavos > 0),
         isArchived,
         isActive: alloc.isActive !== false && alloc.status !== 'archived',
         ppmpStatus,
@@ -232,18 +253,25 @@ export const FinanceProvider = ({ children }) => {
 
   // Fetch all redesigned data
   const refreshFinanceData = useCallback(async () => {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
 
-      // Ensure default 4 fund accounts exist
-      await financeService.ensureDefaultFundAccounts(currentUser?.uid, userName);
+      // Ensure default 4 fund accounts exist (only for users with finance edit authority)
+      if (canEditFinanceAccount) {
+        await financeService.ensureDefaultFundAccounts(currentUser?.uid, userName).catch(() => {});
+      }
 
-      const [rawAccounts, allocations, rawTxList, batches] = await Promise.all([
+      const [rawAccounts, allocations, rawTxList, batches, igpCollections] = await Promise.all([
         financeService.getFundAccounts(),
         financeService.getBudgetAllocations(),
-        financeService.getTransactions(100),
+        financeService.getTransactions(),
         financeService.getPreOrderBatches(),
+        financeService.getIgpCollections().catch(() => []),
       ]);
 
       // Exclude legacy bogus '+' inflows on Fiscal/FSG only when explicit calibration already exists
@@ -251,9 +279,9 @@ export const FinanceProvider = ({ children }) => {
 
       // Derive authoritative balances:
       //  - Fiscal & FSG: Effective Ceiling (stored or ledger-recorded fallback) minus Posted Ledger Disbursements
-      //  - IGF & IGP: Live Ledger Net (+Collections minus -Expenses)
+      //  - IGF & IGP: Live Ledger Net (+Collections minus -Expenses), preserving any legacy unlinked IGP collections
       const accounts = rawAccounts.map((acc) => {
-        const authoritativeCentavos = computeAuthoritativeFundBalanceCentavos(acc, txList);
+        const authoritativeCentavos = computeAuthoritativeFundBalanceCentavos(acc, txList, igpCollections);
         const isFiscalOrFsg =
           acc.id === 'fund_fiscal_year_budget' ||
           acc.id === 'fund_fsg_remittance' ||
@@ -263,17 +291,23 @@ export const FinanceProvider = ({ children }) => {
           ? computeEffectiveFiscalCeilingCentavos(acc, txList)
           : undefined;
 
-        // Auto-heal stored balanceCentavos on IGF/IGP if Firestore drifted from posted ledger
-        if (!isFiscalOrFsg && (acc.balanceCentavos || 0) !== authoritativeCentavos) {
-          const hasTxs = txList.some(
-            (tx) => tx?.fundAccountId === acc.id || tx?.transferDestinationAccountId === acc.id
-          );
+        // Auto-heal stored balanceCentavos on IGF/IGP silently (never re-emitting ssg-finance-updated loop)
+        if (canEditFinanceAccount && !isFiscalOrFsg && (acc.balanceCentavos || 0) !== authoritativeCentavos) {
+          const hasTxs =
+            txList.some(
+              (tx) => tx?.fundAccountId === acc.id || tx?.transferDestinationAccountId === acc.id
+            ) ||
+            (acc.id === 'fund_igp_main' && igpCollections.length > 0);
           if (hasTxs) {
             financeService
-              .reconcileFundBalanceFromLedger(acc.id, {
-                uid: currentUser?.uid || 'system',
-                userName: userName || 'Auto-Ledger Sync',
-              })
+              .reconcileFundBalanceFromLedger(
+                acc.id,
+                {
+                  uid: currentUser?.uid || 'system',
+                  userName: userName || 'Auto-Ledger Sync',
+                },
+                { silent: true }
+              )
               .catch(() => {});
           }
         }
@@ -288,6 +322,7 @@ export const FinanceProvider = ({ children }) => {
       setFundAccounts(accounts);
       setBudgetAllocations(allocations);
       setTransactions(txList);
+      setIgpCollections(igpCollections);
       setPreOrderBatches(batches);
 
       computeProjections(accounts, allocations, txList);
@@ -297,7 +332,7 @@ export const FinanceProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.uid, userName, computeProjections]);
+  }, [currentUser, userRole, userName, canEditFinanceAccount, computeProjections]);
 
   // Initial load + live synchronization when order/IGP modules post to IGF/IGP
   useEffect(() => {
@@ -320,6 +355,11 @@ export const FinanceProvider = ({ children }) => {
 
   const disbursedByAccount = useMemo(
     () => computeDisbursedByAccount(transactions),
+    [transactions]
+  );
+
+  const disbursedByAllocation = useMemo(
+    () => computeDisbursedByAllocation(transactions),
     [transactions]
   );
 
@@ -352,9 +392,9 @@ export const FinanceProvider = ({ children }) => {
         user
       );
 
-      // If initial spent amount was specified, record transaction
+      // If initial spent amount was specified on an approved allocation, record transaction
       const initialSpent = Number(budgetData.spentAmount || budgetData.spent || 0);
-      if (initialSpent > 0) {
+      if (initialSpent > 0 && (budgetData.status || 'approved') !== 'draft') {
         await financeService.recordTransaction(
           {
             fundAccountId: budgetData.fundAccountId || 'fund_fiscal_year_budget',
@@ -507,9 +547,11 @@ export const FinanceProvider = ({ children }) => {
     fundAccounts,
     budgetAllocations,
     transactions,
+    igpCollections,
     preOrderBatches,
     ledgerBalancesByAccount,
     disbursedByAccount,
+    disbursedByAllocation,
     refreshFinanceData,
     recordTransaction,
     reverseTransaction,

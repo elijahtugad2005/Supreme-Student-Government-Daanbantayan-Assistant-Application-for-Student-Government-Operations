@@ -15,8 +15,9 @@
 //                      because a Mayor must never confirm their own money
 // ────────────────────────────────────────────────────────────
 
-/** Every signed-in role may file a collection for a section they own. */
-export const canSubmitDeathAidFor = (role) => isSignedInRole(role);
+/** Every signed-in non-guest role may file a collection for a section they own. */
+export const canSubmitDeathAidFor = (role) =>
+  isSignedInRole(role) && role !== 'guest' && role !== 'public';
 
 /**
  * Roles allowed to accept a remittance and record themselves as the verifier.
@@ -89,9 +90,11 @@ export const canPostFinanceLedger = (user) =>
 export const canReverseFinanceLedger = (user) =>
   FINANCE_LEDGER_OPERATOR_ROLES.includes(user?.role);
 
-export const canSubmitDeathAid = (user) => !!user?.role;
+export const canSubmitDeathAid = (user) =>
+  !!user?.role && user.role !== 'guest' && user.role !== 'public';
 
-export const canViewOwnDeathAid = (user) => !!user?.role;
+export const canViewOwnDeathAid = (user) =>
+  !!user?.role && user.role !== 'guest' && user.role !== 'public';
 
 /**
  * Collection status lifecycle.
@@ -107,6 +110,7 @@ export const DEATH_AID_REMITTANCE_STATUS = {
   CONFIRMED: 'confirmed',
   DISCREPANCY: 'discrepancy',
   RESOLVED: 'resolved',
+  REVOKED: 'revoked',
   DENIED: 'denied',
 };
 
@@ -133,6 +137,67 @@ export const DEATH_AID_STATUS_LABELS = {
 
 export const isSignedInRole = (role) => !!role;
 
+/**
+ * Legacy user documents omitting `isActive` remain active; only explicit `false`
+ * indicates a soft-deleted / deactivated account.
+ */
+export const isProfileActive = (userData) => userData?.isActive !== false;
+
+/**
+ * Roles authorized to create, edit, and delete CalendarWidget events.
+ * Mirrors `canManageAnnouncements()` in firestore.rules so UI controls and
+ * database rules never drift out of sync.
+ */
+export const CALENDAR_MANAGER_ROLES = [
+  'admin',
+  'superadmin',
+  'president',
+  'vice_president',
+  'secretary',
+  'general_secretary',
+  'executive_secretary',
+  'press_secretary',
+  'linkages_secretary',
+  'deputy_secretary',
+  'creatives',
+  'governor',
+  'adviser',
+  'senator',
+  'representative',
+];
+
+const CALENDAR_OVERRIDE_KEYS = [
+  'canSendNotifications',
+  'canManageAnnouncements',
+  'canCreateAnnouncements',
+  'canManageCreatives',
+];
+
+/**
+ * Fail-closed RBAC check for CalendarWidget mutations.
+ * Explicitly blocks readOnly mode, unauthenticated callers, raw Firebase Auth
+ * objects lacking a verified role, `member`/`guest`/`public` accounts, and
+ * deactivated accounts (`isActive === false`).
+ */
+export const canManageCalendarEvents = (user, { readOnly = false } = {}) => {
+  if (readOnly || !user || user.isActive === false) return false;
+
+  const normalizedRole = typeof user.role === 'string' ? user.role.trim().toLowerCase() : '';
+  const overrides = user.permissionOverrides && typeof user.permissionOverrides === 'object'
+    ? user.permissionOverrides
+    : null;
+
+  if (overrides && CALENDAR_OVERRIDE_KEYS.some((key) => overrides[key] === true)) {
+    return true;
+  }
+
+  if (!normalizedRole || normalizedRole === 'member' || normalizedRole === 'guest' || normalizedRole === 'public') {
+    return false;
+  }
+
+  return CALENDAR_MANAGER_ROLES.includes(normalizedRole);
+};
+
 export const ROLE_PERMISSIONS = {
   // ========================================================
   // EXECUTIVE LEADERSHIP (HIGHER ACCESS / GENERAL ACCESS)
@@ -149,6 +214,8 @@ export const ROLE_PERMISSIONS = {
       canViewAnalytics: true,
       canViewFinance: true,
       canEditFinance: true,
+      canApproveFinance: true,
+      canAuditFinance: true,
       canExportData: true,
       canSendNotifications: true,
       canConfigureSystem: true,
@@ -531,7 +598,7 @@ export const ROLE_PERMISSIONS = {
     name: 'Guest',
     category: 'General Student Body',
     accessTier: 'Low Access',
-    description: 'Restricted access: Public browsing and class roster submission',
+    description: 'Restricted access: Public browsing only (blocked from Death Aid and Sections & Contributions)',
     permissions: {
       canManageProducts: false,
       canManageOrders: false,
@@ -544,7 +611,7 @@ export const ROLE_PERMISSIONS = {
       canConfigureSystem: false,
       canDeleteData: false,
       canManageCreatives: false,
-      canSubmitRoster: true,
+      canSubmitRoster: false,
       canViewRosters: false,
       canManageRosters: false
     }
@@ -681,16 +748,11 @@ export const effectivePermissions = (user) => {
 
 /**
  * Whether this role may SUBMIT a roster.
- *
- * Mayors have no login and browse as 'public', which deliberately has no
- * ROLE_PERMISSIONS entry — so a plain hasPermission() check reports false for
- * them. The sidebar and ProtectedRoute both allow signed-out visitors through
- * their explicit guest bypass, which is why roster submission works for them
- * today. Use this helper instead of checking `canSubmitRoster` directly, so
- * that anonymous Mayors are not silently locked out later.
+ * Guests and unauthenticated ('public') visitors are explicitly blocked to
+ * prevent anonymous brute-force submissions against classRosters.
  */
 export const canSubmitRosterFor = (role) =>
-  role === 'public' || hasPermission({ role }, 'canSubmitRoster');
+  role !== 'public' && role !== 'guest' && hasPermission({ role }, 'canSubmitRoster');
 
 /**
  * Check if user has any of the specified permissions
@@ -804,10 +866,10 @@ export const ROUTE_ALLOWED_ROLES = {
   // Inventory — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
   '/inventory': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],
 
-  // Sections & Contributions / Roster registry / Death Aid — All roles, public access enabled
-  '/sections-contributions': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
-  '/reports': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
-  '/death-aid': ['public', 'admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member', 'guest'],
+  // Sections & Contributions / Roster registry / Death Aid — Authenticated non-guest roles only
+  '/sections-contributions': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member'],
+  '/reports': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member'],
+  '/death-aid': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'governor', 'finance_secretary', 'auditor', 'budget_officer', 'senator', 'representative', 'member'],
 
   // Documents — President, VP, Secretaries, Finance, Auditor, Budget Officer, Senator, Representative
   '/documents': ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary', 'finance_secretary', 'auditor', 'budget_officer', 'representative', 'senator'],

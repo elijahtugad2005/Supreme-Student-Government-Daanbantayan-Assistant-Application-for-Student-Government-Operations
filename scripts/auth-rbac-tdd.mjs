@@ -113,6 +113,34 @@ check(
     usersRuleBlock.includes('permissionOverrides')
 );
 
+const usersAllowCreate = usersRuleBlock.match(/allow create:[\s\S]*?;/)?.[0] || '';
+const usersAllowUpdate = usersRuleBlock.match(/allow update:[\s\S]*?;/)?.[0] || '';
+
+check(
+  'firestore.rules users/{userId} allow create does NOT grant isOfficer() user-creation privileges (only isAdmin())',
+  usersAllowCreate.includes('isAdmin()') && !usersAllowCreate.includes('isOfficer()'),
+  `allow create block had isOfficer(): ${usersAllowCreate.includes('isOfficer()')}`
+);
+
+check(
+  'firestore.rules users/{userId} allow update does NOT grant isOfficer() role/override mutation privileges (only isAdmin())',
+  usersAllowUpdate.includes('isAdmin()') &&
+    !usersAllowUpdate.includes('isOfficer()') &&
+    usersAllowUpdate.includes("'role'") &&
+    usersAllowUpdate.includes("'permissionOverrides'") &&
+    usersAllowUpdate.includes("'permissions'"),
+  `allow update block had isOfficer(): ${usersAllowUpdate.includes('isOfficer()')}`
+);
+
+const fnIndexSource = readFileSync(new URL('../functions/src/index.js', import.meta.url), 'utf8');
+const allCanonicalRoles = Object.keys(ROLE_PERMISSIONS);
+check(
+  'functions/src/index.js ROLE_VALUES covers all 17 canonical roles and refuses to mint unknown roles in setRoleClaim',
+  allCanonicalRoles.every((r) => fnIndexSource.includes(`'${r}'`)) &&
+    /ROLE_VALUES\.includes\(role\)/.test(fnIndexSource) &&
+    /const safeRole = role && ROLE_VALUES\.includes\(role\) \? role : null/.test(fnIndexSource)
+);
+
 // ════════════════════════════════════════════════════════════════════════════
 // SLICE 3: Seam C — ROUTE_ALLOWED_ROLES Alignment Across permissions.js & App.jsx
 // ════════════════════════════════════════════════════════════════════════════

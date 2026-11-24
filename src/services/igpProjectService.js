@@ -18,9 +18,17 @@ import {
   query,
   orderBy,
   runTransaction,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig.js';
 import { auditService } from './auditService.js';
+import {
+  TOP_LEVEL_FUNDS,
+  TRANSACTION_TYPES,
+  TRANSACTION_STATUSES,
+  EXPENSE_PURPOSES,
+} from '../utils/financeConstants.js';
+import { notifyFinanceUpdated } from '../utils/financeLedgerReconciliation.js';
 
 export const IGP_PROJECT_TYPES = {
   VENDING_MACHINE: 'VENDING_MACHINE',
@@ -99,6 +107,65 @@ function buildLocationInfo(loc) {
   };
 }
 
+function generateIgpRefNumber(projectType, isReversal = false) {
+  const prefix = isReversal
+    ? 'REV-IGP'
+    : projectType === IGP_PROJECT_TYPES.VENDING_MACHINE
+    ? 'IGP-VND'
+    : projectType === IGP_PROJECT_TYPES.LOCKER_RENTAL
+    ? 'IGP-LCK'
+    : 'IGP-PRJ';
+  const tsPart = Date.now().toString().slice(-6);
+  const randPart = Math.floor(100 + Math.random() * 900);
+  return `${prefix}-${tsPart}-${randPart}`;
+}
+
+function buildIgpLedgerMeta({
+  collectionId,
+  refNumber = '',
+  projectType,
+  projectName,
+  amountCentavos,
+  collector,
+  description,
+  referenceNumber = '',
+  isReversal = false,
+  reversalOfTransactionId = null,
+  reversalReason = '',
+}) {
+  const finalRefNumber = refNumber || generateIgpRefNumber(projectType, isReversal);
+
+  return {
+    collectionId: collectionId || null,
+    postToLedger: true,
+    isReversal,
+    transaction: {
+      refNumber: finalRefNumber,
+      fundAccountId: 'fund_igp_main',
+      fundCategory: TOP_LEVEL_FUNDS.IGP,
+      transactionType: isReversal ? TRANSACTION_TYPES.REVERSAL : TRANSACTION_TYPES.COLLECTION,
+      expensePurpose: isReversal ? 'Reversal' : EXPENSE_PURPOSES.COLLECTION,
+      amountCentavos: Math.abs(amountCentavos),
+      payeeOrPayer: collector?.name || 'Authorized Officer',
+      description,
+      source: isReversal ? 'IGP_COLLECTION_REVERSAL' : 'IGP_COLLECTION',
+      igpCollectionId: collectionId || null,
+      projectType,
+      projectName,
+      referenceNumber: referenceNumber || '',
+      ...(isReversal
+        ? {
+            reversalOfTransactionId: reversalOfTransactionId || null,
+            reversalReason: reversalReason || 'Administrative Reversal',
+          }
+        : {}),
+      createdById: collector?.uid || 'officer',
+      createdBy: collector?.name || 'Authorized Officer',
+      status: TRANSACTION_STATUSES.POSTED,
+    },
+  };
+}
+
 
 export function createIgpProjectService({ db }) {
   if (!db) throw new Error('Database adapter is required for igpProjectService.');
@@ -147,6 +214,7 @@ export function createIgpProjectService({ db }) {
       }
 
       const nowIso = new Date().toISOString();
+      const ledgerRefNumber = generateIgpRefNumber(IGP_PROJECT_TYPES.VENDING_MACHINE);
       const payload = {
         projectType: IGP_PROJECT_TYPES.VENDING_MACHINE,
         projectName: collectionData.projectName || 'Campus Vending Machine',
@@ -157,12 +225,25 @@ export function createIgpProjectService({ db }) {
         collectedAt: collectionData.collectedAt || nowIso,
         notes: collectionData.notes || '',
         referenceNumber: collectionData.referenceNumber || '',
+        ledgerRefNumber,
         fundSource: 'IGP',
         createdAt: nowIso,
       };
 
       const saved = await db.addCollection(payload);
-      await db.updateIgpFundBalance(amountCentavos);
+      const fundResult = await db.updateIgpFundBalance(
+        amountCentavos,
+        buildIgpLedgerMeta({
+          collectionId: saved?.id,
+          refNumber: ledgerRefNumber,
+          projectType: IGP_PROJECT_TYPES.VENDING_MACHINE,
+          projectName: payload.projectName,
+          amountCentavos,
+          collector: payload.collectedBy,
+          description: `Vending Machine Collection (${payload.location.buildingName}${payload.location.specificSpot ? ` - ${payload.location.specificSpot}` : ''})`,
+          referenceNumber: payload.referenceNumber,
+        })
+      );
 
       if (typeof db.logAudit === 'function') {
         await db.logAudit({
@@ -177,7 +258,12 @@ export function createIgpProjectService({ db }) {
         });
       }
 
-      return saved;
+      return {
+        ...saved,
+        ...(fundResult?.ledgerTxId
+          ? { ledgerTxId: fundResult.ledgerTxId, ledgerRefNumber: fundResult.ledgerRefNumber }
+          : {}),
+      };
     },
 
     async rentLockerUnit(lockerId, rentalData, actorUser) {
@@ -193,6 +279,14 @@ export function createIgpProjectService({ db }) {
           `Locker ${lockerId} is already occupied by ${locker.currentLease?.renterName || 'another student'}.`
         );
         err.code = 'LOCKER_ALREADY_OCCUPIED';
+        throw err;
+      }
+
+      if (locker.status === LOCKER_STATUSES.MAINTENANCE) {
+        const err = new Error(
+          `Locker ${lockerId} is currently under maintenance and cannot be rented.`
+        );
+        err.code = 'LOCKER_IN_MAINTENANCE';
         throw err;
       }
 
@@ -231,7 +325,9 @@ export function createIgpProjectService({ db }) {
       await db.saveLocker(lockerId, updatedLocker);
 
       // Record financial collection
-      await db.addCollection({
+      const collectorInfo = buildCollectorInfo(actorUser, rentalData.officerName);
+      const ledgerRefNumber = generateIgpRefNumber(IGP_PROJECT_TYPES.LOCKER_RENTAL);
+      const savedCollection = await db.addCollection({
         projectType: IGP_PROJECT_TYPES.LOCKER_RENTAL,
         projectName: `Locker Rental: ${lockerId}`,
         lockerId,
@@ -239,14 +335,26 @@ export function createIgpProjectService({ db }) {
         buildingId: locker.buildingId,
         amountCentavos: totalPaidCentavos,
         amountPHP: totalPaidCentavos / 100,
-        collectedBy: buildCollectorInfo(actorUser, rentalData.officerName),
+        collectedBy: collectorInfo,
         collectedAt: nowIso,
         notes: `Rented ${lockerId} to ${lease.renterName} (${lease.studentId}) for ${months} month(s)`,
+        ledgerRefNumber,
         fundSource: 'IGP',
         createdAt: nowIso,
       });
 
-      await db.updateIgpFundBalance(totalPaidCentavos);
+      await db.updateIgpFundBalance(
+        totalPaidCentavos,
+        buildIgpLedgerMeta({
+          collectionId: savedCollection?.id,
+          refNumber: ledgerRefNumber,
+          projectType: IGP_PROJECT_TYPES.LOCKER_RENTAL,
+          projectName: `Locker Rental: ${lockerId}`,
+          amountCentavos: totalPaidCentavos,
+          collector: collectorInfo,
+          description: `Locker Rental: ${lockerId} (${locker.buildingName}) - ${lease.renterName} (${months} mo.)`,
+        })
+      );
 
       if (typeof db.logAudit === 'function') {
         await db.logAudit({
@@ -365,6 +473,7 @@ export function createIgpProjectService({ db }) {
       }
 
       const nowIso = new Date().toISOString();
+      const ledgerRefNumber = generateIgpRefNumber(IGP_PROJECT_TYPES.FUTURE_IGP);
       const payload = {
         projectType: IGP_PROJECT_TYPES.FUTURE_IGP,
         projectName: projectData.projectName || 'Future IGP Initiative',
@@ -375,12 +484,25 @@ export function createIgpProjectService({ db }) {
         collectedAt: projectData.collectedAt || nowIso,
         notes: projectData.notes || '',
         referenceNumber: projectData.referenceNumber || '',
+        ledgerRefNumber,
         fundSource: 'IGP',
         createdAt: nowIso,
       };
 
       const saved = await db.addCollection(payload);
-      await db.updateIgpFundBalance(amountCentavos);
+      const fundResult = await db.updateIgpFundBalance(
+        amountCentavos,
+        buildIgpLedgerMeta({
+          collectionId: saved?.id,
+          refNumber: ledgerRefNumber,
+          projectType: IGP_PROJECT_TYPES.FUTURE_IGP,
+          projectName: payload.projectName,
+          amountCentavos,
+          collector: payload.collectedBy,
+          description: `Custom IGP Revenue: ${payload.projectName} (${payload.location.buildingName})`,
+          referenceNumber: payload.referenceNumber,
+        })
+      );
 
       if (typeof db.logAudit === 'function') {
         await db.logAudit({
@@ -395,7 +517,12 @@ export function createIgpProjectService({ db }) {
         });
       }
 
-      return saved;
+      return {
+        ...saved,
+        ...(fundResult?.ledgerTxId
+          ? { ledgerTxId: fundResult.ledgerTxId, ledgerRefNumber: fundResult.ledgerRefNumber }
+          : {}),
+      };
     },
 
     /**
@@ -418,13 +545,30 @@ export function createIgpProjectService({ db }) {
       }
 
       const amountCentavos = col.amountCentavos || Math.round((col.amountPHP || 0) * 100);
+      const wasPostedToLedger = Boolean(col.ledgerTxId || col.ledgerRefNumber);
 
       if (typeof db.deleteCollection === 'function') {
         await db.deleteCollection(collectionId);
       }
 
-      // Reversal: subtract the collection amount from fund balance
-      await db.updateIgpFundBalance(-amountCentavos);
+      // Reversal: subtract the collection amount from fund balance and post a compensating
+      // ledger reversal only when the original collection was posted to `transactions`.
+      await db.updateIgpFundBalance(
+        -amountCentavos,
+        wasPostedToLedger
+          ? buildIgpLedgerMeta({
+              collectionId,
+              projectType: col.projectType || IGP_PROJECT_TYPES.VENDING_MACHINE,
+              projectName: col.projectName || 'IGP Collection',
+              amountCentavos,
+              collector: buildCollectorInfo(actorUser),
+              description: `Reversal of ${col.projectName || 'IGP Collection'} (${collectionId}): ${reason}`,
+              isReversal: true,
+              reversalOfTransactionId: col.ledgerTxId || col.ledgerRefNumber || null,
+              reversalReason: reason,
+            })
+          : { postToLedger: false }
+      );
 
       if (typeof db.logAudit === 'function') {
         await db.logAudit({
@@ -529,24 +673,83 @@ export function createBrowserIgpProjectService() {
       const snap = await getDoc(doc(db, 'fundAccounts', 'fund_igp_main'));
       return snap.exists() ? snap.data() : null;
     },
-    async updateIgpFundBalance(deltaCentavos) {
+    async updateIgpFundBalance(deltaCentavos, ledgerMeta = null) {
       const fundRef = doc(db, 'fundAccounts', 'fund_igp_main');
-      return runTransaction(db, async (tx) => {
+      const result = await runTransaction(db, async (tx) => {
         const snap = await tx.get(fundRef);
-        const currentBal = snap.exists() ? snap.data().balanceCentavos || 0 : 0;
-        const newBal = currentBal + deltaCentavos;
+        const fundData = snap.exists() ? snap.data() : {};
+
+        // Pre-read original ledger transaction if reversing so we can atomically mark it
+        // status='reversed' (prevents double-reversal from FundGovernance) before any writes.
+        let origTxRef = null;
+        let origTxSnap = null;
+        const origKey = ledgerMeta?.isReversal ? ledgerMeta?.transaction?.reversalOfTransactionId : null;
+        if (origKey && typeof origKey === 'string' && !origKey.startsWith('IGP-')) {
+          origTxRef = doc(db, 'transactions', origKey);
+          origTxSnap = await tx.get(origTxRef);
+        }
+
+        const currentBal = fundData.balanceCentavos || 0;
+        const newBal = Math.max(0, currentBal + deltaCentavos);
+
         tx.set(
           fundRef,
           {
             balanceCentavos: newBal,
             topLevelCategory: 'IGP',
-            displayName: 'Income-Generating Projects (IGP)',
+            displayName: fundData.displayName || 'Income-Generating Projects (IGP)',
             updatedAt: new Date().toISOString(),
           },
           { merge: true }
         );
-        return { balanceCentavos: newBal };
+
+        let ledgerTxId = null;
+        let ledgerRefNumber = null;
+
+        if (ledgerMeta && ledgerMeta.postToLedger !== false && ledgerMeta.transaction) {
+          if (origTxRef && origTxSnap?.exists() && origTxSnap.data()?.status === TRANSACTION_STATUSES.POSTED) {
+            tx.update(origTxRef, {
+              status: TRANSACTION_STATUSES.REVERSED,
+              reversedAt: serverTimestamp(),
+              reversedBy: ledgerMeta.transaction.createdBy || 'Authorized Officer',
+              reversalReason: ledgerMeta.transaction.reversalReason || 'Administrative Reversal',
+            });
+          }
+
+          const txRef = doc(collection(db, 'transactions'));
+          ledgerTxId = txRef.id;
+          ledgerRefNumber = ledgerMeta.transaction.refNumber;
+          const storageLocation = fundData.bankAccountReference || 'Custodial Lockbox';
+
+          tx.set(txRef, {
+            ...ledgerMeta.transaction,
+            reversedTransactionType: ledgerMeta.isReversal ? TRANSACTION_TYPES.COLLECTION : null,
+            storageLocation,
+            createdAt: serverTimestamp(),
+            postedAt: serverTimestamp(),
+            status: TRANSACTION_STATUSES.POSTED,
+          });
+
+          if (!ledgerMeta.isReversal && ledgerMeta.collectionId) {
+            tx.set(
+              doc(db, 'igpCollections', ledgerMeta.collectionId),
+              { ledgerTxId, ledgerRefNumber },
+              { merge: true }
+            );
+          }
+        }
+
+        return { balanceCentavos: newBal, ledgerTxId, ledgerRefNumber };
       });
+
+      notifyFinanceUpdated({
+        fundAccountId: 'fund_igp_main',
+        source: ledgerMeta?.transaction?.source || 'IGP_COLLECTION',
+        ledgerTxId: result.ledgerTxId,
+        refNumber: result.ledgerRefNumber,
+      });
+
+      return result;
     },
     async logAudit(entry) {
       if (auditService && typeof auditService.log === 'function') {

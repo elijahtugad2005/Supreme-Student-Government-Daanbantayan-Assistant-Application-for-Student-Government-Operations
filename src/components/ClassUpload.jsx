@@ -20,11 +20,15 @@ import {
   ROSTER_STATUS,
   amendRosterForTransfers,
   buildMayorAccountLabel,
+  denyRosterVerification,
   listPendingSubmissions,
+  listPlaceholderSections,
   listRosterVersions,
   listRostersOwnedBy,
   listSections,
+  removeRosterOrPlaceholder,
   requestCorrection,
+  revokeRosterVerification,
   submitRoster,
   verifyRoster,
   withdrawRoster,
@@ -42,9 +46,12 @@ const TABS = [
 
 // Tone names, not colours — the pill resolves them through the theme tokens.
 const STATUS_META = {
+  [ROSTER_STATUS.PLACEHOLDER]: { label: 'Placeholder (Needs Mayor)', tone: 'warning' },
   [ROSTER_STATUS.PENDING]: { label: 'Pending Verification', tone: 'info' },
   [ROSTER_STATUS.VERIFIED]: { label: 'Verified', tone: 'success' },
   [ROSTER_STATUS.CORRECTION_REQUESTED]: { label: 'Correction Requested', tone: 'warning' },
+  [ROSTER_STATUS.DENIED]: { label: 'Verification Denied', tone: 'error' },
+  [ROSTER_STATUS.REVOKED]: { label: 'Verification Removed', tone: 'error' },
 };
 
 const formatDate = (value) => {
@@ -102,12 +109,17 @@ function ClassUpload() {
   const [tab, setTab] = useState('submit');
 
   // ========================================
-  // OFFICER PANEL
+  // OFFICER PANEL & PLACEHOLDER SECTIONS
   // ========================================
   const [sections, setSections] = useState([]);
+  const [placeholderSections, setPlaceholderSections] = useState([]);
   const [pending, setPending] = useState([]);
   const [correctionFor, setCorrectionFor] = useState(null);
   const [correctionReason, setCorrectionReason] = useState('');
+  const [denyFor, setDenyFor] = useState(null);
+  const [denyReason, setDenyReason] = useState('');
+  const [revokeFor, setRevokeFor] = useState(null);
+  const [revokeReason, setRevokeReason] = useState('');
   const [busyId, setBusyId] = useState('');
   const [expandedSection, setExpandedSection] = useState('');
   const [versions, setVersions] = useState({});
@@ -355,9 +367,19 @@ function ClassUpload() {
   };
 
   // ========================================
-  // OFFICER ACTIONS
+  // OFFICER & PLACEHOLDER ACTIONS
   // ========================================
+  const loadPlaceholderData = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      setPlaceholderSections(await listPlaceholderSections());
+    } catch {
+      setPlaceholderSections([]);
+    }
+  }, [currentUser]);
+
   const loadOfficerData = useCallback(async () => {
+    await loadPlaceholderData();
     if (!canVerify) return;
 
     // Settled separately on purpose: a missing composite index on one query
@@ -377,11 +399,34 @@ function ClassUpload() {
     if (failures.length > 0) {
       setBanner({ type: 'error', message: failures.join(' ') });
     }
-  }, [canVerify]);
+  }, [canVerify, loadPlaceholderData]);
 
   useEffect(() => {
     loadOfficerData();
   }, [loadOfficerData]);
+
+  const handleClaimPlaceholder = (placeholder) => {
+    const matchedCollege = COLLEGE_LIST.find(
+      (c) => c.label === placeholder.college || c.id === placeholder.college
+    );
+    const matchedProgram =
+      matchedCollege && matchedCollege.programs.includes(placeholder.program)
+        ? placeholder.program
+        : '';
+
+    setMeta((prev) => ({
+      ...prev,
+      collegeId: matchedCollege?.id || prev.collegeId,
+      program: matchedProgram || prev.program,
+      section: placeholder.section || '',
+    }));
+    const derived = placeholder.yearLevel || deriveYearLevel(placeholder.section);
+    if (derived) setYearLevel(String(derived));
+    setBanner({
+      type: 'info',
+      message: `Selected placeholder section "${placeholder.section}" from TechnoCares. Upload or type your official class student list below to claim and submit it for verification.`,
+    });
+  };
 
   const handleVerify = async (rosterId) => {
     setBusyId(rosterId);
@@ -403,6 +448,60 @@ function ClassUpload() {
       setBanner({ type: 'info', message: 'Correction requested. The Mayor can now resubmit.' });
       setCorrectionFor(null);
       setCorrectionReason('');
+      await loadOfficerData();
+    } catch (error) {
+      setBanner({ type: 'error', message: error.message });
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const handleDenyRoster = async (rosterId) => {
+    setBusyId(rosterId);
+    try {
+      await denyRosterVerification(rosterId, denyReason, {
+        uid: currentUser?.uid || null,
+        name: displayName,
+      });
+      setBanner({ type: 'info', message: 'Roster verification denied and removed from pending queue.' });
+      setDenyFor(null);
+      setDenyReason('');
+      await loadOfficerData();
+    } catch (error) {
+      setBanner({ type: 'error', message: error.message });
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const handleRevokeRoster = async (rosterId, sectionName) => {
+    setBusyId(rosterId);
+    try {
+      await revokeRosterVerification(rosterId, revokeReason, {
+        uid: currentUser?.uid || null,
+        name: displayName,
+      });
+      setBanner({
+        type: 'info',
+        message: `Verification removed for ${sectionName || 'roster'}. Historical student list preserved.`,
+      });
+      setRevokeFor(null);
+      setRevokeReason('');
+      setVersions({});
+      await loadOfficerData();
+    } catch (error) {
+      setBanner({ type: 'error', message: error.message });
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const handleRemoveRosterOrPlaceholder = async ({ rosterId = null, sectionId = null, label = '' }) => {
+    const targetKey = rosterId || sectionId;
+    setBusyId(targetKey);
+    try {
+      await removeRosterOrPlaceholder({ rosterId, sectionId });
+      setBanner({ type: 'info', message: `Removed ${label || 'entry'} from the registry.` });
       await loadOfficerData();
     } catch (error) {
       setBanner({ type: 'error', message: error.message });
@@ -475,6 +574,44 @@ function ClassUpload() {
         />
       ) : (
         <>
+      {/* ========================================
+          PLACEHOLDER SECTIONS FROM TECHNOCARES (NEEDS MAYOR ROSTER)
+          ======================================== */}
+      {placeholderSections.length > 0 && (
+        <div style={styles.formWrapper}>
+          <h3 style={styles.sectionTitle}>
+            Placeholder Sections Awaiting Class Mayor Roster ({placeholderSections.length})
+          </h3>
+          <p style={styles.helperText}>
+            These sections already have a TechnoCares / Death Aid collection recorded by an SSG officer
+            but do not have a verified class list yet. Class Mayors: click your section below to pre-fill
+            the form and upload your official student roster.
+          </p>
+          {placeholderSections.map((ps) => (
+            <div key={ps.id} style={styles.reviewCard}>
+              <div style={styles.reviewHeader}>
+                <div>
+                  <strong style={styles.reviewTitle}>{ps.section}</strong>
+                  <p style={styles.helperText}>
+                    {ps.college || 'Unassigned'} · {ps.program || 'Unassigned'} · Recorded via TechnoCares
+                  </p>
+                </div>
+                <StatusBadge status={ROSTER_STATUS.PLACEHOLDER} />
+              </div>
+              <div style={styles.buttonGroup}>
+                <button
+                  type="button"
+                  onClick={() => handleClaimPlaceholder(ps)}
+                  style={styles.verifyButton}
+                >
+                  Update / Upload Roster for {ps.section}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ========================================
           ACADEMIC DETAILS
           ======================================== */}
@@ -839,12 +976,60 @@ function ClassUpload() {
                       onClick={() => {
                         setCorrectionFor(item.id);
                         setCorrectionReason('');
+                        setDenyFor(null);
                       }}
                       style={styles.secondaryButton}
                     >
                       Request Correction
                     </button>
+                    <button
+                      onClick={() => {
+                        setDenyFor(item.id);
+                        setDenyReason('');
+                        setCorrectionFor(null);
+                      }}
+                      disabled={busyId === item.id}
+                      style={styles.resetButton}
+                    >
+                      Deny Verification
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleRemoveRosterOrPlaceholder({
+                          rosterId: item.id,
+                          label: item.section,
+                        })
+                      }
+                      disabled={busyId === item.id}
+                      style={styles.rowRemove}
+                    >
+                      Remove
+                    </button>
                   </div>
+
+                  {denyFor === item.id && (
+                    <div style={styles.correctionBox}>
+                      <textarea
+                        value={denyReason}
+                        onChange={(e) => setDenyReason(e.target.value)}
+                        style={styles.textarea}
+                        placeholder="Why is this roster verification being denied?"
+                        rows={3}
+                      />
+                      <div style={styles.buttonGroup}>
+                        <button
+                          onClick={() => handleDenyRoster(item.id)}
+                          disabled={busyId === item.id || !denyReason.trim()}
+                          style={styles.verifyButton}
+                        >
+                          Confirm Deny
+                        </button>
+                        <button onClick={() => setDenyFor(null)} style={styles.resetButton}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {correctionFor === item.id && (
                     <div style={styles.correctionBox}>
@@ -902,11 +1087,74 @@ function ClassUpload() {
                             <StatusBadge status={s.status} />
                           </td>
                           <td style={styles.tableCell}>
-                            <button onClick={() => toggleVersions(s.sectionKey)} style={styles.rowRemove}>
-                              {expandedSection === s.sectionKey ? 'Hide versions' : 'Versions'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                              <button onClick={() => toggleVersions(s.sectionKey)} style={styles.rowRemove}>
+                                {expandedSection === s.sectionKey ? 'Hide versions' : 'Versions'}
+                              </button>
+                              {s.status === ROSTER_STATUS.VERIFIED && s.currentRosterId && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRevokeFor(s.currentRosterId);
+                                    setRevokeReason('');
+                                  }}
+                                  disabled={busyId === s.currentRosterId}
+                                  style={styles.rowRemove}
+                                >
+                                  Remove Verification
+                                </button>
+                              )}
+                              {(s.status === ROSTER_STATUS.PLACEHOLDER || s.status === ROSTER_STATUS.REVOKED) && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRemoveRosterOrPlaceholder({
+                                      sectionId: s.id,
+                                      label: s.section,
+                                    })
+                                  }
+                                  disabled={busyId === s.id}
+                                  style={styles.rowRemove}
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
+
+                        {revokeFor && revokeFor === s.currentRosterId && (
+                          <tr style={styles.tableRow}>
+                            <td style={styles.tableCell} colSpan={5}>
+                              <div style={styles.correctionBox}>
+                                <textarea
+                                  value={revokeReason}
+                                  onChange={(e) => setRevokeReason(e.target.value)}
+                                  style={styles.textarea}
+                                  placeholder={`Reason for removing verification from ${s.section}...`}
+                                  rows={2}
+                                />
+                                <div style={styles.buttonGroup}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRevokeRoster(s.currentRosterId, s.section)}
+                                    disabled={busyId === s.currentRosterId || !revokeReason.trim()}
+                                    style={styles.verifyButton}
+                                  >
+                                    Confirm Remove Verification
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setRevokeFor(null)}
+                                    style={styles.resetButton}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
 
                         {expandedSection === s.sectionKey && (
                           <tr style={styles.tableRow}>

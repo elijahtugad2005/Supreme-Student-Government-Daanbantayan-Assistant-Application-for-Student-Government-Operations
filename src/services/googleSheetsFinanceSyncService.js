@@ -182,11 +182,34 @@ export function buildFiscalSheetsPayload({ funds = [], budgets = [], transaction
         fiscalYear: val?.fiscalYear || '2026–2027',
       }));
 
+  const resolveAllocatedCentavos = (b) => {
+    if (b?.approvedAmountCentavos !== undefined) return Number(b.approvedAmountCentavos || 0);
+    if (b?.allocatedCentavos !== undefined) return Number(b.allocatedCentavos || 0);
+    if (b?.allocatedAmount !== undefined) return toCentavos(b.allocatedAmount);
+    if (b?.allocated !== undefined) return toCentavos(b.allocated);
+    return 0;
+  };
+
+  const resolveSpentCentavos = (b) => {
+    if (b?.spentAmountCentavos !== undefined) return Number(b.spentAmountCentavos || 0);
+    if (b?.spentCentavos !== undefined) return Number(b.spentCentavos || 0);
+    if (b?.spentAmount !== undefined) return toCentavos(b.spentAmount);
+    if (b?.spent !== undefined) return toCentavos(b.spent);
+    return 0;
+  };
+
+  const activeBudgetsList = (Array.isArray(budgets) ? budgets : []).filter(
+    (b) => b && String(b.status || '').toLowerCase() !== 'archived' && b.isActive !== false
+  );
+
   const totalHoldingCentavos = fundsList.reduce((acc, f) => acc + (f.balanceCentavos || 0), 0);
-  const totalApprovedAllocCentavos = budgets
-    .filter(b => b.status === 'approved')
-    .reduce((acc, b) => acc + (b.allocatedCentavos || toCentavos(b.allocatedAmount || 0)), 0);
-  const totalSpentCentavos = budgets.reduce((acc, b) => acc + (b.spentCentavos || toCentavos(b.spentAmount || 0)), 0);
+  const totalApprovedAllocCentavos = activeBudgetsList
+    .filter((b) => String(b.status || 'approved').toLowerCase() === 'approved')
+    .reduce((acc, b) => acc + resolveAllocatedCentavos(b), 0);
+  const totalSpentCentavos = activeBudgetsList.reduce(
+    (acc, b) => acc + resolveSpentCentavos(b),
+    0
+  );
 
   // 1. Summary KPIs
   const summarySheet = {
@@ -205,33 +228,49 @@ export function buildFiscalSheetsPayload({ funds = [], budgets = [], transaction
   const ledgerSheet = {
     name: 'General Ledger',
     headers: ['Date', 'Transaction ID', 'Type', 'Account / Fund', 'Amount (PHP)', 'Payee / Payer', 'Description', 'Custodian', 'Resolution Ref', 'Audit Overspent'],
-    rows: transactionsList.map(tx => [
-      formatGoogleSheetsDate(tx.date, tx.createdAt || tx.timestamp || tx.transactionDate),
-      tx.referenceNo || tx.id || '',
-      tx.transactionType || 'EXPENSE',
-      tx.fundAccountId || 'fund_fiscal_year_budget',
-      fromCentavos(tx.amountCentavos || toCentavos(tx.amount || 0)).toFixed(2),
-      tx.payeeOrPayer || 'N/A',
-      tx.description || '',
-      tx.custodianName || 'SSG Officer',
-      tx.resolutionRef || 'N/A',
-      tx.isReversed ? `REVERSED: ${tx.reversalReason || ''}` : tx.isOverspent ? 'YES (FLAGGED)' : 'POSTED',
-    ]),
+    rows: transactionsList.map((tx) => {
+      const isReversed =
+        Boolean(tx.isReversed) || String(tx.status || '').toLowerCase() === 'reversed';
+      return [
+        formatGoogleSheetsDate(tx.date, tx.createdAt || tx.timestamp || tx.transactionDate),
+        tx.refNumber || tx.referenceNo || tx.id || '',
+        tx.transactionType || 'EXPENSE',
+        tx.fundAccountId || 'fund_fiscal_year_budget',
+        fromCentavos(tx.amountCentavos !== undefined ? tx.amountCentavos : toCentavos(tx.amount || 0)).toFixed(2),
+        tx.payeeOrPayer || 'N/A',
+        tx.description || '',
+        tx.custodianName || tx.createdBy || 'SSG Officer',
+        tx.resolutionRef || 'N/A',
+        isReversed
+          ? `REVERSED: ${tx.reversalReason || ''}`.trim()
+          : tx.isOverspent
+            ? 'YES (FLAGGED)'
+            : String(tx.status || 'POSTED').toUpperCase(),
+      ];
+    }),
   };
 
   // 3. Approved Allocations
   const allocationsSheet = {
     name: 'Approved Allocations',
     headers: ['Event / Program Name', 'Resolution Ref', 'Source Fund', 'Allocated (PHP)', 'Disbursed (PHP)', 'Remaining (PHP)', 'Status'],
-    rows: budgets.map(b => [
-      b.eventName || b.title || 'Event Line Item',
-      b.resolution || b.resolutionRef || 'N/A',
-      b.fundAccountId || (b.isFSG ? 'fund_fsg_remittance' : 'fund_fiscal_year_budget'),
-      fromCentavos(b.allocatedCentavos || toCentavos(b.allocatedAmount || 0)).toFixed(2),
-      fromCentavos(b.spentCentavos || toCentavos(b.spentAmount || 0)).toFixed(2),
-      fromCentavos(b.remainingCentavos || (b.allocatedCentavos - (b.spentCentavos || 0)) || 0).toFixed(2),
-      b.status || 'approved',
-    ]),
+    rows: activeBudgetsList.map((b) => {
+      const allocCentavos = resolveAllocatedCentavos(b);
+      const spentCentavos = resolveSpentCentavos(b);
+      const remainingCentavos =
+        b.remainingCentavos !== undefined
+          ? Number(b.remainingCentavos || 0)
+          : Math.max(0, allocCentavos - spentCentavos);
+      return [
+        b.eventName || b.activityName || b.title || 'Event Line Item',
+        b.resolution || b.resolutionRef || 'N/A',
+        b.fundAccountId || (b.isFSG ? 'fund_fsg_remittance' : 'fund_fiscal_year_budget'),
+        fromCentavos(allocCentavos).toFixed(2),
+        fromCentavos(spentCentavos).toFixed(2),
+        fromCentavos(remainingCentavos).toFixed(2),
+        b.status || 'approved',
+      ];
+    }),
   };
 
   // 4. Holding Funds

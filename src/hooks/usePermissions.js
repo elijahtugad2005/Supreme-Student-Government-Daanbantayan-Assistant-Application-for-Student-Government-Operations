@@ -13,6 +13,8 @@ import {
   hasAllPermissions, 
   canAccessRoute,
   canPerformAction,
+  canPostFinanceLedger as canPostFinanceLedgerFor,
+  canReverseFinanceLedger as canReverseFinanceLedgerFor,
   getRoleName,
   filterNavigationByRole
 } from '../utils/permissions.js';
@@ -189,6 +191,7 @@ export const usePermissions = () => {
   return {
     // User information
     user,
+    role: userRole,
     userRole,
     getUserInfo,
     getUserRoleName,
@@ -226,6 +229,8 @@ export const usePermissions = () => {
     canViewAnalytics: checkPermission('canViewAnalytics'),
     canViewFinance: checkPermission('canViewFinance'),
     canEditFinance: checkPermission('canEditFinance'),
+    canApproveFinance: checkPermission('canApproveFinance'),
+    canAuditFinance: checkPermission('canAuditFinance'),
     canManageCreatives: checkPermission('canManageCreatives'),
     canExportData: checkPermission('canExportData'),
     canSendNotifications: checkPermission('canSendNotifications'),
@@ -233,8 +238,8 @@ export const usePermissions = () => {
     canDeleteData: checkPermission('canDeleteData'),
 
     // Finance Ledger Authority Checks (Admin, Finance Secretary, Budget Officer, Auditor)
-    canPostFinanceLedger: checkAction('canPostFinanceLedger') || ['admin', 'finance_secretary', 'budget_officer', 'auditor'].includes(userRole),
-    canReverseFinanceLedger: checkAction('canReverseFinanceLedger') || ['admin', 'finance_secretary', 'budget_officer', 'auditor'].includes(userRole)
+    canPostFinanceLedger: canPostFinanceLedgerFor(user),
+    canReverseFinanceLedger: canReverseFinanceLedgerFor(user)
   };
 };
 

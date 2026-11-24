@@ -79,12 +79,13 @@ router.get('/', (req, res) => {
     message: 'Document Repository & Storage API',
     endpoints: {
       health: 'GET /api/documents/health',
-      driveStatus: 'GET /api/documents/drive/status (requires auth)',
-      list: 'GET /api/documents/list (requires auth)',
-      upload: 'POST /api/documents/upload (requires auth)',
-      download: 'GET /api/documents/:fileId/download (requires auth)',
-      metadata: 'GET /api/documents/:fileId/metadata (requires auth)',
-      delete: 'DELETE /api/documents/:fileId (requires auth)'
+      driveStatus: 'GET /api/documents/drive/status (requires auth + role)',
+      driveSync: 'POST /api/documents/:fileId/drive-sync (requires auth + role)',
+      list: 'GET /api/documents/list (requires auth + role)',
+      upload: 'POST /api/documents/upload (requires auth + role)',
+      download: 'GET /api/documents/:fileId/download (requires auth + role)',
+      metadata: 'GET /api/documents/:fileId/metadata (requires auth + role)',
+      delete: 'DELETE /api/documents/:fileId (requires auth + delete role)'
     }
   });
 });
@@ -93,7 +94,7 @@ router.get('/', (req, res) => {
  * GET /api/documents/drive/status
  * Whether Synced Storage (Google Drive) is configured on this server.
  */
-router.get('/drive/status', authenticate, (req, res) => {
+router.get('/drive/status', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), (req, res) => {
   res.status(200).json({ success: true, data: { enabled: driveSync.isEnabled() } });
 });
 
@@ -101,7 +102,7 @@ router.get('/drive/status', authenticate, (req, res) => {
  * POST /api/documents/:fileId/drive-sync
  * Retry (or first-time) mirror of an existing GridFS file to Drive.
  */
-router.post('/:fileId/drive-sync', authenticate, async (req, res) => {
+router.post('/:fileId/drive-sync', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { fileId } = req.params;
     const metadata = await getFileMetadata(fileId);
@@ -344,6 +345,8 @@ router.get('/:fileId/download', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Cache-Control', 'private, max-age=3600');
     res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     const dispositionType = req.query.disposition === 'attachment' ? 'attachment' : 'inline';
     res.setHeader('Content-Disposition', `${dispositionType}; filename="${encodeURIComponent(filename)}"`);
 

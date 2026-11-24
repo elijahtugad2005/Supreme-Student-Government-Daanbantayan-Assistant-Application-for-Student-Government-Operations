@@ -25,8 +25,10 @@ import styles from './FinanceReportExportPanel.module.css';
 
 export const FinanceReportExportPanel = () => {
   const { fundAccounts, budgetAllocations, transactions, funds, budgets } = useFinance();
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userName, userRole } = useAuth();
   const { canPostFinanceLedger, role } = usePermissions();
+  const resolvedRole = userRole || role || 'viewer';
+  const resolvedDisplayName = userName || currentUser?.displayName || currentUser?.email || 'Authenticated User';
 
   // Use redesigned arrays with backward-compatible fallbacks
   const activeFunds = Array.isArray(fundAccounts) && fundAccounts.length > 0 ? fundAccounts : (Array.isArray(funds) ? funds : []);
@@ -56,8 +58,8 @@ export const FinanceReportExportPanel = () => {
         transactions: activeTransactions,
         spreadsheetId: targetSpreadsheetId || null,
         user: {
-          role: userProfile?.role || role || 'admin',
-          displayName: userProfile?.displayName || currentUser?.displayName,
+          role: resolvedRole,
+          displayName: resolvedDisplayName,
           email: currentUser?.email,
         },
       });
@@ -79,7 +81,7 @@ export const FinanceReportExportPanel = () => {
             <span>{canPostFinanceLedger ? 'Authorized Operator' : 'Auditor / Viewer'}</span>
           </div>
           <span style={{ fontSize: '0.825rem', color: '#64748b' }}>
-            Officer: <strong>{userProfile?.displayName || currentUser?.email || 'Authenticated User'}</strong> ({role || 'operator'})
+            Officer: <strong>{resolvedDisplayName}</strong> ({resolvedRole})
           </span>
         </div>
 

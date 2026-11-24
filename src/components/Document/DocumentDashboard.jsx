@@ -31,7 +31,7 @@ import {
 } from '../../services/documentService';
 import auditService from '../../services/auditService';
 import { S, T, statusPill, statusBanner } from '../../utils/themeStyles';
-import { storageWarning } from '../../services/fileStore';
+import { fileStore, storageWarning } from '../../services/fileStore';
 import AiStatusBadge from './AiStatusBadge.jsx';
 import DocumentAnalysis from './DocumentAnalysis.jsx';
 import DocumentDetailModal from './DocumentDetailModal.jsx';
@@ -137,6 +137,8 @@ function DocumentDashboard() {
       alive = false;
       unsubDocs();
       unsubLabels();
+      previewCache.current.clear();
+      fileStore.revokeAll?.();
     };
   }, [say]);
 
@@ -316,7 +318,7 @@ function DocumentDashboard() {
     }, 6000);
 
     try {
-      const url = await getDocumentUrl(doc, { disposition: 'inline' });
+      const url = await getDocumentUrl(doc, { disposition: 'inline', fresh: Boolean(force) });
       if (currentReq.aborted) return;
 
       clearTimeout(timeoutTimer);

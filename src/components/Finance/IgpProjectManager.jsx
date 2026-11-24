@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import usePermissions from '../../hooks/usePermissions.js';
 import { hasPermission } from '../../utils/permissions.js';
 import {
   createBrowserIgpProjectService,
@@ -40,6 +41,7 @@ function formatCollectionAmountPHP(c) {
 
 export default function IgpProjectManager({ user = null, onNavigateToMap = null, roleMode = 'full' }) {
   const { currentUser, userName, userRole } = useAuth();
+  const { canEditFinance: hookCanEditFinance } = usePermissions();
   const isVendingOnly = roleMode === 'vending';
   const isLockersOnly = roleMode === 'lockers';
 
@@ -48,21 +50,22 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null,
     return {
       uid: currentUser?.uid || '',
       name: userName || currentUser?.displayName || 'Authorized Officer',
-      role: userRole || 'officer',
+      role: userRole || 'member',
       email: currentUser?.email || '',
     };
   }, [user, currentUser, userName, userRole]);
 
   const canEditFinance = useMemo(() => {
-    return (
-      hasPermission(effectiveUser, 'canEditFinance') ||
-      ['admin', 'president', 'auditor', 'finance_secretary', 'budget_officer'].includes(effectiveUser?.role)
-    );
-  }, [effectiveUser]);
+    return user ? hasPermission(user, 'canEditFinance') : hookCanEditFinance;
+  }, [user, hookCanEditFinance]);
 
   const canManageLockers = useMemo(() => {
     return canEditFinance || isLockersOnly || effectiveUser?.role === 'governor';
   }, [canEditFinance, isLockersOnly, effectiveUser]);
+
+  const canRecordVending = useMemo(() => {
+    return canEditFinance || isVendingOnly || effectiveUser?.role === 'representative';
+  }, [canEditFinance, isVendingOnly, effectiveUser]);
 
   const service = useMemo(() => createBrowserIgpProjectService(), []);
 
@@ -611,6 +614,10 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null,
                             setConfirmingVacate(false);
                             if (isOccupied) {
                               setDetailModalLocker(locker);
+                            } else if (isMaint) {
+                              showToast(`Locker ${locker.lockerId} is under maintenance and cannot be rented.`, 'error');
+                            } else if (!canManageLockers) {
+                              showToast('View-only access: locker rental requires Finance or Governor authority.', 'error');
                             } else {
                               setRentForm((prev) => ({
                                 ...prev,
@@ -667,13 +674,15 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null,
                 Log physical coins and bills collected from campus vendo units into the IGP Treasury fund balance.
               </p>
             </div>
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={() => setVendingModalOpen(true)}
-            >
-              <PlusCircle size={15} /> Log Vendo Collection
-            </button>
+            {canRecordVending && (
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={() => setVendingModalOpen(true)}
+              >
+                <PlusCircle size={15} /> Log Vendo Collection
+              </button>
+            )}
           </div>
 
           <div className={styles.tableWrap}>
@@ -745,13 +754,15 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null,
                 Record revenues from upcoming student ventures (printing kiosks, booth concessions, event equipment rentals) into IGP funds.
               </p>
             </div>
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={() => setCustomModalOpen(true)}
-            >
-              <PlusCircle size={15} /> Add Custom IGP Revenue
-            </button>
+            {canEditFinance && (
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={() => setCustomModalOpen(true)}
+              >
+                <PlusCircle size={15} /> Add Custom IGP Revenue
+              </button>
+            )}
           </div>
 
           <div className={styles.tableWrap}>
@@ -1210,7 +1221,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null,
               >
                 Close
               </button>
-              {confirmingVacate ? (
+              {canManageLockers && (confirmingVacate ? (
                 <button
                   type="button"
                   className={styles.btnDanger}
@@ -1226,7 +1237,7 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null,
                 >
                   Vacate Locker (Return to Available)
                 </button>
-              )}
+              ))}
             </div>
           </div>
         </div>

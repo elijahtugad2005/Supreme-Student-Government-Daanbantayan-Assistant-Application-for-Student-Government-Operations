@@ -30,8 +30,20 @@ import {
   FiFilter,
   FiCheck,
   FiArrowRight,
-  FiAlertCircle
+  FiAlertCircle,
+  FiCalendar,
+  FiClock,
+  FiMapPin,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight
 } from 'react-icons/fi';
+import {
+  HOMEPAGE_ANNOUNCEMENTS_PAGE_SIZE,
+  sortHomepageAnnouncements,
+  paginateHomepageAnnouncements,
+  toggleExpandedAnnouncement
+} from '../utils/homepageAnnouncements';
 
 const OFFICER_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop';
 
@@ -268,6 +280,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
   const [announcements, setAnnouncements] = useState([]);
   const navigate = useNavigate();
   const [expandedID, setExpandedId] = useState(null);
+  const [announcementPage, setAnnouncementPage] = useState(1);
 
   // Organizations for the dynamic "Meet The ... Officers" section (SSG excluded)
   const [orgs, setOrgs] = useState([]);
@@ -421,13 +434,29 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       // Only announcements explicitly released to the homepage are shown.
       // Missing field = released, so announcements created before this
       // option existed stay live.
-      setAnnouncements(
-        snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((a) => a.homepageVisible !== false)
-      );
+      const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setAnnouncements(sortHomepageAnnouncements(raw));
     });
     return () => unsub();
+  }, []);
+
+  const announcementPageData = useMemo(
+    () =>
+      paginateHomepageAnnouncements(
+        announcements,
+        announcementPage,
+        HOMEPAGE_ANNOUNCEMENTS_PAGE_SIZE
+      ),
+    [announcements, announcementPage]
+  );
+
+  const handleToggleAnnouncement = useCallback((id) => {
+    setExpandedId((prev) => toggleExpandedAnnouncement(prev, id));
+  }, []);
+
+  const handleAnnouncementPageChange = useCallback((nextPage) => {
+    setAnnouncementPage(nextPage);
+    setExpandedId(null);
   }, []);
 
   /* ── Firebase: News Articles ── */
@@ -1017,7 +1046,7 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       <hr className={styles.sectionRule} />
 
       {/* ══════════════════════════════════════
-          ANNOUNCEMENTS — editorial news grid
+          ANNOUNCEMENTS — 5-at-a-time editorial grid
       ══════════════════════════════════════ */}
       <section ref={announcementsRef} className={styles.announcementsSection}>
         <header className={styles.sectionHeader}>
@@ -1026,107 +1055,293 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
           <p className={styles.sectionSubtitle}>Stay updated with recent events and activities</p>
         </header>
 
-        {announcements.length === 0 ? (
+        {announcementPageData.totalItems === 0 ? (
           <p className={styles.stateText}>No announcements at the moment.</p>
         ) : (
-          <div className={styles.announcementsGrid}>
-            {/* Featured — first item large */}
-            {announcements[0] && (
-              <article
-                className={`${styles.announcementCard} ${styles.announcementFeatured}`}
-                onClick={() => setExpandedId(expandedID === announcements[0].id ? null : announcements[0].id)}
-              >
-                {announcements[0].imageBase64 && (
-                  <div className={styles.announcementFeaturedImage}>
-                    <img
-                      src={announcements[0].imageBase64}
-                      alt={announcements[0].title}
-                      className={styles.announcementImage}
-                      onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
-                    />
-                    <div className={styles.announcementImageOverlay}></div>
-                  </div>
-                )}
-                <div className={styles.announcementCardBody}>
-                  <span className={styles.announcementCategory}>{getCategoryLabel(announcements[0].category)}</span>
-                  <h3 className={styles.announcementTitle}>{announcements[0].title}</h3>
-                  <p className={styles.announcementDateLine}>
-                    <em>{formatDate(announcements[0].eventDate)}{announcements[0].eventTime ? ` · ${announcements[0].eventTime}` : ''}</em>
-                  </p>
-                  <div className={styles.announcementToggle}>
-                    <span>{expandedID === announcements[0].id ? '−' : '+'}</span>
-                    <span>{expandedID === announcements[0].id ? 'Collapse' : 'Read More'}</span>
-                  </div>
-                  {expandedID === announcements[0].id && (
-                    <div className={styles.announcementExpanded}>
-                      {announcements[0].description && (
-                        <p className={styles.announcementExpandedDesc}>{announcements[0].description}</p>
-                      )}
-                      {announcements[0].venue && (
-                        <p className={styles.announcementVenue}>📍 {announcements[0].venue}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </article>
-            )}
-
-            {/* Remaining items — modular list cards */}
-            <div className={styles.announcementList}>
-              {announcements.slice(1).map((ann) => (
-                <article
-                  key={ann.id}
-                  className={`${styles.announcementListItem} ${expandedID === ann.id ? styles.announcementListItemExpanded : ''}`}
-                >
-                  <div
-                    className={styles.announcementItemHeader}
-                    onClick={() => setExpandedId(expandedID === ann.id ? null : ann.id)}
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={expandedID === ann.id}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setExpandedId(expandedID === ann.id ? null : ann.id);
-                      }
-                    }}
+          <>
+            <div
+              className={`${styles.announcementsGrid} ${
+                announcementPageData.secondary.length === 0 ? styles.announcementsGridSingle : ''
+              }`}
+            >
+              {/* Featured — 1st item on the active page */}
+              {announcementPageData.featured && (() => {
+                const featured = announcementPageData.featured;
+                const isFeaturedExpanded = expandedID === featured.id;
+                return (
+                  <article
+                    className={`${styles.announcementCard} ${styles.announcementFeatured} ${
+                      isFeaturedExpanded ? styles.announcementCardExpanded : ''
+                    }`}
                   >
-                    <div className={styles.announcementListLeft}>
-                      {ann.imageBase64 && (
-                        <div className={styles.announcementListThumb}>
-                          <img
-                            src={ann.imageBase64}
-                            alt={ann.title}
-                            onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
-                          />
-                        </div>
-                      )}
-                      <div className={styles.announcementListMeta}>
-                        <span className={styles.announcementCategory}>{getCategoryLabel(ann.category)}</span>
-                        <h4 className={styles.announcementListTitle}>{ann.title}</h4>
-                        <p className={styles.announcementDateLine}>
-                          <em>{formatDate(ann.eventDate)}{ann.eventTime ? ` · ${ann.eventTime}` : ''}</em>
-                        </p>
+                    {featured.imageBase64 && (
+                      <div
+                        className={`${styles.announcementFeaturedImage} ${
+                          isFeaturedExpanded ? styles.announcementFeaturedImageExpanded : ''
+                        }`}
+                      >
+                        <img
+                          src={featured.imageBase64}
+                          alt={featured.title}
+                          className={styles.announcementImage}
+                          onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                        />
+                        {!isFeaturedExpanded && <div className={styles.announcementImageOverlay} />}
                       </div>
+                    )}
+
+                    <div className={styles.announcementCardBody}>
+                      <div className={styles.announcementMetaRow}>
+                        <span className={styles.announcementCategory}>
+                          {getCategoryLabel(featured.category)}
+                        </span>
+                        <span className={styles.announcementDateLine}>
+                          <FiCalendar className={styles.announcementMetaIcon} aria-hidden="true" />
+                          <span>{formatDate(featured.eventDate)}</span>
+                          {featured.eventTime && (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <FiClock className={styles.announcementMetaIcon} aria-hidden="true" />
+                              <span>{featured.eventTime}</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      <h3 className={styles.announcementTitle}>{featured.title}</h3>
+
+                      {!isFeaturedExpanded && featured.description && (
+                        <p className={styles.announcementExcerpt}>{featured.description}</p>
+                      )}
+
+                      <button
+                        type="button"
+                        className={styles.announcementToggle}
+                        onClick={() => handleToggleAnnouncement(featured.id)}
+                        aria-expanded={isFeaturedExpanded}
+                        aria-controls={`announcement-body-${featured.id}`}
+                      >
+                        <span>{isFeaturedExpanded ? 'Show Less' : 'Read Full Bulletin'}</span>
+                        <FiChevronDown
+                          className={`${styles.announcementChevron} ${
+                            isFeaturedExpanded ? styles.announcementChevronOpen : ''
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </button>
                     </div>
-                    <div className={styles.announcementListToggle} aria-label="Toggle details">
-                      <span>{expandedID === ann.id ? '−' : '+'}</span>
-                    </div>
+
+                    {isFeaturedExpanded && (
+                      <div
+                        id={`announcement-body-${featured.id}`}
+                        className={styles.announcementExpanded}
+                      >
+                        {featured.description ? (
+                          <p className={styles.announcementExpandedDesc}>{featured.description}</p>
+                        ) : (
+                          <p className={styles.announcementEmptyBody}>
+                            No additional details provided for this bulletin.
+                          </p>
+                        )}
+
+                        <div className={styles.announcementDetailsBar}>
+                          {featured.venue && (
+                            <span className={styles.announcementDetailChip}>
+                              <FiMapPin aria-hidden="true" />
+                              <span>{featured.venue}</span>
+                            </span>
+                          )}
+                          <span className={styles.announcementDetailChip}>
+                            <FiCalendar aria-hidden="true" />
+                            <span>
+                              {formatDate(featured.eventDate)}
+                              {featured.eventTime ? ` · ${featured.eventTime}` : ''}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                );
+              })()}
+
+              {/* Secondary items — up to 4 modular cards alongside Featured (5 total per page) */}
+              {announcementPageData.secondary.length > 0 && (
+                <div className={styles.announcementList}>
+                  {announcementPageData.secondary.map((ann) => {
+                    const isItemExpanded = expandedID === ann.id;
+                    return (
+                      <article
+                        key={ann.id}
+                        className={`${styles.announcementListItem} ${
+                          isItemExpanded ? styles.announcementListItemExpanded : ''
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          className={styles.announcementItemHeader}
+                          onClick={() => handleToggleAnnouncement(ann.id)}
+                          aria-expanded={isItemExpanded}
+                          aria-controls={`announcement-body-${ann.id}`}
+                        >
+                          <div className={styles.announcementListLeft}>
+                            {ann.imageBase64 && (
+                              <div className={styles.announcementListThumb}>
+                                <img
+                                  src={ann.imageBase64}
+                                  alt=""
+                                  onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                                />
+                              </div>
+                            )}
+                            <div className={styles.announcementListMeta}>
+                              <span className={styles.announcementCategory}>
+                                {getCategoryLabel(ann.category)}
+                              </span>
+                              <h4 className={styles.announcementListTitle}>{ann.title}</h4>
+                              <p className={styles.announcementDateLine}>
+                                <FiCalendar className={styles.announcementMetaIcon} aria-hidden="true" />
+                                <span>
+                                  {formatDate(ann.eventDate)}
+                                  {ann.eventTime ? ` · ${ann.eventTime}` : ''}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`${styles.announcementListToggle} ${
+                              isItemExpanded ? styles.announcementListToggleOpen : ''
+                            }`}
+                            aria-hidden="true"
+                          >
+                            <FiChevronDown />
+                          </span>
+                        </button>
+
+                        {isItemExpanded && (
+                          <div
+                            id={`announcement-body-${ann.id}`}
+                            className={styles.announcementExpanded}
+                          >
+                            {ann.imageBase64 && (
+                              <div className={styles.announcementExpandedMedia}>
+                                <img
+                                  src={ann.imageBase64}
+                                  alt={ann.title}
+                                  onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                                />
+                              </div>
+                            )}
+
+                            {ann.description ? (
+                              <p className={styles.announcementExpandedDesc}>{ann.description}</p>
+                            ) : (
+                              <p className={styles.announcementEmptyBody}>
+                                No additional details provided for this bulletin.
+                              </p>
+                            )}
+
+                            <div className={styles.announcementExpandedFooter}>
+                              <div className={styles.announcementDetailsBar}>
+                                {ann.venue && (
+                                  <span className={styles.announcementDetailChip}>
+                                    <FiMapPin aria-hidden="true" />
+                                    <span>{ann.venue}</span>
+                                  </span>
+                                )}
+                                <span className={styles.announcementDetailChip}>
+                                  <FiCalendar aria-hidden="true" />
+                                  <span>
+                                    {formatDate(ann.eventDate)}
+                                    {ann.eventTime ? ` · ${ann.eventTime}` : ''}
+                                  </span>
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                className={styles.announcementCollapseBtn}
+                                onClick={() => handleToggleAnnouncement(ann.id)}
+                              >
+                                Show Less
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 5-Per-Page Pagination Bar */}
+            {announcementPageData.totalPages > 1 && (
+              <nav
+                className={styles.announcementsPagination}
+                aria-label="Announcements pagination"
+              >
+                <span className={styles.paginationStatus}>
+                  Showing {announcementPageData.startItem}–{announcementPageData.endItem} of{' '}
+                  {announcementPageData.totalItems}
+                </span>
+
+                <div className={styles.paginationControls}>
+                  <button
+                    type="button"
+                    className={styles.paginationNavBtn}
+                    onClick={() =>
+                      handleAnnouncementPageChange(announcementPageData.currentPage - 1)
+                    }
+                    disabled={announcementPageData.currentPage <= 1}
+                    aria-label="Previous announcements page"
+                  >
+                    <FiChevronLeft aria-hidden="true" />
+                    <span>Prev</span>
+                  </button>
+
+                  <div className={styles.paginationNumbers}>
+                    {Array.from({ length: announcementPageData.totalPages }, (_, i) => i + 1).map(
+                      (pageNum) => {
+                        const isActive = pageNum === announcementPageData.currentPage;
+                        return (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => handleAnnouncementPageChange(pageNum)}
+                            className={`${styles.paginationPageBtn} ${
+                              isActive ? styles.paginationPageBtnActive : ''
+                            }`}
+                            aria-current={isActive ? 'page' : undefined}
+                            aria-label={`Page ${pageNum}`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      }
+                    )}
                   </div>
 
-                  {expandedID === ann.id && (
-                    <div className={styles.announcementExpanded}>
-                      {ann.description && <p className={styles.announcementExpandedDesc}>{ann.description}</p>}
-                      {ann.venue && <p className={styles.announcementVenue}>📍 {ann.venue}</p>}
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          </div>
+                  <button
+                    type="button"
+                    className={styles.paginationNavBtn}
+                    onClick={() =>
+                      handleAnnouncementPageChange(announcementPageData.currentPage + 1)
+                    }
+                    disabled={announcementPageData.currentPage >= announcementPageData.totalPages}
+                    aria-label="Next announcements page"
+                  >
+                    <span>Next</span>
+                    <FiChevronRight aria-hidden="true" />
+                  </button>
+                </div>
+              </nav>
+            )}
+          </>
         )}
 
-        {announcements.length > 0 && (
+        {announcementPageData.totalItems > 0 && (
           <div className={styles.announcementsFooterAction}>
             <button
               type="button"

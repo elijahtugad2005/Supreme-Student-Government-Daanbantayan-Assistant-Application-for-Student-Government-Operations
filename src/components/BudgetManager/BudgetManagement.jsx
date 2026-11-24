@@ -3,6 +3,7 @@ import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import BudgetForm from '../BudgetForm/BudgetForm.jsx';
 import financeAuditService from '../../services/financeAuditService.js';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
+import usePermissions from '../../hooks/usePermissions.js';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import styles from './BudgetManager.module.css';
 import { 
@@ -30,9 +31,23 @@ import {
   HiDocumentText
 } from 'react-icons/hi';
 
+const deriveBudgetDisplayStatus = (b) => {
+  if (!b) return 'Not Started';
+  if (String(b.status || '').toLowerCase() === 'draft') return 'Draft';
+  const alloc = parseFloat(b.allocated) || 0;
+  const sp = parseFloat(b.spent) || 0;
+  if (sp <= 0) return 'Not Started';
+  if (alloc > 0 && sp > alloc) return 'Over Budget';
+  if (alloc > 0 && sp >= alloc) return 'Fully Spent';
+  if (alloc > 0 && sp > alloc * 0.9) return 'Almost Spent';
+  if (alloc > 0 && sp > alloc * 0.5) return 'In Progress';
+  return 'On Track';
+};
+
 const BudgetManager = () => {
   const { budgets, deleteBudget, loading } = useFinance();
   const { currentUser } = useAuth();
+  const { canEditFinance } = usePermissions();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,7 +102,9 @@ const BudgetManager = () => {
         (b.committee || '').toLowerCase().includes(q) ||
         (b.description || '').toLowerCase().includes(q);
       
-      const matchesStatus = filterStatus === 'All' || b.status === filterStatus;
+      const displayStatus = deriveBudgetDisplayStatus(b);
+      const matchesStatus =
+        filterStatus === 'All' || displayStatus === filterStatus || b.status === filterStatus;
       const matchesCategory = filterCategory === 'All' || b.category === filterCategory;
       const matchesCommittee = filterCommittee === 'All' || b.committee === filterCommittee;
       const isFSG = b.fundAccountId === 'fund_fsg_remittance' || b.isFSG;
@@ -150,7 +167,7 @@ const BudgetManager = () => {
       } else {
         fiscalAlloc += alloc;
       }
-      if (b.status === 'Over Budget') overBudgetCount++;
+      if (sp > alloc || b.status === 'Over Budget') overBudgetCount++;
     });
 
     const remaining = totalAlloc - totalSpent;
@@ -419,6 +436,7 @@ const BudgetManager = () => {
             aria-label="Filter by Status"
           >
             <option value="All">All Statuses</option>
+            <option value="Draft">Draft</option>
             <option value="Not Started">Not Started</option>
             <option value="On Track">On Track</option>
             <option value="In Progress">In Progress</option>
@@ -496,7 +514,7 @@ const BudgetManager = () => {
       {budgets.length > 0 && (
         <div className={styles.resultsSummary}>
           <div>
-            Showing <strong>{filteredBudgets.length}</strong> of <strong>{budgets.length}</strong> recorded budget logs
+            Showing <strong>{filteredBudgets.length}</strong> of <strong>{budgets.length}</strong> budget allocations
           </div>
           {(searchTerm || filterFund !== 'All' || filterStatus !== 'All' || filterCategory !== 'All' || filterCommittee !== 'All') && (
             <button 
@@ -567,16 +585,21 @@ const BudgetManager = () => {
 
                   {/* Column 4: Status Badge */}
                   <div className={styles.statusCol}>
-                    <span 
-                      className={styles.statusBadge}
-                      style={{
-                        backgroundColor: getStatusColor(budget.status),
-                        color: getStatusTextColor(budget.status)
-                      }}
-                    >
-                      {getStatusIcon(budget.status)}
-                      {budget.status}
-                    </span>
+                    {(() => {
+                      const displayStatus = deriveBudgetDisplayStatus(budget);
+                      return (
+                        <span 
+                          className={styles.statusBadge}
+                          style={{
+                            backgroundColor: getStatusColor(displayStatus),
+                            color: getStatusTextColor(displayStatus)
+                          }}
+                        >
+                          {getStatusIcon(displayStatus)}
+                          {displayStatus}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {/* Column 5: Actions */}
@@ -588,7 +611,7 @@ const BudgetManager = () => {
                     >
                       {isExpanded ? <HiChevronUp size={16} /> : <HiChevronDown size={16} />}
                     </button>
-                    {(() => {
+                    {canEditFinance && (() => {
                       const isPostedToLedger = Boolean(budget.isPostedToLedger || (budget.spent || 0) > 0);
                       return (
                         <button 
@@ -602,13 +625,15 @@ const BudgetManager = () => {
                         </button>
                       );
                     })()}
-                    <button 
-                      className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                      onClick={() => handleDeleteClick(budget)}
-                      title="Delete Budget"
-                    >
-                      <HiTrash size={15} />
-                    </button>
+                    {canEditFinance && (
+                      <button 
+                        className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                        onClick={() => handleDeleteClick(budget)}
+                        title="Delete Budget"
+                      >
+                        <HiTrash size={15} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

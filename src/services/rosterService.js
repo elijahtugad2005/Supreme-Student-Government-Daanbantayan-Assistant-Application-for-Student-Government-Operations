@@ -30,9 +30,12 @@ export const ROSTER_COLLECTION = 'classRosters';
 export const SECTION_COLLECTION = 'classSections';
 
 export const ROSTER_STATUS = {
+  PLACEHOLDER: 'placeholder',
   PENDING: 'pending',
   VERIFIED: 'verified',
   CORRECTION_REQUESTED: 'correction_requested',
+  DENIED: 'denied',
+  REVOKED: 'revoked',
 };
 
 /**
@@ -47,6 +50,9 @@ export const ROSTER_STATUS = {
  * @param {string|null} payload.mayorUid null for an unauthenticated Mayor
  */
 export async function submitRoster(payload) {
+  if (!payload?.mayorUid) {
+    throw new Error('Sign in with a verified non-guest account before submitting a class roster.');
+  }
   const key = toSectionKey(payload.section);
   if (!key) throw new Error('A section is required before submitting.');
 
@@ -250,6 +256,7 @@ const writeSection = async ({
     yearLevel: yearLevel ?? previous?.yearLevel ?? deriveYearLevel(section),
     mayorName: mayorName || 'No Mayor Assigned',
     status,
+    isPlaceholder: status === ROSTER_STATUS.PLACEHOLDER,
     currentRosterId:
       currentRosterId !== undefined && currentRosterId !== null
         ? currentRosterId
@@ -488,6 +495,7 @@ export async function amendRosterForTransfers({
     verifiedAt: null,
     verifiedBy: null,
     isCurrent: false,
+    version: null,
     amendedAt: serverTimestamp(),
   });
 }
@@ -505,4 +513,188 @@ export function buildRosterSnapshot(verifiedRoster) {
     studentCount: verifiedRoster.students?.length ?? 0,
     capturedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Ensure a placeholder section exists in `classSections` when an authorized
+ * TechnoCares / Death Aid officer records a collection for a section that has
+ * no verified class roster yet. Class Mayors see this placeholder in the
+ * Class Roster Registry and simply upload/update the official class list.
+ */
+export async function ensurePlaceholderSection({
+  section,
+  college = 'Unassigned',
+  program = 'Unassigned',
+  yearLevel = null,
+  actor = null,
+}) {
+  const cleanSection = String(section || '').replace(/\s+/g, ' ').trim();
+  const key = toSectionKey(cleanSection);
+  if (!key) throw new Error('A section name is required to register a placeholder section.');
+
+  const docId = sectionDocId(key);
+  const ref = doc(db, SECTION_COLLECTION, docId);
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    return { id: existing.id, ...existing.data(), alreadyExisted: true };
+  }
+
+  const record = {
+    sectionKey: key,
+    section: cleanSection,
+    college: String(college || '').trim() || 'Unassigned',
+    program: String(program || '').trim() || 'Unassigned',
+    yearLevel: Number(yearLevel) > 0 ? Number(yearLevel) : deriveYearLevel(cleanSection),
+    mayorName: 'Unclaimed — Needs Mayor Roster',
+    status: ROSTER_STATUS.PLACEHOLDER,
+    isPlaceholder: true,
+    currentRosterId: null,
+    createdFromDeathAid: true,
+    placeholderCreatedByUid: actor?.uid || null,
+    placeholderCreatedByName: actor?.name || 'SSG Officer',
+    updatedAt: serverTimestamp(),
+  };
+
+  await setDoc(ref, record);
+  return { id: docId, ...record, alreadyExisted: false };
+}
+
+/**
+ * Unclaimed placeholder sections created from TechnoCares that Class Mayors
+ * can claim and update with their official class list.
+ */
+export async function listPlaceholderSections() {
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, SECTION_COLLECTION), where('status', '==', ROSTER_STATUS.PLACEHOLDER))
+    );
+    return snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => String(a.section || '').localeCompare(String(b.section || '')));
+  } catch (error) {
+    throw rethrowWithSpec('sections', error);
+  }
+}
+
+/**
+ * Officers-only. Explicitly deny a pending or correction-requested roster submission.
+ */
+export async function denyRosterVerification(rosterId, reason, actor = null) {
+  const cleanReason = String(reason || '').trim();
+  if (!cleanReason) {
+    throw new Error('Please provide a reason for denying this roster submission.');
+  }
+
+  const ref = doc(db, ROSTER_COLLECTION, rosterId);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) throw new Error('That roster submission no longer exists.');
+  if (snapshot.data().status === ROSTER_STATUS.VERIFIED) {
+    throw new Error('This roster is already verified. Use Remove Verification to revoke it instead.');
+  }
+
+  await updateDoc(ref, {
+    status: ROSTER_STATUS.DENIED,
+    isCurrent: false,
+    denialReason: cleanReason,
+    deniedAt: serverTimestamp(),
+    deniedBy: actor?.name || actor || 'SSG Officer',
+    deniedByUid: actor?.uid || null,
+  });
+}
+
+/**
+ * Officers-only. Revoke/remove verification on an already-verified roster without
+ * mutating its immutable student list. Restores the previous verified version on
+ * `classSections` if one exists, otherwise marks the section unverified/revoked.
+ */
+export async function revokeRosterVerification(rosterId, reason, actor = null) {
+  const cleanReason = String(reason || '').trim();
+  if (!cleanReason) {
+    throw new Error('Please provide a reason for removing verification from this roster.');
+  }
+
+  const ref = doc(db, ROSTER_COLLECTION, rosterId);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) throw new Error('That roster no longer exists.');
+
+  const roster = snapshot.data();
+  if (roster.status !== ROSTER_STATUS.VERIFIED) {
+    throw new Error('Only verified rosters can have verification removed.');
+  }
+
+  // Never touch `students` — preserves Firestore immutability rule & audit history.
+  await updateDoc(ref, {
+    status: ROSTER_STATUS.REVOKED,
+    isCurrent: false,
+    revokedReason: cleanReason,
+    revokedAt: serverTimestamp(),
+    revokedBy: actor?.name || actor || 'SSG Officer',
+    revokedByUid: actor?.uid || null,
+  });
+
+  // Look for an earlier verified version for this section to promote as current.
+  const allVersions = await listRosterVersions(roster.sectionKey);
+  const priorVerified = allVersions
+    .filter((v) => v.id !== rosterId && v.status === ROSTER_STATUS.VERIFIED)
+    .sort((a, b) => (Number(b.version) || 0) - (Number(a.version) || 0))[0];
+
+  const sectionRef = doc(db, SECTION_COLLECTION, sectionDocId(roster.sectionKey));
+  if (priorVerified) {
+    await updateDoc(doc(db, ROSTER_COLLECTION, priorVerified.id), {
+      isCurrent: true,
+      restoredAt: serverTimestamp(),
+    });
+    await setDoc(
+      sectionRef,
+      {
+        status: ROSTER_STATUS.VERIFIED,
+        isPlaceholder: false,
+        currentRosterId: priorVerified.id,
+        mayorName: priorVerified.mayorName || roster.mayorName || 'No Mayor Assigned',
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } else {
+    const existingSection = await getDoc(sectionRef);
+    if (existingSection.exists()) {
+      await updateDoc(sectionRef, {
+        status: ROSTER_STATUS.REVOKED,
+        isPlaceholder: false,
+        currentRosterId: null,
+        revokedReason: cleanReason,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }
+}
+
+/**
+ * Officers-only. Delete an unverified roster submission (`status !== 'verified'`)
+ * OR delete an unused placeholder section from `classSections`.
+ */
+export async function removeRosterOrPlaceholder({ rosterId = null, sectionId = null }) {
+  if (rosterId) {
+    const ref = doc(db, ROSTER_COLLECTION, rosterId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('That roster submission no longer exists.');
+    if (snap.data().status === ROSTER_STATUS.VERIFIED) {
+      throw new Error('Verified rosters cannot be hard-deleted by officers. Remove verification instead.');
+    }
+    await deleteDoc(ref);
+    return { removed: 'roster', id: rosterId };
+  }
+
+  if (sectionId) {
+    const ref = doc(db, SECTION_COLLECTION, sectionId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('That section no longer exists.');
+    if (snap.data().status !== ROSTER_STATUS.PLACEHOLDER && snap.data().status !== ROSTER_STATUS.REVOKED) {
+      throw new Error('Only placeholder or unverified sections can be removed from the registry.');
+    }
+    await deleteDoc(ref);
+    return { removed: 'section', id: sectionId };
+  }
+
+  throw new Error('Provide a rosterId or sectionId to remove.');
 }

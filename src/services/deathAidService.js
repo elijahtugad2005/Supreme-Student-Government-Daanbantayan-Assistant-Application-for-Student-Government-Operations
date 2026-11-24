@@ -32,7 +32,25 @@ import {
   DEATH_AID_COLLECTION_STATUS,
   DEATH_AID_DEBT_TYPES,
   DEATH_AID_REMITTANCE_STATUS,
+  canManageDeathAid,
 } from '../utils/permissions.js';
+import {
+  buildPlaceholderCollectionInput,
+  buildBeneficiaryRelease,
+  computeBeneficiaryCollectionSummary,
+  computeCollectionTotals,
+  computeFromCollectedAmount,
+  splitCollectionAcrossBeneficiaries,
+} from '../utils/deathAidHelpers.js';
+import { ensurePlaceholderSection } from './rosterService.js';
+
+export {
+  buildPlaceholderCollectionInput,
+  buildBeneficiaryRelease,
+  computeBeneficiaryCollectionSummary,
+  computeFromCollectedAmount,
+  splitCollectionAcrossBeneficiaries,
+};
 
 export const COLLECTION_COLLECTION = 'deathAidCollections';
 export const REMITTANCE_COLLECTION = 'deathAidRemittances';
@@ -42,7 +60,7 @@ export const BENEFICIARY_COLLECTION = 'deathAidBeneficiaries';
 
 export const AID_TYPES = { DEATH_AID: 'death_aid', TECHNOCARE: 'technocare' };
 export const AID_TYPE_LABELS = { death_aid: 'Death Aid', technocare: 'TechnoCare' };
-export const BENEFICIARY_STATUS = { OPEN: 'open', CLOSED: 'closed' };
+export const BENEFICIARY_STATUS = { OPEN: 'open', CLOSED: 'closed', RELEASED: 'released' };
 
 /**
  * Validate and shape a Death Aid / TechnoCare beneficiary case. Pure, so the
@@ -250,6 +268,9 @@ export const createBeneficiaryCase = async (input, officer) => {
 
 export const setBeneficiaryStatus = async (beneficiary, status, officer) => {
   if (!Object.values(BENEFICIARY_STATUS).includes(status)) throw new Error('Invalid case status.');
+  if (beneficiary.status === BENEFICIARY_STATUS.RELEASED && status !== BENEFICIARY_STATUS.RELEASED) {
+    throw new Error('This beneficiary case has already been released and cannot be reopened.');
+  }
   await setDoc(
     doc(db, BENEFICIARY_COLLECTION, beneficiary.beneficiaryId),
     { ...beneficiary, status, updatedAt: serverTimestamp() },
@@ -261,6 +282,69 @@ export const setBeneficiaryStatus = async (beneficiary, status, officer) => {
     actor: officer,
     extra: { studentName: beneficiary.studentName },
   });
+};
+
+/**
+ * Release collected Death Aid / TechnoCare funds to a specific beneficiary.
+ * Strictly requires handover photo evidence (enforced both here and in firestore.rules).
+ */
+export const releaseBeneficiaryAid = async ({
+  beneficiary,
+  recipientName,
+  recipientRelationship = '',
+  releasedAmount,
+  releasePhotoDataUrl,
+  releasePhotoDriveLink = '',
+  releaseNotes = '',
+  confirmedCount = 0,
+  officer,
+}) => {
+  if (!canManageDeathAid(officer)) {
+    throw new Error('Only authorized TechnoCares / Death Aid officers can release aid to a beneficiary.');
+  }
+
+  const releasePayload = buildBeneficiaryRelease(
+    beneficiary,
+    {
+      recipientName,
+      recipientRelationship,
+      releasedAmount,
+      releasePhotoDataUrl,
+      releasePhotoDriveLink,
+      releaseNotes,
+      confirmedCount,
+    },
+    officer
+  );
+
+  await setDoc(
+    doc(db, BENEFICIARY_COLLECTION, beneficiary.beneficiaryId),
+    {
+      ...releasePayload,
+      releasedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  await appendAudit({
+    collectionId: beneficiary.beneficiaryId,
+    action: 'beneficiary_aid_released',
+    actor: officer,
+    extra: {
+      aidType: beneficiary.aidType,
+      studentName: beneficiary.studentName,
+      affectedPersonName: beneficiary.affectedPersonName,
+      recipientName: releasePayload.recipientName,
+      recipientRelationship: releasePayload.recipientRelationship,
+      releasedAmount: releasePayload.releasedAmount,
+      releasedCollectionCount: releasePayload.releasedCollectionCount,
+      hasPhotoEvidence: true,
+      releaseNotes: releasePayload.releaseNotes,
+    },
+  });
+
+  return { beneficiaryId: beneficiary.beneficiaryId, ...releasePayload };
 };
 
 export const listBeneficiaryCases = async ({ onlyOpen = false } = {}) => {
@@ -284,31 +368,124 @@ export const listBeneficiaryCases = async ({ onlyOpen = false } = {}) => {
  * @param {Object} p.recorder        the officer account making the entry
  */
 export const recordSectionCollection = async ({
-  roster,
+  roster = null,
+  placeholderSection = null,
   beneficiary = null,
   contribution,
   beneficiaries,
+  directAmount = null,
   debtRecords = [],
   submittedByName = '',
   recorder,
 }) => {
-  if (!roster?.rosterId) throw new Error('Choose a section with a verified roster.');
+  if (!recorder?.uid || !recorder?.role || recorder.role === 'guest' || recorder.role === 'public') {
+    throw new Error('Authentication with a verified non-guest account is required to record Death Aid collections.');
+  }
+
+  const isPlaceholder = Boolean(!roster?.rosterId && placeholderSection);
+  const useDirectAmount =
+    directAmount !== null && directAmount !== undefined && String(directAmount).trim() !== '';
+
+  if (!isPlaceholder && !roster?.rosterId) {
+    throw new Error('Choose a section with a verified roster.');
+  }
+  if (isPlaceholder && !canManageDeathAid(recorder)) {
+    throw new Error('Only authorized TechnoCares officers can record collections for unlisted placeholder sections.');
+  }
+  if (useDirectAmount && !canManageDeathAid(recorder)) {
+    throw new Error('Only authorized TechnoCares officers can record direct lump-sum cash amounts.');
+  }
   if (beneficiary && beneficiary.status !== BENEFICIARY_STATUS.OPEN) {
-    throw new Error('That Death Aid / TechnoCare case is closed.');
+    throw new Error('That Death Aid / TechnoCare case is closed or already released.');
   }
   const trimmedName = String(submittedByName || '').trim();
   if (!trimmedName) {
     throw new Error('Please enter your full name as the submitter.');
   }
 
-  const totals = computeTotals(roster.studentCount, contribution, beneficiaries);
-  if (totals.enrolledCount === 0) throw new Error('That roster has no students enrolled.');
+  let sectionInfo;
+  let totals;
+  let entryMode = 'count';
+
+  if (isPlaceholder) {
+    const derivedFromAmount = useDirectAmount
+      ? computeFromCollectedAmount({
+        enrolledCount: Number(placeholderSection.estimatedEnrolled) || 0,
+        contribution,
+        collectedAmount: directAmount,
+      })
+      : null;
+
+    const normalized = buildPlaceholderCollectionInput({
+      section: placeholderSection.section,
+      college: placeholderSection.college,
+      program: placeholderSection.program,
+      yearLevel: placeholderSection.yearLevel,
+      contribution,
+      beneficiaries: derivedFromAmount ? derivedFromAmount.beneficiaryCount : beneficiaries,
+      estimatedEnrolled: derivedFromAmount
+        ? derivedFromAmount.enrolledCount
+        : placeholderSection.estimatedEnrolled,
+    });
+
+    await ensurePlaceholderSection({
+      section: normalized.section,
+      college: normalized.college,
+      program: normalized.program,
+      yearLevel: normalized.yearLevel,
+      actor: recorder,
+    });
+
+    sectionInfo = {
+      rosterId: null,
+      rosterVersion: null,
+      isPlaceholderSection: true,
+      sectionKey: normalized.sectionKey,
+      section: normalized.section,
+      program: normalized.program,
+      college: normalized.college,
+      yearLevel: normalized.yearLevel,
+      mayorName: 'Unclaimed — Needs Mayor Roster',
+      mayorUid: null,
+    };
+    totals = derivedFromAmount || normalized.totals;
+    if (derivedFromAmount?.hasExactAmountOverride) entryMode = 'amount';
+  } else {
+    totals = useDirectAmount
+      ? computeFromCollectedAmount({
+        enrolledCount: roster.studentCount,
+        contribution,
+        collectedAmount: directAmount,
+      })
+      : computeCollectionTotals(roster.studentCount, contribution, beneficiaries);
+    if (totals.enrolledCount === 0) throw new Error('That roster has no students enrolled.');
+    if (totals.hasExactAmountOverride) entryMode = 'amount';
+    sectionInfo = {
+      rosterId: roster.rosterId,
+      rosterVersion: roster.version ?? null,
+      isPlaceholderSection: false,
+      sectionKey: roster.sectionKey,
+      section: roster.section,
+      program: roster.program,
+      college: roster.college,
+      yearLevel: roster.yearLevel ?? null,
+      mayorName: roster.mayorName || 'No Mayor Assigned',
+      mayorUid: roster.mayorUid || null,
+    };
+  }
+
+  const { hasExactAmountOverride: _omitOverride, ...storedTotals } = totals;
 
   // Anti-Spam Failsafe: one active filing per section PER beneficiary case
-  const pendingClauses = [
-    where('rosterId', '==', roster.rosterId),
-    where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
-  ];
+  const pendingClauses = isPlaceholder
+    ? [
+      where('sectionKey', '==', sectionInfo.sectionKey),
+      where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
+    ]
+    : [
+      where('rosterId', '==', sectionInfo.rosterId),
+      where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
+    ];
   if (beneficiary) pendingClauses.push(where('beneficiaryCaseId', '==', beneficiary.beneficiaryId));
   const existingPendingSnap = await getDocs(
     query(collection(db, COLLECTION_COLLECTION), ...pendingClauses, limit(5))
@@ -318,7 +495,7 @@ export const recordSectionCollection = async ({
     .find((d) => (beneficiary ? true : !d.beneficiaryCaseId));
   if (conflict) {
     throw new Error(
-      `Section ${roster.section} already has an active submission (${conflict.collectionId}) awaiting officer verification. Duplicate filings are locked until verified or settled.`
+      `Section ${sectionInfo.section} already has an active submission (${conflict.collectionId}) awaiting officer verification. Duplicate filings are locked until verified or settled.`
     );
   }
 
@@ -337,32 +514,25 @@ export const recordSectionCollection = async ({
   const year = new Date().getFullYear();
   const collectionId = await allocateCollectionId(year);
 
-  const recordedUid = recorder?.uid || null;
+  const recordedUid = recorder.uid;
   const recordedName = recorder?.name || trimmedName;
-  const recordedRole = recorder?.role || 'guest';
+  const recordedRole = recorder.role;
 
   await setDoc(doc(db, COLLECTION_COLLECTION, collectionId), {
     collectionId,
-    rosterId: roster.rosterId,
-    rosterVersion: roster.version ?? null,
-    sectionKey: roster.sectionKey,
-    section: roster.section,
-    program: roster.program,
-    college: roster.college,
-    yearLevel: roster.yearLevel ?? null,
-    mayorName: roster.mayorName || 'No Mayor Assigned',
-    mayorUid: roster.mayorUid || null,
+    entryMode,
+    ...sectionInfo,
 
     ...(beneficiary
       ? {
-          beneficiaryCaseId: beneficiary.beneficiaryId,
-          beneficiaryStudentName: beneficiary.studentName,
-          affectedPersonName: beneficiary.affectedPersonName,
-          aidType: beneficiary.aidType,
-        }
+        beneficiaryCaseId: beneficiary.beneficiaryId,
+        beneficiaryStudentName: beneficiary.studentName,
+        affectedPersonName: beneficiary.affectedPersonName,
+        aidType: beneficiary.aidType,
+      }
       : {}),
 
-    ...totals,
+    ...storedTotals,
 
     debtRecords: records,
     // Automatic, and honest about the gap rather than hiding it.
@@ -385,15 +555,16 @@ export const recordSectionCollection = async ({
 
   await appendAudit({
     collectionId,
-    action: 'collection_recorded',
+    action: isPlaceholder ? 'placeholder_collection_recorded' : 'collection_recorded',
     actor: {
       uid: recordedUid,
       name: recordedName,
       role: recordedRole,
     },
     extra: {
-      section: roster.section,
-      sectionKey: roster.sectionKey,
+      section: sectionInfo.section,
+      sectionKey: sectionInfo.sectionKey,
+      isPlaceholderSection: isPlaceholder,
       enrolledCount: totals.enrolledCount,
       beneficiaryCount: totals.beneficiaryCount,
       contributionPerStudent: totals.contributionPerStudent,
@@ -402,11 +573,68 @@ export const recordSectionCollection = async ({
       debtCount: totals.debtCount,
       submittedByName: String(submittedByName).trim() || 'Not recorded',
       namedDebts: records.length,
-      rosterId: roster.rosterId,
+      rosterId: sectionInfo.rosterId,
     },
   });
 
   return collectionId;
+};
+
+/**
+ * Record a single lump-sum section collection automatically split across 1 or more
+ * selected active beneficiary cases (e.g. ₱200 across 5 beneficiaries -> ₱40.00 each).
+ */
+export const recordMultiBeneficiaryCollection = async ({
+  roster = null,
+  placeholderSection = null,
+  beneficiariesList = [],
+  totalCollectedAmount,
+  contributionPerBeneficiary = null,
+  debtRecords = [],
+  submittedByName = '',
+  recorder,
+}) => {
+  if (!Array.isArray(beneficiariesList) || beneficiariesList.length === 0) {
+    throw new Error('Select at least one Death Aid / TechnoCare beneficiary first.');
+  }
+  const amountNum = Number(totalCollectedAmount);
+  if (!Number.isFinite(amountNum) || amountNum <= 0) {
+    throw new Error('Enter the total amount collected from the section (greater than ₱0.00).');
+  }
+
+  const enrolledCount = roster?.studentCount ?? (Number(placeholderSection?.estimatedEnrolled) || 0);
+  const splits = splitCollectionAcrossBeneficiaries({
+    totalCollectedAmount: amountNum,
+    beneficiariesList,
+    enrolledCount,
+    contributionPerBeneficiary,
+  });
+
+  const recorded = [];
+  for (const item of splits) {
+    const collectionId = await recordSectionCollection({
+      roster,
+      placeholderSection,
+      beneficiary: item.beneficiary,
+      contribution: item.totals.contributionPerStudent,
+      beneficiaries: item.totals.beneficiaryCount,
+      directAmount: item.shareAmount,
+      debtRecords: splits.length === 1 ? debtRecords : [],
+      submittedByName,
+      recorder,
+    });
+    recorded.push({
+      collectionId,
+      beneficiary: item.beneficiary,
+      shareAmount: item.shareAmount,
+      totals: item.totals,
+    });
+  }
+
+  return {
+    items: recorded,
+    totalCollectedAmount: Math.round(amountNum * 100) / 100,
+  };
 };
 
 // ────────────────────────────────────────────────────────────
@@ -604,6 +832,119 @@ export const denyRemittance = async ({ collectionId, officer, reason, note = '' 
   return { collectionId, status: DEATH_AID_COLLECTION_STATUS.DENIED, denialReason };
 };
 
+/**
+ * Remove / revoke verification on an already-confirmed or discrepancy collection,
+ * OR void/deny it completely with an audit trail reason.
+ *  - nextStatus === 'for_verification': returns the collection to Pending Verification
+ *    and marks the existing remittance record `revoked` so it can be re-counted.
+ *  - nextStatus === 'denied': voids the collection and marks the remittance `revoked`.
+ */
+export const revokeCollectionVerification = async ({
+  collectionId,
+  officer,
+  reason,
+  nextStatus = DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION,
+}) => {
+  if (!canManageDeathAid(officer)) {
+    throw new Error('Only authorized TechnoCares / Death Aid officers can remove or deny verification.');
+  }
+
+  const allowedNext = [
+    DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION,
+    DEATH_AID_COLLECTION_STATUS.DENIED,
+  ];
+  if (!allowedNext.includes(nextStatus)) {
+    throw new Error('Invalid target status for verification removal.');
+  }
+
+  const cleanReason = String(reason || '').trim();
+  if (!cleanReason) {
+    throw new Error('Please provide a reason for removing or denying verification.');
+  }
+
+  const collectionRef = doc(db, COLLECTION_COLLECTION, collectionId);
+  const snap = await getDoc(collectionRef);
+  if (!snap.exists()) throw new Error('That collection no longer exists.');
+
+  const record = snap.data();
+  if (
+    record.status !== DEATH_AID_COLLECTION_STATUS.CONFIRMED &&
+    record.status !== DEATH_AID_COLLECTION_STATUS.DISCREPANCY
+  ) {
+    throw new Error('Only confirmed or discrepancy collections can have verification removed.');
+  }
+
+  const remittanceRef = doc(db, REMITTANCE_COLLECTION, collectionId);
+  const remSnap = await getDoc(remittanceRef);
+  if (remSnap.exists()) {
+    const remData = remSnap.data();
+    await setDoc(
+      remittanceRef,
+      {
+        ...remData,
+        status: DEATH_AID_REMITTANCE_STATUS.REVOKED,
+        revokedReason: cleanReason,
+        revokedByUid: officer.uid,
+        revokedByName: officer.name,
+        revokedByRole: officer.role,
+        revokedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  const patch =
+    nextStatus === DEATH_AID_COLLECTION_STATUS.DENIED
+      ? {
+        status: DEATH_AID_COLLECTION_STATUS.DENIED,
+        confirmedAt: null,
+        confirmedByUid: null,
+        confirmedByName: null,
+        amountReceived: null,
+        deniedAt: serverTimestamp(),
+        deniedByUid: officer.uid,
+        deniedByName: officer.name,
+        deniedByRole: officer.role,
+        denialReason: cleanReason,
+        verificationRevokedAt: serverTimestamp(),
+        verificationRevokedByUid: officer.uid,
+        verificationRevokedByName: officer.name,
+        verificationRevokedReason: cleanReason,
+      }
+      : {
+        status: DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION,
+        confirmedAt: null,
+        confirmedByUid: null,
+        confirmedByName: null,
+        amountReceived: null,
+        verificationRevokedAt: serverTimestamp(),
+        verificationRevokedByUid: officer.uid,
+        verificationRevokedByName: officer.name,
+        verificationRevokedReason: cleanReason,
+      };
+
+  await setDoc(collectionRef, patch, { merge: true });
+
+  await appendAudit({
+    collectionId,
+    action:
+      nextStatus === DEATH_AID_COLLECTION_STATUS.DENIED
+        ? 'confirmed_collection_denied'
+        : 'verification_removed',
+    actor: officer,
+    extra: {
+      section: record.section,
+      sectionKey: record.sectionKey,
+      previousStatus: record.status,
+      nextStatus,
+      previousAmountReceived: record.amountReceived ?? null,
+      reason: cleanReason,
+    },
+  });
+
+  return { collectionId, status: nextStatus, reason: cleanReason };
+};
+
 // ────────────────────────────────────────────────────────────
 // READS
 // ────────────────────────────────────────────────────────────
@@ -659,6 +1000,25 @@ export const getActivePendingForRoster = async (rosterId, beneficiaryCaseId = nu
     return { id: docs[0].id, ...docs[0].data() };
   } catch (error) {
     console.error('Failed to check active pending collection for roster:', error);
+    return null;
+  }
+};
+
+export const getActivePendingForSectionKey = async (sectionKey, beneficiaryCaseId = null) => {
+  const cleanKey = String(sectionKey || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!cleanKey) return null;
+  try {
+    const clauses = [
+      where('sectionKey', '==', cleanKey),
+      where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
+    ];
+    if (beneficiaryCaseId) clauses.push(where('beneficiaryCaseId', '==', beneficiaryCaseId));
+    const snap = await getDocs(query(collection(db, COLLECTION_COLLECTION), ...clauses, limit(5)));
+    const docs = snap.docs.filter((d) => (beneficiaryCaseId ? true : !d.data().beneficiaryCaseId));
+    if (docs.length === 0) return null;
+    return { id: docs[0].id, ...docs[0].data() };
+  } catch (error) {
+    console.error('Failed to check active pending collection for section:', error);
     return null;
   }
 };

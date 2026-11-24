@@ -21,6 +21,83 @@ export const RECEIPT_LABELS = [
 ];
 
 /**
+ * Pure double-entry balance delta calculator for posting a transaction.
+ * Guarantees that TRANSFER debits the source fund (-amount) and credits the
+ * destination fund (+amount) so total funds are conserved rather than duplicated.
+ */
+export function computeTransactionBalanceDeltas({
+  transactionType,
+  amountCentavos = 0,
+  deltaCentavos = undefined,
+  transferDestinationAccountId = null,
+}) {
+  const amt = Math.max(0, Math.round(Number(amountCentavos || 0)));
+  const txType = String(transactionType || '').toLowerCase();
+
+  if (txType === TRANSACTION_TYPES.RECEIPT || txType === TRANSACTION_TYPES.COLLECTION) {
+    return { sourceDeltaCentavos: amt, destinationDeltaCentavos: 0 };
+  }
+  if (
+    txType === TRANSACTION_TYPES.EXPENSE ||
+    txType === TRANSACTION_TYPES.PAYMENT ||
+    txType === TRANSACTION_TYPES.REFUND
+  ) {
+    return { sourceDeltaCentavos: -amt, destinationDeltaCentavos: 0 };
+  }
+  if (txType === TRANSACTION_TYPES.TRANSFER) {
+    return {
+      sourceDeltaCentavos: -amt,
+      destinationDeltaCentavos: transferDestinationAccountId ? amt : 0,
+    };
+  }
+  if (txType === TRANSACTION_TYPES.ADJUSTMENT) {
+    const signed = deltaCentavos !== undefined ? Math.round(Number(deltaCentavos || 0)) : amt;
+    return { sourceDeltaCentavos: signed, destinationDeltaCentavos: 0 };
+  }
+  return { sourceDeltaCentavos: 0, destinationDeltaCentavos: 0 };
+}
+
+/**
+ * Pure double-entry balance delta calculator for reversing a posted transaction.
+ * Exact arithmetic inverse of computeTransactionBalanceDeltas():
+ *  - Reversing a TRANSFER credits the source fund (+amount) AND debits the
+ *    destination fund (-amount), restoring both accounts without duplicating money.
+ */
+export function computeReversalBalanceDeltas({
+  transactionType,
+  amountCentavos = 0,
+  deltaCentavos = undefined,
+  transferDestinationAccountId = null,
+}) {
+  const { sourceDeltaCentavos, destinationDeltaCentavos } = computeTransactionBalanceDeltas({
+    transactionType,
+    amountCentavos,
+    deltaCentavos,
+    transferDestinationAccountId,
+  });
+  return {
+    sourceDeltaCentavos: sourceDeltaCentavos === 0 ? 0 : -sourceDeltaCentavos,
+    destinationDeltaCentavos: destinationDeltaCentavos === 0 ? 0 : -destinationDeltaCentavos,
+  };
+}
+
+/**
+ * Collects IDs and refNumbers of transactions already marked status='reversed'
+ * so companion REVERSAL audit rows are never double-counted.
+ */
+function collectReversedKeys(transactions = []) {
+  const reversedIds = new Set();
+  const reversedRefs = new Set();
+  for (const tx of transactions) {
+    if ((tx?.status || '').toLowerCase() === TRANSACTION_STATUSES.REVERSED) {
+      if (tx.id) reversedIds.add(tx.id);
+      if (tx.refNumber) reversedRefs.add(tx.refNumber);
+    }
+  }
+  return { reversedIds, reversedRefs };
+}
+
+/**
  * Returns true if a transaction is a legacy/mistaken '+' inflow (receipt/collection)
  * on Fiscal Year Budget or FSG Remittance (e.g., the old +₱500,000 'Disbursement for INITIAL FISCAL BUDGET' test rows).
  * Fiscal Year Budget and FSG Remittance are set via Edit Budget/Balance and only deplete (-) in the ledger.
@@ -80,15 +157,7 @@ export function computeLedgerNetByAccount(transactions = []) {
     return netByAccount;
   }
 
-  const reversedIds = new Set();
-  const reversedRefs = new Set();
-  for (const tx of transactions) {
-    const statusLower = (tx?.status || '').toLowerCase();
-    if (statusLower === TRANSACTION_STATUSES.REVERSED) {
-      if (tx.id) reversedIds.add(tx.id);
-      if (tx.refNumber) reversedRefs.add(tx.refNumber);
-    }
-  }
+  const { reversedIds, reversedRefs } = collectReversedKeys(transactions);
 
   const addDelta = (accountId, deltaCentavos) => {
     if (!accountId || !Number.isFinite(deltaCentavos)) return;
@@ -125,7 +194,22 @@ export function computeLedgerNetByAccount(transactions = []) {
       const origKey = tx.reversalOfTransactionId;
       const origAlreadyExcluded = origKey && (reversedIds.has(origKey) || reversedRefs.has(origKey));
       if (!origAlreadyExcluded) {
-        addDelta(tx.fundAccountId, -amount);
+        const revType = String(tx.reversedTransactionType || '').toLowerCase();
+        if (revType) {
+          const { sourceDeltaCentavos, destinationDeltaCentavos } = computeReversalBalanceDeltas({
+            transactionType: revType,
+            amountCentavos: amount,
+            deltaCentavos: tx.reversedDeltaCentavos,
+            transferDestinationAccountId: tx.transferDestinationAccountId || null,
+          });
+          addDelta(tx.fundAccountId, sourceDeltaCentavos);
+          if (tx.transferDestinationAccountId && destinationDeltaCentavos !== 0) {
+            addDelta(tx.transferDestinationAccountId, destinationDeltaCentavos);
+          }
+        } else {
+          // Legacy unlinked collection reversals (e.g. MERCHANDISE_ORDER_REVERSAL / IGP_COLLECTION_REVERSAL)
+          addDelta(tx.fundAccountId, -amount);
+        }
       }
     }
   }
@@ -135,14 +219,17 @@ export function computeLedgerNetByAccount(transactions = []) {
 
 /**
  * Computes total posted expense disbursements (in positive centavos) per fundAccountId.
- * Used by SSG Fiscal Year Budget and FSG Remittance so their headline balance equals:
- *   Initial Ceiling (set via Edit Budget/Balance) - Posted Ledger Disbursements
+ * Order-independent: accumulates signed deltas across all rows before clamping to >= 0,
+ * so `createdAt desc` queries (where newer REVERSAL rows precede older EXPENSE rows)
+ * never drop reversals.
  */
 export function computeDisbursedByAccount(transactions = []) {
-  const disbursedMap = new Map();
+  const signedMap = new Map();
   if (!Array.isArray(transactions) || transactions.length === 0) {
-    return disbursedMap;
+    return signedMap;
   }
+
+  const { reversedIds, reversedRefs } = collectReversedKeys(transactions);
 
   for (const tx of transactions) {
     if (!tx || !tx.fundAccountId) continue;
@@ -150,23 +237,90 @@ export function computeDisbursedByAccount(transactions = []) {
     if (statusLower !== TRANSACTION_STATUSES.POSTED) continue;
 
     const txType = (tx.transactionType || '').toLowerCase();
+    const amount = Number(tx.amountCentavos || 0);
+    if (
+      txType === TRANSACTION_TYPES.EXPENSE ||
+      txType === TRANSACTION_TYPES.PAYMENT ||
+      txType === TRANSACTION_TYPES.REFUND ||
+      txType === TRANSACTION_TYPES.TRANSFER
+    ) {
+      signedMap.set(tx.fundAccountId, (signedMap.get(tx.fundAccountId) || 0) + amount);
+    } else if (txType === TRANSACTION_TYPES.REVERSAL) {
+      const origKey = tx.reversalOfTransactionId;
+      const origAlreadyExcluded = origKey && (reversedIds.has(origKey) || reversedRefs.has(origKey));
+      const revType = String(tx.reversedTransactionType || '').toLowerCase();
+      const isInflowReversal =
+        revType === TRANSACTION_TYPES.COLLECTION ||
+        revType === TRANSACTION_TYPES.RECEIPT ||
+        tx.source === 'MERCHANDISE_ORDER_REVERSAL' ||
+        tx.source === 'IGP_COLLECTION_REVERSAL';
+      if (!origAlreadyExcluded && !isInflowReversal && amount > 0) {
+        signedMap.set(tx.fundAccountId, (signedMap.get(tx.fundAccountId) || 0) - amount);
+      }
+    }
+  }
+
+  const disbursedMap = new Map();
+  for (const [accountId, total] of signedMap.entries()) {
+    disbursedMap.set(accountId, Math.max(0, total));
+  }
+  return disbursedMap;
+}
+
+/**
+ * Computes net posted expense disbursements (in positive centavos) per budgetAllocationId.
+ * Order-independent: accumulates signed deltas across all rows before clamping to >= 0.
+ */
+export function computeDisbursedByAllocation(transactions = []) {
+  const signedMap = new Map();
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    return signedMap;
+  }
+
+  const { reversedIds, reversedRefs } = collectReversedKeys(transactions);
+
+  for (const tx of transactions) {
+    if (!tx || !tx.budgetAllocationId) continue;
+    const statusLower = (tx.status || '').toLowerCase();
+    if (statusLower !== TRANSACTION_STATUSES.POSTED) continue;
+
+    const txType = (tx.transactionType || '').toLowerCase();
+    const amount = Number(tx.amountCentavos || 0);
     if (
       txType === TRANSACTION_TYPES.EXPENSE ||
       txType === TRANSACTION_TYPES.PAYMENT ||
       txType === TRANSACTION_TYPES.REFUND
     ) {
-      const amount = Number(tx.amountCentavos || 0);
-      disbursedMap.set(tx.fundAccountId, (disbursedMap.get(tx.fundAccountId) || 0) + amount);
+      signedMap.set(
+        tx.budgetAllocationId,
+        (signedMap.get(tx.budgetAllocationId) || 0) + amount
+      );
+    } else if (txType === TRANSACTION_TYPES.REVERSAL) {
+      const origKey = tx.reversalOfTransactionId;
+      const origAlreadyExcluded =
+        origKey && (reversedIds.has(origKey) || reversedRefs.has(origKey));
+      if (!origAlreadyExcluded && amount > 0) {
+        signedMap.set(
+          tx.budgetAllocationId,
+          (signedMap.get(tx.budgetAllocationId) || 0) - amount
+        );
+      }
     }
   }
 
+  const disbursedMap = new Map();
+  for (const [allocId, total] of signedMap.entries()) {
+    disbursedMap.set(allocId, Math.max(0, total));
+  }
   return disbursedMap;
 }
 
 /**
  * Resolves the effective initial ceiling (in centavos) for a Fiscal Year Budget or FSG Remittance account:
  *  1. Explicit `appropriatedCeilingCentavos` (> 0) from Edit Fiscal Budget / Calibration
- *  2. Legacy `balanceCentavos` (> 0) if ceiling field was unset
+ *  2. Legacy `balanceCentavos` (> 0) if ceiling field was unset: reconstructs the original ceiling
+ *     by adding back already-disbursed ledger expenses so `ceiling - disbursed` never double-subtracts
+ *     an already-decremented Firestore `balanceCentavos` down to ₱0.00.
  *  3. Recorded ledger inflows (posted receipt/collection/positive adjustment/inbound transfer)
  *     when both stored fields are 0/unset so ledger-recorded budgets never collapse to ₱0.00.
  */
@@ -176,7 +330,8 @@ export function computeEffectiveFiscalCeilingCentavos(fund, transactions = []) {
     return Number(fund.appropriatedCeilingCentavos);
   }
   if (Number(fund.balanceCentavos || 0) > 0) {
-    return Number(fund.balanceCentavos);
+    const disbursedCentavos = computeDisbursedByAccount(transactions).get(fund.id) || 0;
+    return Number(fund.balanceCentavos) + disbursedCentavos;
   }
   if (!Array.isArray(transactions) || transactions.length === 0) {
     return 0;
@@ -210,12 +365,53 @@ export function computeEffectiveFiscalCeilingCentavos(fund, transactions = []) {
 }
 
 /**
+ * Sums historical/legacy IGP collections that exist in `igpCollections`
+ * without a corresponding posted entry in `transactions`, preventing double-counting
+ * for post-fix collections while protecting pre-fix IGP revenue during reconciliation.
+ */
+export function computeUnlinkedIgpCollectionsCentavos(transactions = [], igpCollections = []) {
+  if (!Array.isArray(igpCollections) || igpCollections.length === 0) return 0;
+
+  const linkedCollectionIds = new Set();
+  const txIds = new Set();
+  const txRefs = new Set();
+  if (Array.isArray(transactions)) {
+    for (const tx of transactions) {
+      if (!tx) continue;
+      if (tx.id) txIds.add(tx.id);
+      if (tx.refNumber) txRefs.add(tx.refNumber);
+      if (tx.igpCollectionId) linkedCollectionIds.add(tx.igpCollectionId);
+    }
+  }
+
+  let unlinkedCentavos = 0;
+  for (const col of igpCollections) {
+    if (!col) continue;
+    const isLinked =
+      (col.id && linkedCollectionIds.has(col.id)) ||
+      (col.ledgerTxId && txIds.has(col.ledgerTxId)) ||
+      (col.ledgerRefNumber && txRefs.has(col.ledgerRefNumber));
+    if (isLinked) continue;
+
+    const amountCentavos =
+      typeof col.amountCentavos === 'number' && Number.isFinite(col.amountCentavos)
+        ? col.amountCentavos
+        : Math.round((Number(col.amountPHP) || 0) * 100);
+    if (amountCentavos > 0) {
+      unlinkedCentavos += amountCentavos;
+    }
+  }
+
+  return unlinkedCentavos;
+}
+
+/**
  * Computes the authoritative card display balance (in centavos) for a fund account:
  *  - For Fiscal Year Budget & FSG Remittance: Effective Ceiling - Posted Ledger Disbursements
- *  - For IGF & IGP: Live Ledger Net (+Collections minus -Expenses) if ledger transactions exist for that account,
- *    otherwise fallback to fund.balanceCentavos.
+ *  - For IGF & IGP: Live Ledger Net (+Collections minus -Expenses) if ledger transactions exist for that account
+ *    (plus any legacy unlinked igpCollections for IGP), otherwise fallback to fund.balanceCentavos.
  */
-export function computeAuthoritativeFundBalanceCentavos(fund, transactions = []) {
+export function computeAuthoritativeFundBalanceCentavos(fund, transactions = [], igpCollections = []) {
   if (!fund) return 0;
   const isFiscalOrFsg =
     fund.id === 'fund_fiscal_year_budget' ||
@@ -230,13 +426,21 @@ export function computeAuthoritativeFundBalanceCentavos(fund, transactions = [])
     return Math.max(0, ceilingCentavos - disbursedCentavos);
   }
 
-  // IGF & IGP: directly reflect the posted ledger balance
+  const isIgp =
+    fund.id === 'fund_igp_main' || fund.topLevelCategory === TOP_LEVEL_FUNDS.IGP;
+
+  // IGF & IGP: directly reflect the posted ledger balance (plus any unlinked legacy IGP collections)
   const hasAccountTxs = Array.isArray(transactions) && transactions.some(
     (tx) => tx?.fundAccountId === fund.id || tx?.transferDestinationAccountId === fund.id
   );
-  if (hasAccountTxs) {
-    const netMap = computeLedgerNetByAccount(transactions);
-    return Math.max(0, netMap.get(fund.id) || 0);
+  const unlinkedIgpCentavos = isIgp
+    ? computeUnlinkedIgpCollectionsCentavos(transactions, igpCollections)
+    : 0;
+
+  if (hasAccountTxs || unlinkedIgpCentavos > 0) {
+    const netMap = hasAccountTxs ? computeLedgerNetByAccount(transactions) : new Map();
+    const ledgerNet = netMap.get(fund.id) || 0;
+    return Math.max(0, ledgerNet + unlinkedIgpCentavos);
   }
   return Math.max(0, Number(fund.balanceCentavos || 0));
 }

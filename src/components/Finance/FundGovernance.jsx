@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
@@ -17,11 +18,17 @@ import {
   RECEIPT_LABELS,
   computeLedgerNetByAccount,
   computeDisbursedByAccount,
+  computeDisbursedByAllocation,
   computeEffectiveFiscalCeilingCentavos,
   computeAuthoritativeFundBalanceCentavos,
   filterValidLedgerTransactions,
   inferTransactionStorageLocation,
 } from '../../utils/financeLedgerReconciliation.js';
+import {
+  computeAllocationLedgerPostingState,
+  deriveAllocationTxDefaults,
+  resolveReceiptUploadOutcome,
+} from '../../utils/ledgerTxFormHelpers.js';
 import styles from './FundGovernance.module.css';
 import BankCalibrationModal from './BankCalibrationModal.jsx';
 import { ReversalModal, RestoreAllocationModal } from './FinanceLedgerModal.jsx';
@@ -36,6 +43,8 @@ import {
   HiTrash,
   HiX,
   HiPencil,
+  HiChevronDown,
+  HiChevronUp,
 } from 'react-icons/hi';
 
 const FundGovernance = () => {
@@ -43,8 +52,10 @@ const FundGovernance = () => {
     fundAccounts,
     budgetAllocations,
     transactions,
+    igpCollections = [],
     ledgerBalancesByAccount,
     disbursedByAccount,
+    disbursedByAllocation,
     recordTransaction,
     reverseTransaction,
     refreshFinanceData,
@@ -80,9 +91,15 @@ const FundGovernance = () => {
     [disbursedByAccount, visibleTransactions]
   );
 
+  const computedDisbursedByAllocation = useMemo(
+    () => disbursedByAllocation || computeDisbursedByAllocation(visibleTransactions),
+    [disbursedByAllocation, visibleTransactions]
+  );
+
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const [receiptUploadProgress, setReceiptUploadProgress] = useState(0);
   const [receiptUploadNotice, setReceiptUploadNotice] = useState('');
+  const [showOptionalTxFields, setShowOptionalTxFields] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReversalModalOpen, setIsReversalModalOpen] = useState(false);
@@ -92,8 +109,7 @@ const FundGovernance = () => {
   const [selectedBudgetForRestore, setSelectedBudgetForRestore] = useState(null);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
   const [isSubmittingRestore, setIsSubmittingRestore] = useState(false);
-  const [reversalReason, setReversalReason] = useState('');
-  const [isCleaning, setIsCleaning] = useState(false);
+  const [isSubmittingTx, setIsSubmittingTx] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
   // Unified Fiscal Budget Modal State (Serves as primary balance & PPMP ceiling)
@@ -122,8 +138,11 @@ const FundGovernance = () => {
     transactionType: TRANSACTION_TYPES.EXPENSE,
     expensePurpose: EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE,
     amount: '',
+    amountAutoFilled: false,
+    amountAutoFillSource: '',
     payeeOrPayer: '',
     description: '',
+    descriptionAutoFilled: false,
     budgetAllocationId: '',
     resolutionRef: '',
     custodianUserId: currentUser?.uid || '',
@@ -138,6 +157,30 @@ const FundGovernance = () => {
   });
 
   const activeFund = fundAccounts.find((a) => a.id === txForm.fundAccountId);
+
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen]);
+
+  const handleOpenRecordModal = () => {
+    setSubmitError(null);
+    setReceiptUploadNotice('');
+    setReceiptUploadProgress(0);
+    setShowOptionalTxFields(false);
+    setIsModalOpen(true);
+  };
 
   // Handlers for Unified Fiscal Budget (edits the initial term ceiling directly)
   const handleOpenFiscalBudgetModal = (fund) => {
@@ -221,7 +264,7 @@ const FundGovernance = () => {
       budget.fundAccountId || (budget.isFSG ? 'fund_fsg_remittance' : 'fund_fiscal_year_budget');
     const matchedAccount = fundAccounts.find((a) => a.id === fundId);
 
-    setTxForm({
+    const baseTx = {
       fundAccountId: fundId,
       transactionType: TRANSACTION_TYPES.EXPENSE,
       expensePurpose:
@@ -229,28 +272,40 @@ const FundGovernance = () => {
           ? EXPENSE_PURPOSES.RESOLUTION_DISBURSEMENT
           : EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE,
       amount: '',
+      amountAutoFilled: false,
       payeeOrPayer: '',
-      description: `Disbursement for ${budget.eventName}`,
-      budgetAllocationId: budget.id,
-      resolutionRef: budget.resolution || budget.raw?.resolutionRef || '',
+      description: '',
+      descriptionAutoFilled: false,
+      budgetAllocationId: '',
+      resolutionRef: '',
       custodianUserId: currentUser?.uid || '',
       custodianName: userName || '',
       receiptUrl: '',
-    });
+      receiptDriveLink: '',
+      receiptFileId: '',
+      receiptOrNumber: '',
+      receiptDetails: '',
+      receiptLabel: RECEIPT_LABELS[0],
+      storageLocation: matchedAccount?.bankAccountReference || '',
+    };
+
+    setTxForm(deriveAllocationTxDefaults(budget, baseTx, computedDisbursedByAllocation));
     setSubmitError(null);
+    setReceiptUploadNotice('');
+    setReceiptUploadProgress(0);
+    setShowOptionalTxFields(false);
     setIsModalOpen(true);
   };
 
   // Reversal handler
   const handleOpenReversal = (tx) => {
     setSelectedTxForReversal(tx);
-    setReversalReason('');
     setReversalModalError(null);
     setIsReversalModalOpen(true);
   };
 
   const handleConfirmReversal = async (reasonText) => {
-    const finalReason = typeof reasonText === 'string' ? reasonText : reversalReason;
+    const finalReason = typeof reasonText === 'string' ? reasonText : '';
     if (!finalReason || !finalReason.trim()) {
       setReversalModalError('A valid reason is required to record a reversal.');
       return;
@@ -267,9 +322,10 @@ const FundGovernance = () => {
     }
   };
 
-  // Submit transaction
+  // Submit transaction (locked against double-submit)
   const handleSubmitTx = async (e) => {
     e.preventDefault();
+    if (isSubmittingTx) return;
     setSubmitError(null);
 
     const amountNum = parseFloat(txForm.amount);
@@ -279,6 +335,7 @@ const FundGovernance = () => {
     }
 
     try {
+      setIsSubmittingTx(true);
       await recordTransaction({
         ...txForm,
         amount: amountNum,
@@ -290,8 +347,10 @@ const FundGovernance = () => {
         transactionType: TRANSACTION_TYPES.EXPENSE,
         expensePurpose: EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE,
         amount: '',
+        amountAutoFilled: false,
         payeeOrPayer: '',
         description: '',
+        descriptionAutoFilled: false,
         budgetAllocationId: '',
         resolutionRef: '',
         custodianUserId: currentUser?.uid || '',
@@ -306,8 +365,11 @@ const FundGovernance = () => {
       });
       setReceiptUploadNotice('');
       setReceiptUploadProgress(0);
+      setShowOptionalTxFields(false);
     } catch (err) {
       setSubmitError(err.message);
+    } finally {
+      setIsSubmittingTx(false);
     }
   };
 
@@ -316,14 +378,14 @@ const FundGovernance = () => {
   const filteredBudgets = isViewingArchived
     ? (archivedBudgets || [])
     : (budgets || []).filter((b) => {
-        if (allocFundFilter === 'fund_fiscal_year_budget') {
-          return !b.isFSG && b.fundAccountId !== 'fund_fsg_remittance';
-        }
-        if (allocFundFilter === 'fund_fsg_remittance') {
-          return b.isFSG || b.fundAccountId === 'fund_fsg_remittance';
-        }
-        return true;
-      });
+      if (allocFundFilter === 'fund_fiscal_year_budget') {
+        return !b.isFSG && b.fundAccountId !== 'fund_fsg_remittance';
+      }
+      if (allocFundFilter === 'fund_fsg_remittance') {
+        return b.isFSG || b.fundAccountId === 'fund_fsg_remittance';
+      }
+      return true;
+    });
 
   const fiscalBudgetsCount = (budgets || []).filter(
     (b) => !b.isFSG && b.fundAccountId !== 'fund_fsg_remittance'
@@ -367,7 +429,7 @@ const FundGovernance = () => {
           <button
             type="button"
             className={styles.primaryBtn}
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenRecordModal}
           >
             <HiReceiptTax size={16} /> Record Transaction
           </button>
@@ -396,7 +458,7 @@ const FundGovernance = () => {
           else if (isIGF) badgeClass = styles.badgeIGF;
           else if (isIGP) badgeClass = styles.badgeIGP;
 
-          const balanceCentavos = computeAuthoritativeFundBalanceCentavos(fund, visibleTransactions);
+          const balanceCentavos = computeAuthoritativeFundBalanceCentavos(fund, visibleTransactions, igpCollections);
           const ceilingCentavos =
             isFiscal || isFSG
               ? computeEffectiveFiscalCeilingCentavos(fund, visibleTransactions)
@@ -407,15 +469,15 @@ const FundGovernance = () => {
             (isFiscal
               ? 'BDO Institutional Account ****2005'
               : isFSG
-              ? 'BDO Institutional Account ****2005 (Sub-Treasury)'
-              : isIGF
-              ? 'Treasury Safe / Cash Box'
-              : 'Custodial Lockbox');
+                ? 'BDO Institutional Account ****2005 (Sub-Treasury)'
+                : isIGF
+                  ? 'Treasury Safe / Cash Box'
+                  : 'Custodial Lockbox');
           const allocatedCentavos = isFiscal
             ? toCentavos(displayFiscalAllocated)
             : isFSG
-            ? toCentavos(displayFsgAllocated)
-            : 0;
+              ? toCentavos(displayFsgAllocated)
+              : 0;
           const surplusCentavos = Math.max(0, ceilingCentavos - allocatedCentavos);
 
           return (
@@ -566,29 +628,6 @@ const FundGovernance = () => {
                   </div>
                 )}
 
-                {canPostFinanceLedger && (isIGF || isIGP) && (
-                  <button
-                    type="button"
-                    className={styles.quickTxBtn}
-                    onClick={() => {
-                      setSubmitError(null);
-                      setReceiptUploadNotice('');
-                      setReceiptUploadProgress(0);
-                      setTxForm((prev) => ({
-                        ...prev,
-                        fundAccountId: fund.id,
-                        transactionType: TRANSACTION_TYPES.EXPENSE,
-                        expensePurpose: EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES,
-                        storageLocation: storageLabel,
-                        budgetAllocationId: '',
-                      }));
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    <HiReceiptTax size={14} /> Record {isIGF ? 'IGF' : 'IGP'} Flow
-                  </button>
-                )}
-
                 <div className={styles.fundMeta}>
                   <span>{storageLabel}</span>
                   <span>FY {fund.fiscalYear}</span>
@@ -614,36 +653,32 @@ const FundGovernance = () => {
             <div className={styles.filterPillsGroup}>
               <button
                 type="button"
-                className={`${styles.filterPill} ${
-                  allocFundFilter === 'All' ? styles.filterPillActive : ''
-                }`}
+                className={`${styles.filterPill} ${allocFundFilter === 'All' ? styles.filterPillActive : ''
+                  }`}
                 onClick={() => setAllocFundFilter('All')}
               >
                 All ({budgets.length})
               </button>
               <button
                 type="button"
-                className={`${styles.filterPill} ${
-                  allocFundFilter === 'fund_fiscal_year_budget' ? styles.filterPillActive : ''
-                }`}
+                className={`${styles.filterPill} ${allocFundFilter === 'fund_fiscal_year_budget' ? styles.filterPillActive : ''
+                  }`}
                 onClick={() => setAllocFundFilter('fund_fiscal_year_budget')}
               >
                 🏛️ Fiscal ({fiscalBudgetsCount})
               </button>
               <button
                 type="button"
-                className={`${styles.filterPill} ${
-                  allocFundFilter === 'fund_fsg_remittance' ? styles.filterPillActive : ''
-                }`}
+                className={`${styles.filterPill} ${allocFundFilter === 'fund_fsg_remittance' ? styles.filterPillActive : ''
+                  }`}
                 onClick={() => setAllocFundFilter('fund_fsg_remittance')}
               >
                 🤝 FSG ({fsgBudgetsCount})
               </button>
               <button
                 type="button"
-                className={`${styles.filterPill} ${
-                  allocFundFilter === 'archived' ? styles.filterPillActive : ''
-                }`}
+                className={`${styles.filterPill} ${allocFundFilter === 'archived' ? styles.filterPillActive : ''
+                  }`}
                 onClick={() => setAllocFundFilter('archived')}
               >
                 📁 Archived ({archivedBudgets.length})
@@ -693,9 +728,8 @@ const FundGovernance = () => {
               {allocFundFilter === 'archived'
                 ? 'No archived budget allocations.'
                 : allocFundFilter === 'All'
-                ? 'No budget allocations synchronized yet. Program allocations inside the PPMP Procurement Matrix.'
-                : `No budget allocations found under ${
-                    allocFundFilter === 'fund_fsg_remittance' ? 'FSG Remittance' : 'Fiscal Year Budget'
+                  ? 'No budget allocations synchronized yet. Program allocations inside the PPMP Procurement Matrix.'
+                  : `No budget allocations found under ${allocFundFilter === 'fund_fsg_remittance' ? 'FSG Remittance' : 'Fiscal Year Budget'
                   }.`}
             </p>
             <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
@@ -720,8 +754,13 @@ const FundGovernance = () => {
                 {filteredBudgets.map((b) => {
                   const isFSG = b.fundAccountId === 'fund_fsg_remittance' || b.isFSG;
                   const isDraft = b.status === 'draft';
-                  const isFullySpent = b.remaining <= 0;
-                  const canPostExpense = !isDraft && !isFullySpent && canPostFinanceLedger;
+                  const postingState = computeAllocationLedgerPostingState(
+                    b,
+                    computedDisbursedByAllocation
+                  );
+                  const hasUnpostedDisbursed = postingState.unpostedDisbursedCentavos > 0;
+                  const isFullyPosted = !hasUnpostedDisbursed && postingState.remainingAllocCentavos <= 0;
+                  const canPostExpense = !isDraft && postingState.canPostToLedger && canPostFinanceLedger;
 
                   return (
                     <tr key={b.id}>
@@ -775,19 +814,18 @@ const FundGovernance = () => {
                           </span>
                         ) : (
                           <span
-                            className={`${styles.statusPill} ${
-                              b.ppmpStatus === PPMP_STATUSES.FRESH
+                            className={`${styles.statusPill} ${b.ppmpStatus === PPMP_STATUSES.FRESH
                                 ? styles.statusFreshPill
                                 : b.ppmpStatus === PPMP_STATUSES.DEPLETED
-                                ? styles.statusReversed
-                                : styles.statusPosted
-                            }`}
+                                  ? styles.statusReversed
+                                  : styles.statusPosted
+                              }`}
                           >
                             {b.ppmpStatus === PPMP_STATUSES.FRESH
                               ? 'Planned'
                               : b.ppmpStatus === PPMP_STATUSES.DEPLETED
-                              ? 'Fully Spent'
-                              : 'Partially Spent'}
+                                ? 'Fully Spent'
+                                : 'Partially Spent'}
                           </span>
                         )}
                       </td>
@@ -814,14 +852,16 @@ const FundGovernance = () => {
                                 title={
                                   isDraft
                                     ? 'Cannot post expense: Allocation is currently in Draft status.'
-                                    : isFullySpent
-                                    ? 'Cannot post expense: Budget is fully utilized or spent.'
-                                    : 'Post Expense against this Allocation'
+                                    : isFullyPosted
+                                      ? 'Cannot post expense: Budget is fully posted to the ledger.'
+                                      : hasUnpostedDisbursed
+                                        ? `Post recorded disbursement (${formatPHP(postingState.unpostedDisbursedCentavos, true)}) to the financial ledger`
+                                        : 'Post Expense against this Allocation'
                                 }
                                 onClick={() => canPostExpense && handleOpenTxForAllocation(b)}
                                 disabled={!canPostExpense}
                               >
-                                {isFullySpent ? 'Fully Spent' : isDraft ? 'Draft' : 'Post Expense'}
+                                {isFullyPosted ? 'Fully Spent' : isDraft ? 'Draft' : 'Post Expense'}
                               </button>
                             ) : null}
                           </div>
@@ -862,15 +902,24 @@ const FundGovernance = () => {
                   <th>Description</th>
                   <th>Amount</th>
                   <th>Status</th>
-                  {(canReverseFinanceLedger || canEditFinance) && <th>Actions</th>}
+                  {canReverseFinanceLedger && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {visibleTransactions.map((tx) => {
+                  const revOrigType = String(tx.reversedTransactionType || '').toLowerCase();
+                  const isCollectionReversal =
+                    tx.transactionType === TRANSACTION_TYPES.REVERSAL &&
+                    (revOrigType === TRANSACTION_TYPES.COLLECTION ||
+                      revOrigType === TRANSACTION_TYPES.RECEIPT ||
+                      tx.source === 'MERCHANDISE_ORDER_REVERSAL' ||
+                      tx.source === 'IGP_COLLECTION_REVERSAL');
                   const isOutflow =
                     tx.transactionType === TRANSACTION_TYPES.EXPENSE ||
                     tx.transactionType === TRANSACTION_TYPES.PAYMENT ||
-                    tx.transactionType === TRANSACTION_TYPES.REFUND;
+                    tx.transactionType === TRANSACTION_TYPES.REFUND ||
+                    tx.transactionType === TRANSACTION_TYPES.TRANSFER ||
+                    isCollectionReversal;
                   const matchedFundAcc = fundAccounts.find((a) => a.id === tx.fundAccountId);
                   const txStorageLocation = inferTransactionStorageLocation(tx, matchedFundAcc);
 
@@ -951,13 +1000,12 @@ const FundGovernance = () => {
                       </td>
                       <td>
                         <span
-                          className={`${styles.statusPill} ${
-                            tx.status === TRANSACTION_STATUSES.POSTED
+                          className={`${styles.statusPill} ${tx.status === TRANSACTION_STATUSES.POSTED
                               ? styles.statusPosted
                               : tx.status === TRANSACTION_STATUSES.REVERSED
-                              ? styles.statusReversed
-                              : styles.statusPending
-                          }`}
+                                ? styles.statusReversed
+                                : styles.statusPending
+                            }`}
                         >
                           {tx.status}
                         </span>
@@ -966,15 +1014,15 @@ const FundGovernance = () => {
                         <td>
                           {tx.status === TRANSACTION_STATUSES.POSTED &&
                             (tx.transactionType || '').toLowerCase() !== TRANSACTION_TYPES.REVERSAL && (
-                            <button
-                              type="button"
-                              className={styles.secondaryBtn}
-                              style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
-                              onClick={() => handleOpenReversal(tx)}
-                            >
-                              Reverse
-                            </button>
-                          )}
+                              <button
+                                type="button"
+                                className={styles.secondaryBtn}
+                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                                onClick={() => handleOpenReversal(tx)}
+                              >
+                                Reverse
+                              </button>
+                            )}
                         </td>
                       )}
                     </tr>
@@ -986,442 +1034,544 @@ const FundGovernance = () => {
         )}
       </div>
 
-      {/* Record Transaction Modal */}
-      {isModalOpen && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalContent}>
+      {/* Record Transaction Modal — Streamlined Operate Layout (Required Fields First + Sticky Footer) */}
+      {isModalOpen && (() => {
+        const isFiscalOrFsgSelected =
+          activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ||
+          activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE;
+        const isIgfOrIgpSelected =
+          activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGF ||
+          activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGP;
+        const isExpenseFlow =
+          txForm.transactionType === TRANSACTION_TYPES.EXPENSE ||
+          txForm.transactionType === TRANSACTION_TYPES.PAYMENT;
+        const eligibleAllocations = budgetAllocations.filter((alloc) => {
+          const postingState = computeAllocationLedgerPostingState(
+            alloc,
+            computedDisbursedByAllocation
+          );
+          if (!postingState.canPostToLedger) return false;
+          const isFSGAlloc =
+            alloc.fundAccountId === 'fund_fsg_remittance' ||
+            alloc.fundCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE ||
+            alloc.activityName?.toLowerCase().includes('fsg');
+          if (activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE) {
+            return isFSGAlloc;
+          }
+          return !isFSGAlloc;
+        });
+
+        return createPortal(
+          <div
+            className={styles.modalBackdrop}
+            onClick={() => setIsModalOpen(false)}
+          >
             <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1rem',
-              }}
+              className={`${styles.modalContent} ${styles.txModalDialog}`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="record-tx-modal-title"
+              onClick={(e) => e.stopPropagation()}
             >
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>
-                Record Financial Transaction
-              </h3>
-              <button
-                type="button"
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                onClick={() => setIsModalOpen(false)}
-              >
-                <HiX size={20} />
-              </button>
-            </div>
-
-            {submitError && (
-              <div className={styles.validationWarning}>
-                <HiExclamationCircle size={18} style={{ marginRight: '0.5rem' }} />
-                {submitError}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitTx}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Fund Source</label>
-                <select
-                  className={styles.formSelect}
-                  value={txForm.fundAccountId}
-                  onChange={(e) => {
-                    const chosenAcc = fundAccounts.find((a) => a.id === e.target.value);
-                    const isFsgAcc = chosenAcc?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE;
-                    const isFiscalAcc = chosenAcc?.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET;
-
-                    setTxForm({
-                      ...txForm,
-                      fundAccountId: e.target.value,
-                      budgetAllocationId: '',
-                      storageLocation: chosenAcc?.bankAccountReference || '',
-                      transactionType:
-                        isFiscalAcc || isFsgAcc
-                          ? TRANSACTION_TYPES.EXPENSE
-                          : txForm.transactionType,
-                      expensePurpose: isFiscalAcc
-                        ? EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE
-                        : isFsgAcc
-                        ? EXPENSE_PURPOSES.RESOLUTION_DISBURSEMENT
-                        : EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES,
-                    });
-                  }}
+              <div className={styles.txModalHeader}>
+                <h3 id="record-tx-modal-title" className={styles.txModalTitle}>
+                  Record Financial Transaction
+                </h3>
+                <button
+                  type="button"
+                  className={styles.txModalCloseBtn}
+                  onClick={() => setIsModalOpen(false)}
+                  aria-label="Close modal"
                 >
-                  {fundAccounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.displayName} ({formatPHP(acc.balanceCentavos || 0, true)})
-                    </option>
-                  ))}
-                </select>
+                  <HiX size={20} />
+                </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Transaction Type</label>
-                  <select
-                    className={styles.formSelect}
-                    value={txForm.transactionType}
-                    onChange={(e) =>
-                      setTxForm({ ...txForm, transactionType: e.target.value })
-                    }
-                  >
-                    <option value={TRANSACTION_TYPES.EXPENSE}>Expense / Disbursement (-)</option>
-                    {(activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGF ||
-                      activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGP) && (
-                      <>
-                        <option value={TRANSACTION_TYPES.COLLECTION}>Sales Collection (+)</option>
-                        <option value={TRANSACTION_TYPES.RECEIPT}>Fund Receipt / Deposit (+)</option>
-                        <option value={TRANSACTION_TYPES.REFUND}>Refund (-)</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Amount (PHP ₱)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className={styles.formInput}
-                    placeholder="0.00"
-                    value={txForm.amount}
-                    onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Expense Purpose</label>
-                <select
-                  className={styles.formSelect}
-                  value={txForm.expensePurpose}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, expensePurpose: e.target.value })
-                  }
-                >
-                  {activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET && (
-                    <>
-                      <option value={EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE}>
-                        Event Itemized Expense (Approved Resolution Required)
-                      </option>
-                      <option value={EXPENSE_PURPOSES.RESOLUTION_DISBURSEMENT}>
-                        Project Resolution Disbursement
-                      </option>
-                    </>
+              <form onSubmit={handleSubmitTx} className={styles.txModalForm}>
+                <div className={styles.txModalBody}>
+                  {submitError && (
+                    <div className={styles.validationWarning} style={{ marginBottom: '0.85rem' }}>
+                      <HiExclamationCircle size={18} style={{ marginRight: '0.5rem', flexShrink: 0 }} />
+                      <span>{submitError}</span>
+                    </div>
                   )}
-                  {activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE && (
-                    <>
-                      <option value={EXPENSE_PURPOSES.RESOLUTION_DISBURSEMENT}>
-                        FSG Supplemental / Activity Disbursement
-                      </option>
-                      <option value={EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE}>
-                        FSG Itemized Expense
-                      </option>
-                    </>
-                  )}
-                  {(activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGF ||
-                    activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGP) && (
-                    <>
-                      <option value={EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES}>
-                        Event Preparation Consumables (Officer Flexible)
-                      </option>
-                      <option value={EXPENSE_PURPOSES.MERCHANDISE_EXPENSE}>
-                        Merchandise &amp; Supplier Costs
-                      </option>
-                      <option value={EXPENSE_PURPOSES.PROJECT_OPERATING_EXPENSE}>
-                        Project Operating Expense
-                      </option>
-                      <option value={EXPENSE_PURPOSES.COLLECTION}>Collection</option>
-                    </>
-                  )}
-                </select>
-              </div>
 
-              {/* Conditional Resolution & Allocation for Fiscal Year Budget and FSG Remittance */}
-              {(activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ||
-                activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE) && (
-                <>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>
-                      Budget Allocation Target <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
-                    <select
-                      className={styles.formSelect}
-                      value={txForm.budgetAllocationId}
-                      onChange={(e) => {
-                        const selectedAlloc = budgetAllocations.find(
-                          (a) => a.id === e.target.value
-                        );
-                        setTxForm({
-                          ...txForm,
-                          budgetAllocationId: e.target.value,
-                          resolutionRef: selectedAlloc?.resolutionRef || txForm.resolutionRef,
-                        });
-                      }}
-                      required
-                    >
-                      <option value="">-- Choose Approved Activity Allocation --</option>
-                      {budgetAllocations
-                        .filter((alloc) => {
-                          // Only postable allocations: not draft and remaining budget > 0
-                          const isDraft = alloc.status === 'draft';
-                          const remaining =
-                            (alloc.approvedAmountCentavos || 0) - (alloc.spentAmountCentavos || 0);
-                          if (isDraft || remaining <= 0) return false;
-
-                          const isFSGAlloc =
-                            alloc.fundAccountId === 'fund_fsg_remittance' ||
-                            alloc.fundCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE ||
-                            alloc.activityName?.toLowerCase().includes('fsg');
-                          if (activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE) {
-                            return isFSGAlloc;
-                          }
-                          return !isFSGAlloc;
-                        })
-                        .map((alloc) => (
-                          <option key={alloc.id} value={alloc.id}>
-                            {alloc.activityName} (Remaining:{' '}
-                            {formatPHP(
-                              (alloc.approvedAmountCentavos || 0) -
-                                (alloc.spentAmountCentavos || 0),
-                              true
-                            )}
-                            )
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>
-                      Budget Resolution Reference <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      placeholder={
-                        activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE
-                          ? 'e.g. FSG Sub-Allocation Res. No. 2026-002'
-                          : 'e.g. Resolution No. 2026-004-SSG'
-                      }
-                      value={txForm.resolutionRef}
-                      onChange={(e) =>
-                        setTxForm({ ...txForm, resolutionRef: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Custodian for Flexible IGF / IGP Preparation Expenses */}
-              {(activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGF ||
-                activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.IGP) &&
-                txForm.expensePurpose === EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES && (
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>
-                      Responsible Officer / Custodian <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      placeholder="Officer Name"
-                      value={txForm.custodianName}
-                      onChange={(e) =>
-                        setTxForm({ ...txForm, custodianName: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                )}
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Stored In (Holding / Depository Location)</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  placeholder={activeFund?.bankAccountReference || 'e.g. Treasury Safe / Cash Box or GCash / Online Holding'}
-                  value={txForm.storageLocation}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, storageLocation: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* Receipt & Proof of Purchase (Google Drive 'Receipts' Folder or OR # & Details) */}
-              {(txForm.transactionType === TRANSACTION_TYPES.EXPENSE ||
-                txForm.transactionType === TRANSACTION_TYPES.PAYMENT) && (
-                <div
-                  style={{
-                    padding: '0.85rem 1rem',
-                    marginBottom: '1rem',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(212, 175, 55, 0.35)',
-                    background: 'rgba(212, 175, 55, 0.06)',
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: '0.86rem', marginBottom: '0.55rem' }}>
-                    🧾 Receipt &amp; Proof of Purchase (Required for Expenses — Uploads to Google Drive &rarr; Receipts)
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div className={styles.formGroup} style={{ marginBottom: '0.6rem' }}>
-                      <label className={styles.formLabel}>Receipt Label / Category</label>
+                  {/* Row 1: Fund Source + Allocation Target (Fiscal/FSG) OR Transaction Type (IGF/IGP) */}
+                  <div className={styles.txGridTwo}>
+                    <div className={styles.txField}>
+                      <label className={styles.formLabel}>
+                        Fund Source <span className={styles.reqMark}>*</span>
+                      </label>
                       <select
                         className={styles.formSelect}
-                        value={txForm.receiptLabel}
-                        onChange={(e) => setTxForm({ ...txForm, receiptLabel: e.target.value })}
+                        value={txForm.fundAccountId}
+                        onChange={(e) => {
+                          const chosenAcc = fundAccounts.find((a) => a.id === e.target.value);
+                          const isFsgAcc = chosenAcc?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE;
+                          const isFiscalAcc = chosenAcc?.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET;
+
+                          setTxForm({
+                            ...txForm,
+                            fundAccountId: e.target.value,
+                            budgetAllocationId: '',
+                            amount: txForm.amountAutoFilled ? '' : txForm.amount,
+                            amountAutoFilled: false,
+                            resolutionRef: isFiscalAcc || isFsgAcc ? '' : txForm.resolutionRef,
+                            description: txForm.descriptionAutoFilled ? '' : txForm.description,
+                            descriptionAutoFilled: false,
+                            storageLocation: chosenAcc?.bankAccountReference || '',
+                            transactionType:
+                              isFiscalAcc || isFsgAcc
+                                ? TRANSACTION_TYPES.EXPENSE
+                                : txForm.transactionType,
+                            expensePurpose: isFiscalAcc
+                              ? EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE
+                              : isFsgAcc
+                                ? EXPENSE_PURPOSES.RESOLUTION_DISBURSEMENT
+                                : EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES,
+                          });
+                        }}
                       >
-                        {RECEIPT_LABELS.map((lbl) => (
-                          <option key={lbl} value={lbl}>
-                            {lbl}
+                        {fundAccounts.map((acc) => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.displayName} ({formatPHP(acc.balanceCentavos || 0, true)})
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div className={styles.formGroup} style={{ marginBottom: '0.6rem' }}>
-                      <label className={styles.formLabel}>Official Receipt (OR #) — Optional if Picture Uploaded</label>
+                    {isFiscalOrFsgSelected ? (
+                      <div className={styles.txField}>
+                        <label className={styles.formLabel}>
+                          Budget Allocation Target <span className={styles.reqMark}>*</span>
+                        </label>
+                        <select
+                          className={styles.formSelect}
+                          value={txForm.budgetAllocationId}
+                          onChange={(e) => {
+                            const selectedAlloc = budgetAllocations.find(
+                              (a) => a.id === e.target.value
+                            );
+                            setTxForm((prev) =>
+                              deriveAllocationTxDefaults(
+                                selectedAlloc || null,
+                                prev,
+                                computedDisbursedByAllocation
+                              )
+                            );
+                          }}
+                          required
+                        >
+                          <option value="">-- Choose Approved Allocation --</option>
+                          {eligibleAllocations.map((alloc) => {
+                            const ps = computeAllocationLedgerPostingState(
+                              alloc,
+                              computedDisbursedByAllocation
+                            );
+                            const summary =
+                              ps.unpostedDisbursedCentavos > 0
+                                ? `To Post: ${formatPHP(ps.unpostedDisbursedCentavos, true)} • Rem: ${formatPHP(ps.remainingAllocCentavos, true)}`
+                                : `Rem: ${formatPHP(ps.remainingAllocCentavos, true)}`;
+                            return (
+                              <option key={alloc.id} value={alloc.id}>
+                                {alloc.activityName} ({summary})
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className={styles.txField}>
+                        <label className={styles.formLabel}>
+                          Transaction Type <span className={styles.reqMark}>*</span>
+                        </label>
+                        <select
+                          className={styles.formSelect}
+                          value={txForm.transactionType}
+                          onChange={(e) =>
+                            setTxForm({ ...txForm, transactionType: e.target.value })
+                          }
+                        >
+                          <option value={TRANSACTION_TYPES.EXPENSE}>Expense / Disbursement (-)</option>
+                          <option value={TRANSACTION_TYPES.COLLECTION}>Sales Collection (+)</option>
+                          <option value={TRANSACTION_TYPES.RECEIPT}>Fund Receipt / Deposit (+)</option>
+                          <option value={TRANSACTION_TYPES.REFUND}>Refund (-)</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 2: Amount (Auto-filled from Allocation) + Resolution Ref (Fiscal/FSG) OR Purpose (IGF/IGP) */}
+                  <div className={styles.txGridTwo}>
+                    <div className={styles.txField}>
+                      <div className={styles.txLabelRow}>
+                        <label className={styles.formLabel} style={{ marginBottom: 0 }}>
+                          Amount (PHP ₱) <span className={styles.reqMark}>*</span>
+                        </label>
+                        {txForm.amountAutoFilled && (
+                          <span className={styles.autoFillTag}>
+                            {txForm.amountAutoFillSource === 'disbursed'
+                              ? 'Auto-filled from disbursed'
+                              : 'Auto-filled from remaining'}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        className={`${styles.formInput} ${styles.txAmountInput}`}
+                        placeholder="0.00"
+                        value={txForm.amount}
+                        onChange={(e) =>
+                          setTxForm({
+                            ...txForm,
+                            amount: e.target.value,
+                            amountAutoFilled: false,
+                            amountAutoFillSource: '',
+                          })
+                        }
+                        required
+                      />
+                    </div>
+
+                    {isFiscalOrFsgSelected ? (
+                      <div className={styles.txField}>
+                        <label className={styles.formLabel}>
+                          Budget Resolution Reference <span className={styles.reqMark}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          placeholder={
+                            activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE
+                              ? 'e.g. FSG-RES-2026-002'
+                              : 'e.g. Resolution No. 2026-004'
+                          }
+                          value={txForm.resolutionRef}
+                          onChange={(e) =>
+                            setTxForm({ ...txForm, resolutionRef: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <div className={styles.txField}>
+                        <label className={styles.formLabel}>
+                          Expense Purpose <span className={styles.reqMark}>*</span>
+                        </label>
+                        <select
+                          className={styles.formSelect}
+                          value={txForm.expensePurpose}
+                          onChange={(e) =>
+                            setTxForm({ ...txForm, expensePurpose: e.target.value })
+                          }
+                        >
+                          <option value={EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES}>
+                            Event Preparation Consumables
+                          </option>
+                          <option value={EXPENSE_PURPOSES.MERCHANDISE_EXPENSE}>
+                            Merchandise &amp; Supplier Costs
+                          </option>
+                          <option value={EXPENSE_PURPOSES.PROJECT_OPERATING_EXPENSE}>
+                            Project Operating Expense
+                          </option>
+                          <option value={EXPENSE_PURPOSES.COLLECTION}>Collection</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 3: Description (Compact single-line, auto-filled) + Custodian when required for IGF/IGP */}
+                  {isIgfOrIgpSelected &&
+                    txForm.expensePurpose === EXPENSE_PURPOSES.EVENT_PREPARATION_CONSUMABLES ? (
+                    <div className={styles.txGridTwo}>
+                      <div className={styles.txField}>
+                        <label className={styles.formLabel}>
+                          Responsible Custodian <span className={styles.reqMark}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          placeholder="Officer Name"
+                          value={txForm.custodianName}
+                          onChange={(e) =>
+                            setTxForm({ ...txForm, custodianName: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className={styles.txField}>
+                        <label className={styles.formLabel}>
+                          Description / Justification <span className={styles.reqMark}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          placeholder="Purpose of expense..."
+                          value={txForm.description}
+                          onChange={(e) =>
+                            setTxForm({
+                              ...txForm,
+                              description: e.target.value,
+                              descriptionAutoFilled: false,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.txField}>
+                      <label className={styles.formLabel}>
+                        Description / Justification <span className={styles.reqMark}>*</span>
+                      </label>
                       <input
                         type="text"
                         className={styles.formInput}
-                        placeholder="e.g. OR #10492"
-                        value={txForm.receiptOrNumber}
-                        onChange={(e) => setTxForm({ ...txForm, receiptOrNumber: e.target.value })}
+                        placeholder="State the disbursement or transaction purpose..."
+                        value={txForm.description}
+                        onChange={(e) =>
+                          setTxForm({
+                            ...txForm,
+                            description: e.target.value,
+                            descriptionAutoFilled: false,
+                          })
+                        }
+                        required
                       />
                     </div>
-                  </div>
+                  )}
 
-                  <div className={styles.formGroup} style={{ marginBottom: '0.6rem' }}>
-                    <label className={styles.formLabel}>Receipt Item Details (e.g. Cooked chicken for lunch during event prep)</label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      placeholder="Describe the purchased item or receipt details if no picture is available..."
-                      value={txForm.receiptDetails}
-                      onChange={(e) => setTxForm({ ...txForm, receiptDetails: e.target.value })}
-                    />
-                  </div>
-
-                  <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                    <label className={styles.formLabel}>
-                      Upload Receipt Picture / PDF (Synced to Google Drive &rarr; Receipts folder)
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,application/pdf"
-                      className={styles.formInput}
-                      disabled={isUploadingReceipt}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        setSubmitError(null);
-                        setIsUploadingReceipt(true);
-                        setReceiptUploadProgress(0);
-                        setReceiptUploadNotice('Uploading receipt to Google Drive (Receipts folder)...');
-                        try {
-                          const res = await uploadReceiptToDrive(
-                            file,
-                            {
-                              title: `Receipt_${txForm.receiptLabel || 'Expense'}_${file.name}`,
-                              office: 'SSG Finance',
-                            },
-                            (pct) => setReceiptUploadProgress(pct)
-                          );
-                          const link = res.driveWebViewLink || res.downloadUrl || '';
-                          setTxForm((prev) => ({
-                            ...prev,
-                            receiptFileId: res.fileId || '',
-                            receiptDriveLink: res.driveWebViewLink || '',
-                            receiptUrl: link,
-                          }));
-                          setReceiptUploadNotice(
-                            res.driveWebViewLink
-                              ? `✓ Uploaded "${res.filename}" to Google Drive → Receipts folder!`
-                              : `✓ Uploaded "${res.filename}" (queued for Google Drive → Receipts)`
-                          );
-                        } catch (uploadErr) {
-                          setReceiptUploadNotice('');
-                          setSubmitError(uploadErr.message || 'Receipt upload failed.');
-                        } finally {
-                          setIsUploadingReceipt(false);
-                        }
-                      }}
-                    />
-                    {isUploadingReceipt && (
-                      <div style={{ fontSize: '0.76rem', marginTop: '0.3rem', color: '#fbbf24' }}>
-                        Uploading receipt... {receiptUploadProgress}%
+                  {/* Row 4: Flat Receipt & Proof of Purchase Section (No nested card, resilient when Drive unavailable) */}
+                  {isExpenseFlow && (
+                    <div className={styles.txReceiptSection}>
+                      <div className={styles.txReceiptHeader}>
+                        <span className={styles.txReceiptTitle}>
+                          <HiDocumentText size={16} aria-hidden="true" />
+                          <span>Receipt &amp; Proof of Purchase</span>
+                        </span>
+                        <span className={styles.txReceiptHint}>
+                          Photo, OR #, or Item Details
+                        </span>
                       </div>
-                    )}
-                    {receiptUploadNotice && !isUploadingReceipt && (
-                      <div style={{ fontSize: '0.76rem', marginTop: '0.3rem', color: '#4ade80' }}>
-                        {receiptUploadNotice}{' '}
-                        {txForm.receiptDriveLink && (
-                          <a
-                            href={txForm.receiptDriveLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: '#38bdf8', marginLeft: '0.35rem', textDecoration: 'underline' }}
+
+                      <div className={styles.txGridTwo}>
+                        <div className={styles.txField}>
+                          <label className={styles.formLabel}>Receipt Category</label>
+                          <select
+                            className={styles.formSelect}
+                            value={txForm.receiptLabel}
+                            onChange={(e) =>
+                              setTxForm({ ...txForm, receiptLabel: e.target.value })
+                            }
                           >
-                            Open in Google Drive
-                          </a>
+                            {RECEIPT_LABELS.map((lbl) => (
+                              <option key={lbl} value={lbl}>
+                                {lbl}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className={styles.txField}>
+                          <label className={styles.formLabel}>Official Receipt (OR #)</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            placeholder="e.g. OR #10492"
+                            value={txForm.receiptOrNumber}
+                            onChange={(e) =>
+                              setTxForm({ ...txForm, receiptOrNumber: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className={styles.txGridTwo}>
+                        <div className={styles.txField} style={{ marginBottom: 0 }}>
+                          <label className={styles.formLabel}>Receipt Photo / PDF</label>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            className={styles.formInput}
+                            disabled={isUploadingReceipt}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setSubmitError(null);
+                              setIsUploadingReceipt(true);
+                              setReceiptUploadProgress(0);
+                              setReceiptUploadNotice('Attaching receipt proof...');
+                              try {
+                                const outcome = await resolveReceiptUploadOutcome({
+                                  file,
+                                  meta: {
+                                    title: `Receipt_${txForm.receiptLabel || 'Expense'}_${file.name}`,
+                                    office: 'SSG Finance',
+                                  },
+                                  uploadFn: uploadReceiptToDrive,
+                                  onProgress: (pct) => setReceiptUploadProgress(pct),
+                                });
+
+                                if (outcome.ok) {
+                                  setTxForm((prev) => ({
+                                    ...prev,
+                                    receiptFileId: outcome.receiptFileId,
+                                    receiptDriveLink: outcome.receiptDriveLink,
+                                    receiptUrl: outcome.receiptUrl,
+                                  }));
+                                  setReceiptUploadNotice(outcome.notice);
+                                } else {
+                                  setReceiptUploadNotice('');
+                                  setSubmitError(outcome.error);
+                                }
+                              } finally {
+                                setIsUploadingReceipt(false);
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className={styles.txField} style={{ marginBottom: 0 }}>
+                          <label className={styles.formLabel}>Receipt Item Details</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            placeholder="Brief item note if no photo..."
+                            value={txForm.receiptDetails}
+                            onChange={(e) =>
+                              setTxForm({ ...txForm, receiptDetails: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      {isUploadingReceipt && (
+                        <div className={styles.txReceiptStatusPending}>
+                          Attaching receipt... {receiptUploadProgress}%
+                        </div>
+                      )}
+                      {receiptUploadNotice && !isUploadingReceipt && (
+                        <div className={styles.txReceiptStatusOk}>
+                          <span>{receiptUploadNotice}</span>
+                          {txForm.receiptDriveLink && (
+                            <a
+                              href={txForm.receiptDriveLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.txDriveLink}
+                            >
+                              Open in Drive
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Progressive Disclosure for Non-Required Metadata */}
+                  <div className={styles.txOptionalSection}>
+                    <button
+                      type="button"
+                      className={styles.txOptionalToggle}
+                      onClick={() => setShowOptionalTxFields((v) => !v)}
+                      aria-expanded={showOptionalTxFields}
+                    >
+                      {showOptionalTxFields ? <HiChevronUp size={15} /> : <HiChevronDown size={15} />}
+                      <span>
+                        Optional details (Payee, Depository Location{isFiscalOrFsgSelected ? ', Purpose' : ''})
+                      </span>
+                    </button>
+
+                    {showOptionalTxFields && (
+                      <div className={styles.txGridTwo} style={{ marginTop: '0.65rem' }}>
+                        <div className={styles.txField} style={{ marginBottom: 0 }}>
+                          <label className={styles.formLabel}>Payee or Payer</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            placeholder="e.g. Vendor or Officer Name"
+                            value={txForm.payeeOrPayer}
+                            onChange={(e) =>
+                              setTxForm({ ...txForm, payeeOrPayer: e.target.value })
+                            }
+                          />
+                        </div>
+
+                        <div className={styles.txField} style={{ marginBottom: 0 }}>
+                          <label className={styles.formLabel}>Stored In (Depository Location)</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            placeholder={activeFund?.bankAccountReference || 'e.g. BDO Institutional Account'}
+                            value={txForm.storageLocation}
+                            onChange={(e) =>
+                              setTxForm({ ...txForm, storageLocation: e.target.value })
+                            }
+                          />
+                        </div>
+
+                        {isFiscalOrFsgSelected && (
+                          <div className={styles.txField} style={{ gridColumn: '1 / -1', marginBottom: 0, marginTop: '0.5rem' }}>
+                            <label className={styles.formLabel}>Expense Purpose</label>
+                            <select
+                              className={styles.formSelect}
+                              value={txForm.expensePurpose}
+                              onChange={(e) =>
+                                setTxForm({ ...txForm, expensePurpose: e.target.value })
+                              }
+                            >
+                              {activeFund?.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ? (
+                                <>
+                                  <option value={EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE}>
+                                    Event Itemized Expense (Approved Resolution Required)
+                                  </option>
+                                  <option value={EXPENSE_PURPOSES.RESOLUTION_DISBURSEMENT}>
+                                    Project Resolution Disbursement
+                                  </option>
+                                </>
+                              ) : (
+                                <>
+                                  <option value={EXPENSE_PURPOSES.RESOLUTION_DISBURSEMENT}>
+                                    FSG Supplemental / Activity Disbursement
+                                  </option>
+                                  <option value={EXPENSE_PURPOSES.EVENT_ITEMIZED_EXPENSE}>
+                                    FSG Itemized Expense
+                                  </option>
+                                </>
+                              )}
+                            </select>
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
-              )}
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Payee or Payer</label>
-                <input
-                  type="text"
-                  className={styles.formInput}
-                  placeholder="e.g. Student Body / Vendor Name"
-                  value={txForm.payeeOrPayer}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, payeeOrPayer: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Description &amp; Justification</label>
-                <textarea
-                  rows="3"
-                  className={styles.formTextarea}
-                  placeholder="State the business purpose..."
-                  value={txForm.description}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, description: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: '0.75rem',
-                  marginTop: '1.5rem',
-                }}
-              >
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className={styles.primaryBtn}>
-                  Post to Ledger
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* Sticky Action Footer — Always Visible Without Scrolling */}
+                <div className={styles.txModalFooter}>
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() => setIsModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={styles.primaryBtn}
+                    disabled={isUploadingReceipt || isSubmittingTx}
+                  >
+                    {isSubmittingTx ? 'Posting...' : 'Post to Ledger'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
 
       {/* Authorized Reversal Modal */}
       {/* Reversal Confirmation Modal (Accessible & Alertbox-Free) */}
@@ -1463,6 +1613,7 @@ const FundGovernance = () => {
       <BankCalibrationModal
         isOpen={isFiscalBudgetModalOpen}
         mode="fiscal"
+        disbursedCentavos={computedDisbursedByAccount.get('fund_fiscal_year_budget') || 0}
         initialValues={fiscalBudgetForm}
         isSaving={isSavingFiscalBudget}
         error={fiscalBudgetError}

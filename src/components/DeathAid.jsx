@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { useAuth } from './AuthContext/AuthContext.jsx';
+import { COLLEGE_LIST, getPrograms } from '../utils/academics';
 import {
   DEATH_AID_COLLECTION_STATUS,
   DEATH_AID_DEBT_TYPES,
@@ -12,16 +14,21 @@ import {
 } from '../utils/permissions';
 import {
   attachDebtDetails,
+  computeFromCollectedAmount,
   computeOutstanding,
   computeTotals,
   denyRemittance,
   getActivePendingForRoster,
+  getActivePendingForSectionKey,
   listAuditLog,
   listCollections,
   listPendingCollections,
   listVerifiedRosters,
+  recordMultiBeneficiaryCollection,
   recordRemittance,
   recordSectionCollection,
+  revokeCollectionVerification,
+  splitCollectionAcrossBeneficiaries,
 } from '../services/deathAidService';
 import { S, T, banner as bannerStyle, statusPill } from '../utils/themeStyles';
 import { BeneficiariesView, BeneficiaryPicker } from './DeathAidBeneficiaries.jsx';
@@ -66,25 +73,16 @@ const SUBMITTER_TABS = [
   { id: 'confirmed', label: 'Confirmed Collections' },
 ];
 
-const GUEST_TABS = [
-  { id: 'record', label: 'Submit Collection' },
-  { id: 'confirmed', label: 'Confirmed Collections' },
-];
-
 function DeathAid() {
   const { currentUser, userRole, userName } = useAuth();
   const isManager = canManageDeathAid({ role: userRole });
   const actor = {
     uid: currentUser?.uid || null,
     name: userName || currentUser?.displayName || '',
-    role: userRole || 'guest',
+    role: userRole || null,
   };
 
-  const tabs = isManager
-    ? OFFICER_TABS
-    : currentUser
-      ? SUBMITTER_TABS
-      : GUEST_TABS;
+  const tabs = isManager ? OFFICER_TABS : SUBMITTER_TABS;
 
   const [tab, setTab] = useState('record');
   const [banner, setBanner] = useState(null);
@@ -201,8 +199,16 @@ function DeathAid() {
       {tab === 'my_submissions' && <MySubmissionsView actor={actor} say={say} />}
       {isManager && tab === 'beneficiaries' && <BeneficiariesView actor={actor} say={say} />}
       {isManager && tab === 'pending' && <PendingView actor={actor} say={say} />}
-      {tab === 'confirmed' && <StatusListView status={DEATH_AID_COLLECTION_STATUS.CONFIRMED} title="Confirmed Collections" say={say} />}
-      {isManager && tab === 'discrepancies' && <DiscrepancyView say={say} />}
+      {tab === 'confirmed' && (
+        <StatusListView
+          status={DEATH_AID_COLLECTION_STATUS.CONFIRMED}
+          title="Confirmed Collections"
+          say={say}
+          actor={actor}
+          isManager={isManager}
+        />
+      )}
+      {isManager && <>{tab === 'discrepancies' && <DiscrepancyView say={say} actor={actor} isManager={isManager} />}</>}
       {isManager && tab === 'denied' && (
         <StatusListView
           status={DEATH_AID_COLLECTION_STATUS.DENIED}
@@ -224,9 +230,16 @@ function RecordView({ actor, say, isManager = true }) {
   const [rosters, setRosters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rosterId, setRosterId] = useState('');
-  const [beneficiary, setBeneficiary] = useState(null);
+  const [usePlaceholderSection, setUsePlaceholderSection] = useState(false);
+  const [placeholderSectionName, setPlaceholderSectionName] = useState('');
+  const [placeholderCollegeId, setPlaceholderCollegeId] = useState('');
+  const [placeholderProgram, setPlaceholderProgram] = useState('');
+  const [placeholderEstimatedEnrolled, setPlaceholderEstimatedEnrolled] = useState('');
+  const [selectedBeneficiaries, setSelectedBeneficiaries] = useState([]);
   const [contribution, setContribution] = useState('1');
   const [beneficiaries, setBeneficiaries] = useState('');
+  const [amountCollected, setAmountCollected] = useState('');
+  const [amountDriven, setAmountDriven] = useState(true);
   const [submittedByName, setSubmittedByName] = useState(actor?.name || '');
   const [debtRecords, setDebtRecords] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -247,31 +260,59 @@ function RecordView({ actor, say, isManager = true }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setRosters(await listVerifiedRosters());
+      const verified = await listVerifiedRosters();
+      setRosters(verified);
+      if (isManager && verified.length === 0) {
+        setUsePlaceholderSection(true);
+      }
     } catch (error) {
       say('error', `Could not load sections: ${error.message}`);
     } finally {
       setLoading(false);
     }
-  }, [say]);
+  }, [say, isManager]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const roster = rosters.find((r) => r.rosterId === rosterId) || null;
+  const beneficiary = selectedBeneficiaries.length === 1 ? selectedBeneficiaries[0] : null;
+  const isMultiBeneficiary = isManager && selectedBeneficiaries.length > 1;
+  const roster = usePlaceholderSection ? null : rosters.find((r) => r.rosterId === rosterId) || null;
   // Member integration: A member who submitted the roster is integrated as the Section Mayor
   const isIntegratedMayor = Boolean(actor?.uid && roster?.mayorUid === actor.uid);
 
-  // Anti-Spam Failsafe: Check if chosen section already has an active pending collection
+  // Anti-Spam Failsafe: Check if chosen section (verified or placeholder) already has an active pending collection
   useEffect(() => {
+    const checkBeneficiaryId = selectedBeneficiaries[0]?.beneficiaryId || null;
+    if (usePlaceholderSection) {
+      const trimmedSec = placeholderSectionName.trim();
+      if (!trimmedSec) {
+        setActivePending(null);
+        return;
+      }
+      let alive = true;
+      setCheckingPending(true);
+      getActivePendingForSectionKey(trimmedSec, checkBeneficiaryId)
+        .then((pending) => {
+          if (alive) setActivePending(pending);
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (alive) setCheckingPending(false);
+        });
+      return () => {
+        alive = false;
+      };
+    }
+
     if (!rosterId) {
       setActivePending(null);
       return;
     }
     let alive = true;
     setCheckingPending(true);
-    getActivePendingForRoster(rosterId, beneficiary?.beneficiaryId || null)
+    getActivePendingForRoster(rosterId, checkBeneficiaryId)
       .then((pending) => {
         if (alive) setActivePending(pending);
       })
@@ -285,12 +326,115 @@ function RecordView({ actor, say, isManager = true }) {
     return () => {
       alive = false;
     };
-  }, [rosterId, beneficiary]);
+  }, [rosterId, selectedBeneficiaries, usePlaceholderSection, placeholderSectionName]);
 
-  const totals = useMemo(
-    () => computeTotals(roster?.studentCount ?? 0, contribution, beneficiaries),
-    [roster, contribution, beneficiaries]
-  );
+  const effectiveEnrolledForCalc = useMemo(() => {
+    if (!usePlaceholderSection) return roster?.studentCount ?? 0;
+    const est = Number(placeholderEstimatedEnrolled) || 0;
+    if (amountDriven && Number(amountCollected) > 0) {
+      const perCaseAmt =
+        selectedBeneficiaries.length > 1
+          ? Number(amountCollected) / selectedBeneficiaries.length
+          : Number(amountCollected);
+      const rate = Number(contribution) > 0 ? Number(contribution) : 1;
+      const derivedPaid = Math.floor((perCaseAmt + 1e-6) / rate);
+      return Math.max(est, derivedPaid > 0 ? derivedPaid : 1);
+    }
+    const paid = Math.max(0, Number(beneficiaries) || 0);
+    return Math.max(est, paid);
+  }, [
+    usePlaceholderSection,
+    roster,
+    placeholderEstimatedEnrolled,
+    amountDriven,
+    amountCollected,
+    selectedBeneficiaries.length,
+    contribution,
+    beneficiaries,
+  ]);
+
+  const splitPreview = useMemo(() => {
+    if (!isManager || selectedBeneficiaries.length === 0) return [];
+    const totalAmt = amountDriven
+      ? Number(amountCollected) || 0
+      : (Number(beneficiaries) || 0) * (Number(contribution) || 0) * selectedBeneficiaries.length;
+    if (totalAmt <= 0) return [];
+    return splitCollectionAcrossBeneficiaries({
+      totalCollectedAmount: totalAmt,
+      beneficiariesList: selectedBeneficiaries,
+      enrolledCount: usePlaceholderSection
+        ? Number(placeholderEstimatedEnrolled) || 0
+        : roster?.studentCount ?? 0,
+      contributionPerBeneficiary: Number(contribution) > 0 ? Number(contribution) : null,
+    });
+  }, [
+    isManager,
+    selectedBeneficiaries,
+    amountDriven,
+    amountCollected,
+    beneficiaries,
+    contribution,
+    usePlaceholderSection,
+    placeholderEstimatedEnrolled,
+    roster,
+  ]);
+
+  const totals = useMemo(() => {
+    if (isManager && amountDriven && String(amountCollected).trim() !== '') {
+      const perCaseAmt =
+        selectedBeneficiaries.length > 1
+          ? Number(amountCollected) / selectedBeneficiaries.length
+          : Number(amountCollected);
+      return computeFromCollectedAmount({
+        enrolledCount: usePlaceholderSection
+          ? Number(placeholderEstimatedEnrolled) || 0
+          : roster?.studentCount ?? 0,
+        contribution,
+        collectedAmount: perCaseAmt,
+      });
+    }
+    return computeTotals(effectiveEnrolledForCalc, contribution, beneficiaries);
+  }, [
+    isManager,
+    amountDriven,
+    amountCollected,
+    selectedBeneficiaries.length,
+    usePlaceholderSection,
+    placeholderEstimatedEnrolled,
+    roster,
+    contribution,
+    beneficiaries,
+    effectiveEnrolledForCalc,
+  ]);
+
+  const handleAmountCollectedChange = (val) => {
+    setAmountCollected(val);
+    setAmountDriven(true);
+    const num = Number(val);
+    const rate = Number(contribution) > 0 ? Number(contribution) : 1;
+    const caseCount = Math.max(1, selectedBeneficiaries.length);
+    if (val !== '' && Number.isFinite(num) && num >= 0) {
+      const perCase = num / caseCount;
+      const derivedPaid = Math.floor((perCase + 1e-6) / rate);
+      setBeneficiaries(String(derivedPaid));
+    } else {
+      setBeneficiaries('');
+    }
+  };
+
+  const handlePayingCountChange = (val) => {
+    setBeneficiaries(val);
+    setAmountDriven(false);
+    const countNum = Number(val);
+    const rate = Number(contribution) > 0 ? Number(contribution) : 0;
+    const caseCount = Math.max(1, selectedBeneficiaries.length);
+    if (val !== '' && Number.isFinite(countNum) && countNum >= 0 && rate > 0) {
+      const total = Math.round(countNum * rate * caseCount * 100) / 100;
+      setAmountCollected(String(total));
+    } else {
+      setAmountCollected('');
+    }
+  };
 
   const pick = (id) => {
     setRosterId(id);
@@ -324,21 +468,46 @@ function RecordView({ actor, say, isManager = true }) {
 
   const effectiveDebts = debtRecords.slice(0, totals.debtCount);
 
-  // Validation: Section and Name MUST be indicated first
-  const hasIndicatedSectionAndName = Boolean(roster && submittedByName.trim());
+  // Validation: Section (verified or placeholder) and Name MUST be indicated first
+  const hasIndicatedSectionAndName = Boolean(
+    (usePlaceholderSection ? placeholderSectionName.trim() : roster) && submittedByName.trim()
+  );
+
+  const placeholderCollegeObj = COLLEGE_LIST.find((c) => c.id === placeholderCollegeId) || null;
+  const placeholderPrograms = useMemo(
+    () => getPrograms(placeholderCollegeId),
+    [placeholderCollegeId]
+  );
 
   const handleSave = async () => {
-    if (!roster) return say('error', 'Select a section first.');
-    if (!beneficiary) return say('error', 'Choose the Death Aid / TechnoCare beneficiary first.');
+    if (usePlaceholderSection) {
+      if (!placeholderSectionName.trim()) {
+        return say('error', 'Enter the section name for the placeholder section.');
+      }
+    } else if (!roster) {
+      return say('error', 'Select a section first.');
+    }
+    if (selectedBeneficiaries.length === 0) {
+      return say('error', 'Choose at least one Death Aid / TechnoCare beneficiary first.');
+    }
     const trimmedName = submittedByName.trim();
     if (!trimmedName) {
       return say('error', 'Please enter your full name as the submitter.');
     }
-    if (beneficiaries === '' || Number.isNaN(Number(beneficiaries))) {
-      return say('error', 'Enter how many beneficiaries handed in.');
-    }
-    if (Number(beneficiaries) < 0) {
-      return say('error', 'Number of beneficiaries cannot be negative.');
+    const useDirectOfficerAmount =
+      isManager && amountDriven && String(amountCollected).trim() !== '';
+    if (useDirectOfficerAmount) {
+      const amtNum = Number(amountCollected);
+      if (!Number.isFinite(amtNum) || amtNum <= 0) {
+        return say('error', 'Enter the total amount collected from this section (greater than ₱0.00).');
+      }
+    } else {
+      if (beneficiaries === '' || Number.isNaN(Number(beneficiaries))) {
+        return say('error', 'Enter either the amount collected (₱) or how many students paid.');
+      }
+      if (Number(beneficiaries) < 0) {
+        return say('error', 'Number of paying students cannot be negative.');
+      }
     }
     if (Number(contribution) <= 0) {
       return say('error', 'Contribution per student must be greater than zero.');
@@ -346,50 +515,104 @@ function RecordView({ actor, say, isManager = true }) {
     if (cooldown > 0) {
       return say('error', `Rate limited: Please wait ${cooldown} seconds before submitting again.`);
     }
-    if (activePending) {
+    const targetSectionLabel = usePlaceholderSection ? placeholderSectionName.trim() : roster.section;
+    if (!isMultiBeneficiary && activePending) {
       return say(
         'error',
-        `Section ${roster.section} already has an active submission (${activePending.collectionId}) awaiting officer verification.`
+        `Section ${targetSectionLabel} already has an active submission (${activePending.collectionId}) awaiting officer verification.`
       );
     }
 
+    const placeholderObj = usePlaceholderSection
+      ? {
+        section: placeholderSectionName.trim(),
+        college: placeholderCollegeObj?.label || '',
+        program: placeholderProgram || '',
+        estimatedEnrolled: placeholderEstimatedEnrolled || null,
+      }
+      : null;
+
     setSaving(true);
     try {
-      const id = await recordSectionCollection({
-        roster,
-        beneficiary,
-        contribution: Number(contribution) || 0,
-        beneficiaries: Number(beneficiaries),
-        debtRecords: effectiveDebts,
-        submittedByName: trimmedName,
-        recorder: actor,
-      });
+      if (isMultiBeneficiary) {
+        const totalCash = useDirectOfficerAmount
+          ? Number(amountCollected)
+          : Math.round(Number(beneficiaries) * Number(contribution) * selectedBeneficiaries.length * 100) / 100;
+        const batch = await recordMultiBeneficiaryCollection({
+          roster: usePlaceholderSection ? null : roster,
+          placeholderSection: placeholderObj,
+          beneficiariesList: selectedBeneficiaries,
+          totalCollectedAmount: totalCash,
+          contributionPerBeneficiary: Number(contribution) || 1,
+          debtRecords: [],
+          submittedByName: trimmedName,
+          recorder: actor,
+        });
 
-      say(
-        'success',
-        isManager
-          ? `${id} recorded: ${totals.beneficiaryCount} beneficiary(ies), ${peso(totals.collectedAmount)} collected, ${totals.debtCount} student(s) owing ${peso(totals.debtAmount)}.`
-          : `${id} submitted successfully! Please bring the collected cash (${peso(totals.collectedAmount)}) to an SSG officer to verify and complete the remittance.`
-      );
+        say(
+          'success',
+          `Recorded ${batch.items.length} beneficiary collections totaling ${peso(batch.totalCollectedAmount)} for ${targetSectionLabel}${usePlaceholderSection ? ' (Placeholder Section created for Class Mayor to update)' : ''}.`
+        );
 
-      setRecordedModal({
-        collectionId: id,
-        section: roster.section,
-        beneficiaryName: beneficiary.studentName,
-        aidType: beneficiary.aidType,
-        beneficiaryCount: totals.beneficiaryCount,
-        enrolledCount: totals.enrolledCount,
-        collectedAmount: totals.collectedAmount,
-        debtCount: totals.debtCount,
-        debtAmount: totals.debtAmount,
-        isManager,
-      });
+        setRecordedModal({
+          collectionId: batch.items.map((it) => it.collectionId).join(', '),
+          section: targetSectionLabel,
+          isPlaceholderSection: usePlaceholderSection,
+          beneficiaryName: `${batch.items.length} Beneficiary Cases (${batch.items.map((it) => `${it.beneficiary.studentName}: ${peso(it.shareAmount)}`).join(' · ')})`,
+          aidType: batch.items[0]?.beneficiary?.aidType || 'death_aid',
+          beneficiaryCount: batch.items[0]?.totals?.beneficiaryCount || 0,
+          enrolledCount: batch.items[0]?.totals?.enrolledCount || 0,
+          collectedAmount: batch.totalCollectedAmount,
+          debtCount: batch.items[0]?.totals?.debtCount || 0,
+          debtAmount: batch.items.reduce((s, it) => s + (it.totals?.debtAmount || 0), 0),
+          isManager,
+        });
+      } else {
+        const singleTarget = selectedBeneficiaries[0];
+        const id = await recordSectionCollection({
+          roster: usePlaceholderSection ? null : roster,
+          placeholderSection: placeholderObj,
+          beneficiary: singleTarget,
+          contribution: Number(contribution) || 0,
+          beneficiaries: Number(beneficiaries) || 0,
+          directAmount: useDirectOfficerAmount ? Number(amountCollected) : null,
+          debtRecords: effectiveDebts,
+          submittedByName: trimmedName,
+          recorder: actor,
+        });
+
+        say(
+          'success',
+          isManager
+            ? `${id} recorded${usePlaceholderSection ? ' (Placeholder Section created for Class Mayor to update)' : ''}: ${totals.beneficiaryCount} student(s) paid, ${peso(totals.collectedAmount)} collected, ${totals.debtCount} owing ${peso(totals.debtAmount)}.`
+            : `${id} submitted successfully! Please bring the collected cash (${peso(totals.collectedAmount)}) to an SSG officer to verify and complete the remittance.`
+        );
+
+        setRecordedModal({
+          collectionId: id,
+          section: targetSectionLabel,
+          isPlaceholderSection: usePlaceholderSection,
+          beneficiaryName: singleTarget.studentName,
+          aidType: singleTarget.aidType,
+          beneficiaryCount: totals.beneficiaryCount,
+          enrolledCount: totals.enrolledCount,
+          collectedAmount: totals.collectedAmount,
+          debtCount: totals.debtCount,
+          debtAmount: totals.debtAmount,
+          isManager,
+        });
+      }
 
       // Start 60-second anti-spam cooldown timer
       setCooldown(60);
       setRosterId('');
-      setBeneficiary(null);
+      setPlaceholderSectionName('');
+      setPlaceholderCollegeId('');
+      setPlaceholderProgram('');
+      setPlaceholderEstimatedEnrolled('');
+      setSelectedBeneficiaries([]);
       setBeneficiaries('');
+      setAmountCollected('');
       setSubmittedByName(actor?.name || '');
       setDebtRecords([]);
       setActivePending(null);
@@ -434,7 +657,7 @@ function RecordView({ actor, say, isManager = true }) {
 
       {loading ? (
         <p style={styles.helperText}>Loading sections…</p>
-      ) : rosters.length === 0 ? (
+      ) : !isManager && rosters.length === 0 ? (
         <div style={{ ...styles.notice, borderLeft: `4px solid ${T.warning}`, margin: '1rem 0' }}>
           <p style={{ margin: 0, fontWeight: 600, color: T.warning }}>No verified rosters available yet.</p>
           <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: T.text }}>
@@ -446,53 +669,189 @@ function RecordView({ actor, say, isManager = true }) {
         </div>
       ) : (
         <>
-          {/* STEP 0: WHICH DEATH AID / TECHNOCARE BENEFICIARY */}
+          {/* STEP 0: WHICH DEATH AID / TECHNOCARE BENEFICIARY (MULTI-SELECT FOR OFFICERS) */}
           <BeneficiaryPicker
             value={beneficiary}
             onChange={(item) => {
-              setBeneficiary(item);
+              setSelectedBeneficiaries(item ? [item] : []);
               if (item?.defaultContribution > 0) setContribution(String(item.defaultContribution));
+            }}
+            multiple={isManager}
+            selectedList={selectedBeneficiaries}
+            onChangeMultiple={(nextList) => {
+              setSelectedBeneficiaries(nextList);
+              if (nextList.length === 1 && nextList[0]?.defaultContribution > 0) {
+                setContribution(String(nextList[0].defaultContribution));
+              }
             }}
             say={say}
           />
 
+          {/* OFFICER MODE TOGGLE: VERIFIED ROSTER VS UNLISTED PLACEHOLDER SECTION */}
+          {isManager && (
+            <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setUsePlaceholderSection(false);
+                  setActivePending(null);
+                }}
+                disabled={rosters.length === 0}
+                style={
+                  !usePlaceholderSection && rosters.length > 0
+                    ? styles.verifyButton
+                    : { ...styles.secondaryButton, ...(rosters.length === 0 ? styles.disabled : {}) }
+                }
+              >
+                Verified Class Roster ({rosters.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUsePlaceholderSection(true);
+                  setRosterId('');
+                  setActivePending(null);
+                }}
+                style={usePlaceholderSection ? styles.verifyButton : styles.secondaryButton}
+              >
+                + Record Unlisted Section (Placeholder)
+              </button>
+            </div>
+          )}
+
           {/* STEP 1: SECTION & SUBMITTER NAME (REQUIRED FIRST) */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>
-                  1. Select Section <span style={{ color: T.error }}>*</span>
-                </label>
-                <select value={rosterId} onChange={(e) => pick(e.target.value)} style={styles.select}>
-                  <option value="">-- Choose your section --</option>
-                  {rosters.map((r) => {
-                    const isMySection = actor?.uid && r.mayorUid === actor.uid;
-                    return (
-                      <option key={r.rosterId} value={r.rosterId}>
-                        {r.section} · {r.program} · {r.studentCount} enrolled
-                        {isMySection ? ' ★ (Your Section - Integrated Mayor)' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+            {usePlaceholderSection && isManager ? (
+              <>
+                <div style={{ ...styles.notice, marginBottom: '0.9rem' }}>
+                  <strong>Placeholder Section Mode (Authorized Officers):</strong> Enter the section name below to record
+                  the collection even without a Class Roster yet. A placeholder section will be added in{' '}
+                  <strong>Class Roster Registry</strong> so the Class Mayor can simply claim and upload their official list later.
+                </div>
+                <div style={styles.formRow}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      1. Section Name (Placeholder) <span style={{ color: T.error }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={placeholderSectionName}
+                      onChange={(e) => setPlaceholderSectionName(e.target.value)}
+                      placeholder="e.g. BSIT - 2C"
+                      style={{
+                        ...styles.input,
+                        ...(!placeholderSectionName.trim() ? styles.inputRequiredHighlight : {}),
+                      }}
+                    />
+                  </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>
-                  2. Submitter Full Name <span style={{ color: T.error }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={submittedByName}
-                  onChange={(e) => setSubmittedByName(e.target.value)}
-                  placeholder="Enter your first and last name"
-                  style={{
-                    ...styles.input,
-                    ...(!submittedByName.trim() ? styles.inputRequiredHighlight : {}),
-                  }}
-                />
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      2. Submitter Full Name <span style={{ color: T.error }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={submittedByName}
+                      onChange={(e) => setSubmittedByName(e.target.value)}
+                      placeholder="Who handed in the cash"
+                      style={{
+                        ...styles.input,
+                        ...(!submittedByName.trim() ? styles.inputRequiredHighlight : {}),
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.formRow}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>College (Optional — auto-inferred if blank)</label>
+                    <select
+                      value={placeholderCollegeId}
+                      onChange={(e) => {
+                        setPlaceholderCollegeId(e.target.value);
+                        setPlaceholderProgram('');
+                      }}
+                      style={styles.select}
+                    >
+                      <option value="">Auto-detect from section name</option>
+                      {COLLEGE_LIST.map((col) => (
+                        <option key={col.id} value={col.id}>
+                          {col.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Program (Optional)</label>
+                    <select
+                      value={placeholderProgram}
+                      onChange={(e) => setPlaceholderProgram(e.target.value)}
+                      disabled={!placeholderCollegeId}
+                      style={styles.select}
+                    >
+                      <option value="">
+                        {placeholderCollegeId ? 'Select program' : 'Auto-detect from section name'}
+                      </option>
+                      {placeholderPrograms.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Estimated Class Size (Optional)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={placeholderEstimatedEnrolled}
+                      onChange={(e) => setPlaceholderEstimatedEnrolled(e.target.value)}
+                      placeholder="Defaults to paying count"
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={styles.formRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>
+                    1. Select Section <span style={{ color: T.error }}>*</span>
+                  </label>
+                  <select value={rosterId} onChange={(e) => pick(e.target.value)} style={styles.select}>
+                    <option value="">-- Choose your section --</option>
+                    {rosters.map((r) => {
+                      const isMySection = actor?.uid && r.mayorUid === actor.uid;
+                      return (
+                        <option key={r.rosterId} value={r.rosterId}>
+                          {r.section} · {r.program} · {r.studentCount} enrolled
+                          {isMySection ? ' ★ (Your Section - Integrated Mayor)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>
+                    2. Submitter Full Name <span style={{ color: T.error }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={submittedByName}
+                    onChange={(e) => setSubmittedByName(e.target.value)}
+                    placeholder="Enter your first and last name"
+                    style={{
+                      ...styles.input,
+                      ...(!submittedByName.trim() ? styles.inputRequiredHighlight : {}),
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* MAYOR & SUBMITTER NAME INDICATOR */}
             {roster && (
@@ -569,12 +928,36 @@ function RecordView({ actor, say, isManager = true }) {
             </div>
           )}
 
-          {/* STEP 2: COLLECTION ARITHMETIC & BENEFICIARIES (VISIBLE ONCE SECTION & NAME ARE ENTERED) */}
+          {/* STEP 2: DIRECT AMOUNT COLLECTED (AUTO-CALCULATED) & STUDENT COUNT */}
           {hasIndicatedSectionAndName && (
             <>
               <div style={styles.formRow}>
+                {isManager && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      Total Amount Collected from Section (₱) <span style={{ color: T.accent }}>★ Auto-calculates</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={amountCollected}
+                      onChange={(e) => handleAmountCollectedChange(e.target.value)}
+                      placeholder="e.g. 200.00 (no mental math needed)"
+                      style={styles.input}
+                    />
+                    <span style={styles.helperText}>
+                      {isMultiBeneficiary
+                        ? `Automatically splits evenly across ${selectedBeneficiaries.length} selected beneficiaries.`
+                        : 'Type total cash handed in — paying students and balance compute automatically.'}
+                    </span>
+                  </div>
+                )}
+
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Contribution per beneficiary (₱)</label>
+                  <label style={styles.label}>
+                    Contribution per student{isMultiBeneficiary ? ' per beneficiary' : ''} (₱)
+                  </label>
                   <input
                     type="number"
                     min="0.01"
@@ -586,31 +969,63 @@ function RecordView({ actor, say, isManager = true }) {
                 </div>
 
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Beneficiaries who paid</label>
+                  <label style={styles.label}>
+                    Students who paid {isManager && amountDriven && amountCollected ? '(Auto-calculated)' : ''}
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="1"
                     value={beneficiaries}
-                    onChange={(e) => setBeneficiaries(e.target.value)}
+                    onChange={(e) => handlePayingCountChange(e.target.value)}
                     placeholder="e.g., 39"
                     style={styles.input}
                   />
                 </div>
               </div>
 
+              {isMultiBeneficiary && splitPreview.length > 0 && (
+                <div style={{ ...styles.notice, marginBottom: '1rem' }}>
+                  <div style={{ fontWeight: 700, color: T.text, marginBottom: '0.35rem' }}>
+                    Auto-Split Calculation ({selectedBeneficiaries.length} Beneficiaries · Total{' '}
+                    {peso(splitPreview.reduce((s, r) => s + r.shareAmount, 0))})
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                    {splitPreview.map((item) => (
+                      <span key={item.beneficiary.beneficiaryId} style={statusPill('info')}>
+                        {item.beneficiary.studentName}: {peso(item.shareAmount)} ({item.totals.beneficiaryCount} paid)
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div style={styles.summaryGrid}>
                 <SummaryTile label="Enrolled" value={String(totals.enrolledCount)} />
-                <SummaryTile label="Beneficiaries" value={String(totals.beneficiaryCount)} tone={T.success} />
-                <SummaryTile label="Collected" value={peso(totals.collectedAmount)} />
-                <SummaryTile label="Expected" value={peso(totals.expectedCollection)} />
+                <SummaryTile label="Students Paid" value={String(totals.beneficiaryCount)} tone={T.success} />
+                <SummaryTile
+                  label={isMultiBeneficiary ? 'Total Collected' : 'Collected'}
+                  value={peso(
+                    isMultiBeneficiary
+                      ? splitPreview.reduce((s, r) => s + r.shareAmount, 0)
+                      : totals.collectedAmount
+                  )}
+                />
+                <SummaryTile
+                  label={isMultiBeneficiary ? 'Per Beneficiary' : 'Expected'}
+                  value={
+                    isMultiBeneficiary
+                      ? peso(splitPreview[0]?.shareAmount || 0)
+                      : peso(totals.expectedCollection)
+                  }
+                />
                 <SummaryTile label="Owing" value={`${totals.debtCount} · ${peso(totals.debtAmount)}`} tone={T.warning} />
               </div>
 
-              {totals.wasClamped && (
+              {totals.wasClamped && roster && (
                 <p style={styles.warning}>
-                  That is more beneficiaries than the {roster.studentCount} students enrolled on the
-                  roster, so it was counted as {roster.studentCount}.
+                  That is more paying students than the {roster.studentCount} students enrolled on the
+                  roster, so headcount was capped at {roster.studentCount}.
                 </p>
               )}
 
@@ -691,21 +1106,23 @@ function RecordView({ actor, say, isManager = true }) {
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={saving || !hasIndicatedSectionAndName || !!activePending || cooldown > 0}
+                  disabled={saving || !hasIndicatedSectionAndName || (!isMultiBeneficiary && !!activePending) || cooldown > 0}
                   style={{
                     ...styles.submitButton,
-                    ...(saving || !hasIndicatedSectionAndName || !!activePending || cooldown > 0 ? styles.disabled : {}),
+                    ...(saving || !hasIndicatedSectionAndName || (!isMultiBeneficiary && !!activePending) || cooldown > 0 ? styles.disabled : {}),
                   }}
                 >
                   {saving
                     ? 'Submitting Collection…'
                     : cooldown > 0
                       ? `Rate-Limited: Wait ${cooldown}s`
-                      : activePending
+                      : !isMultiBeneficiary && activePending
                         ? 'Section Collection Already Pending'
-                        : isManager
-                          ? 'Record Collection'
-                          : 'Submit Collection for Verification'}
+                        : isMultiBeneficiary
+                          ? `Record Collection (${selectedBeneficiaries.length} Beneficiaries · ${peso(splitPreview.reduce((s, r) => s + r.shareAmount, 0))})`
+                          : isManager
+                            ? 'Record Collection'
+                            : 'Submit Collection for Verification'}
                 </button>
                 {cooldown > 0 && (
                   <span style={styles.muted}>
@@ -718,90 +1135,94 @@ function RecordView({ actor, say, isManager = true }) {
         </>
       )}
 
-      {recordedModal && (
-        <div
-          style={styles.modalBackdrop}
-          onClick={() => setRecordedModal(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Death Aid contribution recorded"
-        >
-          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <div>
-                <div style={styles.modalTitleRow}>
-                  <HiCheckCircle style={{ fontSize: '1.6rem', color: T.success, flexShrink: 0 }} />
-                  <h3 style={styles.modalTitle}>
-                    {recordedModal.isManager ? 'Contribution Recorded' : 'Contribution Submitted'}
-                  </h3>
+      {recordedModal &&
+        createPortal(
+          <div
+            style={styles.modalBackdrop}
+            onClick={() => setRecordedModal(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Death Aid contribution recorded"
+          >
+            <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <div>
+                  <div style={styles.modalTitleRow}>
+                    <HiCheckCircle style={{ fontSize: '1.6rem', color: T.success, flexShrink: 0 }} />
+                    <h3 style={styles.modalTitle}>
+                      {recordedModal.isManager ? 'Contribution Recorded' : 'Contribution Submitted'}
+                    </h3>
+                  </div>
+                  <p style={styles.modalSubtitle}>
+                    Reference ID: <strong>{recordedModal.collectionId}</strong>
+                  </p>
                 </div>
-                <p style={styles.modalSubtitle}>
-                  Reference ID: <strong>{recordedModal.collectionId}</strong>
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setRecordedModal(null)}
+                  style={styles.modalCloseBtn}
+                  aria-label="Close confirmation modal"
+                >
+                  <HiX />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setRecordedModal(null)}
-                style={styles.modalCloseBtn}
-                aria-label="Close confirmation modal"
-              >
-                <HiX />
-              </button>
+
+              <div style={styles.modalBody}>
+                <div style={styles.modalIndicatorBox('success')}>
+                  <div style={styles.modalIndicatorTitle('success')}>
+                    <HiCheck />
+                    <span>Saved to Death Aid / TechnoCare Ledger</span>
+                  </div>
+                  <p style={styles.modalIndicatorDesc}>
+                    {recordedModal.isManager
+                      ? recordedModal.isPlaceholderSection
+                        ? `Your collection for ${recordedModal.section} has been recorded and registered as a Placeholder Section in Class Roster Registry for the Class Mayor to upload the official student list.`
+                        : `Your collection for ${recordedModal.section} has been recorded and is ready for remittance verification.`
+                      : `Your contribution for ${recordedModal.section} has been submitted! Please bring the collected cash (${peso(recordedModal.collectedAmount)}) to an SSG officer to verify and complete the remittance.`}
+                  </p>
+                </div>
+
+                <div style={styles.modalCompareGrid}>
+                  <div style={styles.modalCompareBox}>
+                    <span style={styles.modalCompareLabel}>Section</span>
+                    <span style={styles.modalCompareValue}>{recordedModal.section}</span>
+                    <span style={styles.modalCompareSub}>
+                      {recordedModal.beneficiaryCount}/{recordedModal.enrolledCount} paid
+                    </span>
+                  </div>
+                  <div style={styles.modalCompareBox}>
+                    <span style={styles.modalCompareLabel}>Collected</span>
+                    <span style={{ ...styles.modalCompareValue, color: T.success }}>
+                      {peso(recordedModal.collectedAmount)}
+                    </span>
+                    <span style={styles.modalCompareSub}>
+                      {recordedModal.debtCount} owing ({peso(recordedModal.debtAmount)})
+                    </span>
+                  </div>
+                </div>
+
+                <div style={styles.modalNoteBox}>
+                  <div style={{ fontSize: '0.8rem', color: T.textSoft }}>Beneficiary Case</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: T.text, marginTop: '0.2rem' }}>
+                    {recordedModal.beneficiaryName} (
+                    {recordedModal.aidType === 'technocare' ? 'TechnoCare' : 'Death Aid'})
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setRecordedModal(null)}
+                  style={{ ...styles.submitButton, width: '100%' }}
+                >
+                  Done
+                </button>
+              </div>
             </div>
-
-            <div style={styles.modalBody}>
-              <div style={styles.modalIndicatorBox('success')}>
-                <div style={styles.modalIndicatorTitle('success')}>
-                  <HiCheck />
-                  <span>Saved to Death Aid / TechnoCare Ledger</span>
-                </div>
-                <p style={styles.modalIndicatorDesc}>
-                  {recordedModal.isManager
-                    ? `Your collection for ${recordedModal.section} has been recorded and is ready for remittance verification.`
-                    : `Your contribution for ${recordedModal.section} has been submitted! Please bring the collected cash (${peso(recordedModal.collectedAmount)}) to an SSG officer to verify and complete the remittance.`}
-                </p>
-              </div>
-
-              <div style={styles.modalCompareGrid}>
-                <div style={styles.modalCompareBox}>
-                  <span style={styles.modalCompareLabel}>Section</span>
-                  <span style={styles.modalCompareValue}>{recordedModal.section}</span>
-                  <span style={styles.modalCompareSub}>
-                    {recordedModal.beneficiaryCount}/{recordedModal.enrolledCount} paid
-                  </span>
-                </div>
-                <div style={styles.modalCompareBox}>
-                  <span style={styles.modalCompareLabel}>Collected</span>
-                  <span style={{ ...styles.modalCompareValue, color: T.success }}>
-                    {peso(recordedModal.collectedAmount)}
-                  </span>
-                  <span style={styles.modalCompareSub}>
-                    {recordedModal.debtCount} owing ({peso(recordedModal.debtAmount)})
-                  </span>
-                </div>
-              </div>
-
-              <div style={styles.modalNoteBox}>
-                <div style={{ fontSize: '0.8rem', color: T.textSoft }}>Beneficiary Case</div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: T.text, marginTop: '0.2rem' }}>
-                  {recordedModal.beneficiaryName} (
-                  {recordedModal.aidType === 'technocare' ? 'TechnoCare' : 'Death Aid'})
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.modalFooter}>
-              <button
-                type="button"
-                onClick={() => setRecordedModal(null)}
-                style={{ ...styles.submitButton, width: '100%' }}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
@@ -1182,6 +1603,9 @@ function PendingView({ actor, say }) {
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {c.isPlaceholderSection && (
+                    <span style={statusPill('warning')}>Placeholder Section</span>
+                  )}
                   <span style={styles.badgePendingAlert}>
                     <span style={styles.pulseDot} />
                     Pending Remittance
@@ -1280,355 +1704,500 @@ function PendingView({ actor, say }) {
       )}
 
       {/* ── DOUBLE-CHECK REMITTANCE MODAL ── */}
-      {doubleCheckTarget && (
-        <div style={styles.modalBackdrop} onClick={() => setDoubleCheckTarget(null)}>
-          <div
-            style={styles.modalCard}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="double-check-title"
-          >
-            <div style={styles.modalHeader}>
-              <div>
-                <div style={styles.modalTitleRow}>
-                  <HiClipboardCheck style={{ fontSize: '1.4rem', color: T.accent }} />
-                  <h4 id="double-check-title" style={styles.modalTitle}>
-                    Double-Check Remittance
-                  </h4>
-                </div>
-                <p style={styles.modalSubtitle}>
-                  Carefully double-check the physical cash against the reported amount before finalizing.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDoubleCheckTarget(null)}
-                style={styles.modalCloseBtn}
-                aria-label="Close"
-              >
-                <HiX />
-              </button>
-            </div>
-
-            <div style={styles.modalBody}>
-              {/* Section Details */}
-              <div style={styles.modalSectionBanner}>
-                <h5 style={styles.modalSectionTitle}>
-                  {doubleCheckTarget.section} · {doubleCheckTarget.program}
-                </h5>
-                <p style={styles.modalSectionMeta}>
-                  Collection ID: <strong>{doubleCheckTarget.collectionId}</strong> | Brought in by:{' '}
-                  <strong>{doubleCheckTarget.submittedByName || 'Not specified'}</strong>
-                </p>
-              </div>
-
-              {/* Financial Double-Check Breakdown */}
-              <div style={styles.modalCompareGrid}>
-                <div style={styles.modalCompareBox}>
-                  <span style={styles.modalCompareLabel}>Reported Collection</span>
-                  <span style={styles.modalCompareValue}>{peso(doubleCheckTarget.collectedAmount)}</span>
-                  <span style={styles.modalCompareSub}>
-                    {doubleCheckTarget.beneficiaryCount} student(s) paid
-                  </span>
-                </div>
-
-                <div style={styles.modalCompareBox}>
-                  <span style={styles.modalCompareLabel}>Cash Received</span>
-                  <span style={{ ...styles.modalCompareValue, color: T.accent }}>
-                    {peso(modalReceived)}
-                  </span>
-                  <span style={styles.modalCompareSub}>Physically counted</span>
-                </div>
-              </div>
-
-              {/* Double Check Match or Discrepancy Indicator */}
-              <div style={styles.modalIndicatorBox(modalDiff === 0 ? 'success' : 'warning')}>
-                <div style={styles.modalIndicatorTitle(modalDiff === 0 ? 'success' : 'warning')}>
-                  {modalDiff === 0 ? (
-                    <>
-                      <HiCheckCircle style={{ fontSize: '1.25rem' }} />
-                      <span>Balanced — Exact Match (₱0.00 difference)</span>
-                    </>
-                  ) : (
-                    <>
-                      <HiExclamation style={{ fontSize: '1.25rem' }} />
-                      <span>
-                        Discrepancy Detected:{' '}
-                        {modalDiff > 0 ? `+${peso(modalDiff)} (Surplus)` : `-${peso(Math.abs(modalDiff))} (Shortage)`}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <p style={styles.modalIndicatorDesc}>
-                  {modalDiff === 0
-                    ? 'The cash counted matches the reported amount. This collection will be officially confirmed.'
-                    : 'The cash counted does NOT match what was reported. This will be flagged under Discrepancies and permanently recorded in the audit trail.'}
-                </p>
-              </div>
-
-              {/* Remittance Note */}
-              {notes[doubleCheckTarget.collectionId] && (
-                <div style={styles.modalNoteBox}>
-                  <span style={styles.modalCompareLabel}>Remittance Note</span>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: T.text }}>
-                    "{notes[doubleCheckTarget.collectionId]}"
+      {doubleCheckTarget &&
+        createPortal(
+          <div style={styles.modalBackdrop} onClick={() => setDoubleCheckTarget(null)}>
+            <div
+              style={styles.modalCard}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="double-check-title"
+            >
+              <div style={styles.modalHeader}>
+                <div>
+                  <div style={styles.modalTitleRow}>
+                    <HiClipboardCheck style={{ fontSize: '1.4rem', color: T.accent }} />
+                    <h4 id="double-check-title" style={styles.modalTitle}>
+                      Double-Check Remittance
+                    </h4>
+                  </div>
+                  <p style={styles.modalSubtitle}>
+                    Carefully double-check the physical cash against the reported amount before finalizing.
                   </p>
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setDoubleCheckTarget(null)}
+                  style={styles.modalCloseBtn}
+                  aria-label="Close"
+                >
+                  <HiX />
+                </button>
+              </div>
 
-              {/* Officer Audit Footnote */}
-              <p style={{ margin: 0, fontSize: '0.78rem', color: T.textMuted }}>
-                Verifying Officer: <strong>{actor.name}</strong> ({actor.role})
-              </p>
-
-              {/* Double-Check Confirmation Checkbox Gate */}
-              <label style={styles.modalDoubleCheckContainer}>
-                <input
-                  type="checkbox"
-                  id="double-check-confirm-input"
-                  checked={doubleCheckConfirmed}
-                  onChange={(e) => setDoubleCheckConfirmed(e.target.checked)}
-                  style={styles.modalDoubleCheckCheckbox}
-                />
-                <div style={styles.modalDoubleCheckText}>
-                  <strong>Double-Check Confirmation:</strong> I confirm that I have physically counted{' '}
-                  <strong>{peso(modalReceived)}</strong> in cash for section{' '}
-                  <strong>{doubleCheckTarget.section}</strong> and verified this remittance.
+              <div style={styles.modalBody}>
+                {/* Section Details */}
+                <div style={styles.modalSectionBanner}>
+                  <h5 style={styles.modalSectionTitle}>
+                    {doubleCheckTarget.section} · {doubleCheckTarget.program}
+                  </h5>
+                  <p style={styles.modalSectionMeta}>
+                    Collection ID: <strong>{doubleCheckTarget.collectionId}</strong> | Brought in by:{' '}
+                    <strong>{doubleCheckTarget.submittedByName || 'Not specified'}</strong>
+                  </p>
                 </div>
-              </label>
-            </div>
 
-            <div style={styles.modalFooter}>
-              <button
-                type="button"
-                onClick={() => setDoubleCheckTarget(null)}
-                style={styles.secondaryButton}
-              >
-                Cancel / Edit Form
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDoubleCheck}
-                disabled={!doubleCheckConfirmed || busyId === doubleCheckTarget.collectionId}
-                style={{
-                  ...styles.verifyButton,
-                  ...(!doubleCheckConfirmed ? styles.disabled : {}),
-                }}
-              >
-                <HiCheck style={{ fontSize: '1.1rem', marginRight: '0.3rem', verticalAlign: 'middle' }} />
-                {busyId === doubleCheckTarget.collectionId ? 'Recording…' : 'Confirm & Record Remittance'}
-              </button>
+                {/* Financial Double-Check Breakdown */}
+                <div style={styles.modalCompareGrid}>
+                  <div style={styles.modalCompareBox}>
+                    <span style={styles.modalCompareLabel}>Reported Collection</span>
+                    <span style={styles.modalCompareValue}>{peso(doubleCheckTarget.collectedAmount)}</span>
+                    <span style={styles.modalCompareSub}>
+                      {doubleCheckTarget.beneficiaryCount} student(s) paid
+                    </span>
+                  </div>
+
+                  <div style={styles.modalCompareBox}>
+                    <span style={styles.modalCompareLabel}>Cash Received</span>
+                    <span style={{ ...styles.modalCompareValue, color: T.accent }}>
+                      {peso(modalReceived)}
+                    </span>
+                    <span style={styles.modalCompareSub}>Physically counted</span>
+                  </div>
+                </div>
+
+                {/* Double Check Match or Discrepancy Indicator */}
+                <div style={styles.modalIndicatorBox(modalDiff === 0 ? 'success' : 'warning')}>
+                  <div style={styles.modalIndicatorTitle(modalDiff === 0 ? 'success' : 'warning')}>
+                    {modalDiff === 0 ? (
+                      <>
+                        <HiCheckCircle style={{ fontSize: '1.25rem' }} />
+                        <span>Balanced — Exact Match (₱0.00 difference)</span>
+                      </>
+                    ) : (
+                      <>
+                        <HiExclamation style={{ fontSize: '1.25rem' }} />
+                        <span>
+                          Discrepancy Detected:{' '}
+                          {modalDiff > 0 ? `+${peso(modalDiff)} (Surplus)` : `-${peso(Math.abs(modalDiff))} (Shortage)`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <p style={styles.modalIndicatorDesc}>
+                    {modalDiff === 0
+                      ? 'The cash counted matches the reported amount. This collection will be officially confirmed.'
+                      : 'The cash counted does NOT match what was reported. This will be flagged under Discrepancies and permanently recorded in the audit trail.'}
+                  </p>
+                </div>
+
+                {/* Remittance Note */}
+                {notes[doubleCheckTarget.collectionId] && (
+                  <div style={styles.modalNoteBox}>
+                    <span style={styles.modalCompareLabel}>Remittance Note</span>
+                    <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: T.text }}>
+                      "{notes[doubleCheckTarget.collectionId]}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Officer Audit Footnote */}
+                <p style={{ margin: 0, fontSize: '0.78rem', color: T.textMuted }}>
+                  Verifying Officer: <strong>{actor.name}</strong> ({actor.role})
+                </p>
+
+                {/* Double-Check Confirmation Checkbox Gate */}
+                <label style={styles.modalDoubleCheckContainer}>
+                  <input
+                    type="checkbox"
+                    id="double-check-confirm-input"
+                    checked={doubleCheckConfirmed}
+                    onChange={(e) => setDoubleCheckConfirmed(e.target.checked)}
+                    style={styles.modalDoubleCheckCheckbox}
+                  />
+                  <div style={styles.modalDoubleCheckText}>
+                    <strong>Double-Check Confirmation:</strong> I confirm that I have physically counted{' '}
+                    <strong>{peso(modalReceived)}</strong> in cash for section{' '}
+                    <strong>{doubleCheckTarget.section}</strong> and verified this remittance.
+                  </div>
+                </label>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setDoubleCheckTarget(null)}
+                  style={styles.secondaryButton}
+                >
+                  Cancel / Edit Form
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDoubleCheck}
+                  disabled={!doubleCheckConfirmed || busyId === doubleCheckTarget.collectionId}
+                  style={{
+                    ...styles.verifyButton,
+                    ...(!doubleCheckConfirmed ? styles.disabled : {}),
+                  }}
+                >
+                  <HiCheck style={{ fontSize: '1.1rem', marginRight: '0.3rem', verticalAlign: 'middle' }} />
+                  {busyId === doubleCheckTarget.collectionId ? 'Recording…' : 'Confirm & Record Remittance'}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* ── DENY / DISCLOSE REMITTANCE MODAL ── */}
-      {denyTarget && (
-        <div style={styles.modalBackdrop} onClick={() => setDenyTarget(null)}>
-          <div
-            style={styles.modalCard}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="deny-modal-title"
-          >
-            <div style={styles.modalHeader}>
-              <div>
-                <div style={styles.modalTitleRow}>
-                  <HiBan style={{ fontSize: '1.4rem', color: T.error }} />
-                  <h4 id="deny-modal-title" style={{ ...styles.modalTitle, color: T.error }}>
-                    Deny / Disclose Remittance
-                  </h4>
+      {denyTarget &&
+        createPortal(
+          <div style={styles.modalBackdrop} onClick={() => setDenyTarget(null)}>
+            <div
+              style={styles.modalCard}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="deny-modal-title"
+            >
+              <div style={styles.modalHeader}>
+                <div>
+                  <div style={styles.modalTitleRow}>
+                    <HiBan style={{ fontSize: '1.4rem', color: T.error }} />
+                    <h4 id="deny-modal-title" style={{ ...styles.modalTitle, color: T.error }}>
+                      Deny / Disclose Remittance
+                    </h4>
+                  </div>
+                  <p style={styles.modalSubtitle}>
+                    Disclose student input mistakes or void erroneous filings so they do not corrupt debt balances.
+                  </p>
                 </div>
-                <p style={styles.modalSubtitle}>
-                  Disclose student input mistakes or void erroneous filings so they do not corrupt debt balances.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDenyTarget(null)}
-                style={styles.modalCloseBtn}
-                aria-label="Close"
-              >
-                <HiX />
-              </button>
-            </div>
-
-            <div style={styles.modalBody}>
-              {/* Record Summary */}
-              <div style={styles.modalSectionBanner}>
-                <h5 style={styles.modalSectionTitle}>
-                  {denyTarget.section} · {denyTarget.program}
-                </h5>
-                <p style={styles.modalSectionMeta}>
-                  Collection ID: <strong>{denyTarget.collectionId}</strong> | Reported Amount:{' '}
-                  <strong>{peso(denyTarget.collectedAmount)}</strong> ({denyTarget.beneficiaryCount} of{' '}
-                  {denyTarget.enrolledCount} students)
-                </p>
-                <p style={{ ...styles.modalSectionMeta, marginTop: '0.2rem' }}>
-                  Brought in by: <strong>{denyTarget.submittedByName || 'Not specified'}</strong> | Recorded by:{' '}
-                  <strong>{denyTarget.recordedByName}</strong>
-                </p>
-              </div>
-
-              {/* Reason Selector */}
-              <div style={styles.formGroup}>
-                <label style={styles.label}>
-                  Reason for Denial / Disclosure <span style={{ color: T.error }}>*</span>
-                </label>
-                <select
-                  value={denyReason}
-                  onChange={(e) => {
-                    setDenyReason(e.target.value);
-                    if (denyError) setDenyError('');
-                  }}
-                  style={styles.select}
+                <button
+                  type="button"
+                  onClick={() => setDenyTarget(null)}
+                  style={styles.modalCloseBtn}
+                  aria-label="Close"
                 >
-                  {DENIAL_REASONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                  <HiX />
+                </button>
               </div>
 
-              {/* Custom reason input if "Other" */}
-              {denyReason.startsWith('Other') && (
+              <div style={styles.modalBody}>
+                {/* Record Summary */}
+                <div style={styles.modalSectionBanner}>
+                  <h5 style={styles.modalSectionTitle}>
+                    {denyTarget.section} · {denyTarget.program}
+                  </h5>
+                  <p style={styles.modalSectionMeta}>
+                    Collection ID: <strong>{denyTarget.collectionId}</strong> | Reported Amount:{' '}
+                    <strong>{peso(denyTarget.collectedAmount)}</strong> ({denyTarget.beneficiaryCount} of{' '}
+                    {denyTarget.enrolledCount} students)
+                  </p>
+                  <p style={{ ...styles.modalSectionMeta, marginTop: '0.2rem' }}>
+                    Brought in by: <strong>{denyTarget.submittedByName || 'Not specified'}</strong> | Recorded by:{' '}
+                    <strong>{denyTarget.recordedByName}</strong>
+                  </p>
+                </div>
+
+                {/* Reason Selector */}
                 <div style={styles.formGroup}>
                   <label style={styles.label}>
-                    Specify Student Input Mistake <span style={{ color: T.error }}>*</span>
+                    Reason for Denial / Disclosure <span style={{ color: T.error }}>*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={denyCustomReason}
+                  <select
+                    value={denyReason}
                     onChange={(e) => {
-                      setDenyCustomReason(e.target.value);
+                      setDenyReason(e.target.value);
                       if (denyError) setDenyError('');
                     }}
-                    placeholder="e.g. Student typed 40 beneficiaries instead of 30"
-                    style={denyError ? styles.inputError : styles.input}
-                    autoFocus
+                    style={styles.select}
+                  >
+                    {DENIAL_REASONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Custom reason input if "Other" */}
+                {denyReason.startsWith('Other') && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      Specify Student Input Mistake <span style={{ color: T.error }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={denyCustomReason}
+                      onChange={(e) => {
+                        setDenyCustomReason(e.target.value);
+                        if (denyError) setDenyError('');
+                      }}
+                      placeholder="e.g. Student typed 40 beneficiaries instead of 30"
+                      style={denyError ? styles.inputError : styles.input}
+                      autoFocus
+                    />
+                  </div>
+                )}
+
+                {/* Error Notice */}
+                {denyError && (
+                  <div style={styles.inlineWarningAlert}>
+                    <HiExclamation style={{ fontSize: '1.2rem', color: T.error, flexShrink: 0 }} />
+                    <div>{denyError}</div>
+                  </div>
+                )}
+
+                {/* Additional Remarks */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Additional Remarks / Note for Audit Trail (Optional)</label>
+                  <textarea
+                    rows={2}
+                    value={denyNote}
+                    onChange={(e) => setDenyNote(e.target.value)}
+                    placeholder="e.g. Confirmed with Mayor; instructed to file new submission with corrected roster count."
+                    style={{ ...styles.input, resize: 'vertical', fontFamily: 'inherit' }}
                   />
                 </div>
-              )}
 
-              {/* Error Notice */}
-              {denyError && (
-                <div style={styles.inlineWarningAlert}>
-                  <HiExclamation style={{ fontSize: '1.2rem', color: T.error, flexShrink: 0 }} />
-                  <div>{denyError}</div>
+                {/* Explanatory Notice */}
+                <div style={styles.denyNoticeCard}>
+                  <HiInformationCircle style={{ fontSize: '1.3rem', color: T.textSoft, flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: T.textSoft, lineHeight: 1.45 }}>
+                    <strong>How this works:</strong> Denying this remittance marks the collection as <strong>VOIDED</strong>. It will be excluded from the section's outstanding debt balance, correcting the student's input mistake, and permanently logged in the audit trail.
+                  </p>
                 </div>
-              )}
-
-              {/* Additional Remarks */}
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Additional Remarks / Note for Audit Trail (Optional)</label>
-                <textarea
-                  rows={2}
-                  value={denyNote}
-                  onChange={(e) => setDenyNote(e.target.value)}
-                  placeholder="e.g. Confirmed with Mayor; instructed to file new submission with corrected roster count."
-                  style={{ ...styles.input, resize: 'vertical', fontFamily: 'inherit' }}
-                />
               </div>
 
-              {/* Explanatory Notice */}
-              <div style={styles.denyNoticeCard}>
-                <HiInformationCircle style={{ fontSize: '1.3rem', color: T.textSoft, flexShrink: 0 }} />
-                <p style={{ margin: 0, fontSize: '0.8rem', color: T.textSoft, lineHeight: 1.45 }}>
-                  <strong>How this works:</strong> Denying this remittance marks the collection as <strong>VOIDED</strong>. It will be excluded from the section's outstanding debt balance, correcting the student's input mistake, and permanently logged in the audit trail.
-                </p>
+              <div style={styles.modalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setDenyTarget(null)}
+                  style={styles.secondaryButton}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeny}
+                  disabled={busyId === denyTarget.collectionId}
+                  style={{
+                    ...styles.denyConfirmButton,
+                    ...(busyId === denyTarget.collectionId ? styles.disabled : {}),
+                  }}
+                >
+                  <HiBan style={{ fontSize: '1.1rem', marginRight: '0.35rem', verticalAlign: 'middle' }} />
+                  {busyId === denyTarget.collectionId ? 'Denying…' : 'Confirm Denial / Void'}
+                </button>
               </div>
             </div>
-
-            <div style={styles.modalFooter}>
-              <button
-                type="button"
-                onClick={() => setDenyTarget(null)}
-                style={styles.secondaryButton}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeny}
-                disabled={busyId === denyTarget.collectionId}
-                style={{
-                  ...styles.denyConfirmButton,
-                  ...(busyId === denyTarget.collectionId ? styles.disabled : {}),
-                }}
-              >
-                <HiBan style={{ fontSize: '1.1rem', marginRight: '0.35rem', verticalAlign: 'middle' }} />
-                {busyId === denyTarget.collectionId ? 'Denying…' : 'Confirm Denial / Void'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
 
 // ════════════════════════════════════════════════════════════
-function StatusListView({ status, title, empty, say }) {
+function StatusListView({ status, title, empty, say, actor = null, isManager = false }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [revokeTarget, setRevokeTarget] = useState(null); // { record, nextStatus }
+  const [revokeReason, setRevokeReason] = useState('');
+  const [busyId, setBusyId] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await listCollections({ status });
+      setRows(list);
+    } catch (error) {
+      say('error', `Could not load: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [status, say]);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const list = await listCollections({ status });
-        if (alive) setRows(list);
-      } catch (error) {
-        if (alive) say('error', `Could not load: ${error.message}`);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [status, say]);
+    load();
+  }, [load]);
+
+  const canModifyVerification =
+    isManager &&
+    (status === DEATH_AID_COLLECTION_STATUS.CONFIRMED ||
+      status === DEATH_AID_COLLECTION_STATUS.DISCREPANCY);
+
+  const handleConfirmRevoke = async () => {
+    if (!revokeTarget) return;
+    const { record, nextStatus } = revokeTarget;
+    if (!revokeReason.trim()) {
+      say('error', 'Please enter a reason before modifying verification.');
+      return;
+    }
+    setBusyId(record.collectionId);
+    try {
+      await revokeCollectionVerification({
+        collectionId: record.collectionId,
+        officer: actor,
+        reason: revokeReason.trim(),
+        nextStatus,
+      });
+      say(
+        'info',
+        nextStatus === DEATH_AID_COLLECTION_STATUS.DENIED
+          ? `${record.collectionId} verification revoked and collection voided/denied.`
+          : `${record.collectionId} verification removed and returned to Pending Verification.`
+      );
+      setRevokeTarget(null);
+      setRevokeReason('');
+      await load();
+    } catch (error) {
+      say('error', error.message);
+    } finally {
+      setBusyId('');
+    }
+  };
 
   return (
     <div style={styles.formWrapper}>
       <h3 style={styles.sectionTitle}>{title}</h3>
-      <CollectionTable rows={rows} loading={loading} empty={empty || "Nothing here yet."} showDebts />
+      <CollectionTable
+        rows={rows}
+        loading={loading}
+        empty={empty || 'Nothing here yet.'}
+        showDebts
+        renderActions={
+          canModifyVerification
+            ? (c) => (
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  style={styles.secondaryButton}
+                  disabled={busyId === c.collectionId}
+                  onClick={() => {
+                    setRevokeReason('');
+                    setRevokeTarget({
+                      record: c,
+                      nextStatus: DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION,
+                    });
+                  }}
+                >
+                  Remove Verification
+                </button>
+                <button
+                  type="button"
+                  style={styles.denyButton}
+                  disabled={busyId === c.collectionId}
+                  onClick={() => {
+                    setRevokeReason('');
+                    setRevokeTarget({
+                      record: c,
+                      nextStatus: DEATH_AID_COLLECTION_STATUS.DENIED,
+                    });
+                  }}
+                >
+                  Deny / Void
+                </button>
+              </div>
+            )
+            : null
+        }
+      />
+
+      {revokeTarget &&
+        createPortal(
+          <div
+            style={styles.modalBackdrop}
+            onClick={() => !busyId && setRevokeTarget(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Modify collection verification"
+          >
+            <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <div>
+                  <h4 style={styles.modalTitle}>
+                    {revokeTarget.nextStatus === DEATH_AID_COLLECTION_STATUS.DENIED
+                      ? 'Deny / Void Verified Collection'
+                      : 'Remove Verification'}
+                  </h4>
+                  <p style={styles.modalSubtitle}>
+                    {revokeTarget.record.collectionId} — {revokeTarget.record.section} ({peso(revokeTarget.record.collectedAmount)})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRevokeTarget(null)}
+                  style={styles.modalCloseBtn}
+                  aria-label="Close"
+                >
+                  <HiX />
+                </button>
+              </div>
+              <div style={styles.modalBody}>
+                <p style={styles.helperText}>
+                  {revokeTarget.nextStatus === DEATH_AID_COLLECTION_STATUS.DENIED
+                    ? 'This will revoke the remittance verification and mark the collection Denied / Voided (excluded from beneficiary totals and outstanding balances). An audit log entry will be recorded.'
+                    : 'This will remove verification and return the collection to Pending Verification so it can be re-counted and re-verified. An audit log entry will be recorded.'}
+                </p>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>
+                    Reason <span style={{ color: T.error }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={revokeReason}
+                    onChange={(e) => setRevokeReason(e.target.value)}
+                    placeholder="e.g. Wrong cash count verified, needs recount"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+              <div style={styles.modalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setRevokeTarget(null)}
+                  style={styles.secondaryButton}
+                  disabled={!!busyId}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmRevoke}
+                  disabled={!revokeReason.trim() || !!busyId}
+                  style={
+                    revokeTarget.nextStatus === DEATH_AID_COLLECTION_STATUS.DENIED
+                      ? { ...styles.denyConfirmButton, ...(!revokeReason.trim() || busyId ? styles.disabled : {}) }
+                      : { ...styles.verifyButton, ...(!revokeReason.trim() || busyId ? styles.disabled : {}) }
+                  }
+                >
+                  {busyId
+                    ? 'Saving…'
+                    : revokeTarget.nextStatus === DEATH_AID_COLLECTION_STATUS.DENIED
+                      ? 'Confirm Deny / Void'
+                      : 'Confirm Remove Verification'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
 
-function DiscrepancyView({ say }) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const list = await listCollections({ status: DEATH_AID_COLLECTION_STATUS.DISCREPANCY });
-        if (alive) setRows(list);
-      } catch (error) {
-        if (alive) say('error', `Could not load discrepancies: ${error.message}`);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [say]);
-
-  if (loading) return <Loading label="Loading…" />;
-
+function DiscrepancyView({ say, actor = null, isManager = false }) {
   return (
-    <div style={styles.formWrapper}>
-      <h3 style={styles.sectionTitle}>Discrepancies</h3>
-      <CollectionTable rows={rows} loading={false} empty="No discrepancies — reported and received always match." />
-    </div>
+    <StatusListView
+      status={DEATH_AID_COLLECTION_STATUS.DISCREPANCY}
+      title="Discrepancies"
+      empty="No discrepancies — reported and received always match."
+      say={say}
+      actor={actor}
+      isManager={isManager}
+    />
   );
 }
 
@@ -1934,7 +2503,7 @@ function AuditView({ say }) {
   );
 }
 
-function CollectionTable({ rows, loading, empty, showDebts = false }) {
+function CollectionTable({ rows, loading, empty, showDebts = false, renderActions = null }) {
   if (loading) return <p style={styles.helperText}>Loading…</p>;
   if (rows.length === 0) return <p style={styles.helperText}>{empty}</p>;
 
@@ -1951,6 +2520,7 @@ function CollectionTable({ rows, loading, empty, showDebts = false }) {
             {showDebts && <th style={styles.tableHeader}>Owing</th>}
             <th style={styles.tableHeader}>Received</th>
             <th style={styles.tableHeader}>Status</th>
+            {renderActions && <th style={styles.tableHeader}>Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -1975,7 +2545,14 @@ function CollectionTable({ rows, loading, empty, showDebts = false }) {
                   </div>
                 )}
               </td>
-              <td style={styles.tableCell}>{c.section}</td>
+              <td style={styles.tableCell}>
+                <div>{c.section}</div>
+                {c.isPlaceholderSection && (
+                  <span style={{ ...statusPill('warning'), marginTop: '0.2rem', display: 'inline-block' }}>
+                    Placeholder
+                  </span>
+                )}
+              </td>
               <td style={styles.tableCell}>{formatDate(c.submittedAt)}</td>
               <td style={styles.tableCell}>
                 {c.beneficiaryCount}/{c.enrolledCount}
@@ -1992,6 +2569,7 @@ function CollectionTable({ rows, loading, empty, showDebts = false }) {
               <td style={styles.tableCell}>
                 <StatusBadge status={c.status} />
               </td>
+              {renderActions && <td style={styles.tableCell}>{renderActions(c)}</td>}
             </tr>
           ))}
         </tbody>

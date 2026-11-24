@@ -6,17 +6,7 @@
 //   - Log user actions with names instead of UIDs
 //   - Integrate with main audit trail
 
-import { db } from '../firebase/firebaseConfig.js';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  serverTimestamp 
-} from 'firebase/firestore';
 import userManagementService from './userManagementService.js';
-
-// Collection references
-const AUDIT_LOGS_COLLECTION = 'audit_logs';
 
 /**
  * Finance Audit Service
@@ -50,7 +40,7 @@ export const financeAuditService = {
           itemType: 'Budget',
           itemId: budgetData.id,
           itemName: budgetData.title,
-          notes: `Created budget "${budgetData.title}" with amount $${budgetData.amount}`
+          notes: `Created budget "${budgetData.title}" with amount ₱${budgetData.amount}`
         }
       );
     } catch (error) {
@@ -110,7 +100,7 @@ export const financeAuditService = {
           itemType: 'Budget',
           itemId: budgetData.id,
           itemName: budgetData.title,
-          notes: `Deleted budget "${budgetData.title}" (Amount: $${budgetData.amount})`
+          notes: `Deleted budget "${budgetData.title}" (Amount: ₱${budgetData.amount})`
         }
       );
     } catch (error) {
@@ -146,7 +136,7 @@ export const financeAuditService = {
           itemType: 'Expense',
           itemId: expenseData.id,
           itemName: expenseData.title,
-          notes: `Created expense "${expenseData.title}" with amount $${expenseData.amount}`
+          notes: `Created expense "${expenseData.title}" with amount ₱${expenseData.amount}`
         }
       );
     } catch (error) {
@@ -206,7 +196,7 @@ export const financeAuditService = {
           itemType: 'Expense',
           itemId: expenseData.id,
           itemName: expenseData.title,
-          notes: `Deleted expense "${expenseData.title}" (Amount: $${expenseData.amount})`
+          notes: `Deleted expense "${expenseData.title}" (Amount: ₱${expenseData.amount})`
         }
       );
     } catch (error) {
@@ -242,7 +232,7 @@ export const financeAuditService = {
           itemType: 'Income',
           itemId: incomeData.id,
           itemName: incomeData.title,
-          notes: `Created income "${incomeData.title}" with amount $${incomeData.amount}`
+          notes: `Created income "${incomeData.title}" with amount ₱${incomeData.amount}`
         }
       );
     } catch (error) {

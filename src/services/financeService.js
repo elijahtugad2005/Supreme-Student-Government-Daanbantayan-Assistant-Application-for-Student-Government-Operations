@@ -35,10 +35,15 @@ import {
 import { validateTransactionRules } from '../utils/financeValidation.js';
 import {
   computeAuthoritativeFundBalanceCentavos,
+  computeDisbursedByAccount,
+  computeDisbursedByAllocation,
   computeLedgerNetByAccount,
+  computeTransactionBalanceDeltas,
+  computeReversalBalanceDeltas,
   inferOrderStorageLocation,
   notifyFinanceUpdated,
 } from '../utils/financeLedgerReconciliation.js';
+import { computeNextAllocationSpentCentavos } from '../utils/ledgerTxFormHelpers.js';
 
 const BACKEND_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_MONGODB_BACKEND_URL) ||
@@ -48,6 +53,7 @@ const COLLECTIONS = {
   FUND_ACCOUNTS: 'fundAccounts',
   BUDGET_ALLOCATIONS: 'budgetAllocations',
   TRANSACTIONS: 'transactions',
+  IGP_COLLECTIONS: 'igpCollections',
   PRE_ORDER_BATCHES: 'preOrderBatches',
   PRE_ORDER_ENTRIES: 'preOrderEntries',
   LEGACY_FUNDS: 'funds',
@@ -115,6 +121,8 @@ export const financeService = {
       if (!existingMap.has(acc.id)) {
         await runTransaction(db, async (tx) => {
           const accRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, acc.id);
+          const existingSnap = await tx.get(accRef);
+          if (existingSnap.exists()) return;
           tx.set(accRef, {
             ...acc,
             createdAt: serverTimestamp(),
@@ -131,8 +139,8 @@ export const financeService = {
           updates.bankAccountReference = acc.bankAccountReference;
         }
         if (acc.id === 'fund_fiscal_year_budget' && current.appropriatedCeilingCentavos === undefined) {
-          updates.appropriatedCeilingCentavos = 0;
-          updates.appropriationResolutionRef = '';
+          updates.appropriatedCeilingCentavos = current.balanceCentavos || 0;
+          updates.appropriationResolutionRef = current.appropriationResolutionRef || '';
         }
         if (Object.keys(updates).length > 0) {
           await updateDoc(doc(db, COLLECTIONS.FUND_ACCOUNTS, acc.id), {
@@ -145,7 +153,8 @@ export const financeService = {
   },
 
   /**
-   * Update Fiscal Budget (serves as unified primary balance and PPMP ceiling)
+   * Update Fiscal Budget (establishes term ceiling and atomically recalculates
+   * remaining balanceCentavos against posted PPMP ledger disbursements).
    */
   async updateFiscalBudget(fundAccountId = 'fund_fiscal_year_budget', budgetData, user) {
     const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
@@ -153,9 +162,16 @@ export const financeService = {
     const finalAmount = budgetAmount !== undefined ? budgetAmount : ceilingAmount;
     const amountCentavos = toCentavos(finalAmount);
 
+    const txSnap = await getDocs(
+      query(collection(db, COLLECTIONS.TRANSACTIONS), where('fundAccountId', '==', fundAccountId))
+    );
+    const accountTxs = txSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const disbursedCentavos = computeDisbursedByAccount(accountTxs).get(fundAccountId) || 0;
+    const remainingBalanceCentavos = Math.max(0, amountCentavos - disbursedCentavos);
+
     const patch = {
-      balanceCentavos: amountCentavos,
-      appropriatedCeilingCentavos: amountCentavos, // Unified: primary balance and ceiling are identical
+      balanceCentavos: remainingBalanceCentavos,
+      appropriatedCeilingCentavos: amountCentavos,
       lastBudgetUpdateNote: note || 'Secretariat Fiscal Budget Calibration',
       updatedAt: serverTimestamp(),
       updatedBy: user?.userName || user?.displayName || 'Authorized Secretary',
@@ -178,8 +194,21 @@ export const financeService = {
   async updateFundBalance(fundAccountId, balanceAmount, user, reason = '', storageLocation = undefined) {
     const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
     const amountCentavos = toCentavos(balanceAmount);
+    const isFiscalOrFsg =
+      fundAccountId === 'fund_fiscal_year_budget' || fundAccountId === 'fund_fsg_remittance';
+
+    let finalBalanceCentavos = amountCentavos;
+    if (isFiscalOrFsg) {
+      const txSnap = await getDocs(
+        query(collection(db, COLLECTIONS.TRANSACTIONS), where('fundAccountId', '==', fundAccountId))
+      );
+      const accountTxs = txSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const disbursedCentavos = computeDisbursedByAccount(accountTxs).get(fundAccountId) || 0;
+      finalBalanceCentavos = Math.max(0, amountCentavos - disbursedCentavos);
+    }
+
     const patch = {
-      balanceCentavos: amountCentavos,
+      balanceCentavos: finalBalanceCentavos,
       lastReconciliationReason: reason || 'Secretariat Fund Balance Calibration',
       updatedAt: serverTimestamp(),
       updatedBy: user?.userName || user?.displayName || 'Authorized Secretary',
@@ -188,7 +217,7 @@ export const financeService = {
     if (storageLocation !== undefined && String(storageLocation).trim() !== '') {
       patch.bankAccountReference = String(storageLocation).trim();
     }
-    if (fundAccountId === 'fund_fiscal_year_budget' || fundAccountId === 'fund_fsg_remittance') {
+    if (isFiscalOrFsg) {
       patch.appropriatedCeilingCentavos = amountCentavos;
     }
     await updateDoc(fundRef, patch);
@@ -261,27 +290,32 @@ export const financeService = {
   },
 
   /**
-   * Reconcile a fund account's displayed card balance directly from its posted Append-Only Ledger entries.
+   * Reconcile a fund account's displayed card balance directly from its posted Append-Only Ledger entries
+   * (preserving any historical unlinked `igpCollections` when reconciling `fund_igp_main`).
    */
-  async reconcileFundBalanceFromLedger(fundAccountId, user) {
+  async reconcileFundBalanceFromLedger(fundAccountId, user, options = {}) {
     if (!fundAccountId) throw new Error('Fund account ID is required.');
+    const { silent = false } = options || {};
     const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
-    const [fundSnap, txSnap, destSnap] = await Promise.all([
+    const isIgpAccount = fundAccountId === 'fund_igp_main';
+    const [fundSnap, txSnap, destSnap, igpSnap] = await Promise.all([
       getDoc(fundRef),
       getDocs(query(collection(db, COLLECTIONS.TRANSACTIONS), where('fundAccountId', '==', fundAccountId))),
       getDocs(
         query(collection(db, COLLECTIONS.TRANSACTIONS), where('transferDestinationAccountId', '==', fundAccountId))
       ),
+      isIgpAccount ? getDocs(collection(db, COLLECTIONS.IGP_COLLECTIONS)) : Promise.resolve(null),
     ]);
     const fundData = fundSnap.exists() ? { id: fundAccountId, ...fundSnap.data() } : { id: fundAccountId };
     const seen = new Map();
     txSnap.docs.forEach((d) => seen.set(d.id, { id: d.id, ...d.data() }));
     destSnap.docs.forEach((d) => seen.set(d.id, { id: d.id, ...d.data() }));
     const allTxs = Array.from(seen.values());
+    const igpCollections = igpSnap ? igpSnap.docs.map((d) => ({ id: d.id, ...d.data() })) : [];
 
     const netMap = computeLedgerNetByAccount(allTxs);
     const ledgerNetCentavos = netMap.get(fundAccountId) || 0;
-    const appliedBalanceCentavos = computeAuthoritativeFundBalanceCentavos(fundData, allTxs);
+    const appliedBalanceCentavos = computeAuthoritativeFundBalanceCentavos(fundData, allTxs, igpCollections);
 
     await updateDoc(fundRef, {
       balanceCentavos: appliedBalanceCentavos,
@@ -290,8 +324,21 @@ export const financeService = {
       updatedBy: user?.userName || user?.displayName || 'Authorized Officer',
       updatedById: user?.uid || 'officer',
     });
-    notifyFinanceUpdated({ fundAccountId, reconciled: true });
+    if (!silent) {
+      notifyFinanceUpdated({ fundAccountId, reconciled: true });
+    }
     return { ledgerNetCentavos, appliedBalanceCentavos };
+  },
+
+  /**
+   * Fetch all IGP collections (used to protect historical unlinked IGP inflows during reconciliation).
+   */
+  async getIgpCollections() {
+    const snap = await getDocs(collection(db, COLLECTIONS.IGP_COLLECTIONS));
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
   },
 
   /**
@@ -382,19 +429,21 @@ export const financeService = {
           ? PROCUREMENT_TYPES.MATERIAL_SUPPLY
           : PROCUREMENT_TYPES.EVENT);
 
-    // Rule: Total planned estimations cannot exceed the initial Fiscal Budget or FSG pool
-    if (fundAccountId) {
+    // Rule: Total planned estimations for APPROVED allocations cannot exceed the initial Fiscal Budget or FSG ceiling.
+    // FINANCE_CLARIFICATION.MD §3.3-§3.4: Drafts do not count toward the cap until approved.
+    if (fundAccountId && allocationData.status !== 'draft') {
       const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
       const fundSnap = await getDoc(fundRef);
       if (fundSnap.exists()) {
         const fund = fundSnap.data();
-        const isFiscal = fundAccountId === 'fund_fiscal_year_budget';
-        const budgetBaseCentavos = isFiscal
+        const isFiscalOrFsg =
+          fundAccountId === 'fund_fiscal_year_budget' ||
+          fundAccountId === 'fund_fsg_remittance';
+        const budgetBaseCentavos = isFiscalOrFsg
           ? (fund.appropriatedCeilingCentavos || fund.balanceCentavos || 0)
           : (fund.balanceCentavos || 0);
 
         if (budgetBaseCentavos > 0) {
-          // FINANCE_CLARIFICATION.MD §3.3-§3.4: Drafts do not count toward the cap. Only approved allocations count.
           const allocSnap = await getDocs(
             query(
               collection(db, COLLECTIONS.BUDGET_ALLOCATIONS),
@@ -496,37 +545,52 @@ export const financeService = {
     if (updateData.allocatedAmount !== undefined || updateData.allocated !== undefined) {
       const amt = updateData.allocatedAmount !== undefined ? updateData.allocatedAmount : updateData.allocated;
       patch.approvedAmountCentavos = toCentavos(amt);
+    }
 
-      const effectiveStatus = patch.status || current.status || 'approved';
-      const targetFundId = patch.fundAccountId || current.fundAccountId;
-      if (targetFundId && effectiveStatus === 'approved') {
-        const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, targetFundId);
-        const fundSnap = await getDoc(fundRef);
-        if (fundSnap.exists()) {
-          const fund = fundSnap.data();
-          const isFiscal = targetFundId === 'fund_fiscal_year_budget';
-          const budgetBaseCentavos = isFiscal
-            ? (fund.appropriatedCeilingCentavos || fund.balanceCentavos || 0)
-            : (fund.balanceCentavos || 0);
+    // Enforce fiscal/FSG ceiling cap whenever the resulting status is 'approved'
+    // (covers both amount edits AND Draft -> Approved promotions without allocatedAmount in updateData)
+    const effectiveStatus = patch.status || current.status || 'approved';
+    const targetFundId = patch.fundAccountId || current.fundAccountId;
+    const effectiveAmountCentavos =
+      patch.approvedAmountCentavos !== undefined
+        ? patch.approvedAmountCentavos
+        : (current.approvedAmountCentavos || 0);
 
-          if (budgetBaseCentavos > 0) {
-            const allocSnap = await getDocs(
-              query(
-                collection(db, COLLECTIONS.BUDGET_ALLOCATIONS),
-                where('fundAccountId', '==', targetFundId),
-                where('status', '==', 'approved')
-              )
+    if (
+      targetFundId &&
+      effectiveStatus === 'approved' &&
+      (patch.approvedAmountCentavos !== undefined ||
+        patch.status === 'approved' ||
+        patch.fundAccountId !== undefined)
+    ) {
+      const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, targetFundId);
+      const fundSnap = await getDoc(fundRef);
+      if (fundSnap.exists()) {
+        const fund = fundSnap.data();
+        const isFiscalOrFsg =
+          targetFundId === 'fund_fiscal_year_budget' ||
+          targetFundId === 'fund_fsg_remittance';
+        const budgetBaseCentavos = isFiscalOrFsg
+          ? (fund.appropriatedCeilingCentavos || fund.balanceCentavos || 0)
+          : (fund.balanceCentavos || 0);
+
+        if (budgetBaseCentavos > 0) {
+          const allocSnap = await getDocs(
+            query(
+              collection(db, COLLECTIONS.BUDGET_ALLOCATIONS),
+              where('fundAccountId', '==', targetFundId),
+              where('status', '==', 'approved')
+            )
+          );
+          const otherAllocationsTotal = allocSnap.docs
+            .filter((d) => d.id !== allocationId)
+            .reduce((sum, d) => sum + (d.data().approvedAmountCentavos || 0), 0);
+
+          if (otherAllocationsTotal + effectiveAmountCentavos > budgetBaseCentavos) {
+            const availableCentavos = Math.max(0, budgetBaseCentavos - otherAllocationsTotal);
+            throw new Error(
+              `Update rejected: Total planned allocations (${formatPHP(otherAllocationsTotal + effectiveAmountCentavos, true)}) would exceed the initial budget (${formatPHP(budgetBaseCentavos, true)}). Available surplus: ${formatPHP(availableCentavos, true)}.`
             );
-            const otherAllocationsTotal = allocSnap.docs
-              .filter((d) => d.id !== allocationId)
-              .reduce((sum, d) => sum + (d.data().approvedAmountCentavos || 0), 0);
-
-            if (otherAllocationsTotal + patch.approvedAmountCentavos > budgetBaseCentavos) {
-              const availableCentavos = Math.max(0, budgetBaseCentavos - otherAllocationsTotal);
-              throw new Error(
-                `Update rejected: Total planned allocations (${formatPHP(otherAllocationsTotal + patch.approvedAmountCentavos, true)}) would exceed the initial budget (${formatPHP(budgetBaseCentavos, true)}). Available surplus: ${formatPHP(availableCentavos, true)}.`
-              );
-            }
           }
         }
       }
@@ -605,6 +669,7 @@ export const financeService = {
     if (!txSnap.empty || hasSpent) {
       // If transactions or spent disbursements exist, soft delete/archive to protect audit trail
       await updateDoc(allocRef, {
+        previousStatus: data.status && data.status !== 'archived' ? data.status : 'approved',
         status: 'archived',
         isActive: false,
         archivedAt: serverTimestamp(),
@@ -618,7 +683,7 @@ export const financeService = {
   },
 
   /**
-   * Restore an archived budget allocation
+   * Restore an archived budget allocation (enforcing fiscal/FSG ceiling cap before restoring to approved)
    */
   async restoreBudgetAllocation(allocationId, user) {
     const allocRef = doc(db, COLLECTIONS.BUDGET_ALLOCATIONS, allocationId);
@@ -626,8 +691,46 @@ export const financeService = {
     if (!snap.exists()) {
       throw new Error('Budget allocation not found.');
     }
+    const current = snap.data() || {};
+    const targetStatus = current.previousStatus === 'draft' ? 'draft' : 'approved';
+    const targetFundId = current.fundAccountId || 'fund_fiscal_year_budget';
+    const restoreAmountCentavos = current.approvedAmountCentavos || 0;
+
+    if (targetStatus === 'approved' && targetFundId) {
+      const fundSnap = await getDoc(doc(db, COLLECTIONS.FUND_ACCOUNTS, targetFundId));
+      if (fundSnap.exists()) {
+        const fund = fundSnap.data();
+        const isFiscalOrFsg =
+          targetFundId === 'fund_fiscal_year_budget' ||
+          targetFundId === 'fund_fsg_remittance';
+        const budgetBaseCentavos = isFiscalOrFsg
+          ? (fund.appropriatedCeilingCentavos || fund.balanceCentavos || 0)
+          : (fund.balanceCentavos || 0);
+
+        if (budgetBaseCentavos > 0) {
+          const allocSnap = await getDocs(
+            query(
+              collection(db, COLLECTIONS.BUDGET_ALLOCATIONS),
+              where('fundAccountId', '==', targetFundId),
+              where('status', '==', 'approved')
+            )
+          );
+          const activeAllocated = allocSnap.docs
+            .filter((d) => d.id !== allocationId)
+            .reduce((sum, d) => sum + (d.data().approvedAmountCentavos || 0), 0);
+
+          if (activeAllocated + restoreAmountCentavos > budgetBaseCentavos) {
+            const availableCentavos = Math.max(0, budgetBaseCentavos - activeAllocated);
+            throw new Error(
+              `Restore rejected: Restoring this allocation (${formatPHP(restoreAmountCentavos, true)}) would exceed the initial budget (${formatPHP(budgetBaseCentavos, true)}). Available surplus: ${formatPHP(availableCentavos, true)}.`
+            );
+          }
+        }
+      }
+    }
+
     await updateDoc(allocRef, {
-      status: 'approved',
+      status: targetStatus,
       isActive: true,
       restoredAt: serverTimestamp(),
       restoredBy: user?.userName || user?.displayName || 'Authorized Officer',
@@ -667,6 +770,22 @@ export const financeService = {
 
     const amountCentavos = toCentavos(amount);
 
+    // Pre-fetch posted ledger disbursements for this allocation so recording an
+    // already-entered PPMP Actual Spent amount never double-counts spentAmountCentavos
+    // or falsely triggers a depleted/overspent rejection.
+    let ledgerPostedBeforeCentavos = 0;
+    if (budgetAllocationId) {
+      const allocTxSnap = await getDocs(
+        query(
+          collection(db, COLLECTIONS.TRANSACTIONS),
+          where('budgetAllocationId', '==', budgetAllocationId)
+        )
+      );
+      const allocTxs = allocTxSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      ledgerPostedBeforeCentavos =
+        computeDisbursedByAllocation(allocTxs).get(budgetAllocationId) || 0;
+    }
+
     return await runTransaction(db, async (transaction) => {
       // 1. Fetch Fund Account
       const fundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, fundAccountId);
@@ -687,8 +806,7 @@ export const financeService = {
         if (allocSnap.exists()) {
           allocationData = allocSnap.data();
           const approved = allocationData.approvedAmountCentavos || 0;
-          const spent = allocationData.spentAmountCentavos || 0;
-          remainingAllocCentavos = approved - spent;
+          remainingAllocCentavos = Math.max(0, approved - ledgerPostedBeforeCentavos);
         }
       }
 
@@ -704,6 +822,7 @@ export const financeService = {
 
       // 3. Shared Validation Rules
       const validation = validateTransactionRules({
+        fundAccountId,
         fundCategory: fundData.topLevelCategory,
         transactionType,
         expensePurpose,
@@ -718,6 +837,7 @@ export const financeService = {
         receiptOrNumber,
         receiptDetails,
         custodianUserId,
+        transferDestinationAccountId,
         availableBalanceCentavos: fundData.balanceCentavos || 0,
         availableAllocationCentavos: remainingAllocCentavos,
         availableLineItemCentavos: remainingLineItemCentavos,
@@ -731,14 +851,17 @@ export const financeService = {
       let destData = null;
       if (
         status === TRANSACTION_STATUSES.POSTED &&
-        transactionType === TRANSACTION_TYPES.TRANSFER &&
-        transferDestinationAccountId
+        String(transactionType || '').toLowerCase() === TRANSACTION_TYPES.TRANSFER
       ) {
+        if (!transferDestinationAccountId) {
+          throw new Error('Destination fund account is required for a transfer.');
+        }
         destRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, transferDestinationAccountId);
         const destSnap = await transaction.get(destRef);
-        if (destSnap.exists()) {
-          destData = destSnap.data();
+        if (!destSnap.exists()) {
+          throw new Error('Destination fund account not found.');
         }
+        destData = destSnap.data();
       }
 
       // 4. Create Transaction Record
@@ -780,33 +903,47 @@ export const financeService = {
 
       transaction.set(newTxRef, transactionPayload);
 
-      // 5. Update Ledger Balances if Posted
+      // 5. Update Ledger Balances if Posted (Double-entry safe: TRANSFER debits source AND credits destination)
       if (status === TRANSACTION_STATUSES.POSTED) {
-        let balanceDelta = 0;
-        if (
-          transactionType === TRANSACTION_TYPES.RECEIPT ||
-          transactionType === TRANSACTION_TYPES.COLLECTION
-        ) {
-          balanceDelta = amountCentavos;
-        } else if (
-          transactionType === TRANSACTION_TYPES.EXPENSE ||
-          transactionType === TRANSACTION_TYPES.PAYMENT ||
-          transactionType === TRANSACTION_TYPES.REFUND
-        ) {
-          balanceDelta = -amountCentavos;
-        }
+        const { sourceDeltaCentavos, destinationDeltaCentavos } =
+          computeTransactionBalanceDeltas({
+            transactionType,
+            amountCentavos,
+            transferDestinationAccountId,
+          });
 
-        const newBalance = (fundData.balanceCentavos || 0) + balanceDelta;
-        transaction.update(fundRef, {
+        const newBalance = Math.max(0, (fundData.balanceCentavos || 0) + sourceDeltaCentavos);
+        const isFiscalOrFsgAccount =
+          fundAccountId === 'fund_fiscal_year_budget' ||
+          fundAccountId === 'fund_fsg_remittance' ||
+          fundData.topLevelCategory === TOP_LEVEL_FUNDS.FISCAL_YEAR_BUDGET ||
+          fundData.topLevelCategory === TOP_LEVEL_FUNDS.FSG_REMITTANCE;
+        const fundUpdate = {
           balanceCentavos: newBalance,
           updatedAt: serverTimestamp(),
-        });
+        };
+        // Anchor appropriatedCeilingCentavos if it was 0/unset before the first disbursement
+        // so subsequent ledger reconciliations never double-subtract against balanceCentavos.
+        if (
+          isFiscalOrFsgAccount &&
+          (!fundData.appropriatedCeilingCentavos || Number(fundData.appropriatedCeilingCentavos) <= 0) &&
+          (fundData.balanceCentavos || 0) > 0
+        ) {
+          fundUpdate.appropriatedCeilingCentavos = fundData.balanceCentavos;
+        }
+        transaction.update(fundRef, fundUpdate);
 
-        // Update allocation and sub-line item spent if applicable
+        // Update allocation and sub-line item spent if applicable (without double-counting unposted PPMP spent)
         if (allocRef && allocationData) {
-          const newSpent = (allocationData.spentAmountCentavos || 0) + amountCentavos;
+          const newLedgerPosted = ledgerPostedBeforeCentavos + amountCentavos;
+          const newSpent = computeNextAllocationSpentCentavos({
+            existingSpentCentavos: allocationData.spentAmountCentavos || 0,
+            ledgerPostedBeforeCentavos,
+            postedAmountCentavos: amountCentavos,
+          });
           const allocUpdates = {
             spentAmountCentavos: newSpent,
+            ledgerPostedCentavos: newLedgerPosted,
             updatedAt: serverTimestamp(),
           };
 
@@ -830,9 +967,9 @@ export const financeService = {
         }
 
         // If transfer, atomically credit destination account (pre-read before writes)
-        if (destRef && destData) {
+        if (destRef && destData && destinationDeltaCentavos !== 0) {
           transaction.update(destRef, {
-            balanceCentavos: (destData.balanceCentavos || 0) + amountCentavos,
+            balanceCentavos: Math.max(0, (destData.balanceCentavos || 0) + destinationDeltaCentavos),
             updatedAt: serverTimestamp(),
           });
         }
@@ -840,7 +977,11 @@ export const financeService = {
 
       return { id: newTxRef.id, refNumber };
     }).then((result) => {
-      notifyFinanceUpdated({ fundAccountId, refNumber: result.refNumber });
+      notifyFinanceUpdated({
+        fundAccountId,
+        transferDestinationAccountId: transferDestinationAccountId || null,
+        refNumber: result.refNumber,
+      });
       return result;
     });
   },
@@ -881,15 +1022,37 @@ export const financeService = {
         }
       }
 
-      // Invert amount effect
-      let reverseDelta = 0;
+      const isTransferOrig =
+        String(orig.transactionType || '').toLowerCase() === TRANSACTION_TYPES.TRANSFER;
+      let destRef = null;
+      let destData = null;
+      if (isTransferOrig && orig.transferDestinationAccountId) {
+        destRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, orig.transferDestinationAccountId);
+        const destSnap = await transaction.get(destRef);
+        if (!destSnap.exists()) {
+          throw new Error('Destination fund account not found for transfer reversal.');
+        }
+        destData = destSnap.data();
+      }
+
+      // Compute exact double-entry inverse deltas (TRANSFER reversal credits source AND debits destination)
+      const { sourceDeltaCentavos, destinationDeltaCentavos } =
+        computeReversalBalanceDeltas({
+          transactionType: orig.transactionType,
+          amountCentavos: orig.amountCentavos,
+          deltaCentavos: orig.deltaCentavos,
+          transferDestinationAccountId: orig.transferDestinationAccountId || null,
+        });
+
       if (
-        orig.transactionType === TRANSACTION_TYPES.RECEIPT ||
-        orig.transactionType === TRANSACTION_TYPES.COLLECTION
+        destRef &&
+        destData &&
+        destinationDeltaCentavos < 0 &&
+        (destData.balanceCentavos || 0) + destinationDeltaCentavos < 0
       ) {
-        reverseDelta = -orig.amountCentavos;
-      } else {
-        reverseDelta = orig.amountCentavos;
+        throw new Error(
+          'Cannot reverse transfer: destination fund account has insufficient balance to return transferred funds.'
+        );
       }
 
       // 1. Mark original as reversed
@@ -907,6 +1070,8 @@ export const financeService = {
         fundAccountId: orig.fundAccountId,
         fundCategory: orig.fundCategory,
         transactionType: TRANSACTION_TYPES.REVERSAL,
+        reversedTransactionType: orig.transactionType || null,
+        transferDestinationAccountId: orig.transferDestinationAccountId || null,
         expensePurpose: orig.expensePurpose || 'Reversal',
         amountCentavos: orig.amountCentavos,
         description: `Authorized reversal of ${orig.refNumber}: ${reason}`,
@@ -920,11 +1085,18 @@ export const financeService = {
         status: TRANSACTION_STATUSES.POSTED,
       });
 
-      // 3. Update Fund Balance
+      // 3. Update Source Fund Balance (and Destination Fund Balance for TRANSFER reversals)
       transaction.update(fundRef, {
-        balanceCentavos: (fundData.balanceCentavos || 0) + reverseDelta,
+        balanceCentavos: Math.max(0, (fundData.balanceCentavos || 0) + sourceDeltaCentavos),
         updatedAt: serverTimestamp(),
       });
+
+      if (destRef && destData && destinationDeltaCentavos !== 0) {
+        transaction.update(destRef, {
+          balanceCentavos: Math.max(0, (destData.balanceCentavos || 0) + destinationDeltaCentavos),
+          updatedAt: serverTimestamp(),
+        });
+      }
 
       // 4. Update Allocation spent and line item spent if applicable (pre-read above)
       if (allocRef && allocData) {
@@ -933,6 +1105,12 @@ export const financeService = {
           spentAmountCentavos: newSpent,
           updatedAt: serverTimestamp(),
         };
+        if (allocData.ledgerPostedCentavos !== undefined) {
+          allocUpdates.ledgerPostedCentavos = Math.max(
+            0,
+            Number(allocData.ledgerPostedCentavos || 0) - orig.amountCentavos
+          );
+        }
 
         if (Array.isArray(allocData.approvedLineItems)) {
           if (orig.lineItemId) {
@@ -1006,10 +1184,19 @@ export const financeService = {
     } = batchData;
 
     const unitPriceCentavos = toCentavos(unitPrice);
+    if (!String(name || '').trim()) {
+      throw new Error('Batch name is required.');
+    }
+    if (!String(product || '').trim()) {
+      throw new Error('Product name is required.');
+    }
+    if (unitPriceCentavos <= 0) {
+      throw new Error('Unit price must be greater than ₱0.00.');
+    }
 
     const docRef = await addDoc(collection(db, COLLECTIONS.PRE_ORDER_BATCHES), {
-      name,
-      product,
+      name: String(name).trim(),
+      product: String(product).trim(),
       unitPriceCentavos,
       preOrderOpenDate,
       preOrderCloseDate,
@@ -1045,13 +1232,26 @@ export const financeService = {
     amountPaid,
     officerUser,
   }) {
+    const qty = Number(quantity);
+    if (!Number.isInteger(qty) || qty < 1) {
+      throw new Error('Order quantity must be a whole number of at least 1.');
+    }
+    if (!String(studentName || '').trim()) {
+      throw new Error('Student name is required.');
+    }
     const paidCentavos = toCentavos(amountPaid);
+    if (paidCentavos <= 0) {
+      throw new Error('Payment amount must be greater than ₱0.00.');
+    }
 
     return await runTransaction(db, async (transaction) => {
       const batchRef = doc(db, COLLECTIONS.PRE_ORDER_BATCHES, batchId);
       const batchSnap = await transaction.get(batchRef);
       if (!batchSnap.exists()) throw new Error('Batch not found.');
       const batch = batchSnap.data();
+      if (batch.status && batch.status !== 'OPEN_FOR_PREORDERS') {
+        throw new Error(`Cannot record student payment: batch status is "${batch.status}" (must be OPEN_FOR_PREORDERS).`);
+      }
 
       const igfFundRef = doc(db, COLLECTIONS.FUND_ACCOUNTS, 'fund_igf_main');
       const igfSnap = await transaction.get(igfFundRef);
@@ -1059,16 +1259,16 @@ export const financeService = {
         ? (igfSnap.data().bankAccountReference || 'Treasury Safe / Cash Box')
         : 'Treasury Safe / Cash Box';
 
-      const totalDueCentavos = (batch.unitPriceCentavos || 0) * Number(quantity);
+      const totalDueCentavos = (batch.unitPriceCentavos || 0) * qty;
 
       // Add PreOrderEntry
       const entryRef = doc(collection(db, COLLECTIONS.PRE_ORDER_ENTRIES));
       transaction.set(entryRef, {
         batchId,
-        studentId,
-        studentName,
+        studentId: String(studentId || '').trim(),
+        studentName: String(studentName).trim(),
         variant,
-        quantity: Number(quantity),
+        quantity: qty,
         amountDueCentavos: totalDueCentavos,
         amountPaidCentavos: paidCentavos,
         paymentStatus: paidCentavos >= totalDueCentavos ? 'PAID' : 'PARTIAL',

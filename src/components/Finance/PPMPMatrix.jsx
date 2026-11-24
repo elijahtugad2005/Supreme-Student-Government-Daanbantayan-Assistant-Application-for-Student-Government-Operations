@@ -78,6 +78,7 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
   const fsgAccount = fundAccounts.find((a) => a.id === 'fund_fsg_remittance');
 
   const fiscalCeilingCentavos = fiscalAccount?.appropriatedCeilingCentavos || fiscalAccount?.balanceCentavos || 0;
+  const fsgCeilingCentavos = fsgAccount?.appropriatedCeilingCentavos || fsgAccount?.balanceCentavos || 0;
   const fsgBalanceCentavos = fsgAccount?.balanceCentavos || 0;
   const bdoLiquidHoldingCentavos = fiscalAccount?.balanceCentavos || 0;
 
@@ -86,8 +87,8 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
     activeFundSource === 'FISCAL'
       ? fiscalCeilingCentavos
       : activeFundSource === 'FSG'
-      ? fsgBalanceCentavos
-      : fiscalCeilingCentavos + fsgBalanceCentavos;
+      ? fsgCeilingCentavos
+      : fiscalCeilingCentavos + fsgCeilingCentavos;
 
   // Filter to active PPMP allocations (Fiscal Year Budget & FSG Remittance ONLY; IGF/IGP strictly excluded)
   const ppmpAllocations = useMemo(() => {
@@ -103,7 +104,7 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
       // Strictly exclude IGF & IGP
       if (
         fundId === 'fund_igf_main' ||
-        fundId === 'fund_igp_water' ||
+        fundId === 'fund_igp_main' ||
         b.fundCategory === 'IGF' ||
         b.fundCategory === 'IGP'
       ) {
@@ -163,8 +164,8 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
       if (activeCategoryTab !== 'ALL' && item.procurementType !== activeCategoryTab) {
         return false;
       }
-      // Status Filter
-      if (statusFilter !== 'ALL' && item.ppmpStatus !== statusFilter) {
+      // Status Filter (skip ppmpStatus check when viewing archived records)
+      if (statusFilter !== 'ALL' && statusFilter !== 'archived' && item.ppmpStatus !== statusFilter) {
         return false;
       }
       // Search
@@ -351,7 +352,7 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
               {activeMacroCeilingCentavos > 0 ? formatPHP(activeMacroCeilingCentavos, true) : 'Not Configured'}
             </span>
             <span className={styles.kpiMeta}>
-              {activeFundSource === 'FSG' ? 'Federation Grant & Remittance Pool' : (fiscalAccount?.bankAccountReference || 'BDO Institutional Account')}
+              {activeFundSource === 'FSG' ? 'FSG Remittance Pool' : (fiscalAccount?.bankAccountReference || 'BDO Institutional Account')}
             </span>
           </div>
 

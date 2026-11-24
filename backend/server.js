@@ -13,7 +13,8 @@ require('dotenv').config();
 
 // Initialize Firebase Admin first (must happen before routes load)
 const { initializeFirebaseAdmin } = require('./services/firebase-admin');
-const { closeConnection } = require('./services/mongodb');
+const { getDatabase, closeConnection } = require('./services/mongodb');
+const { runStartupDiagnostics } = require('./utils/startupDiagnostics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,10 +48,16 @@ app.use(cors({
 // FIREBASE ADMIN INITIALIZATION
 // ──────────────────────────────────────────────────────────────────────────────
 
+let firebaseInitialized = false;
+let firebaseInitError = null;
+let mongoConnectionStatus = 'checking';
+
 try {
   initializeFirebaseAdmin();
+  firebaseInitialized = true;
   console.log('🔥 Firebase Admin initialized');
 } catch (error) {
+  firebaseInitError = error.message;
   console.error('[Server] Failed to initialize Firebase Admin:', error.message);
   console.warn('[Server] Document API endpoints will NOT work without Firebase Admin SDK.');
 }
@@ -77,8 +84,8 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
-      mongodb: 'connected',
-      firebase: 'initialized'
+      mongodb: mongoConnectionStatus,
+      firebase: firebaseInitialized ? 'initialized' : 'not_initialized'
     }
   });
 });
@@ -244,6 +251,18 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`❤️  Health check: http://localhost:${PORT}/health`);
   console.log(`🌐 Network access: http://${localIP}:${PORT}`);
   console.log(`   Share this URL with devices on the same WiFi network`);
+
+  // Print secret-safe env/API key deployment checklist and verify live MongoDB connectivity
+  runStartupDiagnostics({
+    firebaseInitialized,
+    firebaseError: firebaseInitError,
+    getDatabase,
+    onMongoStatus: (status) => {
+      mongoConnectionStatus = status;
+    },
+  }).catch((err) => {
+    console.warn('[DeployCheck] Startup diagnostics encountered an error:', err.message);
+  });
 });
 
 server.on('error', (error) => {
