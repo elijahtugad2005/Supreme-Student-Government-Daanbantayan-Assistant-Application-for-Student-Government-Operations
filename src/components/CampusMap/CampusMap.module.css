@@ -2278,3 +2278,443 @@
 .mapPageClassic .treeShadow {
   fill: rgba(0, 0, 0, 0.55) !important;
 }
+
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST ARCHITECTURAL BLUEPRINT
+   Scoped strictly to :global(html.theme-light). Leaves dark & Classic untouched.
+   Palette: #F4F4F0 / #FFFFFF / #EAE8E3 / #0A0A0A / #E61919
+   ========================================================================== */
+
+:global(html.theme-light) .mapPage {
+  --map-bg: #f4f4f0;
+  --map-card-bg: #ffffff;
+  --map-border: #0a0a0a;
+  --map-border-accent: #0a0a0a;
+  --map-accent: #e61919;
+  --map-accent-hover: #0a0a0a;
+  --map-text-primary: #0a0a0a;
+  --map-text-muted: #4a4a4a;
+  background-color: #f4f4f0 !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .mapPage ::selection {
+  background: #0a0a0a;
+  color: #f4f4f0;
+}
+
+/* ─── Masthead & Telemetry Strip ─── */
+:global(html.theme-light) .mapPage .masthead {
+  background: #ffffff !important;
+  border: 3px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 5px 5px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .masthead::before {
+  display: none !important;
+}
+
+:global(html.theme-light) .mapPage .eyebrowBadge,
+:global(html.theme-light) .mapPage .eyebrowIcon {
+  color: #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .pageTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #0a0a0a !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+:global(html.theme-light) .mapPage .pageSubtitle {
+  color: #4a4a4a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .mapPage .telemetryChips {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .telemetryLabel {
+  color: #4a4a4a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .telemetryValue {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #0a0a0a !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(html.theme-light) .mapPage .telemetrySub {
+  color: #e61919 !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .telemetryDivider {
+  background: #0a0a0a !important;
+}
+
+/* ─── HUD Bar: Search, Categories, 2D/2.5D, Satellite, Zoom ─── */
+:global(html.theme-light) .mapPage .searchIcon,
+:global(html.theme-light) .mapPage .clearSearchBtn {
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .clearSearchBtn {
+  background: #eae8e3 !important;
+  border-radius: 0px !important;
+  border: 1px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .searchInput {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .mapPage .searchInput:focus {
+  border-color: #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .mapPage .searchResultsDropdown {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 5px 5px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .searchResultItem {
+  color: #0a0a0a !important;
+  border-bottom: 1.5px solid #eae8e3 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .mapPage .searchResultItem:hover {
+  background: #eae8e3 !important;
+}
+
+:global(html.theme-light) .mapPage .searchItemCategory {
+  color: #4a4a4a !important;
+}
+
+:global(html.theme-light) .mapPage .categoryPill,
+:global(html.theme-light) .mapPage .isoOptionBtn,
+:global(html.theme-light) .mapPage .satelliteClipBtn,
+:global(html.theme-light) .mapPage .roofColorBtn,
+:global(html.theme-light) .mapPage .hudActionBtn,
+:global(html.theme-light) .mapPage .adminTreeToggleBtn,
+:global(html.theme-light) .mapPage .treeTypeBtn,
+:global(html.theme-light) .mapPage .treeActionBtn,
+:global(html.theme-light) .mapPage .mobileFabBtn {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  box-shadow: 2px 2px 0px #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .mapPage .categoryPill:hover,
+:global(html.theme-light) .mapPage .isoOptionBtn:hover,
+:global(html.theme-light) .mapPage .satelliteClipBtn:hover,
+:global(html.theme-light) .mapPage .hudActionBtn:hover,
+:global(html.theme-light) .mapPage .adminTreeToggleBtn:hover,
+:global(html.theme-light) .mapPage .treeTypeBtn:hover,
+:global(html.theme-light) .mapPage .treeActionBtn:hover {
+  background: #eae8e3 !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .categoryPillActive,
+:global(html.theme-light) .mapPage .viewSegmentBtnActive,
+:global(html.theme-light) .mapPage .isoOptionBtnActive,
+:global(html.theme-light) .mapPage .satelliteClipBtnActive,
+:global(html.theme-light) .mapPage .roofColorBtnActive,
+:global(html.theme-light) .mapPage .hudActionBtnActive,
+:global(html.theme-light) .mapPage .adminTreeToggleBtnActive,
+:global(html.theme-light) .mapPage .treeTypeBtnActive,
+:global(html.theme-light) .mapPage .mangoSeasonBtnActive,
+:global(html.theme-light) .mapPage .mobileFabBtnActive {
+  background: #0a0a0a !important;
+  border-color: #0a0a0a !important;
+  color: #ffffff !important;
+  box-shadow: 2px 2px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .mapPage .viewSegmentedGroup,
+:global(html.theme-light) .mapPage .isoOptionsGroup,
+:global(html.theme-light) .mapPage .satelliteOptionsGroup,
+:global(html.theme-light) .mapPage .zoomControlsGroup,
+:global(html.theme-light) .mapPage .adminTreeToolbar {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .viewSegmentBtn {
+  background: #ffffff !important;
+  border: 1.5px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .mapPage .isoOptionsLabel,
+:global(html.theme-light) .mapPage .satelliteOpacityLabel,
+:global(html.theme-light) .mapPage .zoomMinLabel,
+:global(html.theme-light) .mapPage .zoomMaxLabel {
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .isoDivider {
+  background: #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .zoomSlider,
+:global(html.theme-light) .mapPage .satelliteSlider {
+  accent-color: #e61919 !important;
+}
+
+:global(html.theme-light) .mapPage .treeClearBtn {
+  background: #ffffff !important;
+  border: 2px solid #e61919 !important;
+  border-radius: 0px !important;
+  color: #e61919 !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .treeClearBtn:hover {
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .mapPage .treeCountBadge,
+:global(html.theme-light) .mapPage .adminBadge {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border-radius: 0px !important;
+  border: 1.5px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .plantingBanner {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #e61919 !important;
+}
+
+/* ─── Architectural Drafting Viewport & HUD Overlays ─── */
+:global(html.theme-light) .mapPage .viewportContainer {
+  background: #f8f8f4 !important;
+  border: 3px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .compassRose {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .compassNorthLabel {
+  color: #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 900 !important;
+}
+
+:global(html.theme-light) .mapPage .gpsReadout {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .mapPage .gpsModeBadge,
+:global(html.theme-light) .mapPage .gpsBasemapBadge,
+:global(html.theme-light) .mapPage .gpsZoom {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .mapPage .exitFullscreenBtn {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+/* ─── Blueprint SVG Legibility on Light Drafting Substrate ─── */
+:global(html.theme-light) .mapPage .boundaryFill {
+  fill: #efece6 !important;
+}
+
+:global(html.theme-light) .mapPage .boundaryStroke {
+  stroke: #0a0a0a !important;
+  stroke-width: 2 !important;
+}
+
+:global(html.theme-light) .mapPage .buildingLabel,
+:global(html.theme-light) .mapPage .groundPlazaLabel,
+:global(html.theme-light) .mapPage .pinText {
+  fill: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px #ffffff, 0 0 4px #ffffff, 0 0 6px #ffffff !important;
+}
+
+:global(html.theme-light) .mapPage .ovalBadgeBg {
+  fill: #ffffff !important;
+  stroke: #0a0a0a !important;
+  stroke-width: 2 !important;
+}
+
+:global(html.theme-light) .mapPage .ovalLabel {
+  fill: #0a0a0a !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+}
+
+:global(html.theme-light) .mapPage .ovalSubLabel {
+  fill: #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+/* ─── Detail Card Drawer & Linked Announcements ─── */
+:global(html.theme-light) .mapPage .detailCard {
+  background: #ffffff !important;
+  border: 3px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0a0a0a !important;
+  color: #0a0a0a !important;
+  backdrop-filter: none !important;
+}
+
+:global(html.theme-light) .mapPage .detailHeader {
+  background: #0a0a0a !important;
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .detailTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #ffffff !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .mapPage .detailCategoryBadge {
+  background: #e61919 !important;
+  color: #ffffff !important;
+  border-radius: 0px !important;
+  border: 1.5px solid #ffffff !important;
+}
+
+:global(html.theme-light) .mapPage .detailCloseBtn {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .detailCloseBtn:hover {
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .mapPage .detailRow {
+  border-bottom: 1.5px solid #eae8e3 !important;
+}
+
+:global(html.theme-light) .mapPage .detailRowLabel {
+  color: #4a4a4a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .detailRowVal,
+:global(html.theme-light) .mapPage .announcementsHeading,
+:global(html.theme-light) .mapPage .annTitle {
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .copyActionBtn {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .mapPage .copyActionBtn:hover {
+  background: #e61919 !important;
+}
+
+:global(html.theme-light) .mapPage .announcementItem {
+  background: #f4f4f0 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .mapPage .annDesc,
+:global(html.theme-light) .mapPage .annDate,
+:global(html.theme-light) .mapPage .emptyAnnouncements {
+  color: #4a4a4a !important;
+}
+
+:global(html.theme-light) .mapPage .annCategory {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border-radius: 0px !important;
+}
+
+/* ─── Footer Legend Strip ─── */
+:global(html.theme-light) .mapPage .mapFooter,
+:global(html.theme-light) .mapPage .legendContainer {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .mapPage .legendTitle {
+  color: #e61919 !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .mapPage .legendItem {
+  color: #0a0a0a !important;
+  font-weight: 700 !important;
+}
+
+:global(html.theme-light) .mapPage .legendSwatch {
+  border-radius: 0px !important;
+  border: 1.5px solid #0a0a0a !important;
+}

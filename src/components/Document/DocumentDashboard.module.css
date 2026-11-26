@@ -273,10 +273,13 @@
   color: #FFFFFF !important;
 }
 
+:global(html.theme-light) .brutalistChip.brutalistChipActive,
 :global(.theme-light) .brutalistChipActive {
   background: #0A0A0A !important;
   color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
   box-shadow: 2px 2px 0px #E61919 !important;
+  opacity: 1 !important;
 }
 
 :global(.theme-light) .miniChip {
@@ -420,19 +423,54 @@
 }
 
 :global(.theme-light) .docRowTitle {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 900 !important;
-  font-size: 1.05rem !important;
+  font-size: 1.02rem !important;
   color: #0A0A0A !important;
   text-transform: uppercase !important;
   letter-spacing: -0.01em !important;
 }
 
+:global(html.theme-light) .docRefBadge {
+  background-color: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  padding: 0.18rem 0.5rem !important;
+}
+
 :global(.theme-light) .docRowMeta {
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.75rem !important;
-  color: #555555 !important;
-  font-weight: 600 !important;
+  color: #4A4A4A !important;
+  font-weight: 700 !important;
+}
+
+:global(html.theme-light) .docRowSummary {
+  margin: 0.55rem 0 0.45rem !important;
+  padding: 0.55rem 0.75rem !important;
+  background-color: #F4F4F0 !important;
+  border: 1.5px solid #0A0A0A !important;
+  color: #1F1F1F !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.78rem !important;
+  line-height: 1.55 !important;
+  transition: background-color 0.12s ease !important;
+}
+
+:global(html.theme-light) .docRowSummary:hover {
+  background-color: #EAE8E3 !important;
+}
+
+:global(html.theme-light) .docRowSummary strong {
+  color: #0A0A0A !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
 }
 
 /* Action Icons inside Document Row */

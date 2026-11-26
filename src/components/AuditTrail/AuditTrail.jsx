@@ -240,7 +240,7 @@ function AuditTrail() {
           <span className={styles.accessDeniedBadge}>RESTRICTED CLEARANCE</span>
           <h3>Executive Security Clearance Required</h3>
           <p>
-            The Institutional Audit Trail is restricted exclusively to the <strong>President</strong>, 
+            The Institutional System Trail is restricted exclusively to the <strong>President</strong>, 
             <strong> Vice President</strong>, and verified <strong>System Administrators</strong>.
           </p>
           <div className={styles.clearanceNote}>
@@ -261,7 +261,7 @@ function AuditTrail() {
             <History size={13} />
             <span>{isClassic ? 'SSG IMMUTABLE INSTITUTIONAL LEDGER' : 'Immutable Institutional Ledger'}</span>
           </div>
-          <h1 className={styles.title}>System Audit Trail</h1>
+          <h1 className={styles.title}>System Trail</h1>
           <p className={styles.subtitle}>
             Real-time chronological telemetry tracking executive dispatches, inventory mutations, 
             official archives, and commerce integrity.
@@ -421,6 +421,7 @@ function AuditTrail() {
                     <div className={styles.tableCell} style={{ width: '85px', flexShrink: 0 }}>
                       <span
                         className={styles.codePill}
+                        data-severity={meta.code.endsWith('DL') ? 'danger' : 'normal'}
                         style={{
                           backgroundColor: meta.bg,
                           color: meta.color,
@@ -525,6 +526,7 @@ function AuditTrail() {
               key={def.code}
               type="button"
               className={`${styles.stripPill} ${selectedActionCode === def.code ? styles.stripPillActive : ''}`}
+              data-severity={def.code.endsWith('DL') ? 'danger' : 'normal'}
               style={{
                 borderColor: def.color,
                 color: selectedActionCode === def.code ? '#FFFFFF' : def.color,

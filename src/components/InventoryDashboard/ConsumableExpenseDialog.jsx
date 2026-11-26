@@ -174,6 +174,7 @@ const ConsumableExpenseDialog = ({
                   return (
                     <label
                       key={src}
+                      className={`${styles.fundSourceOption} ${active ? styles.fundSourceOptionActive : ''}`}
                       style={{
                         display: 'flex',
                         alignItems: 'flex-start',
@@ -195,13 +196,14 @@ const ConsumableExpenseDialog = ({
                         value={src}
                         checked={active}
                         onChange={() => setFormData((prev) => ({ ...prev, fundSource: src }))}
+                        className={styles.fundSourceRadio}
                         style={{ marginTop: '3px' }}
                       />
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: accent }}>
+                        <div className={styles.fundSourceTitle} style={{ fontWeight: 700, fontSize: '0.92rem', color: accent }}>
                           {src === 'IGF' ? 'IGF — Income Generated Fund' : 'IGP — Income-Generating Projects'}
                         </div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: accent, marginTop: '4px' }}>
+                        <div className={styles.fundSourceBalance} style={{ fontSize: '0.8rem', fontWeight: 600, color: accent, marginTop: '4px' }}>
                           Available: ₱{bal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                         </div>
                       </div>
@@ -212,6 +214,7 @@ const ConsumableExpenseDialog = ({
 
               {totalCost > 0 && (
                 <div
+                  className={`${styles.expenseTotalBanner} ${isInsufficient ? styles.expenseTotalInsufficient : ''}`}
                   style={{
                     marginTop: '10px',
                     padding: '10px 14px',
@@ -229,11 +232,11 @@ const ConsumableExpenseDialog = ({
                     (deducted from <strong>{formData.fundSource}</strong>)
                   </span>
                   {isInsufficient ? (
-                    <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                    <span className={styles.expenseStatusDanger} style={{ color: '#ef4444', fontWeight: 700 }}>
                       Insufficient {formData.fundSource} Balance
                     </span>
                   ) : (
-                    <span style={{ color: '#10b981', fontWeight: 600 }}>
+                    <span className={styles.expenseStatusOk} style={{ color: '#10b981', fontWeight: 600 }}>
                       Balance Sufficient (₱{(selectedFundBalance - totalCost).toLocaleString('en-PH', { minimumFractionDigits: 2 })} remaining)
                     </span>
                   )}
@@ -347,6 +350,7 @@ const ConsumableExpenseDialog = ({
                   href={formData.receiptDriveLink}
                   target="_blank"
                   rel="noopener noreferrer"
+                  className={styles.receiptViewLink}
                   style={{ color: '#38bdf8', textDecoration: 'underline', marginLeft: '4px' }}
                 >
                   View Receipt
@@ -358,6 +362,7 @@ const ConsumableExpenseDialog = ({
           {error && (
             <div
               role="alert"
+              className={styles.expenseErrorAlert}
               style={{
                 display: 'flex',
                 alignItems: 'center',

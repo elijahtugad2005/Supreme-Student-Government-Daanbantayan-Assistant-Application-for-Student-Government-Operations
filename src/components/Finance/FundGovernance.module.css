@@ -2051,3 +2051,671 @@
     min-width: 96px;
   }
 }
+
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES
+   Scoped exclusively to :global(.theme-light). Leaves .theme-dark untouched.
+   Palette: #F4F4F0 / #FFFFFF / #EAE8E3 / #0A0A0A / #E61919
+   ========================================================================== */
+
+:global(.theme-light) .fundCard,
+:global(.theme-light) .tableCard {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .fundCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .fundIconBadge {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .badgeFiscal {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .badgeFSG {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .badgeIGF {
+  background: #ffffff;
+  color: #0a0a0a;
+  box-shadow: 2px 2px 0px #0a0a0a;
+}
+
+:global(.theme-light) .badgeIGP {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .fundCategoryTag,
+:global(.theme-light) .fundBalanceLabel,
+:global(.theme-light) .sectionSuperTag,
+:global(.theme-light) .allocKpiLabel,
+:global(.theme-light) .ledgerFilterLabel,
+:global(.theme-light) .ledgerBridgeScope,
+:global(.theme-light) .ledgerBridgeStepLabel {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+
+:global(.theme-light) .sectionSuperTag,
+:global(.theme-light) .ledgerBridgeScope {
+  color: #e61919;
+}
+
+:global(.theme-light) .fundTitle,
+:global(.theme-light) .tableTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  letter-spacing: -0.02em;
+}
+
+:global(.theme-light) .fundSub,
+:global(.theme-light) .sectionDescription,
+:global(.theme-light) .ledgerSubCaption {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .fundBalance {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #0a0a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .fundMeta {
+  border-top: 2px solid #0a0a0a;
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .fundCardSubStats {
+  background: #f4f4f0;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .fundStatLabel {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .fundStatValue {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .fundStatSurplus {
+  color: #166534;
+}
+
+/* ─── Swiss Industrial Buttons ─── */
+:global(.theme-light) .primaryBtn,
+:global(.theme-light) .allocateToolbarBtn {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+}
+
+:global(.theme-light) .primaryBtn:hover,
+:global(.theme-light) .allocateToolbarBtn:hover {
+  background: #e61919;
+  border-color: #0a0a0a;
+  color: #ffffff;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .secondaryBtn {
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .secondaryBtn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-color: #0a0a0a;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .dangerBtn {
+  background: #ffffff;
+  color: #e61919;
+  border: 2px solid #e61919;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .dangerBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .quickAllocateBtnMaroon,
+:global(.theme-light) .quickAllocateBtnGold {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .quickAllocateBtnMaroon:hover,
+:global(.theme-light) .quickAllocateBtnGold:hover {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #0a0a0a;
+}
+
+/* ─── Filter Pills & Allocation Summary Bar ─── */
+:global(.theme-light) .filterPillsGroup {
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  padding: 0.2rem;
+}
+
+:global(.theme-light) .filterPill {
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .filterPillActive {
+  background: #0a0a0a;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:global(.theme-light) .allocSummaryBar {
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .allocKpiValue,
+:global(.theme-light) .allocKpiValueMaroon,
+:global(.theme-light) .allocKpiValueGold {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .allocKpiValueSpent {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #e61919;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .allocKpiValueRemaining {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #166534;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .emptyAllocationsBox {
+  background: #f4f4f0;
+  border: 2px dashed #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .emptyAllocText {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+/* ─── Ledger Controls, Chips, Bridge & Table ─── */
+:global(.theme-light) .ledgerDriveLink {
+  border-radius: 0px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .ledgerDriveLink:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .ledgerEntryCount {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  font-weight: 800;
+}
+
+:global(.theme-light) .ledgerFilterBar {
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .ledgerPoolChip {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .ledgerPoolChip:hover {
+  background: #f4f4f0;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .ledgerPoolChipActive {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #e61919;
+}
+
+:global(.theme-light) .ledgerPoolChipActive:hover {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .ledgerChipCount {
+  border-radius: 0px;
+  background: #eae8e3;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .ledgerPoolChipActive .ledgerChipCount {
+  background: #e61919;
+  color: #ffffff;
+}
+
+:global(.theme-light) .ledgerDirectionGroup {
+  border-radius: 0px;
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .ledgerDirectionBtn {
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .ledgerDirectionBtnActive {
+  background: #0a0a0a;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:global(.theme-light) .ledgerUtilBtn {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .ledgerUtilBtnActive {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .ledgerResetBtn {
+  border-radius: 0px;
+  border: 2px solid #e61919;
+  background: #ffffff;
+  color: #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .ledgerResetBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .ledgerBridgeStrip {
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+}
+
+:global(.theme-light) .ledgerBridgeStepResult {
+  border-radius: 0px;
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .ledgerBridgeValueBase {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .ledgerBridgeValueIn,
+:global(.theme-light) .ledgerBridgeValueNet {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #166534;
+}
+
+:global(.theme-light) .ledgerBridgeValueOut {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #e61919;
+}
+
+:global(.theme-light) .ledgerBridgeOp {
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .ledgerBridgeMeterTrack {
+  height: 8px;
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 1.5px solid #0a0a0a;
+}
+
+:global(.theme-light) .ledgerBridgeMeterFill {
+  border-radius: 0px;
+  background: #e61919;
+}
+
+:global(.theme-light) .ledgerBridgeBreakdown {
+  border-top: 1.5px solid #0a0a0a;
+}
+
+:global(.theme-light) .ledgerBridgeSnapChip {
+  border-radius: 0px;
+  background: #ffffff;
+  border: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .ledgerTable {
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .ledgerTable th {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-bottom: 2px solid #0a0a0a;
+  border-right: 1px solid #333333;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+:global(.theme-light) .ledgerTable td {
+  border-bottom: 1.5px solid #0a0a0a;
+  color: #0a0a0a;
+  background: #ffffff;
+}
+
+:global(.theme-light) .ledgerTable tbody tr:hover td {
+  background: #f4f4f0;
+}
+
+:global(.theme-light) .amountIn {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #166534;
+}
+
+:global(.theme-light) .amountOut {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #e61919;
+}
+
+:global(.theme-light) .statusPill,
+:global(.theme-light) .categoryPill,
+:global(.theme-light) .badgeFiscalText,
+:global(.theme-light) .badgeFSGText,
+:global(.theme-light) .statusDraftBadge,
+:global(.theme-light) .fiscalTermBadge,
+:global(.theme-light) .ledgerPoolTag {
+  border-radius: 0px;
+  border: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .statusPosted {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .statusPending {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .statusReversed {
+  background: #ffffff;
+  color: #e61919;
+  border-color: #e61919;
+}
+
+:global(.theme-light) .categoryPill,
+:global(.theme-light) .statusDraftBadge {
+  background: #f4f4f0;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .badgeFiscalText,
+:global(.theme-light) .fiscalTermBadge,
+:global(.theme-light) .ledgerPoolTag {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .badgeFSGText {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .postExpenseBtn {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .postExpenseBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+}
+
+:global(.theme-light) .postExpenseBtnDisabled {
+  background: #eae8e3;
+  color: #6b6b66;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .editAllocBtn {
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .editAllocBtn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .balanceTrailArrowOut {
+  color: #e61919;
+}
+
+:global(.theme-light) .balanceTrailArrowIn,
+:global(.theme-light) .balanceTrailAfterIn {
+  color: #166534;
+}
+
+:global(.theme-light) .balanceTrailAfterOut {
+  color: #0a0a0a;
+}
+
+/* ─── Modals & Form Inputs ─── */
+:global(.theme-light) .modalBackdrop {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: none;
+}
+
+:global(.theme-light) .modalContent,
+:global(.theme-light) .modalLarge {
+  background: #ffffff;
+  border: 3px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 8px 8px 0px #0a0a0a;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .txModalHeader {
+  background: #0a0a0a;
+  border-bottom: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .txModalTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+:global(.theme-light) .txModalCloseBtn,
+:global(.theme-light) .modalCloseBtn {
+  border-radius: 0px;
+  border: 1.5px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .txModalCloseBtn:hover,
+:global(.theme-light) .modalCloseBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #e61919;
+}
+
+:global(.theme-light) .txModalFooter {
+  background: #eae8e3;
+  border-top: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .formLabel {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .formInput,
+:global(.theme-light) .formSelect,
+:global(.theme-light) .formTextarea {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.84rem;
+}
+
+:global(.theme-light) .formInput:focus,
+:global(.theme-light) .formSelect:focus,
+:global(.theme-light) .formTextarea:focus {
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .validationWarning {
+  background: #f4f4f0;
+  border: 2px solid #e61919;
+  border-radius: 0px;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .reqMark {
+  color: #e61919;
+}

@@ -1042,6 +1042,7 @@ function DocumentDashboard() {
                       {document.title}
                     </strong>
                     <span
+                      className={stylesModule.docRefBadge}
                       style={{
                         fontSize: '0.72rem',
                         fontFamily: 'monospace',
@@ -1063,6 +1064,7 @@ function DocumentDashboard() {
                   </span>
                   {(document.subject || document.agenda || document.summary) && (
                     <p
+                      className={stylesModule.docRowSummary}
                       style={{ margin: '0.35rem 0 0.15rem', fontSize: '0.8rem', color: T.textMuted, lineHeight: 1.4, cursor: 'pointer' }}
                       onClick={() => setModalDocId(document.id)}
                       title="Click to view full summary & details in modal"

@@ -193,11 +193,17 @@
    LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES
    -------------------------------------------------------------------------- */
 :global(.theme-light) .financeDashboardContainer {
-  background: transparent;
+  background: #f4f4f0;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .financeDashboardContainer ::selection {
+  background: #0a0a0a;
+  color: #f4f4f0;
 }
 
 :global(.theme-light) .dashboardHeader {
-  border-bottom: 2px solid #0a0a0a;
+  border-bottom: 3px solid #0a0a0a;
   padding-bottom: 1.5rem;
 }
 
@@ -206,22 +212,24 @@
   color: #ffffff;
   border-radius: 0px;
   border: 2px solid #0a0a0a;
-  box-shadow: 2px 2px 0px #0a0a0a;
+  box-shadow: 2px 2px 0px #e61919;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 :global(.theme-light) .viewOnlyBadge {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #ffffff;
+  color: #e61919;
   border-radius: 0px;
-  border: 2px solid #991b1b;
+  border: 2px solid #e61919;
   box-shadow: 2px 2px 0px #0a0a0a;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 :global(.theme-light) .mainTitle {
-  font-family: 'Archivo Black', 'Impact', 'Inter', sans-serif;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
   text-transform: uppercase;
   color: #0a0a0a;
   background: none;
@@ -231,47 +239,84 @@
 }
 
 :global(.theme-light) .subtitle {
-  color: #404040;
+  color: #4a4a4a;
   font-weight: 500;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.88rem;
 }
 
 :global(.theme-light) .tabNavigation {
-  background: #ffffff;
+  background: #eae8e3;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
   box-shadow: 4px 4px 0px #0a0a0a;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  gap: 0.25rem;
-  padding: 0.35rem;
+  gap: 0.35rem;
+  padding: 0.4rem;
 }
 
 :global(.theme-light) .tabButton {
   border-radius: 0px;
   color: #0a0a0a;
+  background: #ffffff;
   border: 2px solid transparent;
-  font-family: 'JetBrains Mono', 'Inter', monospace;
-  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.84rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
 }
 
 :global(.theme-light) .tabButton:hover:not(.tabActive) {
   background: #f4f4f0;
   border-color: #0a0a0a;
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0px #0a0a0a;
+}
+
+:global(.theme-light) .tabButton:focus-visible {
+  outline: 2px solid #e61919;
+  outline-offset: 2px;
 }
 
 :global(.theme-light) .tabActive {
   background: #0a0a0a;
   color: #ffffff;
   border: 2px solid #0a0a0a;
-  box-shadow: none;
+  box-shadow: 3px 3px 0px #e61919;
 }
 
 :global(.theme-light) .tabActive .tabIcon {
   color: #e61919;
+}
+
+:global(.theme-light) .guideBtn {
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+}
+
+:global(.theme-light) .guideBtn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-color: #0a0a0a;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #e61919;
+}
+
+:global(.theme-light) .guideBtn:focus-visible {
+  outline: 2px solid #e61919;
+  outline-offset: 2px;
 }
 
 /* --------------------------------------------------------------------------

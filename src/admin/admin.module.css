@@ -296,34 +296,52 @@
    ========================================================================== */
 :global(.theme-light) .container {
     background-color: #F4F4F0 !important;
+    background-image: none !important;
     color: #0A0A0A !important;
+}
+
+:global(.theme-light) .container ::selection {
+    background: #0A0A0A;
+    color: #F4F4F0;
+}
+
+:global(.theme-light) .container :focus-visible {
+    outline: 2px solid #E61919 !important;
+    outline-offset: 2px !important;
 }
 
 :global(.theme-light) .pagetitle {
     background-color: #FFFFFF !important;
-    border: 2px solid #0A0A0A !important;
+    border: 3px solid #0A0A0A !important;
     border-radius: 0px !important;
-    box-shadow: 4px 4px 0px #0A0A0A !important;
+    padding: 1.4rem 1.75rem !important;
+    box-shadow: 5px 5px 0px #0A0A0A !important;
 }
 
 :global(.theme-light) .pagetitle h1 {
     color: #0A0A0A !important;
-    font-family: 'Archivo Black', 'Impact', sans-serif !important;
+    font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+    font-size: clamp(1.65rem, 2.5vw, 2.3rem) !important;
+    line-height: 0.96 !important;
     text-transform: uppercase !important;
-    letter-spacing: -0.02em !important;
+    letter-spacing: -0.025em !important;
 }
 
 :global(.theme-light) .pagetitle h2 {
-    color: #555555 !important;
+    color: #4A4A4A !important;
     font-family: 'JetBrains Mono', monospace !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
-    font-size: 0.8rem !important;
-    letter-spacing: 0.05em !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.08em !important;
+    margin-top: 0.35rem !important;
 }
 
 :global(.theme-light) .tabNavigation {
-    gap: 0.5rem !important;
+    background: #EAE8E3 !important;
+    border: 2px solid #0A0A0A !important;
+    padding: 0.65rem !important;
+    gap: 0.6rem !important;
 }
 
 :global(.theme-light) .tabButton {
@@ -332,28 +350,30 @@
     border-radius: 0px !important;
     color: #0A0A0A !important;
     font-family: 'JetBrains Mono', monospace !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 0.02em !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.05em !important;
     box-shadow: 3px 3px 0px #0A0A0A !important;
+    transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease !important;
 }
 
 :global(.theme-light) .tabButton:hover:not(.tabActive) {
     background-color: #F4F4F0 !important;
     border-color: #0A0A0A !important;
     color: #0A0A0A !important;
-    transform: translateY(-2px) !important;
+    transform: translate(-1px, -1px) !important;
     box-shadow: 4px 4px 0px #0A0A0A !important;
 }
 
-/* Active tab: Inverted solid black with aviation red accent */
+/* Active tab: Inverted solid carbon ink with aviation red offset */
 :global(.theme-light) .tabButton.tabActive {
     background: #0A0A0A !important;
     color: #FFFFFF !important;
     border: 2px solid #0A0A0A !important;
     border-radius: 0px !important;
-    box-shadow: 4px 4px 0px #E61919 !important;
+    box-shadow: 3px 3px 0px #E61919 !important;
+    transform: none !important;
 }
 
 :global(.theme-light) .tabButton.tabActive .tabIcon svg,
@@ -363,16 +383,18 @@
 
 :global(.theme-light) .dashboard_card {
     background-color: #FFFFFF !important;
-    border: 2px solid #0A0A0A !important;
+    border: 3px solid #0A0A0A !important;
     border-radius: 0px !important;
-    box-shadow: 5px 5px 0px #0A0A0A !important;
+    box-shadow: 6px 6px 0px #0A0A0A !important;
+    color: #0A0A0A !important;
 }
 
 :global(.theme-light) .dashboard_card h3 {
     color: #0A0A0A !important;
-    font-family: 'Archivo Black', 'Impact', sans-serif !important;
+    font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
     border-bottom: 2px solid #0A0A0A !important;
     text-transform: uppercase !important;
+    letter-spacing: -0.01em !important;
 }
 
 /* ==========================================================================

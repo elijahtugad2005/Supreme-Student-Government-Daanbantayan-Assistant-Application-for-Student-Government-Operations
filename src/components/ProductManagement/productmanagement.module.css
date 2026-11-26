@@ -2670,5 +2670,690 @@
   }
 }
 
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST LIGHT THEME — COMPLETE MERCHANDISE MANAGEMENT
+   Overrides @media (prefers-color-scheme: dark) and generic SaaS blue styles
+   when .theme-light is active. Preserves .theme-dark Classic Royal Maroon.
+   ========================================================================== */
+:global(.theme-light) {
+  --pm-bg: #F4F4F0;
+  --pm-card-bg: #FFFFFF;
+  --pm-input-bg: #FFFFFF;
+  --pm-border: #0A0A0A;
+  --pm-text-primary: #0A0A0A;
+  --pm-text-secondary: #4A4A4A;
+  --pm-text-muted: #595954;
+  --pm-blue: #0A0A0A;
+  --pm-blue-dark: #E61919;
+  --pm-blue-light: #EAE8E3;
+  --pm-green: #0A0A0A;
+  --pm-green-light: #EAE8E3;
+  --pm-amber: #0A0A0A;
+  --pm-amber-light: #EAE8E3;
+  --pm-red: #E61919;
+  --pm-red-light: #F4F4F0;
+  --pm-radius: 0px;
+}
+
+:global(.theme-light) .pmContainer,
+:global(.theme-light) .container {
+  background-color: transparent !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .pmContainer ::selection,
+:global(.theme-light) .formPanel ::selection {
+  background: #0A0A0A;
+  color: #F4F4F0;
+}
+
+:global(.theme-light) .pmContainer :focus-visible,
+:global(.theme-light) .formPanel :focus-visible {
+  outline: 2px solid #E61919 !important;
+  outline-offset: 2px !important;
+}
+
+:global(.theme-light) .pmContainer *,
+:global(.theme-light) .formPanel * {
+  border-radius: 0px !important;
+}
+
+/* ── Internal Tab Nav ── */
+:global(.theme-light) .pmTabNav {
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  padding: 0.65rem !important;
+  gap: 0.55rem !important;
+}
+
+:global(.theme-light) .pmTabBtn {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .pmTabBtn:hover:not(.pmTabBtnActive) {
+  background-color: #F4F4F0 !important;
+  border-color: #0A0A0A !important;
+  color: #0A0A0A !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .pmTabBtnActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .pmTabBtnActive svg {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .pmTabBadge {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .pmTabBtnActive .pmTabBadge {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+}
+
+/* ── KPI Cards & Dashboard Cards ── */
+:global(.theme-light) .kpiCard,
+:global(.theme-light) .dashboardCard,
+:global(.theme-light) .productCard,
+:global(.theme-light) .tableCard {
+  background-color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .kpiCard:hover {
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 5px 5px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .kpiCardLabel,
+:global(.theme-light) .kpiLabel {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .kpiCardIcon {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .kpiCardRed .kpiCardIcon {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .kpiCardValue,
+:global(.theme-light) .kpiValue {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -0.02em !important;
+}
+
+:global(.theme-light) .kpiCardSub {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .dashboardCardHeader {
+  background: #EAE8E3 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .pmTitle,
+:global(.theme-light) .dashboardCardTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.01em !important;
+}
+
+:global(.theme-light) .dashboardCardBadgeAmber {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* ── Alert Table & Bar Chart ── */
+:global(.theme-light) .alertTable th {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .alertTable td {
+  color: #0A0A0A !important;
+  border-bottom: 1px solid #D8D6D0 !important;
+}
+
+:global(.theme-light) .alertTable tr:hover td {
+  background: #F4F4F0 !important;
+}
+
+:global(.theme-light) .alertTablePrice,
+:global(.theme-light) .tablePrice {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .restockBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .restockBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .stockBadgeOut {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .stockBadgeLow {
+  background: #EAE8E3 !important;
+  color: #E61919 !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .stockBadgeOk {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .barChartLabel {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .barChartTrack {
+  background: #EAE8E3 !important;
+  border: 1.5px solid #0A0A0A !important;
+  height: 12px !important;
+}
+
+:global(.theme-light) .barChartFill {
+  background: #0A0A0A !important;
+}
+
+:global(.theme-light) .barChartValue {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* ── Products Toolbar & Table ── */
+:global(.theme-light) .searchIcon {
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .searchInput,
+:global(.theme-light) .filterSelect {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .searchInput::placeholder {
+  color: #595954 !important;
+}
+
+:global(.theme-light) .searchInput:focus,
+:global(.theme-light) .filterSelect:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .newProductBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) .newProductBtn:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  transform: translate(-1px, -1px) !important;
+}
+
+:global(.theme-light) .tableWrapper {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .productTable th {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-bottom: 2px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-light) .thSortable:hover {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .sortIconActive {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .productTable td {
+  color: #0A0A0A !important;
+  border-bottom: 1px solid #D8D6D0 !important;
+}
+
+:global(.theme-light) .tableRow:hover td {
+  background: #F4F4F0 !important;
+}
+
+:global(.theme-light) .tableThumb {
+  border: 1.5px solid #0A0A0A !important;
+  background: #F4F4F0 !important;
+}
+
+:global(.theme-light) .tableProductName {
+  color: #0A0A0A !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .tableSupplier {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.76rem !important;
+}
+
+:global(.theme-light) .variationsBadge {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .tableEditBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .tableEditBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .tableDeleteBtn {
+  background: #FFFFFF !important;
+  color: #E61919 !important;
+  border: 1.5px solid #E61919 !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .tableDeleteBtn:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .paginationInfo,
+:global(.theme-light) .paginationPage {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .paginationBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .paginationBtn:hover:not(:disabled) {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+/* ── Slide-Out Create / Edit Product Form Panel ── */
+:global(.theme-light) .panelBackdrop {
+  background: rgba(10, 10, 10, 0.58) !important;
+}
+
+:global(.theme-light) .formPanel {
+  background: #FFFFFF !important;
+  border-left: 3px solid #0A0A0A !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  box-shadow: -6px 0 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .formPanelHeader {
+  background: #EAE8E3 !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .formPanelTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.01em !important;
+}
+
+:global(.theme-light) .formPanelClose {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .formPanelClose:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .formPanelFooter {
+  background: #EAE8E3 !important;
+  border-top: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .label,
+:global(.theme-light) .variationsTitle,
+:global(.theme-light) .checkboxLabel {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) .required {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .input,
+:global(.theme-light) .textarea,
+:global(.theme-light) .select,
+:global(.theme-light) .variationInput,
+:global(.theme-light) .variationOptionStockInput {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .input::placeholder,
+:global(.theme-light) .textarea::placeholder,
+:global(.theme-light) .variationInput::placeholder {
+  color: #595954 !important;
+}
+
+:global(.theme-light) .input:focus,
+:global(.theme-light) .textarea:focus,
+:global(.theme-light) .select:focus,
+:global(.theme-light) .variationInput:focus,
+:global(.theme-light) .variationOptionStockInput:focus {
+  border-color: #E61919 !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .checkboxGroup,
+:global(.theme-light) .variationsSection,
+:global(.theme-light) .customVariationCard {
+  background: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .customVariationCardHeader {
+  border-bottom: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .customVariationTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .helperText,
+:global(.theme-light) .variationOptionStockLabel {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-style: normal !important;
+}
+
+:global(.theme-light) .variationOptionCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .variationOptionHeader {
+  border-bottom: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .variationOptionName {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .addButton,
+:global(.theme-light) .submitButton {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .addButton:hover,
+:global(.theme-light) .submitButton:hover:not(:disabled) {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .cancelButton,
+:global(.theme-light) .resetButton,
+:global(.theme-light) .changeImageBtn {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .cancelButton:hover,
+:global(.theme-light) .resetButton:hover,
+:global(.theme-light) .changeImageBtn:hover {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .removeVariationTypeBtn,
+:global(.theme-light) .removeOptionBtn {
+  background: #FFFFFF !important;
+  color: #E61919 !important;
+  border: 1.5px solid #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .removeVariationTypeBtn:hover,
+:global(.theme-light) .removeOptionBtn:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .tag {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .fileDropZone,
+:global(.theme-light) .variationOptionImageUpload {
+  background: #F4F4F0 !important;
+  border: 2px dashed #0A0A0A !important;
+}
+
+:global(.theme-light) .fileDropZone:hover,
+:global(.theme-light) .variationOptionImageUpload:hover {
+  background: #EAE8E3 !important;
+  border-color: #E61919 !important;
+}
+
+:global(.theme-light) .fileDropZoneText,
+:global(.theme-light) .fileDropZoneSub,
+:global(.theme-light) .variationOptionImageUpload span {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .notification {
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .notificationSuccess {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .notificationError {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+}
+
+/* ── Per-Size Variation Pricing Rows ── */
+:global(.theme-light) .sizePriceRow {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .sizePriceLabel {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .sizePriceInputWrap,
+:global(.theme-light) .addSizePriceInput {
+  background: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .sizePricePrefix,
+:global(.theme-light) .sizePriceInput {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .sizePriceBadge {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .sizePriceBadgeCustom {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
 
 

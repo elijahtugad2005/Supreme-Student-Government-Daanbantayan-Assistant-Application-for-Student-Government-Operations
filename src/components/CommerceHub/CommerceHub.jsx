@@ -147,16 +147,26 @@ function CommerceHub() {
   }, [orders]);
 
   // Order status breakdown for Recharts Donut PieChart
+  // Light theme uses Swiss Industrial Print palette (Carbon Ink, Charcoal, Ash, Hazard Red)
   const statusDistributionData = useMemo(() => {
-    const raw = [
-      { name: 'Pending Verification', value: pendingOrders, color: '#e5b842' },
-      { name: 'Paid & Processing', value: ongoingOrders, color: '#3b82f6' },
-      { name: 'Completed & Claimed', value: completedOrders, color: '#10b981' },
-      { name: 'Cancelled Orders', value: cancelledOrders, color: '#b91c1c' }
-    ];
+    const raw = isClassic
+      ? [
+          { name: 'Pending Verification', value: pendingOrders, color: '#e5b842' },
+          { name: 'Paid & Processing', value: ongoingOrders, color: '#3b82f6' },
+          { name: 'Completed & Claimed', value: completedOrders, color: '#10b981' },
+          { name: 'Cancelled Orders', value: cancelledOrders, color: '#b91c1c' },
+        ]
+      : [
+          { name: 'Completed & Claimed', value: completedOrders, color: '#0A0A0A' },
+          { name: 'Paid & Processing', value: ongoingOrders, color: '#4A4A4A' },
+          { name: 'Pending Verification', value: pendingOrders, color: '#9A9A94' },
+          { name: 'Cancelled Orders', value: cancelledOrders, color: '#E61919' },
+        ];
     const filtered = raw.filter(item => item.value > 0);
-    return filtered.length > 0 ? filtered : [{ name: 'Awaiting Orders', value: 1, color: '#64748b' }];
-  }, [pendingOrders, ongoingOrders, completedOrders, cancelledOrders]);
+    return filtered.length > 0
+      ? filtered
+      : [{ name: 'Awaiting Orders', value: 1, color: isClassic ? '#64748b' : '#D4D2CC' }];
+  }, [isClassic, pendingOrders, ongoingOrders, completedOrders, cancelledOrders]);
 
   // Product inventory velocity for Recharts BarChart
   const productVelocityData = useMemo(() => {
@@ -176,14 +186,18 @@ function CommerceHub() {
     }));
   }, [products, orders]);
 
-  // Custom Recharts Tooltip styled in royal maroon & gold
+  // Custom Recharts Tooltip styled for Classic Maroon or Swiss Brutalist Light
   const CustomChartTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <div className={styles.chartTooltip}>
           <p className={styles.chartTooltipLabel}>{label}</p>
           {payload.map((entry, index) => (
-            <p key={`tooltip-${index}`} className={styles.chartTooltipValue} style={{ color: entry.color || '#ffea9f' }}>
+            <p
+              key={`tooltip-${index}`}
+              className={styles.chartTooltipValue}
+              style={{ color: isClassic ? (entry.color || '#ffea9f') : '#0A0A0A' }}
+            >
               <span>{entry.name}: </span>
               <strong>
                 {entry.name.toLowerCase().includes('revenue')
@@ -355,29 +369,34 @@ function CommerceHub() {
               <AreaChart data={trendData} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="maroonGoldGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={isClassic ? '#e5b842' : '#3b82f6'} stopOpacity={0.65}/>
-                    <stop offset="95%" stopColor={isClassic ? '#8a6520' : '#3b82f6'} stopOpacity={0.02}/>
+                    <stop offset="5%" stopColor={isClassic ? '#e5b842' : '#0A0A0A'} stopOpacity={isClassic ? 0.65 : 0.14}/>
+                    <stop offset="95%" stopColor={isClassic ? '#8a6520' : '#0A0A0A'} stopOpacity={isClassic ? 0.02 : 0.04}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={isClassic ? 'rgba(212, 175, 55, 0.15)' : 'rgba(0,0,0,0.06)'} />
+                <CartesianGrid
+                  strokeDasharray={isClassic ? '3 3' : '0'}
+                  stroke={isClassic ? 'rgba(212, 175, 55, 0.15)' : 'rgba(10, 10, 10, 0.12)'}
+                />
                 <XAxis 
                   dataKey="name" 
-                  stroke={isClassic ? '#ffea9f' : '#64748b'} 
-                  fontSize={11} 
+                  stroke={isClassic ? '#ffea9f' : '#0A0A0A'} 
+                  fontSize={11}
+                  fontFamily={isClassic ? undefined : 'JetBrains Mono, monospace'}
                   tickLine={false} 
                 />
                 <YAxis 
-                  stroke={isClassic ? '#ffea9f' : '#64748b'} 
-                  fontSize={11} 
+                  stroke={isClassic ? '#ffea9f' : '#0A0A0A'} 
+                  fontSize={11}
+                  fontFamily={isClassic ? undefined : 'JetBrains Mono, monospace'}
                   tickLine={false} 
                   tickFormatter={(val) => analyticsViewType === 'revenue' ? `₱${val >= 1000 ? `${(val/1000).toFixed(1)}k` : val}` : val}
                 />
                 <Tooltip content={<CustomChartTooltip />} />
                 <Area 
-                  type="monotone" 
+                  type={isClassic ? 'monotone' : 'linear'}
                   dataKey={analyticsViewType === 'revenue' ? 'revenue' : 'orders'} 
                   name={analyticsViewType === 'revenue' ? 'Revenue' : 'Order Count'} 
-                  stroke={isClassic ? '#d4af37' : '#2563eb'} 
+                  stroke={isClassic ? '#d4af37' : '#0A0A0A'} 
                   strokeWidth={2.5}
                   fillOpacity={1} 
                   fill="url(#maroonGoldGrad)" 
@@ -461,12 +480,36 @@ function CommerceHub() {
             ) : (
               <ResponsiveContainer width="100%" height={210}>
                 <BarChart data={productVelocityData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isClassic ? 'rgba(212, 175, 55, 0.15)' : 'rgba(0,0,0,0.06)'} />
-                  <XAxis dataKey="name" stroke={isClassic ? '#ffea9f' : '#64748b'} fontSize={10} tickLine={false} />
-                  <YAxis stroke={isClassic ? '#ffea9f' : '#64748b'} fontSize={10} tickLine={false} />
+                  <CartesianGrid
+                    strokeDasharray={isClassic ? '3 3' : '0'}
+                    stroke={isClassic ? 'rgba(212, 175, 55, 0.15)' : 'rgba(10, 10, 10, 0.12)'}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    stroke={isClassic ? '#ffea9f' : '#0A0A0A'}
+                    fontSize={10}
+                    fontFamily={isClassic ? undefined : 'JetBrains Mono, monospace'}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke={isClassic ? '#ffea9f' : '#0A0A0A'}
+                    fontSize={10}
+                    fontFamily={isClassic ? undefined : 'JetBrains Mono, monospace'}
+                    tickLine={false}
+                  />
                   <Tooltip content={<CustomChartTooltip />} />
-                  <Bar dataKey="stock" name="Stock Available" fill={isClassic ? '#d4af37' : '#10b981'} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="ordered" name="Units Ordered" fill={isClassic ? '#8a1a24' : '#3b82f6'} radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="stock"
+                    name="Stock Available"
+                    fill={isClassic ? '#d4af37' : '#0A0A0A'}
+                    radius={isClassic ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="ordered"
+                    name="Units Ordered"
+                    fill={isClassic ? '#8a1a24' : '#E61919'}
+                    radius={isClassic ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}

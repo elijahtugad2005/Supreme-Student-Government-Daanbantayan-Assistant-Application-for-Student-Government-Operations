@@ -589,3 +589,243 @@
   background: #180509;
   border-color: rgba(212, 175, 55, 0.3);
 }
+
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES (PPMP INSPECTOR DRAWER)
+   Scoped exclusively to :global(.theme-light). Leaves .theme-dark untouched.
+   ========================================================================== */
+
+:global(.theme-light) .drawerBackdrop,
+:global(.theme-light) .approvalModalBackdrop {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: none;
+}
+
+:global(.theme-light) .drawerPanel {
+  background: #f4f4f0;
+  color: #0a0a0a;
+  border-left: 3px solid #0a0a0a;
+  box-shadow: -8px 0 0px rgba(10, 10, 10, 0.25);
+}
+
+:global(.theme-light) .drawerHeader {
+  background: #ffffff;
+  border-bottom: 3px solid #0a0a0a;
+}
+
+:global(.theme-light) .packageTag,
+:global(.theme-light) .statusBadge {
+  border-radius: 0px;
+  border: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .packageTagEvent {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .packageTagProject {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .packageTagMaterial {
+  background: #f4f4f0;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .statusFresh {
+  background: #f4f4f0;
+  color: #166534;
+}
+
+:global(.theme-light) .statusPartial {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .statusDepleted {
+  background: #e61919;
+  color: #ffffff;
+}
+
+:global(.theme-light) .statusDot {
+  border-radius: 0px;
+  box-shadow: none;
+}
+
+:global(.theme-light) .drawerTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .drawerSubtitle {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .closeBtn {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .closeBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .draftAlertBanner {
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .approveDraftBtn,
+:global(.theme-light) .disburseLineBtn,
+:global(.theme-light) .confirmDisburseBtn {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .approveDraftBtn:hover,
+:global(.theme-light) .disburseLineBtn:hover:not(:disabled),
+:global(.theme-light) .confirmDisburseBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+}
+
+:global(.theme-light) .disburseLineBtn:disabled {
+  background: #eae8e3;
+  color: #6b6b66;
+  border-color: #0a0a0a;
+  box-shadow: none;
+}
+
+:global(.theme-light) .healthCard,
+:global(.theme-light) .subItemCard,
+:global(.theme-light) .disbursementCard,
+:global(.theme-light) .approvalModalBox {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .healthStatLabel,
+:global(.theme-light) .sectionTitle,
+:global(.theme-light) .formLabel,
+:global(.theme-light) .meterHeader {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+  font-weight: 800;
+}
+
+:global(.theme-light) .healthStatValue {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #0a0a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .healthStatSurplus {
+  color: #166534;
+}
+
+:global(.theme-light) .healthStatDepleted {
+  color: #e61919;
+}
+
+:global(.theme-light) .meterTrack {
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 1.5px solid #0a0a0a;
+}
+
+:global(.theme-light) .meterFill {
+  border-radius: 0px;
+  background: #0a0a0a;
+}
+
+:global(.theme-light) .meterFillWarning {
+  background: #4a4a4a;
+}
+
+:global(.theme-light) .meterFillDanger {
+  background: #e61919;
+}
+
+:global(.theme-light) .subItemTitle,
+:global(.theme-light) .disbursementTitle {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .subItemQuantity {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .subItemAmountsRow {
+  border-radius: 0px;
+  background: #f4f4f0;
+  border: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .formInput {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .formInput:focus {
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .cancelBtn {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .txTable {
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .txTable th {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-bottom: 2px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .txTable td {
+  background: #ffffff;
+  color: #0a0a0a;
+  border-bottom: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}

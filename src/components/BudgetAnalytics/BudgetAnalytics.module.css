@@ -506,9 +506,13 @@
   color: #0a0a0a;
 }
 
+:global(.theme-light) .header {
+  border-bottom: 3px solid #0a0a0a;
+}
+
 :global(.theme-light) .titleGroup h2 {
-  font-family: 'Archivo Black', 'Arial Black', -apple-system, sans-serif !important;
-  font-size: 2.8rem;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  font-size: 2.5rem;
   letter-spacing: -0.04em;
   text-transform: uppercase;
   color: #0a0a0a;
@@ -587,10 +591,30 @@
 }
 
 :global(.theme-light) .statValue {
-  font-family: 'Archivo Black', 'Inter', sans-serif !important;
-  font-size: 2.1rem;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  font-size: 2.05rem;
   letter-spacing: -0.03em;
   color: #0a0a0a !important;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .velocityProgressWrapper {
+  height: 8px;
+  background: #eae8e3;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .velocityProgressBar {
+  background: #e61919;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .chartControlsBar {
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
 }
 
 :global(.theme-light) .statTrend {
@@ -700,12 +724,18 @@
 }
 
 :global(.theme-light) .chartTitle {
-  font-family: 'Archivo Black', 'Inter', sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: -0.01em;
   color: #0a0a0a;
   margin: 0;
+}
+
+:global(.theme-light) .chartEmptyState,
+:global(.theme-light) .loadingContainer {
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .chartMetaTag {
@@ -1354,17 +1384,24 @@
 }
 
 :global(.theme-light) .pieLegendRow {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: #f4f4f0;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+:global(.theme-light) .pieLegendDot {
+  border-radius: 0px;
+  border: 1px solid #0a0a0a;
 }
 
 :global(.theme-light) .pieLegendName,
 :global(.theme-light) .pieLegendAmount {
-  color: #0f172a;
+  color: #0a0a0a;
 }
 
 :global(.theme-light) .pieLegendPct {
-  color: #475569;
+  color: #4a4a4a;
 }
 
 .analyticsClassic .pieLegendRow,

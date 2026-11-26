@@ -226,7 +226,7 @@ function App() {
                   customAccessDenied={
                     <DashboardLayout>
                       <AccessDenied
-                        message="You need audit or finance oversight permissions to view the audit trail."
+                        message="You need audit or finance oversight permissions to view the System Trail."
                         requiredPermissions={['canManageUsers', 'canViewFinance']}
                         showUserInfo={true}
                       />

@@ -3154,3 +3154,807 @@
   color: #ffffff !important;
 }
 
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES (ANNOUNCEMENTS & EVENTS)
+   Scoped with :global(html.theme-light) to override dark defaults & OS dark media.
+   Leaves .theme-dark / .announcementClassic 100% untouched.
+   Palette: #F4F4F0 / #FFFFFF / #EAE8E3 / #0A0A0A / #E61919
+   ========================================================================== */
+
+:global(html.theme-light) .container {
+  --ann-bg: #f4f4f0;
+  --ann-card-bg: #ffffff;
+  --ann-border: #0a0a0a;
+  --ann-border-subtle: #d4d2cc;
+  --ann-accent: #e61919;
+  --ann-accent-hover: #0a0a0a;
+  --ann-accent-light: #f4f4f0;
+  --ann-text-primary: #0a0a0a;
+  --ann-text-secondary: #262626;
+  --ann-text-muted: #4a4a4a;
+  --ann-dark-grey: #eae8e3;
+  --ann-radius-sm: 0px;
+  --ann-radius-md: 0px;
+  --ann-radius-lg: 0px;
+  --ann-radius-full: 0px;
+  background-color: #f4f4f0 !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .container ::selection {
+  background: #0a0a0a;
+  color: #f4f4f0;
+}
+
+/* ─── Editorial Header & Telemetry Strip ─── */
+:global(html.theme-light) .container .header {
+  background: #ffffff !important;
+  border: 3px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .header::before {
+  display: none !important;
+}
+
+:global(html.theme-light) .container .headerEyebrow {
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  color: #e61919 !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .mainTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #0a0a0a !important;
+  text-shadow: none !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+:global(html.theme-light) .container .headerSubtitle {
+  color: #4a4a4a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.84rem !important;
+}
+
+:global(html.theme-light) .container .headerMetricsRow {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .metricValue {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .metricLabel {
+  color: #4a4a4a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .headerMetricDivider {
+  background: #0a0a0a !important;
+}
+
+/* ─── Segmented Tab Navigation ─── */
+:global(html.theme-light) .container .tabContainer {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0a0a0a !important;
+  padding: 0.4rem !important;
+}
+
+:global(html.theme-light) .container .tab {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+:global(html.theme-light) .container .tab:hover {
+  background: #f4f4f0 !important;
+  color: #0a0a0a !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 2px 2px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .tab.tabActive {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border-color: #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .container .tab.tabActive .tabIcon {
+  color: #e61919 !important;
+}
+
+:global(html.theme-light) .container .tabBadge {
+  border-radius: 0px !important;
+  background: #eae8e3 !important;
+  color: #0a0a0a !important;
+  border: 1.5px solid #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .container .tab.tabActive .tabBadge {
+  background: #e61919 !important;
+  color: #ffffff !important;
+  border-color: #e61919 !important;
+}
+
+/* ─── Broadcast Studio Composer & Form Cards ─── */
+:global(html.theme-light) .container .formWrapper {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 5px 5px 0px #0a0a0a !important;
+  backdrop-filter: none !important;
+}
+
+:global(html.theme-light) .container .formEditingActive {
+  border-color: #e61919 !important;
+  box-shadow: 6px 6px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .container .formHeader {
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .formIconBubble {
+  border-radius: 0px !important;
+  background: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  color: #ffffff !important;
+  box-shadow: 2px 2px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .container .formEyebrow {
+  color: #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .sectionTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #0a0a0a !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .container .editModeIndicator {
+  border-radius: 0px !important;
+  background: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .pulsingDot {
+  border-radius: 0px !important;
+  background-color: #e61919 !important;
+  box-shadow: none !important;
+}
+
+:global(html.theme-light) .container .exitEditBtn {
+  border-radius: 0px !important;
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .exitEditBtn:hover {
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .formCard {
+  background: #f4f4f0 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .formCardHeader {
+  border-bottom: 2px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .cardHeaderIcon,
+:global(html.theme-light) .container .fieldIconInline,
+:global(html.theme-light) .container .required {
+  color: #e61919 !important;
+}
+
+:global(html.theme-light) .container .label {
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .container .input,
+:global(html.theme-light) .container .select,
+:global(html.theme-light) .container .textarea,
+:global(html.theme-light) .container .searchInput {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  box-shadow: 2px 2px 0px #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .container .input:focus,
+:global(html.theme-light) .container .select:focus,
+:global(html.theme-light) .container .textarea:focus,
+:global(html.theme-light) .container .searchInput:focus {
+  outline: none !important;
+  border-color: #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .container .select option {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .selectArrow,
+:global(html.theme-light) .container .searchIcon,
+:global(html.theme-light) .container .searchClearBtn {
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .helperText,
+:global(html.theme-light) .container .releaseToggleHint,
+:global(html.theme-light) .container .uploadSubText,
+:global(html.theme-light) .container .imagePreviewSub,
+:global(html.theme-light) .container .listSubtitle {
+  color: #4a4a4a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .container .fieldError {
+  color: #e61919 !important;
+  font-weight: 800 !important;
+}
+
+/* ─── Upload Zone & Homepage Release Block ─── */
+:global(html.theme-light) .container .uploadZone {
+  background: #ffffff !important;
+  border: 2px dashed #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .uploadZone:hover {
+  background: #eae8e3 !important;
+  border-color: #e61919 !important;
+}
+
+:global(html.theme-light) .container .uploadIconBadge {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .uploadMainText,
+:global(html.theme-light) .container .imagePreviewLabel,
+:global(html.theme-light) .container .releaseTitleRow {
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .imagePreviewContainer,
+:global(html.theme-light) .container .releaseBlock {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .releaseBlockActive {
+  background: #f4f4f0 !important;
+  border-color: #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .container .liveIndicatorBadge {
+  border-radius: 0px !important;
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border: 1.5px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .globeIconActive {
+  color: #166534 !important;
+}
+
+:global(html.theme-light) .container .globeIconMuted {
+  color: #6b6b66 !important;
+}
+
+:global(html.theme-light) .container .removeImageBtn {
+  border-radius: 0px !important;
+  background: #ffffff !important;
+  border: 2px solid #e61919 !important;
+  color: #e61919 !important;
+}
+
+:global(html.theme-light) .container .removeImageBtn:hover {
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+/* ─── Telegram Multicast Gateway ─── */
+:global(html.theme-light) .container .telegramPanel {
+  background: #f4f4f0 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .telegramPanelHeader {
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .tgIconBubble {
+  border-radius: 0px !important;
+  background: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .tgTitle,
+:global(html.theme-light) .container .telegramBlockLabel,
+:global(html.theme-light) .container .publishSummaryTitle {
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .tgSubtitle,
+:global(html.theme-light) .container .channelOptionSub,
+:global(html.theme-light) .container .publishSummaryLabel {
+  color: #4a4a4a !important;
+}
+
+:global(html.theme-light) .container .tgStatusChip {
+  border-radius: 0px !important;
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border: 1.5px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .channelOption {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .channelOptionName {
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .channelOption.channelOptionActive {
+  background: #0a0a0a !important;
+  border-color: #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .container .channelOption.channelOptionActive .channelOptionName {
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .channelOption.channelOptionActive .channelOptionSub {
+  color: #eae8e3 !important;
+}
+
+:global(html.theme-light) .container .radioNative {
+  accent-color: #e61919 !important;
+}
+
+:global(html.theme-light) .container .channelSelectedCheck {
+  color: #e61919 !important;
+}
+
+:global(html.theme-light) .container .publishSummary {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .summaryOk,
+:global(html.theme-light) .container .publishStatusSuccess {
+  color: #166534 !important;
+}
+
+:global(html.theme-light) .container .publishSummaryMissing,
+:global(html.theme-light) .container .publishStatusError {
+  color: #e61919 !important;
+}
+
+:global(html.theme-light) .container .publishWarning {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .tgPhoneMockup {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .tgPhoneHeader {
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .tgAvatarBadge {
+  border-radius: 0px !important;
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .tgSenderName {
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .tgVerifiedBadge {
+  border-radius: 0px !important;
+  background: #e61919 !important;
+}
+
+:global(html.theme-light) .container .tgBubbleMockup {
+  background: #f4f4f0 !important;
+  border: 1.5px solid #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .telegramPreview {
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .tgReactionPill {
+  border-radius: 0px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .telegramPlaceholder {
+  background: #ffffff !important;
+  border: 2px dashed #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .tgPlaceholderIcon,
+:global(html.theme-light) .container .telegramPlaceholder p {
+  color: #4a4a4a !important;
+}
+
+/* ─── Action & Form Buttons ─── */
+:global(html.theme-light) .container .submitButton,
+:global(html.theme-light) .container .publishButton,
+:global(html.theme-light) .container .emptyActionBtn {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(html.theme-light) .container .submitButton:hover:not(:disabled),
+:global(html.theme-light) .container .publishButton:hover:not(:disabled),
+:global(html.theme-light) .container .emptyActionBtn:hover {
+  background: #e61919 !important;
+  border-color: #0a0a0a !important;
+  color: #ffffff !important;
+  box-shadow: 4px 4px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .resetButton,
+:global(html.theme-light) .container .cancelButton,
+:global(html.theme-light) .container .editButton {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .container .resetButton:hover,
+:global(html.theme-light) .container .cancelButton:hover,
+:global(html.theme-light) .container .editButton:hover {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .deleteButton {
+  background: #ffffff !important;
+  color: #e61919 !important;
+  border: 2px solid #e61919 !important;
+  border-radius: 0px !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .container .deleteButton:hover {
+  background: #e61919 !important;
+  border-color: #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+/* ─── Announcements Feed, Filter Toolbar & Cards ─── */
+:global(html.theme-light) .container .filterToolbar {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .filterPill,
+:global(html.theme-light) .container .channelPill {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .container .filterPill.filterPillActive,
+:global(html.theme-light) .container .channelPill.channelPillActive {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  box-shadow: 2px 2px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .container .filterPillCount {
+  background: #eae8e3 !important;
+  color: #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .filterPillActive .filterPillCount {
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .announcementCard,
+:global(html.theme-light) .container .eventCard,
+:global(html.theme-light) .container .calendarWrapper {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .announcementCard:hover,
+:global(html.theme-light) .container .eventCard:hover {
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .announcementTitle,
+:global(html.theme-light) .container .eventCardTitle,
+:global(html.theme-light) .container .calendarTitle,
+:global(html.theme-light) .container .emptyTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #0a0a0a !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .container .announcementBody,
+:global(html.theme-light) .container .eventCardDesc,
+:global(html.theme-light) .container .announcementDate,
+:global(html.theme-light) .container .eventCardDate,
+:global(html.theme-light) .container .detailValue,
+:global(html.theme-light) .container .detailLabel,
+:global(html.theme-light) .container .emptyText {
+  color: #262626 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .container .typeBadge,
+:global(html.theme-light) .container .categoryBadge,
+:global(html.theme-light) .container .attendanceBadge,
+:global(html.theme-light) .container .eventTypeBadge,
+:global(html.theme-light) .container .releaseBadge,
+:global(html.theme-light) .container .publishedBadge,
+:global(html.theme-light) .container .partialBadge,
+:global(html.theme-light) .container .failedBadge,
+:global(html.theme-light) .container .announcementVenuePill,
+:global(html.theme-light) .container .detailPill {
+  border-radius: 0px !important;
+  border: 1.5px solid #0a0a0a !important;
+  background: #f4f4f0 !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .container .releaseBadgeLive,
+:global(html.theme-light) .container .publishedBadge {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .failedBadge {
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .cardThumbnailFrame,
+:global(html.theme-light) .container .cardThumbFallback {
+  border-radius: 0px !important;
+  border: 2px solid #0a0a0a !important;
+  background: #eae8e3 !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .cardExpandTrigger {
+  background: #eae8e3 !important;
+  border-top: 2px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .announcementDetailSection {
+  background: #f4f4f0 !important;
+  border-top: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .telemetryBanner {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+}
+
+/* ─── Embedded Calendar & Empty State ─── */
+:global(html.theme-light) .container .calendarNavButton {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .calendarNavButton:hover {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .container .calendarDayName {
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .calendarDay {
+  background: #ffffff !important;
+  border: 1.5px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .container .calendarDayToday {
+  background: #eae8e3 !important;
+  border: 2px solid #e61919 !important;
+}
+
+:global(html.theme-light) .container .calendarDayNumber {
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .container .emptyState {
+  background: #ffffff !important;
+  border: 2px dashed #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .container .emptyStateIconBadge {
+  background: #eae8e3 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+}
+
+/* ─── Confirmation Modal ─── */
+:global(html.theme-light) .confirmOverlay {
+  background: rgba(10, 10, 10, 0.72) !important;
+  backdrop-filter: none !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmModal {
+  background: #ffffff !important;
+  border: 3px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 8px 8px 0px #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmModalHeader {
+  background: #0a0a0a !important;
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #ffffff !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmSubtitle {
+  color: #eae8e3 !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmIconBubble {
+  border-radius: 0px !important;
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmRows,
+:global(html.theme-light) .confirmOverlay .confirmMessageBlock {
+  background: #f4f4f0 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmLabel,
+:global(html.theme-light) .confirmOverlay .confirmValue,
+:global(html.theme-light) .confirmOverlay .confirmMessage,
+:global(html.theme-light) .confirmOverlay .confirmMessageLabel {
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmCancelBtn {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmProceedBtn {
+  background: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+  color: #ffffff !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .confirmOverlay .confirmProceedBtn:hover {
+  background: #e61919 !important;
+}
+

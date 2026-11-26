@@ -714,3 +714,404 @@
     transition: none;
   }
 }
+
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES (IGP PROJECTS & LOCKERS)
+   Scoped exclusively to :global(.theme-light). Leaves .theme-dark untouched.
+   ========================================================================== */
+
+:global(.theme-light) .wrapper {
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .metricCard {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .metricCard:hover {
+  transform: translate(-2px, -2px);
+  border-color: #0a0a0a;
+  box-shadow: 6px 6px 0px #0a0a0a;
+}
+
+:global(.theme-light) .metricHeader {
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+}
+
+:global(.theme-light) .metricIconWrap {
+  border-radius: 0px;
+  background: #0a0a0a;
+  border: 1.5px solid #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .metricValue {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #0a0a0a;
+  letter-spacing: -0.02em;
+}
+
+:global(.theme-light) .metricSubtext {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .actionNav {
+  border-bottom: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .navButton {
+  border-radius: 0px;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:global(.theme-light) .navButton:hover {
+  background: #eae8e3;
+  color: #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .navButtonActive {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .navButton:focus-visible,
+:global(.theme-light) .btnPrimary:focus-visible,
+:global(.theme-light) .btnSecondary:focus-visible,
+:global(.theme-light) .btnGhost:focus-visible,
+:global(.theme-light) .lockerTile:focus-visible,
+:global(.theme-light) .filterChip:focus-visible {
+  outline: 2px solid #e61919;
+  outline-offset: 2px;
+}
+
+:global(.theme-light) .contentCard {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .cardTitle,
+:global(.theme-light) .bankTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  letter-spacing: -0.01em;
+}
+
+:global(.theme-light) .cardDesc,
+:global(.theme-light) .bankMetaRight,
+:global(.theme-light) .legendRow {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .btnPrimary {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .btnPrimary:hover:not(:disabled) {
+  background: #e61919;
+  color: #ffffff;
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .btnSecondary,
+:global(.theme-light) .btnGhost {
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .btnSecondary:hover:not(:disabled),
+:global(.theme-light) .btnGhost:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .btnDanger,
+:global(.theme-light) .btnDangerSmall {
+  background: #ffffff;
+  color: #e61919;
+  border: 2px solid #e61919;
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .btnDanger:hover:not(:disabled),
+:global(.theme-light) .btnDangerSmall:hover {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .lockerToolbar {
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .filterChip {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .filterChip:hover {
+  background: #f4f4f0;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .filterChipActive {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #e61919;
+}
+
+:global(.theme-light) .legendDotAvailable,
+:global(.theme-light) .legendDotOccupied,
+:global(.theme-light) .legendDotMaintenance {
+  border-radius: 0px;
+  box-shadow: none;
+  border: 1px solid #0a0a0a;
+}
+
+:global(.theme-light) .legendDotAvailable {
+  background: #ffffff;
+}
+
+:global(.theme-light) .legendDotOccupied {
+  background: #0a0a0a;
+}
+
+:global(.theme-light) .legendDotMaintenance {
+  background: #e61919;
+}
+
+:global(.theme-light) .bankSection {
+  border-radius: 0px;
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .bankHeader {
+  border-bottom: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .bankOccupancyPill {
+  border-radius: 0px;
+  background: #0a0a0a;
+  border: 1.5px solid #0a0a0a;
+  color: #ffffff;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .lockerTile {
+  border-radius: 0px;
+}
+
+:global(.theme-light) .lockerTileAvailable {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  box-shadow: 3px 3px 0px #0a0a0a;
+}
+
+:global(.theme-light) .lockerTileOccupied {
+  background: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .lockerTileMaintenance {
+  background: #eae8e3;
+  border: 2px solid #e61919;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .lockerTile:hover {
+  transform: translate(-2px, -2px);
+  border-color: #0a0a0a;
+  box-shadow: 5px 5px 0px #0a0a0a;
+}
+
+:global(.theme-light) .lockerVents {
+  opacity: 1;
+}
+
+:global(.theme-light) .lockerVents span {
+  border-radius: 0px;
+  background: #0a0a0a;
+}
+
+:global(.theme-light) .lockerTileOccupied .lockerVents span {
+  background: #4a4a4a;
+}
+
+:global(.theme-light) .lockerNumberPlate {
+  border-radius: 0px;
+  background: #f4f4f0;
+  border: 1.5px solid #0a0a0a;
+}
+
+:global(.theme-light) .lockerNumber {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  font-weight: 800;
+}
+
+:global(.theme-light) .lockerBadge {
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  border: 1.5px solid #0a0a0a;
+}
+
+:global(.theme-light) .badgeAvailable {
+  background: #f4f4f0;
+  color: #166534;
+}
+
+:global(.theme-light) .badgeOccupied {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+:global(.theme-light) .badgeMaintenance {
+  background: #e61919;
+  color: #ffffff;
+}
+
+:global(.theme-light) .lockerRenterShort {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .lockerTileOccupied .lockerRenterShort {
+  color: #ffffff;
+}
+
+:global(.theme-light) .modalBackdrop {
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: none;
+}
+
+:global(.theme-light) .modalBox {
+  background: #ffffff;
+  border: 3px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 8px 8px 0px #0a0a0a;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .leaseDetailsGrid {
+  border-radius: 0px;
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .leaseDetailLabel,
+:global(.theme-light) .fieldLabel {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .leaseDetailVal {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .textInput,
+:global(.theme-light) .selectInput {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .selectInput option {
+  background: #ffffff;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .textInput::placeholder {
+  color: #6b6b66;
+}
+
+:global(.theme-light) .textInput:focus,
+:global(.theme-light) .selectInput:focus {
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .table {
+  border: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .table th {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-bottom: 2px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .table td {
+  background: #ffffff;
+  color: #0a0a0a;
+  border-bottom: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .table tr:hover td {
+  background: #f4f4f0;
+}
+
+:global(.theme-light) .warningBox {
+  border-radius: 0px;
+  background: #ffffff;
+  border: 2px solid #e61919;
+  box-shadow: 3px 3px 0px #e61919;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}

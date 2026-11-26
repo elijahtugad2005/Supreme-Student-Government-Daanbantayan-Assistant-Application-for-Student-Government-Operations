@@ -1253,6 +1253,7 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :global(.theme-light) .widgetWrapper {
+  background: #F4F4F0 !important;
   color: #0A0A0A !important;
 }
 
@@ -1302,7 +1303,7 @@
 }
 
 :global(.theme-light) .mainTitle {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 900 !important;
   font-size: 1.6rem !important;
   color: #0A0A0A !important;
@@ -1362,7 +1363,7 @@
 }
 
 :global(.theme-light) .monthHeading {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 900 !important;
   font-size: 1.85rem !important;
   color: #0A0A0A !important;
@@ -1530,7 +1531,7 @@
 }
 
 :global(.theme-light) .agendaTitle {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 900 !important;
   font-size: 1.3rem !important;
   color: #0A0A0A !important;
@@ -1573,7 +1574,7 @@
 }
 
 :global(.theme-light) .dateDay {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 900 !important;
   color: #0A0A0A !important;
 }
@@ -1602,7 +1603,7 @@
 }
 
 :global(.theme-light) .cardTitle {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-size: 1.15rem !important;
   font-weight: 800 !important;
   color: #0A0A0A !important;
@@ -1663,7 +1664,7 @@
 }
 
 :global(.theme-light) .emptyTitle {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 800 !important;
   color: #0A0A0A !important;
   text-transform: uppercase !important;
@@ -1697,7 +1698,7 @@
 }
 
 :global(.theme-light) .modalTitle {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 900 !important;
   color: #0A0A0A !important;
   letter-spacing: -0.03em !important;
@@ -1733,7 +1734,7 @@
 }
 
 :global(.theme-light) .modalItemTitle {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-weight: 800 !important;
   color: #0A0A0A !important;
   text-transform: uppercase !important;

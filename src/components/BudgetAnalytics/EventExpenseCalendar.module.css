@@ -685,30 +685,37 @@
   border-color: rgba(212, 175, 55, 0.16);
 }
 
-/* ─── Light Theme (.theme-light) ─── */
+/* ─── Light Theme: Swiss Industrial Brutalist (.theme-light) ─── */
 :global(.theme-light) .calendarCard {
   background: #ffffff;
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
 }
 
 :global(.theme-light) .header,
 :global(.theme-light) .inspectorHeader {
-  border-bottom-color: #e2e8f0;
+  border-bottom: 2px solid #0a0a0a;
 }
 
 :global(.theme-light) .titleIcon {
-  color: #7a121d;
+  color: #e61919;
 }
 
-:global(.theme-light) .title,
+:global(.theme-light) .title {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
 :global(.theme-light) .monthHeading,
 :global(.theme-light) .monthKpiVal,
 :global(.theme-light) .inspectorTitle,
 :global(.theme-light) .eventCardName,
 :global(.theme-light) .costValue,
 :global(.theme-light) .disbursementDesc {
-  color: #0f172a;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 :global(.theme-light) .subtitle,
@@ -721,127 +728,211 @@
 :global(.theme-light) .eventContextRow,
 :global(.theme-light) .costLabel,
 :global(.theme-light) .emptyInspector {
-  color: #475569;
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 :global(.theme-light) .monthKpi,
 :global(.theme-light) .inspectorPane {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
 }
 
 :global(.theme-light) .monthKpiSpent,
 :global(.theme-light) .costValueSpent,
 :global(.theme-light) .disbursementAmt {
-  color: #b91c1c;
+  color: #e61919;
 }
 
 :global(.theme-light) .monthKpiRemaining,
 :global(.theme-light) .costValueRem {
-  color: #15803d;
+  color: #166534;
 }
 
 :global(.theme-light) .navBtn,
 :global(.theme-light) .todayBtn,
 :global(.theme-light) .quickMonthPill {
   background: #ffffff;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .navBtn:hover,
+:global(.theme-light) .todayBtn:hover,
+:global(.theme-light) .quickMonthPill:hover {
+  background: #0a0a0a;
+  color: #ffffff;
 }
 
 :global(.theme-light) .quickMonthPillActive {
-  background: #7a121d;
-  border-color: #7a121d;
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #e61919;
+}
+
+:global(.theme-light) .quickMonthCount {
+  border-radius: 0px;
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .quickMonthPillActive .quickMonthCount {
+  background: #e61919;
   color: #ffffff;
 }
 
 :global(.theme-light) .dayCell {
   background: #ffffff;
-  border-color: #e2e8f0;
-  color: #0f172a;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 :global(.theme-light) .dayCell:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
+  background: #eae8e3;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .dayCellToday {
+  border: 2px solid #e61919;
 }
 
 :global(.theme-light) .dayCellHasEvent {
-  background: #fef9c3;
-  border-color: #eab308;
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
 }
 
 :global(.theme-light) .dayCellSelected {
-  background: #7a121d;
-  border-color: #7a121d;
+  background: #0a0a0a;
+  border-color: #0a0a0a;
   color: #ffffff;
-  box-shadow: 0 0 0 1px #7a121d;
+  box-shadow: 2px 2px 0px #e61919;
 }
 
 :global(.theme-light) .dayEventCount {
-  background: rgba(122, 18, 29, 0.14);
-  color: #7a121d;
+  border-radius: 0px;
+  background: #0a0a0a;
+  color: #ffffff;
 }
 
 :global(.theme-light) .dayCellSelected .dayEventCount {
-  background: rgba(255, 255, 255, 0.24);
+  background: #e61919;
   color: #ffffff;
 }
 
 :global(.theme-light) .daySpentTag {
-  background: rgba(185, 28, 28, 0.12);
-  color: #991b1b;
+  border-radius: 0px;
+  background: #e61919;
+  color: #ffffff;
 }
 
 :global(.theme-light) .dayPlannedTag {
-  background: rgba(180, 83, 9, 0.14);
-  color: #92400e;
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 1px solid #0a0a0a;
+  color: #0a0a0a;
 }
 
 :global(.theme-light) .dayCellSelected .daySpentTag,
 :global(.theme-light) .dayCellSelected .dayPlannedTag {
-  background: rgba(255, 255, 255, 0.22);
+  background: #e61919;
+  border-color: #ffffff;
   color: #ffffff;
+}
+
+:global(.theme-light) .legendSwatch {
+  border-radius: 0px;
+  border: 1px solid #0a0a0a;
+}
+
+:global(.theme-light) .legendSwatchSpent {
+  background: #e61919;
+}
+
+:global(.theme-light) .legendSwatchPlanned {
+  background: #0a0a0a;
 }
 
 :global(.theme-light) .eventCard {
   background: #ffffff;
-  border-color: #e2e8f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
 }
 
 :global(.theme-light) .costCell {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: #f4f4f0;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .categoryTag,
+:global(.theme-light) .statusBadge {
+  border-radius: 0px;
+  border: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 :global(.theme-light) .categoryTag {
-  background: rgba(122, 18, 29, 0.1);
-  color: #7a121d;
+  background: #0a0a0a;
+  color: #ffffff;
 }
 
 :global(.theme-light) .clearDateBtn,
 :global(.theme-light) .jumpLatestBtn {
-  background: #7a121d;
-  border-color: #7a121d;
+  background: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 2px 2px 0px #e61919;
   color: #ffffff;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .clearDateBtn:hover,
+:global(.theme-light) .jumpLatestBtn:hover {
+  background: #e61919;
 }
 
 :global(.theme-light) .disbursementsTitle {
-  color: #7a121d;
+  color: #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 :global(.theme-light) .ledgerDisbursements {
-  border-top-color: #e2e8f0;
+  border-top: 1.5px solid #0a0a0a;
 }
 
 :global(.theme-light) .meterTrack {
-  background: #e2e8f0;
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 1px solid #0a0a0a;
+  height: 6px;
+}
+
+:global(.theme-light) .meterFill {
+  border-radius: 0px;
+  background: #0a0a0a;
+}
+
+:global(.theme-light) .meterFillOver {
+  background: #e61919;
 }
 
 :global(.theme-light) .unscheduledNotice {
-  background: #fefce8;
-  border-color: #fde047;
-  color: #713f12;
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 @media (max-width: 960px) {

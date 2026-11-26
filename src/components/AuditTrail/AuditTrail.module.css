@@ -1410,3 +1410,584 @@
   color: #ffffff;
   box-shadow: 0 0 14px rgba(212, 175, 55, 0.35);
 }
+
+/* ==========================================================================
+   SWISS INDUSTRIAL BRUTALIST UI (LIGHT THEME ONLY) — SYSTEM TRAIL
+   Replaces dark GitHub-slate default with matte documentation paper (#F4F4F0),
+   crisp #FFFFFF print sheets, #0A0A0A carbon ink, and sole #E61919 hazard red.
+   Preserves Classic Royal Maroon (.auditClassic / .theme-dark) 100% untouched.
+   ========================================================================== */
+:global(.theme-light) {
+  --at-bg: #F4F4F0;
+  --at-card-bg: #FFFFFF;
+  --at-card-hover: #F4F4F0;
+  --at-border: #0A0A0A;
+  --at-border-strong: #0A0A0A;
+  --at-text-primary: #0A0A0A;
+  --at-text-secondary: #4A4A4A;
+  --at-text-muted: #595954;
+  --at-accent: #0A0A0A;
+  --at-accent-hover: #E61919;
+  --at-maroon: #E61919;
+}
+
+:global(.theme-light) .container {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .container::before {
+  display: none !important;
+}
+
+:global(.theme-light) .container ::selection,
+:global(.theme-light) .modalContent ::selection,
+:global(.theme-light) .accessDeniedCard ::selection {
+  background: #0A0A0A;
+  color: #F4F4F0;
+}
+
+:global(.theme-light) .container :focus-visible,
+:global(.theme-light) .modalContent :focus-visible {
+  outline: 2px solid #E61919 !important;
+  outline-offset: 2px !important;
+}
+
+:global(.theme-light) .container *,
+:global(.theme-light) .modalContent *,
+:global(.theme-light) .accessDeniedCard * {
+  border-radius: 0px !important;
+}
+
+/* ── Header & Metrics ── */
+:global(.theme-light) .header {
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .eyebrowBadge {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  box-shadow: 2px 2px 0px #E61919 !important;
+}
+
+:global(.theme-light) .eyebrowBadge svg {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .title {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  font-size: clamp(1.75rem, 2.7vw, 2.45rem) !important;
+  line-height: 0.96 !important;
+  letter-spacing: -0.025em !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .subtitle {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.8rem !important;
+}
+
+:global(.theme-light) .metricCard {
+  background: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  min-width: 108px !important;
+}
+
+:global(.theme-light) .metricNum {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .metricText {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+/* ── Module Filter Bar & Security Code Legend Trigger ── */
+:global(.theme-light) .moduleBar {
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  padding: 0.7rem 0.85rem !important;
+}
+
+:global(.theme-light) .modulePill {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .modulePill:hover:not(.modulePillActive) {
+  background: #F4F4F0 !important;
+  color: #0A0A0A !important;
+  border-color: #0A0A0A !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .modulePillActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .legendTriggerBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .legendTriggerBtn svg {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .legendTriggerBtn:hover {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .legendTriggerBtn:hover svg {
+  color: #FFFFFF !important;
+}
+
+/* ── Search, Select & Export Controls ── */
+:global(.theme-light) .searchIcon,
+:global(.theme-light) .filterIcon {
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .searchInput,
+:global(.theme-light) .filterSelect {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.82rem !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .searchInput::placeholder {
+  color: #595954 !important;
+}
+
+:global(.theme-light) .searchInput:focus,
+:global(.theme-light) .filterSelect:focus {
+  border-color: #E61919 !important;
+  background: #FFFFFF !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .clearSearchBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .clearSearchBtn:hover {
+  background: #E61919 !important;
+}
+
+:global(.theme-light) .exportButton {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .exportButton:hover:not(:disabled) {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .exportButton:disabled {
+  background: #EAE8E3 !important;
+  color: #666660 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* ── Telemetry Table ── */
+:global(.theme-light) .tableCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .tableHeader {
+  background: #0A0A0A !important;
+  border-bottom: 2px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .headerCell {
+  color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+}
+
+:global(.theme-light) .tableRow {
+  border-bottom: 1.5px solid #D8D6D0 !important;
+  background: #FFFFFF !important;
+}
+
+:global(.theme-light) .tableRow:hover {
+  background: #F4F4F0 !important;
+}
+
+/* High-contrast 3-letter security codes on light substrate */
+:global(.theme-light) .codePill {
+  background-color: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  text-shadow: none !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .codePill[data-severity="danger"] {
+  background-color: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .moduleBadge {
+  background: #F4F4F0 !important;
+  border: 1.5px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .initiatorName {
+  color: #0A0A0A !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .resourceName {
+  color: #0A0A0A !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .resourceType {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .timestampContainer {
+  color: #3D3D3A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .timeIcon {
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .payloadSummaryChip {
+  background: #F4F4F0 !important;
+  border: 1.5px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+}
+
+/* ── Active Code Catalog Quick Strip ── */
+:global(.theme-light) .quickStrip {
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .quickStripTitle {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .stripPill {
+  background-color: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .stripPill[data-severity="danger"] .stripCode {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .stripPill:hover {
+  background-color: #F4F4F0 !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .stripPillActive {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 2px 2px 0px #E61919 !important;
+}
+
+:global(.theme-light) .stripPillActive[data-severity="danger"] {
+  background-color: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .stripPillActive .stripCode {
+  color: #FFFFFF !important;
+}
+
+/* ── Empty, Loading & Error States ── */
+:global(.theme-light) .emptyState {
+  background: #F4F4F0 !important;
+  border: 2px dashed #0A0A0A !important;
+}
+
+:global(.theme-light) .emptyIcon {
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .emptyState h3 {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .emptyState p,
+:global(.theme-light) .loadingState p {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .resetFiltersBtn {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .resetFiltersBtn:hover {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .spinner {
+  border: 3px solid #D8D6D0 !important;
+  border-top-color: #E61919 !important;
+  border-radius: 50% !important;
+}
+
+:global(.theme-light) .errorBanner {
+  background: #FFFFFF !important;
+  border: 2px solid #E61919 !important;
+  color: #E61919 !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+/* ── Access Denied Barrier (Light Brutalist) ── */
+:global(.theme-light) .accessDenied {
+  background: #F4F4F0 !important;
+}
+
+:global(.theme-light) .accessDeniedCard {
+  background: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .accessDeniedCard::before {
+  display: none !important;
+}
+
+:global(.theme-light) .accessDeniedIcon {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .accessDeniedBadge {
+  background: #E61919 !important;
+  border: 2px solid #0A0A0A !important;
+  color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .accessDeniedCard h3 {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .accessDeniedCard p {
+  color: #3D3D3A !important;
+}
+
+:global(.theme-light) .clearanceNote {
+  background: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .currentRoleBadge {
+  color: #E61919 !important;
+  font-weight: 800 !important;
+}
+
+/* ── Security Code Legend Modal (Light Brutalist) ── */
+:global(.theme-light) .modalOverlay {
+  background: rgba(10, 10, 10, 0.65) !important;
+  backdrop-filter: none !important;
+}
+
+:global(.theme-light) .modalContent {
+  background: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .modalHeader,
+:global(.theme-light) .modalFooter {
+  background: #EAE8E3 !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .modalBadge {
+  color: #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(.theme-light) .modalTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalSubtitle {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+}
+
+:global(.theme-light) .modalCloseBtn {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .modalCloseBtn:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
+:global(.theme-light) .legendGroup {
+  background: #F4F4F0 !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .groupHeader {
+  border-bottom: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .groupHeader h4 {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Bebas Neue', sans-serif !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .groupScope {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .legendCard {
+  background: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .legendCodeBadge {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .legendCardInfo h5 {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .legendCardInfo p {
+  color: #4A4A4A !important;
+}
+
+:global(.theme-light) .modalDoneBtn {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .modalDoneBtn:hover {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}

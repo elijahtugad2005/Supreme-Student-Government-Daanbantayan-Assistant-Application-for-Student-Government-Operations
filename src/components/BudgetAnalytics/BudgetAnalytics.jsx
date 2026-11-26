@@ -184,10 +184,10 @@ const BudgetAnalytics = () => {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  // Chart Colors (Adaptive: Light mode has Swiss Industrial high contrast; Classic Mode has rich imperial gold and royal maroon)
+  // Chart Colors (Adaptive: Light mode has Swiss Industrial monochrome + aviation red; Classic Mode has imperial gold and royal maroon)
   const COLORS = useMemo(() => {
     if (isLight) {
-      return ['#0A0A0A', '#E61919', '#2563EB', '#16A34A', '#D97706', '#9333EA', '#0891B2', '#64748B'];
+      return ['#0A0A0A', '#E61919', '#4A4A4A', '#7A7A75', '#B91C1C', '#262626', '#9A9A94', '#D4D2CC'];
     }
     if (isClassic) {
       return ['#D4AF37', '#9E1B29', '#E5B842', '#7A121D', '#F59E0B', '#C93B2B', '#E2D06D', '#8B7355'];
@@ -238,7 +238,7 @@ const BudgetAnalytics = () => {
           </span>
         </div>
         <div className={styles.statCard}>
-          <HiCurrencyDollar style={{ fontSize: '2rem', color: isLight ? '#8b1524' : '#f87171', marginBottom: '0.5rem' }} />
+          <HiCurrencyDollar style={{ fontSize: '2rem', color: isLight ? '#0a0a0a' : '#f87171', marginBottom: '0.5rem' }} />
           <span className={styles.statLabel}>Fiscal Year Budget Alloc</span>
           <span className={styles.statValue}>
             {formatCurrency(statistics.fiscalAllocated || 0)}
@@ -248,9 +248,9 @@ const BudgetAnalytics = () => {
           </span>
         </div>
         <div className={styles.statCard}>
-          <HiCurrencyDollar style={{ fontSize: '2rem', color: '#d4af37', marginBottom: '0.5rem' }} />
+          <HiCurrencyDollar style={{ fontSize: '2rem', color: isLight ? '#0a0a0a' : '#d4af37', marginBottom: '0.5rem' }} />
           <span className={styles.statLabel}>FSG Remittance Alloc</span>
-          <span className={styles.statValue} style={{ color: '#d4af37' }}>
+          <span className={styles.statValue} style={isLight ? undefined : { color: '#d4af37' }}>
             {formatCurrency(statistics.fsgAllocated || 0)}
           </span>
           <span className={styles.statTrend}>
@@ -271,7 +271,7 @@ const BudgetAnalytics = () => {
           </div>
         </div>
         <div className={styles.statCard}>
-          <HiCheckCircle style={{ fontSize: '2rem', color: isLight ? '#166534' : '#10b981', marginBottom: '0.5rem' }} />
+          <HiCheckCircle style={{ fontSize: '2rem', color: isLight ? '#0a0a0a' : '#10b981', marginBottom: '0.5rem' }} />
           <span className={styles.statLabel}>Remaining Funds</span>
           <span className={styles.statValue}>
             {formatCurrency(statistics.totalRemaining)}
@@ -281,9 +281,9 @@ const BudgetAnalytics = () => {
           </span>
         </div>
         <div className={styles.statCard}>
-          <HiShoppingBag style={{ fontSize: '2rem', color: isLight ? '#2563eb' : '#60a5fa', marginBottom: '0.5rem' }} />
+          <HiShoppingBag style={{ fontSize: '2rem', color: isLight ? '#0a0a0a' : '#60a5fa', marginBottom: '0.5rem' }} />
           <span className={styles.statLabel}>IGF Merchandise Balance</span>
-          <span className={styles.statValue} style={{ color: isLight ? '#1d4ed8' : '#93c5fd' }}>
+          <span className={styles.statValue} style={isLight ? undefined : { color: '#93c5fd' }}>
             {formatCurrency(statistics.igfBalance || 0)}
           </span>
           <span className={styles.statTrend}>
@@ -291,9 +291,9 @@ const BudgetAnalytics = () => {
           </span>
         </div>
         <div className={styles.statCard}>
-          <HiArchive style={{ fontSize: '2rem', color: isLight ? '#d97706' : '#fbbf24', marginBottom: '0.5rem' }} />
+          <HiArchive style={{ fontSize: '2rem', color: isLight ? '#e61919' : '#fbbf24', marginBottom: '0.5rem' }} />
           <span className={styles.statLabel}>IGP Projects Balance</span>
-          <span className={styles.statValue} style={{ color: isLight ? '#b45309' : '#fcd34d' }}>
+          <span className={styles.statValue} style={isLight ? undefined : { color: '#fcd34d' }}>
             {formatCurrency(statistics.igpBalance || 0)}
           </span>
           <span className={styles.statTrend}>

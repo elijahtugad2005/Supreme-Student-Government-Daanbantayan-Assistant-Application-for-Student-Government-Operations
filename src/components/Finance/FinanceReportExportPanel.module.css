@@ -701,3 +701,267 @@
   color: #c9a9ad !important;
 }
 
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES
+   Scoped exclusively to :global(.theme-light). Leaves .theme-dark untouched.
+   ========================================================================== */
+
+:global(.theme-light) .governanceBar {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .operatorBadge,
+:global(.theme-light) .roleBadgeReadOnly,
+:global(.theme-light) .oauthPill {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+:global(.theme-light) .operatorBadge {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .roleBadgeReadOnly {
+  background: #ffffff;
+  color: #e61919;
+  border-color: #e61919;
+}
+
+:global(.theme-light) .oauthConnected {
+  background: #f4f4f0;
+  color: #166534;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .oauthDisconnected {
+  background: #eae8e3;
+  color: #4a4a4a;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .heroBanner {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 6px 6px 0px #e61919;
+}
+
+:global(.theme-light) .heroTag {
+  background: #e61919;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 0px;
+  backdrop-filter: none;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  letter-spacing: 0.08em;
+}
+
+:global(.theme-light) .heroTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+:global(.theme-light) .heroDescription {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.84rem;
+  color: #eae8e3;
+}
+
+:global(.theme-light) .card {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .cardHeader {
+  border-bottom: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .cardTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .cardSubtitle {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .sheetTabItem {
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .sheetTabItem:hover {
+  background: #eae8e3;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .sheetTabNumber {
+  border-radius: 0px;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+}
+
+:global(.theme-light) .sheetTabName {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+
+:global(.theme-light) .sheetTabCount {
+  border-radius: 0px;
+  background: #ffffff;
+  border: 1.5px solid #0a0a0a;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .sheetTabSummary {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+  font-size: 0.74rem;
+}
+
+:global(.theme-light) .modeOption {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #f4f4f0;
+}
+
+:global(.theme-light) .modeOptionActive {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .modeOptionTitle {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .modeOptionDesc {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .modeOptionActive .modeOptionTitle {
+  color: #ffffff;
+}
+
+:global(.theme-light) .modeOptionActive .modeOptionDesc {
+  color: #eae8e3;
+}
+
+:global(.theme-light) .formLabel {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .formInput {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.84rem;
+}
+
+:global(.theme-light) .formInput:focus {
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .formHint {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .exportBtn {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 4px 4px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+:global(.theme-light) .exportBtn:hover:not(:disabled) {
+  background: #e61919;
+  color: #ffffff;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0px #0a0a0a;
+}
+
+:global(.theme-light) .alertError {
+  border-radius: 0px;
+  background: #ffffff;
+  border: 2px solid #e61919;
+  box-shadow: 3px 3px 0px #e61919;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .alertSuccess {
+  border-radius: 0px;
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .sheetLinkBtn {
+  border-radius: 0px;
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  box-shadow: 2px 2px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .sheetLinkBtn:hover {
+  background: #e61919;
+}
+
+:global(.theme-light) .auditNotice,
+:global(.theme-light) .complianceNotice {
+  border-radius: 0px;
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+}
+

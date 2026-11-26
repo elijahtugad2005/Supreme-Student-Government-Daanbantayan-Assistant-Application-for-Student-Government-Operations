@@ -216,7 +216,18 @@
 /* =========================================================
    LIGHT THEME DIRECTIVES (:global(.theme-light))
    Swiss Industrial Brutalist Substrate
+   Scoped strictly to .container so rules never leak globally.
    ========================================================= */
+
+:global(.theme-light) .container {
+  background-color: #F4F4F0 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .container ::selection {
+  background: #0A0A0A;
+  color: #F4F4F0;
+}
 
 :global(.theme-light) .container * {
   border-radius: 0px !important;
@@ -230,16 +241,6 @@
   position: relative !important;
   padding: 1.6rem 2rem !important;
   margin-bottom: 1.8rem !important;
-}
-
-:global(.theme-light) .header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: #E61919 !important;
 }
 
 :global(.theme-light) .headerActionBtn {
@@ -257,10 +258,10 @@
 }
 
 :global(.theme-light) .headerActionBtn:hover {
-  background: #EAE8E3 !important;
+  background: #0A0A0A !important;
   transform: translate(-1px, -1px) !important;
-  box-shadow: 4px 4px 0px #0A0A0A !important;
-  color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #E61919 !important;
+  color: #FFFFFF !important;
 }
 
 :global(.theme-light) .badge {
@@ -268,16 +269,16 @@
   font-size: 0.74rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.08em !important;
-  color: #0A0A0A !important;
-  background: #EAE8E3 !important;
-  border: 1px solid #0A0A0A !important;
-  padding: 0.2rem 0.6rem !important;
-  box-shadow: 1px 1px 0px #0A0A0A !important;
+  color: #FFFFFF !important;
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  padding: 0.22rem 0.65rem !important;
+  box-shadow: 2px 2px 0px #E61919 !important;
   margin-bottom: 0.6rem !important;
 }
 
 :global(.theme-light) .title {
-  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
   font-size: 2.2rem !important;
   color: #0A0A0A !important;
   letter-spacing: -0.02em !important;
@@ -288,40 +289,44 @@
 :global(.theme-light) .subtitle {
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.84rem !important;
-  color: #444444 !important;
+  color: #4A4A4A !important;
   line-height: 1.5 !important;
 }
 
 :global(.theme-light) .navBar {
-  gap: 1rem !important;
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  padding: 0.45rem !important;
+  gap: 0.5rem !important;
   margin-bottom: 2rem !important;
 }
 
 :global(.theme-light) .navButton {
   background: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
-  box-shadow: 3px 3px 0px #0A0A0A !important;
+  box-shadow: 2px 2px 0px #0A0A0A !important;
   color: #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
-  font-size: 0.88rem !important;
+  font-size: 0.84rem !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
-  padding: 0.85rem 1.5rem !important;
+  padding: 0.8rem 1.35rem !important;
   transition: transform 0.12s ease, box-shadow 0.12s ease !important;
 }
 
 :global(.theme-light) .navButton:hover {
-  background: #EAE8E3 !important;
+  background: #F4F4F0 !important;
   transform: translate(-1px, -1px) !important;
-  box-shadow: 4px 4px 0px #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
 }
 
 :global(.theme-light) .navButtonActive {
   background: #0A0A0A !important;
   color: #FFFFFF !important;
   border-color: #0A0A0A !important;
-  box-shadow: 4px 4px 0px #E61919 !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
 }
 
 :global(.theme-light) .navButtonActive:hover {
@@ -335,7 +340,7 @@
 
 :global(.theme-light) .activeDot {
   background: #E61919 !important;
-  box-shadow: 0 0 6px #E61919 !important;
+  box-shadow: none !important;
 }
 
 :global(.theme-light) .tabBadge {
@@ -345,65 +350,61 @@
   letter-spacing: 0.04em !important;
   color: #0A0A0A !important;
   background: #EAE8E3 !important;
-  border: 1px solid #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
   padding: 0.15rem 0.45rem !important;
-  box-shadow: 1px 1px 0px #0A0A0A !important;
+  box-shadow: none !important;
 }
 
 :global(.theme-light) .navButtonActive .tabBadge {
   background: #E61919 !important;
   color: #FFFFFF !important;
   border-color: #E61919 !important;
-  box-shadow: 1px 1px 0px #0A0A0A !important;
 }
 
 :global(.theme-light) .pendingTabBadge {
-  background: #FEF3C7 !important;
-  color: #92400E !important;
-  border: 1px solid #D97706 !important;
-  box-shadow: 1px 1px 0px #0A0A0A !important;
+  background: #FFFFFF !important;
+  color: #E61919 !important;
+  border: 1.5px solid #E61919 !important;
+  box-shadow: none !important;
 }
 
 :global(.theme-light) .pendingPulseDot {
-  background: #D97706 !important;
-  box-shadow: 0 0 4px #D97706 !important;
+  background: #E61919 !important;
+  box-shadow: none !important;
 }
 
 /* =========================================================
-   LIGHT THEME DIRECTIVES FOR CLASS UPLOAD & DEATH AID
-   Override inline style tokens when .theme-light is active
+   LIGHT THEME DIRECTIVES FOR CLASS UPLOAD, ROSTER & DEATH AID
+   Scoped strictly inside .container to prevent global leaks.
    ========================================================= */
 
 /* Cards and Substrates */
-:global(.theme-light) div[style*="background-color: var(--color-bg-card)"],
-:global(.theme-light) section[style*="background-color: var(--color-bg-card)"] {
+:global(.theme-light) .container div[style*="background-color: var(--color-bg-card)"],
+:global(.theme-light) .container section[style*="background-color: var(--color-bg-card)"] {
   background-color: #FFFFFF !important;
-  border: 3px solid #0A0A0A !important;
-  box-shadow: 5px 5px 0px #0A0A0A !important;
-  border-radius: 0px !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
 }
 
-:global(.theme-light) div[style*="background-color: var(--color-bg-tertiary)"],
-:global(.theme-light) section[style*="background-color: var(--color-bg-tertiary)"] {
+:global(.theme-light) .container div[style*="background-color: var(--color-bg-tertiary)"],
+:global(.theme-light) .container section[style*="background-color: var(--color-bg-tertiary)"] {
   background-color: #F4F4F0 !important;
   border: 2px solid #0A0A0A !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
-  border-radius: 0px !important;
 }
 
 /* Headings in Roster & Death Aid */
-:global(.theme-light) h1,
-:global(.theme-light) h2,
-:global(.theme-light) h3 {
+:global(.theme-light) .container h1,
+:global(.theme-light) .container h2,
+:global(.theme-light) .container h3 {
   color: #0A0A0A !important;
 }
 
 /* Tab buttons inside ClassUpload and DeathAid */
-:global(.theme-light) button[style*="border-bottom: 3px solid"] {
+:global(.theme-light) .container button[style*="border-bottom: 3px solid"] {
   background-color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
-  border-radius: 0px !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
@@ -413,7 +414,7 @@
   padding: 0.6rem 1.1rem !important;
 }
 
-:global(.theme-light) button[style*="border-bottom-color: var(--color-accent-primary)"] {
+:global(.theme-light) .container button[style*="border-bottom-color: var(--color-accent-primary)"] {
   background-color: #0A0A0A !important;
   color: #FFFFFF !important;
   border-color: #0A0A0A !important;
@@ -421,107 +422,103 @@
 }
 
 /* Inputs, Selects & Textareas */
-:global(.theme-light) input,
-:global(.theme-light) select,
-:global(.theme-light) textarea {
+:global(.theme-light) .container input,
+:global(.theme-light) .container select,
+:global(.theme-light) .container textarea {
   background-color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   color: #0A0A0A !important;
-  border-radius: 0px !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.85rem !important;
+  font-size: 0.84rem !important;
 }
 
-:global(.theme-light) input:focus,
-:global(.theme-light) select:focus,
-:global(.theme-light) textarea:focus {
-  border-color: #E61919 !important;
-  box-shadow: 3px 3px 0px #0A0A0A !important;
+:global(.theme-light) .container input:focus,
+:global(.theme-light) .container select:focus,
+:global(.theme-light) .container textarea:focus {
+  border-color: #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  outline: none !important;
 }
 
 /* Tables in Roster & Death Aid */
-:global(.theme-light) table {
+:global(.theme-light) .container table {
   border-collapse: collapse !important;
   border: 2px solid #0A0A0A !important;
   background-color: #FFFFFF !important;
 }
 
-:global(.theme-light) th {
-  background-color: #EAE8E3 !important;
-  color: #0A0A0A !important;
+:global(.theme-light) .container th {
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
   border-bottom: 2px solid #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.78rem !important;
+  font-size: 0.74rem !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.06em !important;
 }
 
-:global(.theme-light) td {
-  border-bottom: 1px solid #0A0A0A !important;
+:global(.theme-light) .container td {
+  border-bottom: 1.5px solid #0A0A0A !important;
   color: #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.82rem !important;
 }
 
-:global(.theme-light) tr:hover td {
+:global(.theme-light) .container tr:hover td {
   background-color: #F4F4F0 !important;
 }
 
 /* Buttons in ClassUpload & DeathAid */
-:global(.theme-light) button[style*="background-color: var(--color-accent-primary)"] {
+:global(.theme-light) .container button[style*="background-color: var(--color-accent-primary)"] {
   background-color: #0A0A0A !important;
   color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   box-shadow: 3px 3px 0px #E61919 !important;
-  border-radius: 0px !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
 }
 
-:global(.theme-light) button[style*="background-color: var(--color-accent-primary)"]:hover {
+:global(.theme-light) .container button[style*="background-color: var(--color-accent-primary)"]:hover {
   background-color: #E61919 !important;
   border-color: #0A0A0A !important;
-  box-shadow: 2px 2px 0px #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
 }
 
-:global(.theme-light) button[style*="background-color: var(--color-success)"] {
+:global(.theme-light) .container button[style*="background-color: var(--color-success)"] {
   background-color: #0A0A0A !important;
   color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
-  border-radius: 0px !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
 }
 
-:global(.theme-light) button[style*="background-color: var(--color-success)"]:hover {
-  background-color: #222222 !important;
+:global(.theme-light) .container button[style*="background-color: var(--color-success)"]:hover {
+  background-color: #E61919 !important;
 }
 
-:global(.theme-light) button[style*="border: 2px solid var(--color-border)"] {
+:global(.theme-light) .container button[style*="border: 2px solid var(--color-border)"] {
   background-color: #FFFFFF !important;
   color: #0A0A0A !important;
   border: 2px solid #0A0A0A !important;
   box-shadow: 2px 2px 0px #0A0A0A !important;
-  border-radius: 0px !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
 }
 
-:global(.theme-light) button[style*="border: 2px solid var(--color-border)"]:hover {
+:global(.theme-light) .container button[style*="border: 2px solid var(--color-border)"]:hover {
   background-color: #0A0A0A !important;
   color: #FFFFFF !important;
 }
 
 /* Status Pills & Badges */
-:global(.theme-light) span[style*="border-radius: 50px"] {
-  border-radius: 0px !important;
-  border: 1px solid #0A0A0A !important;
+:global(.theme-light) .container span[style*="border-radius: 50px"] {
+  border: 1.5px solid #0A0A0A !important;
   background-color: #EAE8E3 !important;
   color: #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
@@ -530,58 +527,48 @@
   box-shadow: 1px 1px 0px #0A0A0A !important;
 }
 
-/* =========================================================
-   DEEP SWISS INDUSTRIAL BRUTALIST OVERRIDES FOR
-   CLASS UPLOAD & DEATH AID
-   ========================================================= */
-
 /* Dropzones in Class Upload */
-:global(.theme-light) div[style*="border: 2px dashed"] {
+:global(.theme-light) .container div[style*="border: 2px dashed"] {
   background-color: #F4F4F0 !important;
   border: 2px dashed #0A0A0A !important;
-  border-radius: 0px !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
 }
 
 /* Summary Grid Tiles in Death Aid */
-:global(.theme-light) div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] > div {
+:global(.theme-light) .container div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] > div {
   background-color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
 }
 
-:global(.theme-light) div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] span {
+:global(.theme-light) .container div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] span {
   font-family: 'JetBrains Mono', monospace !important;
   color: #0A0A0A !important;
 }
 
 /* Section Cards & Review Cards */
-:global(.theme-light) div[style*="margin-bottom: 1rem"][style*="border: 1px solid"],
-:global(.theme-light) div[style*="margin-bottom: 0.7rem"][style*="border: 1px solid"] {
+:global(.theme-light) .container div[style*="margin-bottom: 1rem"][style*="border: 1px solid"],
+:global(.theme-light) .container div[style*="margin-bottom: 0.7rem"][style*="border: 1px solid"] {
   background-color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
   box-shadow: 4px 4px 0px #0A0A0A !important;
 }
 
 /* Section Card Header Buttons */
-:global(.theme-light) button[style*="cursor: pointer"][style*="text-align: left"] {
+:global(.theme-light) .container button[style*="cursor: pointer"][style*="text-align: left"] {
   background-color: #EAE8E3 !important;
   border-bottom: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
 }
 
-:global(.theme-light) button[style*="cursor: pointer"][style*="text-align: left"]:hover {
+:global(.theme-light) .container button[style*="cursor: pointer"][style*="text-align: left"]:hover {
   background-color: #F4F4F0 !important;
 }
 
 /* Action Link Buttons */
-:global(.theme-light) button[style*="padding: 0.3rem 0.6rem"],
-:global(.theme-light) button[style*="padding: 0.35rem 0.7rem"] {
+:global(.theme-light) .container button[style*="padding: 0.3rem 0.6rem"],
+:global(.theme-light) .container button[style*="padding: 0.35rem 0.7rem"] {
   background-color: #FFFFFF !important;
-  border: 1px solid #0A0A0A !important;
-  border-radius: 0px !important;
+  border: 1.5px solid #0A0A0A !important;
   color: #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 700 !important;
@@ -589,19 +576,26 @@
   box-shadow: 1px 1px 0px #0A0A0A !important;
 }
 
-:global(.theme-light) button[style*="padding: 0.3rem 0.6rem"]:hover,
-:global(.theme-light) button[style*="padding: 0.35rem 0.7rem"]:hover {
+:global(.theme-light) .container button[style*="padding: 0.3rem 0.6rem"]:hover,
+:global(.theme-light) .container button[style*="padding: 0.35rem 0.7rem"]:hover {
   background-color: #0A0A0A !important;
   color: #FFFFFF !important;
 }
 
 /* Notice & Warning Blocks */
-:global(.theme-light) div[style*="padding: 0.8rem"][style*="margin-bottom: 1rem"],
-:global(.theme-light) div[style*="padding: 1.5rem"][style*="border-radius: 1rem"] {
-  background-color: #FFFBEB !important;
+:global(.theme-light) .container div[style*="padding: 0.8rem"][style*="margin-bottom: 1rem"],
+:global(.theme-light) .container div[style*="padding: 1.5rem"][style*="border-radius: 1rem"] {
+  background-color: #EAE8E3 !important;
   border: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
-  box-shadow: 3px 3px 0px #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  color: #0A0A0A !important;
+}
+
+/* Double-Check Modal Overlay in Death Aid */
+:global(.theme-light) .container div[style*="position: fixed"][style*="z-index: 9999"] > div {
+  background: #FFFFFF !important;
+  border: 3px solid #0A0A0A !important;
+  box-shadow: 8px 8px 0px #0A0A0A !important;
   color: #0A0A0A !important;
 }
 

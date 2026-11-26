@@ -119,7 +119,7 @@
 /* ─── METRIC CARDS (BENTO GRID) ─── */
 .statsContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 1.25rem;
   margin-bottom: 2.25rem;
 }
@@ -187,6 +187,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
@@ -201,6 +202,7 @@
 .statIconBadge {
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -1169,233 +1171,653 @@
 
 /* ══════════════════════════════════════════════════════════════════════════
    LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES
+   Scoped with :global(html.theme-light) to outrank global themes.css rules.
+   Leaves .theme-dark / .inventoryClassic untouched.
+   Palette: #F4F4F0 / #FFFFFF / #EAE8E3 / #0A0A0A / #E61919
    ══════════════════════════════════════════════════════════════════════════ */
-:global(.theme-light) .container {
-  background: transparent;
+:global(html.theme-light) .container {
+  background: #f4f4f0;
   color: #0a0a0a;
 }
 
-:global(.theme-light) .header {
-  border-bottom: 2px solid #0a0a0a;
+:global(html.theme-light) .container ::selection {
+  background: #0a0a0a;
+  color: #f4f4f0;
+}
+
+:global(html.theme-light) .container .header {
+  border-bottom: 3px solid #0a0a0a;
   padding-bottom: 1.5rem;
 }
 
-:global(.theme-light) .eyebrowBadge {
+:global(html.theme-light) .container .eyebrowBadge {
   background: #0a0a0a;
   color: #ffffff;
   border-radius: 0px;
   border: 2px solid #0a0a0a;
-  box-shadow: 2px 2px 0px #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+  box-shadow: 2px 2px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  letter-spacing: 0.08em;
 }
 
-:global(.theme-light) .title {
+:global(html.theme-light) .container .title {
   color: #0a0a0a;
   background: none;
   -webkit-background-clip: unset;
   -webkit-text-fill-color: #0a0a0a;
-  font-family: 'Archivo Black', 'Impact', sans-serif;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
   text-transform: uppercase;
   letter-spacing: -0.03em;
 }
 
-:global(.theme-light) .subtitle {
-  color: #404040;
+:global(html.theme-light) .container .subtitle {
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.86rem;
 }
 
-:global(.theme-light) .statCard {
+/* ─── KPI Stat Cards & Active Filters ─── */
+:global(html.theme-light) .container .statCard {
   background: #ffffff;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
   box-shadow: 4px 4px 0px #0a0a0a;
   backdrop-filter: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-:global(.theme-light) .statLabel {
+:global(html.theme-light) .container .statCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+:global(html.theme-light) .container .statCard.statCardActive,
+:global(html.theme-light) .container .statCard.statCardActiveInfo {
+  background: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  box-shadow: 4px 4px 0px #e61919;
+}
+
+:global(html.theme-light) .container .statCard.statCardActiveWarning {
+  background: #0a0a0a;
+  border: 2px solid #e61919;
+  box-shadow: 4px 4px 0px #e61919;
+}
+
+:global(html.theme-light) .container .statCard.statCardActive .statLabel,
+:global(html.theme-light) .container .statCard.statCardActive .statValue,
+:global(html.theme-light) .container .statCard.statCardActive .statCaption,
+:global(html.theme-light) .container .statCard.statCardActiveInfo .statLabel,
+:global(html.theme-light) .container .statCard.statCardActiveInfo .statValue,
+:global(html.theme-light) .container .statCard.statCardActiveInfo .statCaption,
+:global(html.theme-light) .container .statCard.statCardActiveWarning .statLabel,
+:global(html.theme-light) .container .statCard.statCardActiveWarning .statValue,
+:global(html.theme-light) .container .statCard.statCardActiveWarning .statCaption {
+  color: #ffffff;
+}
+
+:global(html.theme-light) .container .statCard.statCardActive .badgePrimary {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+:global(html.theme-light) .container .statCard.statCardWarning {
+  border-color: #e61919;
+}
+
+:global(html.theme-light) .container .statLabel {
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+:global(html.theme-light) .container .statValue {
   color: #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
-:global(.theme-light) .statValue {
-  color: #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+:global(html.theme-light) .container .statCaption {
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.72rem;
 }
 
-:global(.theme-light) .statIconBadge {
+:global(html.theme-light) .container .statIconBadge {
   border-radius: 0px;
   border: 2px solid #0a0a0a;
 }
 
-:global(.theme-light) .badgePrimary {
-  background: #eff6ff;
-  color: #1d4ed8;
+:global(html.theme-light) .container .badgePrimary {
+  background: #0a0a0a;
+  color: #ffffff;
 }
 
-:global(.theme-light) .badgeWarning {
-  background: #fef3c7;
-  color: #b45309;
+:global(html.theme-light) .container .badgeWarning {
+  background: #e61919;
+  color: #ffffff;
 }
 
-:global(.theme-light) .badgeInfo {
-  background: #f5f3ff;
-  color: #6d28d9;
+:global(html.theme-light) .container .badgeInfo {
+  background: #eae8e3;
+  color: #0a0a0a;
 }
 
-:global(.theme-light) .badgeSuccess {
-  background: #ecfdf5;
-  color: #047857;
+:global(html.theme-light) .container .badgeSuccess {
+  background: #f4f4f0;
+  color: #166534;
 }
 
-:global(.theme-light) .tabs {
-  background: #ffffff;
+/* ─── Tabs Bar ─── */
+:global(html.theme-light) .container .tabs {
+  background: #eae8e3;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
   box-shadow: 4px 4px 0px #0a0a0a;
   backdrop-filter: none;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  padding: 0.4rem;
 }
 
-:global(.theme-light) .tab {
+:global(html.theme-light) .container .tab {
   border-radius: 0px;
+  background: #ffffff;
   color: #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
   text-transform: uppercase;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   border: 2px solid transparent;
 }
 
-:global(.theme-light) .tab:hover:not(.activeTab) {
+:global(html.theme-light) .container .tab:hover:not(.activeTab) {
   background: #f4f4f0;
   border-color: #0a0a0a;
+  color: #0a0a0a;
 }
 
-:global(.theme-light) .activeTab {
+:global(html.theme-light) .container .tab.activeTab {
   background: #0a0a0a;
   color: #ffffff;
   border-color: #0a0a0a;
-  box-shadow: none;
+  box-shadow: 3px 3px 0px #e61919;
 }
 
-:global(.theme-light) .activeTab .tabIcon {
+:global(html.theme-light) .container .tab.activeTab .tabIcon {
   color: #e61919;
 }
 
-:global(.theme-light) .tableContainer,
-:global(.theme-light) .categoriesCard {
+/* ─── Tables, Rows, Badges & Row Actions ─── */
+:global(html.theme-light) .container .tableContainer,
+:global(html.theme-light) .container .categoriesCard {
   background: #ffffff;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
   box-shadow: 4px 4px 0px #0a0a0a;
+  backdrop-filter: none;
 }
 
-:global(.theme-light) .table th {
+:global(html.theme-light) .container .table th {
   background: #0a0a0a;
   color: #ffffff;
   border-bottom: 2px solid #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
-:global(.theme-light) .table td {
-  border-bottom: 1px solid #e5e5e5;
+:global(html.theme-light) .container .table td {
+  border-bottom: 1.5px solid #0a0a0a;
   color: #0a0a0a;
 }
 
-:global(.theme-light) .itemNameText {
-  color: #0a0a0a;
+:global(html.theme-light) .container .table tbody tr:hover {
+  background-color: #f4f4f0;
 }
 
-:global(.theme-light) .quantityNum,
-:global(.theme-light) .priceNum {
-  color: #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+:global(html.theme-light) .container .lowStockRow {
+  background-color: #faf9f5 !important;
 }
 
-:global(.theme-light) .categoryBadge {
+:global(html.theme-light) .container .outOfStockRow {
+  background-color: #fff5f5 !important;
+}
+
+:global(html.theme-light) .container .itemNameText {
+  color: #0a0a0a;
+  font-weight: 800;
+}
+
+:global(html.theme-light) .container .itemDescriptionText,
+:global(html.theme-light) .container .quantityUnit {
+  color: #4a4a4a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(html.theme-light) .container .quantityNum,
+:global(html.theme-light) .container .priceNum {
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+:global(html.theme-light) .container .categoryBadge,
+:global(html.theme-light) .container .locationTag {
   background: #f4f4f0;
   border: 1.5px solid #0a0a0a;
   border-radius: 0px;
   color: #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
 }
 
-:global(.theme-light) .searchInput,
-:global(.theme-light) .filterSelect,
-:global(.theme-light) .categoryInput,
-:global(.theme-light) .formInput,
-:global(.theme-light) .formSelect,
-:global(.theme-light) .formTextarea {
+:global(html.theme-light) .container .statusIn,
+:global(html.theme-light) .container .statusLow,
+:global(html.theme-light) .container .statusOut,
+:global(html.theme-light) .container .statusBorrowed,
+:global(html.theme-light) .container .statusReturned {
+  border-radius: 0px;
+  border: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(html.theme-light) .container .statusIn,
+:global(html.theme-light) .container .statusReturned {
+  background: #f4f4f0;
+  color: #166534;
+}
+
+:global(html.theme-light) .container .statusLow,
+:global(html.theme-light) .container .statusBorrowed {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(html.theme-light) .container .statusOut {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(html.theme-light) .container .borrowBtn,
+:global(html.theme-light) .container .editBtn,
+:global(html.theme-light) .container .returnActionBtn {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(html.theme-light) .container .borrowBtn:hover:not(:disabled),
+:global(html.theme-light) .container .editBtn:hover,
+:global(html.theme-light) .container .returnActionBtn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(html.theme-light) .container .deleteBtn {
+  background: #ffffff;
+  border: 2px solid #e61919;
+  border-radius: 0px;
+  color: #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+}
+
+:global(html.theme-light) .container .deleteBtn:hover {
+  background: #e61919;
+  border-color: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(html.theme-light) .container .completedCheck {
+  color: #166534;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+}
+
+/* ─── Search, Filter Controls & Inputs ─── */
+:global(html.theme-light) .container .searchIcon,
+:global(html.theme-light) .container .selectIcon,
+:global(html.theme-light) .container .clearSearchBtn {
+  color: #0a0a0a;
+}
+
+:global(html.theme-light) .container .clearSearchBtn:hover {
+  color: #e61919;
+}
+
+:global(html.theme-light) .container .searchInput,
+:global(html.theme-light) .container .filterSelect,
+:global(html.theme-light) .container .categoryInput,
+:global(html.theme-light) .modalOverlay .modal .formInput,
+:global(html.theme-light) .modalOverlay .modal .formSelect,
+:global(html.theme-light) .modalOverlay .modal .formTextarea {
   background: #ffffff;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
   color: #0a0a0a;
   box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.84rem;
 }
 
-:global(.theme-light) .primaryButton {
+:global(html.theme-light) .container .searchInput:focus,
+:global(html.theme-light) .container .filterSelect:focus,
+:global(html.theme-light) .container .categoryInput:focus,
+:global(html.theme-light) .modalOverlay .modal .formInput:focus,
+:global(html.theme-light) .modalOverlay .modal .formSelect:focus,
+:global(html.theme-light) .modalOverlay .modal .formTextarea:focus {
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(html.theme-light) .container .filterSelect option,
+:global(html.theme-light) .modalOverlay .modal .formSelect option {
+  background: #ffffff;
+  color: #0a0a0a;
+}
+
+/* ─── Buttons ─── */
+:global(html.theme-light) .container .primaryButton,
+:global(html.theme-light) .modalOverlay .modal .primaryButton {
   background: #0a0a0a;
   color: #ffffff;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
-  box-shadow: 3px 3px 0px #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
   text-transform: uppercase;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  letter-spacing: 0.05em;
 }
 
-:global(.theme-light) .primaryButton:hover:not(:disabled) {
+:global(html.theme-light) .container .primaryButton:hover:not(:disabled),
+:global(html.theme-light) .modalOverlay .modal .primaryButton:hover:not(:disabled) {
   background: #e61919;
   border-color: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 4px 4px 0px #0a0a0a;
 }
 
-:global(.theme-light) .secondaryButton {
+:global(html.theme-light) .container .secondaryButton,
+:global(html.theme-light) .modalOverlay .modal .secondaryButton {
   background: #ffffff;
   color: #0a0a0a;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
   box-shadow: 2px 2px 0px #0a0a0a;
   text-transform: uppercase;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
 }
 
-:global(.theme-light) .actionButton {
+:global(html.theme-light) .container .secondaryButton:hover,
+:global(html.theme-light) .modalOverlay .modal .secondaryButton:hover {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(html.theme-light) .container .actionButton {
   background: #ffffff;
   border: 1.5px solid #0a0a0a;
   border-radius: 0px;
   color: #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
 }
 
-:global(.theme-light) .actionButton:hover:not(:disabled) {
+:global(html.theme-light) .container .actionButton:hover:not(:disabled) {
   background: #0a0a0a;
+  border-color: #0a0a0a;
   color: #ffffff;
 }
 
-:global(.theme-light) .modal {
+/* ─── Categories Tab & Empty States ─── */
+:global(html.theme-light) .container .categoryCardTitle,
+:global(html.theme-light) .container .emptyState h3 {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(html.theme-light) .container .categoryCardSubtitle,
+:global(html.theme-light) .container .emptyState p,
+:global(html.theme-light) .modalOverlay .modal .helperText {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(html.theme-light) .container .categoryTagPill {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  color: #0a0a0a;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+}
+
+:global(html.theme-light) .container .categoryTagPill:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(html.theme-light) .container .categoryTagIcon {
+  color: #e61919;
+}
+
+:global(html.theme-light) .container .emptyIconCircle {
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  color: #0a0a0a;
+}
+
+/* ─── Modals (Add/Edit/Borrow/Consumable Expense) ─── */
+:global(html.theme-light) .modalOverlay {
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:global(html.theme-light) .modalOverlay .modal {
   background: #ffffff;
   border: 3px solid #0a0a0a;
   border-radius: 0px;
   box-shadow: 8px 8px 0px #0a0a0a;
+  color: #0a0a0a;
 }
 
-:global(.theme-light) .modalHeader {
-  background: #f4f4f0;
+:global(html.theme-light) .modalOverlay .modal .modalHeader {
+  background: #0a0a0a;
   border-bottom: 2px solid #0a0a0a;
 }
 
-:global(.theme-light) .modalHeader h2 {
-  color: #0a0a0a;
+:global(html.theme-light) .modalOverlay .modal .modalHeader h2 {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #ffffff;
 }
 
-:global(.theme-light) .formGroup label {
-  color: #0a0a0a;
-  font-family: 'JetBrains Mono', monospace;
+:global(html.theme-light) .modalOverlay .modal .modalSubtitle {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #eae8e3;
 }
 
-:global(.theme-light) .categoryTagPill {
+:global(html.theme-light) .modalOverlay .modal .closeButton {
   background: #ffffff;
   border: 2px solid #0a0a0a;
   border-radius: 0px;
   color: #0a0a0a;
-  box-shadow: 2px 2px 0px #0a0a0a;
+}
+
+:global(html.theme-light) .modalOverlay .modal .closeButton:hover {
+  background: #e61919;
+  border-color: #e61919;
+  color: #ffffff;
+}
+
+:global(html.theme-light) .modalOverlay .modal .formGroup label {
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fileUploadButton {
+  background: #f4f4f0;
+  border: 2px dashed #0a0a0a;
+  border-radius: 0px;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fileUploadButton:hover {
+  background: #eae8e3;
+  border-color: #e61919;
+  color: #0a0a0a;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fileUploadStatus {
+  color: #166534;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+}
+
+:global(html.theme-light) .modalOverlay .modal .formActions {
+  background: #eae8e3;
+  border-top: 2px solid #0a0a0a;
+  box-shadow: none;
+}
+
+:global(html.theme-light) .modalOverlay .modal .form {
+  scrollbar-color: #0a0a0a #eae8e3;
+}
+
+:global(html.theme-light) .modalOverlay .modal .form::-webkit-scrollbar-track {
+  background: #eae8e3;
+  border-radius: 0px;
+}
+
+:global(html.theme-light) .modalOverlay .modal .form::-webkit-scrollbar-thumb {
+  background: #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(html.theme-light) .modalOverlay .modal .formInput:focus,
+:global(html.theme-light) .modalOverlay .modal .formSelect:focus,
+:global(html.theme-light) .modalOverlay .modal .formTextarea:focus {
+  outline: none;
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+/* ─── Consumable Expense Dialog: Fund Source Radio Cards & Alerts ─── */
+:global(html.theme-light) .modalOverlay .modal .fundSourceOption {
+  background: #f4f4f0 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 2px 2px 0px #0a0a0a !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fundSourceOption:hover {
+  background: #eae8e3 !important;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #0a0a0a !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fundSourceOptionActive {
+  background: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fundSourceRadio {
+  accent-color: #e61919;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fundSourceTitle {
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fundSourceBalance {
+  color: #4a4a4a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fundSourceOptionActive .fundSourceTitle {
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .fundSourceOptionActive .fundSourceBalance {
+  color: #eae8e3 !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .expenseTotalBanner {
+  background: #f4f4f0 !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 0.78rem !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .expenseTotalInsufficient {
+  background: #ffffff !important;
+  border: 2px solid #e61919 !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .expenseStatusOk {
+  color: #166534 !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .expenseStatusDanger {
+  color: #e61919 !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .receiptViewLink {
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .modalOverlay .modal .expenseErrorAlert {
+  background: #ffffff !important;
+  border: 2px solid #e61919 !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+  color: #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 700 !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

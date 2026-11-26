@@ -118,18 +118,6 @@
   overflow: hidden;
 }
 
-/* Subtle accent bar at the very top */
-.topBar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--ch-accent), var(--ch-purple));
-  border-radius: var(--ch-radius) var(--ch-radius) 0 0;
-}
-
 .topBarContent {
   display: flex;
   align-items: flex-start;
@@ -231,7 +219,7 @@
   padding: 0.7rem 1.15rem;
   background: transparent;
   border: none;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   font-size: 0.85rem;
   font-weight: 600;
   flex-shrink: 0;
@@ -240,10 +228,9 @@
   cursor: pointer;
   transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
   font-family: var(--ch-font);
-  white-space: nowrap;
   position: relative;
   margin-bottom: -2px;
-  border-radius: 8px 8px 0 0;
+  border-radius: 6px 6px 0 0;
 }
 
 .tabButton:hover {
@@ -959,11 +946,18 @@
 
 :global(.theme-light) .wrapper {
   background-color: #F4F4F0 !important;
+  background-image: none !important;
   color: #0A0A0A !important;
-  background-image:
-    linear-gradient(to right, rgba(10, 10, 10, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(10, 10, 10, 0.05) 1px, transparent 1px) !important;
-  background-size: 36px 36px !important;
+}
+
+:global(.theme-light) .wrapper ::selection {
+  background: #0A0A0A;
+  color: #F4F4F0;
+}
+
+:global(.theme-light) .wrapper :focus-visible {
+  outline: 2px solid #E61919 !important;
+  outline-offset: 2px !important;
 }
 
 :global(.theme-light) .container {
@@ -984,6 +978,12 @@
   border-bottom: 2px solid #0A0A0A !important;
 }
 
+:global(.theme-light) .eyebrowDot {
+  width: 7px !important;
+  height: 7px !important;
+  background-color: #E61919 !important;
+}
+
 :global(.theme-light) .eyebrow {
   color: #E61919 !important;
   font-family: 'JetBrains Mono', monospace !important;
@@ -991,12 +991,14 @@
   font-weight: 800 !important;
   letter-spacing: 0.14em !important;
   text-transform: uppercase !important;
+  opacity: 1 !important;
 }
 
 :global(.theme-light) .title {
   color: #0A0A0A !important;
-  font-family: 'Archivo Black', 'Impact', sans-serif !important;
-  font-size: 2.2rem !important;
+  font-family: 'Archivo Black', 'Inter', sans-serif !important;
+  font-size: clamp(1.65rem, 2.6vw, 2.35rem) !important;
+  line-height: 0.95 !important;
   letter-spacing: -0.03em !important;
   text-transform: uppercase !important;
 }
@@ -1004,7 +1006,8 @@
 :global(.theme-light) .subtitle {
   color: #4A4A4A !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.8rem !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }
 
@@ -1012,7 +1015,6 @@
   background: #0A0A0A !important;
   color: #FFFFFF !important;
   border: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
   box-shadow: 3px 3px 0px #E61919 !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
@@ -1020,25 +1022,30 @@
   letter-spacing: 0.08em !important;
 }
 
+:global(.theme-light) .hubBadge:hover {
+  background: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #E61919 !important;
+}
+
 :global(.theme-light) .tabNavigation {
   background: #EAE8E3 !important;
   border-bottom: 2px solid #0A0A0A !important;
-  gap: 0.5rem !important;
-  padding: 0.75rem 1.5rem 0.75rem !important;
+  gap: 0.6rem !important;
+  padding: 0.85rem 1.75rem !important;
 }
 
 :global(.theme-light) .tabButton {
   background: #FFFFFF !important;
   color: #0A0A0A !important;
   border: 2px solid #0A0A0A !important;
-  border-radius: 0px !important;
+  margin-bottom: 0 !important;
   box-shadow: 3px 3px 0px #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
-  font-size: 0.82rem !important;
-  letter-spacing: 0.04em !important;
-  transition: all 0.15s ease !important;
+  font-size: 0.8rem !important;
+  letter-spacing: 0.05em !important;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease !important;
 }
 
 :global(.theme-light) .tabButton:hover:not(.tabButtonActive) {
@@ -1056,6 +1063,11 @@
   transform: none !important;
 }
 
+:global(.theme-light) .tabButtonActive:hover {
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+}
+
 :global(.theme-light) .tabButtonActive svg {
   color: #E61919 !important;
 }
@@ -1063,11 +1075,11 @@
 :global(.theme-light) .tabBadge {
   background: #EAE8E3 !important;
   color: #0A0A0A !important;
-  border: 1px solid #0A0A0A !important;
-  border-radius: 0px !important;
+  border: 1.5px solid #0A0A0A !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.65rem !important;
   font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
 }
 
 :global(.theme-light) .tabButtonActive .tabBadge {
@@ -1077,13 +1089,357 @@
 }
 
 :global(.theme-light) .tabContent {
-  background: transparent !important;
+  background: #F4F4F0 !important;
+}
+
+/* ── KPI Stat Grid (Swiss Industrial Print) ── */
+:global(.theme-light) .statsGrid {
+  gap: 1rem !important;
+}
+
+:global(.theme-light) .statCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  padding: 1.2rem 1.3rem !important;
+  transition: transform 0.14s ease, box-shadow 0.14s ease !important;
+}
+
+:global(.theme-light) .statCard:hover {
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 5px 5px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .statCardIgf {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #E61919 !important;
+}
+
+:global(.theme-light) .statCardIgf::before {
+  display: none !important;
+}
+
+:global(.theme-light) .igfLabelBadge {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  padding: 0.14rem 0.42rem !important;
+}
+
+:global(.theme-light) .igfLinkDot {
+  background-color: #E61919 !important;
+  box-shadow: none !important;
+}
+
+:global(.theme-light) .statLabel {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+:global(.theme-light) .statIcon {
+  background: #EAE8E3 !important;
+  color: #0A0A0A !important;
+  border: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .statCardIgf .statIcon {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+}
+
+:global(.theme-light) .statValue {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Inter', sans-serif !important;
+  font-size: 1.65rem !important;
+  letter-spacing: -0.02em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .statSubtext {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+/* ── IGF Integration Banner (Light Brutalist — replaces dark maroon gradient) ── */
+:global(.theme-light) .igfIntegrationBanner {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .igfIntegrationBanner::after {
+  display: none !important;
+}
+
+:global(.theme-light) .igfBannerIcon {
+  background: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+}
+
+:global(.theme-light) .igfBannerTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Inter', sans-serif !important;
+  font-size: 1.05rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.01em !important;
+}
+
+:global(.theme-light) .igfStatusTag {
+  background: #EAE8E3 !important;
+  border: 1.5px solid #0A0A0A !important;
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.66rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+}
+
+:global(.theme-light) .igfBannerDesc {
+  color: #3D3D3A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  line-height: 1.5 !important;
+}
+
+:global(.theme-light) .igfMetricLabel {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+}
+
+:global(.theme-light) .igfMetricValue {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Inter', sans-serif !important;
+  font-size: 1.35rem !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .igfBannerActionBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+:global(.theme-light) .igfBannerActionBtn:hover {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  transform: translate(-1px, -1px) !important;
+}
+
+/* ── Charts & Analytics Cards (Swiss Industrial Print) ── */
+:global(.theme-light) .chartCard,
+:global(.theme-light) .analyticsSectionCard {
+  background: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .chartCard:hover {
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+}
+
+:global(.theme-light) .chartHeader {
+  padding-bottom: 0.85rem !important;
+  border-bottom: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .chartTitle,
+:global(.theme-light) .analyticsCardTitle {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Inter', sans-serif !important;
+  font-size: 0.98rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.01em !important;
+}
+
+:global(.theme-light) .chartTitle svg,
+:global(.theme-light) .analyticsCardTitle svg {
+  color: #E61919 !important;
+}
+
+:global(.theme-light) .chartSubtitle,
+:global(.theme-light) .analyticsCardDesc {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.74rem !important;
+}
+
+:global(.theme-light) .chartFilterToggle {
+  background: #EAE8E3 !important;
+  border: 2px solid #0A0A0A !important;
+  padding: 2px !important;
+  gap: 2px !important;
+}
+
+:global(.theme-light) .chartToggleBtn {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+:global(.theme-light) .chartToggleBtn:hover {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .chartToggleBtnActive {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+:global(.theme-light) .chartTooltip {
+  background: #FFFFFF !important;
+  backdrop-filter: none !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  color: #0A0A0A !important;
+}
+
+:global(.theme-light) .chartTooltipLabel {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  border-bottom: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .chartTooltipValue {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .pieMetricTag {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .donutCenterValue {
+  color: #0A0A0A !important;
+  font-family: 'Archivo Black', 'Inter', sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .donutCenterSub {
+  color: #4A4A4A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+:global(.theme-light) .pieLegendItem {
+  background: #F4F4F0 !important;
+  border: 1.5px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.74rem !important;
+}
+
+:global(.theme-light) .pieLegendColor {
+  border: 1px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .pieLegendName,
+:global(.theme-light) .pieLegendCount {
+  color: #0A0A0A !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .lowStockRow {
+  background: #F4F4F0 !important;
+  border: 1.5px solid #0A0A0A !important;
+}
+
+:global(.theme-light) .lowStockName {
+  color: #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+}
+
+:global(.theme-light) .lowStockPill {
+  background: #E61919 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+:global(.theme-light) .jumpBtn {
+  background: #0A0A0A !important;
+  color: #FFFFFF !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #E61919 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) .jumpBtn:hover {
+  background: #E61919 !important;
+  border-color: #0A0A0A !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
+  opacity: 1 !important;
+  transform: translate(-1px, -1px) !important;
+}
+
+:global(.theme-light) .jumpBtnSecondary {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border: 2px solid #0A0A0A !important;
+  box-shadow: 3px 3px 0px #0A0A0A !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+:global(.theme-light) .jumpBtnSecondary:hover {
+  background: #EAE8E3 !important;
+  border-color: #0A0A0A !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 4px 4px 0px #0A0A0A !important;
 }
 
 :global(.theme-light) .analyticsPlaceholder {
   background: #FFFFFF !important;
   border: 2px dashed #0A0A0A !important;
-  border-radius: 0px !important;
   box-shadow: 4px 4px 0px #0A0A0A !important;
 }
 
@@ -1091,12 +1447,11 @@
   background: #EAE8E3 !important;
   border: 2px solid #0A0A0A !important;
   color: #0A0A0A !important;
-  border-radius: 0px !important;
 }
 
 :global(.theme-light) .placeholderTitle {
   color: #0A0A0A !important;
-  font-family: 'Archivo Black', 'Impact', sans-serif !important;
+  font-family: 'Archivo Black', 'Inter', sans-serif !important;
   text-transform: uppercase !important;
   letter-spacing: -0.02em !important;
 }
@@ -1468,16 +1823,6 @@
   background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(138, 26, 46, 0.08) 100%) !important;
   position: relative;
   overflow: hidden;
-}
-
-.statCardIgf::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(180deg, #d4af37, #8a1a2e);
 }
 
 .igfLabelBadge {

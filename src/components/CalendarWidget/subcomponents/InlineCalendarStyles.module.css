@@ -1589,3 +1589,235 @@
     transition: none !important;
   }
 }
+
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES
+   Inline Quick Event Popover, Hover Card, Bulk Bar & Undo Snackbar
+   Scoped strictly to :global(html.theme-light). Leaves dark/classic untouched.
+   ========================================================================== */
+
+:global(html.theme-light) .popoverContainer {
+  background: #ffffff !important;
+  border: 3px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 8px 8px 0px #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .popoverContainer * {
+  border-radius: 0px !important;
+}
+
+:global(html.theme-light) .popoverContainer .popoverHeader {
+  background: #0a0a0a !important;
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .popoverContainer .popoverTitle,
+:global(html.theme-light) .popoverContainer .popoverHeaderTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #ffffff !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .popoverContainer .popoverDatePill {
+  background: #e61919 !important;
+  color: #ffffff !important;
+  border: 1px solid #ffffff !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .popoverContainer .iconCloseBtn {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .popoverContainer .iconCloseBtn:hover {
+  background: #e61919 !important;
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .popoverContainer .popoverTabsNav {
+  background: #eae8e3 !important;
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .popoverContainer .popoverTabBtn {
+  background: #ffffff !important;
+  border: 1.5px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .popoverContainer .popoverTabBtnActive {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  box-shadow: 2px 2px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .popoverContainer .sectionSmallLabel,
+:global(html.theme-light) .popoverContainer .toggleCardTitle {
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+:global(html.theme-light) .popoverContainer .toggleCardDesc,
+:global(html.theme-light) .popoverContainer .fieldHintWarning {
+  color: #4a4a4a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .popoverContainer .textInput,
+:global(html.theme-light) .popoverContainer .inlineField {
+  background-color: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+  caret-color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .popoverContainer .textInput:focus,
+:global(html.theme-light) .popoverContainer .inlineField:focus-within {
+  border-color: #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .popoverContainer .nativeInput {
+  color: #0a0a0a !important;
+  caret-color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .popoverContainer .fieldIcon,
+:global(html.theme-light) .popoverContainer .requiredMark {
+  color: #e61919 !important;
+}
+
+:global(html.theme-light) .popoverContainer .categoryPill,
+:global(html.theme-light) .popoverContainer .presetChip,
+:global(html.theme-light) .popoverContainer .orgChip,
+:global(html.theme-light) .popoverContainer .emojiBtn,
+:global(html.theme-light) .popoverContainer .orgLogoPickItem,
+:global(html.theme-light) .popoverContainer .iconTypeToggleBtn {
+  background: #f4f4f0 !important;
+  border: 1.5px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .popoverContainer .categoryPillActive,
+:global(html.theme-light) .popoverContainer .presetChipActive,
+:global(html.theme-light) .popoverContainer .orgChipActive,
+:global(html.theme-light) .popoverContainer .emojiBtnSelected,
+:global(html.theme-light) .popoverContainer .orgLogoPickItemActive,
+:global(html.theme-light) .popoverContainer .iconTypeToggleBtnActive {
+  background: #0a0a0a !important;
+  border-color: #0a0a0a !important;
+  color: #ffffff !important;
+  box-shadow: 2px 2px 0px #e61919 !important;
+}
+
+:global(html.theme-light) .popoverContainer .toggleCardRow,
+:global(html.theme-light) .popoverContainer .previewBand,
+:global(html.theme-light) .popoverContainer .multiDateBox {
+  background: #f4f4f0 !important;
+  border: 2px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .popoverContainer .inlineErrorBanner {
+  background: #ffffff !important;
+  border: 2px solid #e61919 !important;
+  color: #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .popoverContainer .popoverFooter {
+  background: #eae8e3 !important;
+  border-top: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .popoverContainer .saveBtn {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  box-shadow: 3px 3px 0px #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .popoverContainer .saveBtn:hover:not(:disabled) {
+  background: #e61919 !important;
+}
+
+:global(html.theme-light) .popoverContainer .cancelBtn,
+:global(html.theme-light) .popoverContainer .advancedBtn {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .popoverContainer .deleteBtnRow {
+  background: #ffffff !important;
+  color: #e61919 !important;
+  border: 2px solid #e61919 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-weight: 800 !important;
+}
+
+/* ─── Event Hover Card, Bulk Action Bar & Undo Snackbar ─── */
+:global(html.theme-light) .hoverCardContainer {
+  background: #ffffff !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 6px 6px 0px #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+:global(html.theme-light) .hoverCardContainer .hoverCardHeader {
+  background: #eae8e3 !important;
+  border-bottom: 2px solid #0a0a0a !important;
+}
+
+:global(html.theme-light) .hoverCardContainer .hoverTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif !important;
+  color: #0a0a0a !important;
+  text-transform: uppercase !important;
+}
+
+:global(html.theme-light) .hoverCardContainer .hoverDescription,
+:global(html.theme-light) .hoverCardContainer .hoverMetaValue,
+:global(html.theme-light) .hoverCardContainer .hoverMetaLabel {
+  color: #0a0a0a !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .bulkBarContainer,
+:global(html.theme-light) .undoSnackbarContainer {
+  background: #0a0a0a !important;
+  border: 2px solid #0a0a0a !important;
+  border-radius: 0px !important;
+  box-shadow: 4px 4px 0px #e61919 !important;
+  color: #ffffff !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+:global(html.theme-light) .bulkBarContainer .bulkTitle,
+:global(html.theme-light) .undoSnackbarContainer .undoMessage {
+  color: #ffffff !important;
+}
+
+:global(html.theme-light) .bulkBarContainer .bulkBadge,
+:global(html.theme-light) .undoSnackbarContainer .undoButton {
+  background: #e61919 !important;
+  color: #ffffff !important;
+  border-radius: 0px !important;
+  border: 1.5px solid #ffffff !important;
+}

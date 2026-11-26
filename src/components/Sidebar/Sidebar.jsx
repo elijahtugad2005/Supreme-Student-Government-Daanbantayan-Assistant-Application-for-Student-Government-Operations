@@ -36,10 +36,10 @@ const NAV_ITEMS = [
   { to: "/order", text: "Order", icon: HiShoppingCart, roles: ['public', ...ALL_EXECUTIVE_ROLES, ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES, 'creatives', 'governor', 'member', 'guest'], publicAccess: true },
   { to: "/commerce", text: "Commerce Hub", icon: HiShoppingBag, roles: [...ALL_EXECUTIVE_ROLES, ...ALL_SECRETARY_ROLES, ...ALL_FINANCE_ROLES, ...ALL_LEGISLATIVE_ROLES], permissions: ['canManageOrders'] },
 
-  // Admin Section — President has full general access; VP & Finance have Audit Trail
+  // Admin Section — President has full general access; VP & Finance have System Trail
   { to: "/admin", text: "Admin Dashboard", icon: HiChartBar, roles: ['admin', 'president'], permissions: ['canManageUsers'] },
   { to: "/admin/users", text: "User Management", icon: HiCog, roles: ['admin', 'president'], permissions: ['canManageUsers'] },
-  { to: "/admin/audit", text: "Audit Trail", icon: HiDocumentText, roles: ['admin', 'president', 'vice_president', ...ALL_FINANCE_ROLES], permissions: ['canManageUsers', 'canViewFinance'] },
+  { to: "/admin/audit", text: "System Trail", icon: HiDocumentText, roles: ['admin', 'president', 'vice_president', ...ALL_FINANCE_ROLES], permissions: ['canManageUsers', 'canViewFinance'] },
 
   // Finance & Analytics — President, VP, Finance Secretary, Auditor, Budget Officer have Higher Access; Secretary can view
   { to: "/finance", text: "Finance", icon: HiCurrencyDollar, roles: ['admin', 'president', 'vice_president', 'secretary', 'executive_secretary', ...ALL_FINANCE_ROLES], permissions: ['canViewFinance'] },

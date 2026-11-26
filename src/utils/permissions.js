@@ -256,7 +256,7 @@ export const ROLE_PERMISSIONS = {
     name: 'Vice President',
     category: 'Executive Council',
     accessTier: 'Higher Access',
-    description: 'Higher Access to Documents, Inventory, Finance, Audit Trail, and Commerce Hub',
+    description: 'Higher Access to Documents, Inventory, Finance, System Trail, and Commerce Hub',
     permissions: {
       canManageProducts: true,  // Inventory (Add, Edit, Delete)
       canManageOrders: true,    // Commerce Hub (Orders full access)
@@ -402,7 +402,7 @@ export const ROLE_PERMISSIONS = {
     name: 'Finance Secretary',
     category: 'Treasury & Audit',
     accessTier: 'Higher Access',
-    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and Audit Trail',
+    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and System Trail',
     permissions: {
       canManageProducts: true,  // Inventory (Higher Access)
       canManageOrders: true,    // Commerce Hub (Higher Access)
@@ -427,7 +427,7 @@ export const ROLE_PERMISSIONS = {
     name: 'Auditor',
     category: 'Treasury & Audit',
     accessTier: 'Higher Access',
-    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and Audit Trail',
+    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and System Trail',
     permissions: {
       canManageProducts: true,
       canManageOrders: true,
@@ -452,7 +452,7 @@ export const ROLE_PERMISSIONS = {
     name: 'Budget Officer',
     category: 'Treasury & Audit',
     accessTier: 'Higher Access',
-    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and Audit Trail',
+    description: 'Higher Access: Finance, Inventory, Documents, Commerce Hub, and System Trail',
     permissions: {
       canManageProducts: true,
       canManageOrders: true,

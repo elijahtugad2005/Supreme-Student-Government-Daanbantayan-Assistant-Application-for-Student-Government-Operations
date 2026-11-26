@@ -1050,3 +1050,390 @@
   color: #fca5a5 !important;
 }
 
+/* ==========================================================================
+   LIGHT THEME: SWISS INDUSTRIAL BRUTALIST OVERRIDES (PPMP MATRIX)
+   Scoped exclusively to :global(.theme-light). Leaves .theme-dark untouched.
+   ========================================================================== */
+
+:global(.theme-light) .telemetryCard,
+:global(.theme-light) .matrixCard {
+  background: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 4px 4px 0px #0a0a0a;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .matrixCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .telemetrySuperTag {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #e61919;
+  letter-spacing: 0.08em;
+}
+
+:global(.theme-light) .telemetryTitle,
+:global(.theme-light) .itemTitle,
+:global(.theme-light) .emptyStateTitle {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  letter-spacing: -0.02em;
+}
+
+:global(.theme-light) .telemetrySubtitle,
+:global(.theme-light) .itemCommittee,
+:global(.theme-light) .emptyStateDesc {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .itemResolution {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #e61919;
+  font-weight: 800;
+}
+
+:global(.theme-light) .configAllowanceBtn {
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .configAllowanceBtn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #e61919;
+}
+
+:global(.theme-light) .kpiBox {
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .kpiBox:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #0a0a0a;
+}
+
+:global(.theme-light) .kpiLabel,
+:global(.theme-light) .figureLabel,
+:global(.theme-light) .statusChipLabel,
+:global(.theme-light) .fundFilterLabel,
+:global(.theme-light) .subItemsHeader {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+:global(.theme-light) .kpiValue,
+:global(.theme-light) .kpiValueMaroon,
+:global(.theme-light) .kpiValueAmber {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #0a0a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .kpiValueGreen,
+:global(.theme-light) .figureRemaining {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #166534;
+}
+
+:global(.theme-light) .kpiValueDanger,
+:global(.theme-light) .figureRemainingSpent {
+  color: #e61919 !important;
+}
+
+:global(.theme-light) .kpiMeta,
+:global(.theme-light) .meterLabels,
+:global(.theme-light) .subItemsHeaderMeta,
+:global(.theme-light) .subItemQty,
+:global(.theme-light) .subItemsMore,
+:global(.theme-light) .subItemsEmptyText {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #4a4a4a;
+}
+
+:global(.theme-light) .macroMeterWrapper {
+  background: #f4f4f0;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .macroMeterHeader {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .progressBarTrack {
+  background: #eae8e3;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+  height: 10px;
+}
+
+:global(.theme-light) .progressBarFill {
+  background: #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .progressBarFillWarning {
+  background: #4a4a4a;
+}
+
+:global(.theme-light) .progressBarFillDanger {
+  background: #e61919;
+}
+
+:global(.theme-light) .categoryTabsGroup {
+  background: #eae8e3;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .categoryTab {
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .categoryTabActive {
+  background: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #e61919;
+}
+
+:global(.theme-light) .searchIcon {
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .searchInput {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  box-shadow: 2px 2px 0px #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.82rem;
+}
+
+:global(.theme-light) .searchInput:focus {
+  border-color: #0a0a0a;
+  box-shadow: 3px 3px 0px #e61919;
+}
+
+:global(.theme-light) .newAllocationBtn {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0px;
+  box-shadow: 3px 3px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .newAllocationBtn:hover {
+  background: #e61919;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #0a0a0a;
+}
+
+:global(.theme-light) .statusFilterChip,
+:global(.theme-light) .fundFilterTab {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .statusFilterChipActive,
+:global(.theme-light) .fundFilterTabActive {
+  background: #0a0a0a !important;
+  color: #ffffff !important;
+  border-color: #0a0a0a !important;
+  box-shadow: 2px 2px 0px #e61919;
+}
+
+:global(.theme-light) .overallocatedBanner {
+  border-radius: 0px;
+  background: #ffffff;
+  border: 2px solid #e61919;
+  box-shadow: 4px 4px 0px #e61919;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .packageTag,
+:global(.theme-light) .draftBadge,
+:global(.theme-light) .statusBadge {
+  border-radius: 0px;
+  border: 1.5px solid #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:global(.theme-light) .packageTagEvent {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .packageTagProject {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .packageTagMaterial {
+  background: #f4f4f0;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .draftBadge {
+  background: #eae8e3;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .statusFresh {
+  background: #f4f4f0;
+  color: #166534;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .statusPartial {
+  background: #eae8e3;
+  color: #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .statusDepleted {
+  background: #e61919;
+  color: #ffffff;
+  border-color: #0a0a0a;
+}
+
+:global(.theme-light) .statusDot {
+  border-radius: 0px;
+  box-shadow: none;
+}
+
+:global(.theme-light) .dotFresh {
+  background: #166534;
+}
+
+:global(.theme-light) .dotPartial {
+  background: #0a0a0a;
+}
+
+:global(.theme-light) .dotDepleted {
+  background: #ffffff;
+}
+
+:global(.theme-light) .figureAmount {
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #0a0a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+:global(.theme-light) .inflationTag {
+  color: #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+:global(.theme-light) .subItemsPreview {
+  background: #f4f4f0;
+  border: 1.5px solid #0a0a0a;
+  border-radius: 0px;
+}
+
+:global(.theme-light) .subItemRow {
+  border-bottom: 1px solid #d4d2cc;
+}
+
+:global(.theme-light) .subItemName,
+:global(.theme-light) .subItemAmount {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #0a0a0a;
+}
+
+:global(.theme-light) .cardFooterActions {
+  border-top: 2px solid #0a0a0a;
+}
+
+:global(.theme-light) .inspectBtn,
+:global(.theme-light) .restoreCardBtn,
+:global(.theme-light) .deleteCardBtn {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .inspectBtn:hover,
+:global(.theme-light) .restoreCardBtn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .deleteCardBtn:hover {
+  background: #e61919;
+  border-color: #0a0a0a;
+  color: #ffffff;
+}
+
+:global(.theme-light) .disburseQuickBtn,
+:global(.theme-light) .quickApproveBtn {
+  border-radius: 0px;
+  border: 2px solid #0a0a0a;
+  background: #0a0a0a;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #e61919;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:global(.theme-light) .disburseQuickBtn:hover,
+:global(.theme-light) .quickApproveBtn:hover {
+  background: #e61919;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #0a0a0a;
+}
+
+:global(.theme-light) .emptyState {
+  background: #ffffff;
+  border: 2px dashed #0a0a0a;
+  border-radius: 0px;
+}
+
