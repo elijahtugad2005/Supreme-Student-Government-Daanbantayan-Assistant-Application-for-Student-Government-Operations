@@ -300,16 +300,56 @@ async function createAuthoritativeOrder(db, payload = {}) {
     // Public checkout NEVER self-marks 'Online Paid' — SSG officer verifies & settles in OrderManagement
     orderStatus: 'Pending',
     igfSynced: false,
+    stockReserved: false,
+    stockClaimDeducted: false,
     source: 'PUBLIC_SERVER_CHECKOUT',
     dateOrdered: now,
     createdAt: now,
     updatedAt: now,
   };
 
-  const docRef = await db.collection('orders').add(orderRecord);
+  let createdDocId;
+  const ordersCol = db.collection('orders');
+  const productsCol = db.collection('products');
+  if (
+    typeof db.runTransaction === 'function' &&
+    typeof ordersCol.doc === 'function' &&
+    typeof productsCol.doc === 'function' &&
+    product.docId
+  ) {
+    const productRef = productsCol.doc(product.docId);
+    createdDocId = await db.runTransaction(async (tx) => {
+      const freshSnap = await tx.get(productRef);
+      if (!freshSnap.exists) {
+        throw new OrderValidationError('Selected product was not found in the catalog.', 404);
+      }
+      const freshStock = Number(freshSnap.data()?.stockAvailable) || 0;
+      if (freshStock < quantity) {
+        throw new OrderValidationError(
+          `Insufficient stock! Only ${freshStock} unit(s) available.`,
+          409
+        );
+      }
+      tx.update(productRef, {
+        stockAvailable: freshStock - quantity,
+        updatedAt: now.toISOString(),
+      });
+      const newOrderRef = ordersCol.doc();
+      const reservedRecord = {
+        ...orderRecord,
+        stockReserved: true,
+        stockClaimDeducted: true,
+      };
+      tx.set(newOrderRef, reservedRecord);
+      return newOrderRef.id;
+    });
+  } else {
+    const docRef = await ordersCol.add(orderRecord);
+    createdDocId = docRef.id;
+  }
 
   return {
-    docId: docRef.id,
+    docId: createdDocId,
     orderId,
     trackingCode,
     orderStatus: orderRecord.orderStatus,
@@ -373,7 +413,7 @@ function maskOrderForPublicTracking(order) {
  * (`schoolID`, `email`, or `trackingCode`) so sequential Order IDs cannot be scraped.
  */
 async function lookupPublicOrder(db, { orderId, verifier } = {}) {
-  const cleanOrderId = String(orderId || '').trim();
+  const cleanOrderId = String(orderId || '').trim().toUpperCase();
   const cleanVerifier = normalizeId(verifier);
   if (!cleanOrderId || !cleanVerifier) {
     return null;
@@ -405,40 +445,49 @@ async function lookupPublicOrder(db, { orderId, verifier } = {}) {
 }
 
 /**
- * Lightweight zero-dependency sliding-window IP rate limiter middleware.
+ * Lightweight zero-dependency sliding-window rate limiter middleware.
+ * Uses Express's proxy-aware req.ip (never raw spoofable X-Forwarded-For)
+ * and enforces an O(1) hard LRU cap (`maxKeys`) to prevent memory exhaustion.
  */
-function createRateLimiter({ windowMs = 15 * 60 * 1000, max = 25 } = {}) {
+function createRateLimiter({
+  windowMs = 15 * 60 * 1000,
+  max = 25,
+  maxKeys = 5000,
+  keyGenerator = null,
+} = {}) {
   const hits = new Map();
 
-  return (req, res, next) => {
-    const forwarded = req.headers?.['x-forwarded-for'];
-    const ip =
-      (typeof forwarded === 'string' && forwarded.split(',')[0].trim()) ||
-      req.ip ||
-      req.socket?.remoteAddress ||
-      'unknown';
+  const middleware = (req, res, next) => {
+    const rawKey =
+      typeof keyGenerator === 'function'
+        ? keyGenerator(req)
+        : req.ip || req.socket?.remoteAddress || 'unknown';
+    const key = String(rawKey || 'unknown').trim().slice(0, 128) || 'unknown';
 
     const now = Date.now();
-    const recent = (hits.get(ip) || []).filter((ts) => now - ts < windowMs);
+    const recent = (hits.get(key) || []).filter((ts) => now - ts < windowMs);
     if (recent.length >= max) {
+      hits.delete(key);
+      hits.set(key, recent);
       return res.status(429).json({
         success: false,
         error: 'Too many requests. Please wait a few minutes and try again.',
       });
     }
     recent.push(now);
-    hits.set(ip, recent);
+    hits.delete(key);
+    hits.set(key, recent);
 
-    // Prevent unbounded memory growth across long uptimes
-    if (hits.size > 5000) {
-      for (const [key, timestamps] of hits.entries()) {
-        if (timestamps.every((ts) => now - ts >= windowMs)) {
-          hits.delete(key);
-        }
-      }
+    while (hits.size > maxKeys) {
+      const oldestKey = hits.keys().next().value;
+      if (oldestKey === undefined) break;
+      hits.delete(oldestKey);
     }
     return next();
   };
+
+  middleware._size = () => hits.size;
+  return middleware;
 }
 
 module.exports = {

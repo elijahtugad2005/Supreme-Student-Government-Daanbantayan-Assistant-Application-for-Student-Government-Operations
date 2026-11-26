@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Package, Clock, CheckCircle, XCircle, Truck, CreditCard, User, AlertCircle, ShieldCheck } from 'lucide-react';
 import { trackPublicOrder } from '../../services/orderApiService';
+import { resolveTrackOrderStatusMeta, getTrackOrderTimelineState } from '../../utils/trackOrderHelpers';
 import styles from './TrackOrder.module.css';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -60,17 +61,21 @@ function TrackOrder() {
   }, [orderIdInput, verifierInput]);
 
   // ========================================
-  // AUTO-SEARCH IF ORDER ID & VERIFIER PROVIDED IN NAVIGATION STATE
+  // AUTO-SEARCH ONCE IF ORDER ID & VERIFIER PROVIDED IN NAVIGATION STATE
   // ========================================
+  const autoSearchedKeyRef = useRef(null);
   useEffect(() => {
-    if (location.state?.orderId) {
-      const incomingId = location.state.orderId;
-      const incomingVerifier = location.state.verifier || '';
-      setOrderIdInput(incomingId);
-      if (incomingVerifier) {
-        setVerifierInput(incomingVerifier);
-        handleSearch(incomingId, incomingVerifier);
-      }
+    const incomingId = location.state?.orderId;
+    if (!incomingId) return;
+    const incomingVerifier = location.state?.verifier || '';
+    const navKey = `${incomingId}::${incomingVerifier}`;
+    if (autoSearchedKeyRef.current === navKey) return;
+    autoSearchedKeyRef.current = navKey;
+
+    setOrderIdInput(incomingId);
+    if (incomingVerifier) {
+      setVerifierInput(incomingVerifier);
+      handleSearch(incomingId, incomingVerifier);
     }
   }, [location.state, handleSearch]);
 
@@ -97,76 +102,25 @@ function TrackOrder() {
   };
 
   // ========================================
-  // GET STATUS INFO
+  // GET STATUS INFO & PROGRESS
   // ========================================
-  const getStatusInfo = (status) => {
-    switch (status) {
-      case 'Pending':
-        return {
-          icon: <Clock size={24} />,
-          color: '#E66B3D',
-          bgColor: '#fffbeb',
-          label: 'Pending',
-          description: 'Your order has been received and is awaiting payment confirmation.'
-        };
-      case 'Paid':
-        return {
-          icon: <CreditCard size={24} />,
-          color: '#10b981',
-          bgColor: '#ecfdf5',
-          label: 'Payment Confirmed',
-          description: 'Payment has been confirmed. Your order is being prepared.'
-        };
-      case 'Ongoing':
-        return {
-          icon: <Truck size={24} />,
-          color: '#3b82f6',
-          bgColor: '#eff6ff',
-          label: 'In Progress',
-          description: 'Your order is currently being processed and prepared for pickup.'
-        };
-      case 'Completed':
-        return {
-          icon: <CheckCircle size={24} />,
-          color: '#10b981',
-          bgColor: '#ecfdf5',
-          label: 'Completed',
-          description: 'Your order has been completed and is ready for pickup or has been delivered.'
-        };
-      case 'Cancelled':
-        return {
-          icon: <XCircle size={24} />,
-          color: '#ef4444',
-          bgColor: '#fef2f2',
-          label: 'Cancelled',
-          description: 'This order has been cancelled. Please contact support for more information.'
-        };
-      default:
-        return {
-          icon: <Package size={24} />,
-          color: '#94a3b8',
-          bgColor: '#f1f5f9',
-          label: status,
-          description: 'Order status information.'
-        };
+  const renderStatusIcon = (iconKey) => {
+    switch (iconKey) {
+      case 'clock': return <Clock size={24} />;
+      case 'creditCard': return <CreditCard size={24} />;
+      case 'truck': return <Truck size={24} />;
+      case 'checkCircle': return <CheckCircle size={24} />;
+      case 'xCircle': return <XCircle size={24} />;
+      default: return <Package size={24} />;
     }
   };
 
-  // ========================================
-  // GET PROGRESS PERCENTAGE
-  // ========================================
-  const getProgressPercentage = (status) => {
-    switch (status) {
-      case 'Pending': return 25;
-      case 'Paid':
-      case 'Online Paid': return 50;
-      case 'Ongoing': return 75;
-      case 'Completed':
-      case 'Claimed': return 100;
-      case 'Cancelled': return 0;
-      default: return 25;
-    }
+  const getStatusInfo = (status) => {
+    const meta = resolveTrackOrderStatusMeta(status);
+    return { ...meta, icon: renderStatusIcon(meta.iconKey) };
   };
+
+  const getProgressPercentage = (status) => resolveTrackOrderStatusMeta(status).progress;
 
   // ========================================
   // RENDER SEARCH FORM
@@ -268,7 +222,7 @@ function TrackOrder() {
           </div>
 
           {/* Progress Bar */}
-          {order.orderStatus !== 'Cancelled' && (
+          {!statusInfo.isTerminalNegative && (
             <div className={styles.progressSection}>
               <div className={styles.progressBar}>
                 <div 
@@ -281,39 +235,44 @@ function TrackOrder() {
           )}
 
           {/* Timeline */}
-          <div className={styles.timeline}>
-            <div className={`${styles.timelineItem} ${['Pending', 'Paid', 'Ongoing', 'Completed'].includes(order.orderStatus) ? styles.timelineItemActive : ''}`}>
-              <div className={styles.timelineDot} />
-              <div className={styles.timelineContent}>
-                <span className={styles.timelineLabel}>Order Placed</span>
-                <span className={styles.timelineDate}>{formatDate(order.dateOrdered)}</span>
-              </div>
-            </div>
+          {(() => {
+            const tl = getTrackOrderTimelineState(order.orderStatus);
+            return (
+              <div className={styles.timeline}>
+                <div className={`${styles.timelineItem} ${tl.placed ? styles.timelineItemActive : ''}`}>
+                  <div className={styles.timelineDot} />
+                  <div className={styles.timelineContent}>
+                    <span className={styles.timelineLabel}>Order Placed</span>
+                    <span className={styles.timelineDate}>{formatDate(order.dateOrdered)}</span>
+                  </div>
+                </div>
 
-            <div className={`${styles.timelineItem} ${['Paid', 'Ongoing', 'Completed'].includes(order.orderStatus) ? styles.timelineItemActive : ''}`}>
-              <div className={styles.timelineDot} />
-              <div className={styles.timelineContent}>
-                <span className={styles.timelineLabel}>Payment Confirmed</span>
-                <span className={styles.timelineDate}>{order.orderStatus === 'Pending' ? 'Pending' : 'Confirmed'}</span>
-              </div>
-            </div>
+                <div className={`${styles.timelineItem} ${tl.paid ? styles.timelineItemActive : ''}`}>
+                  <div className={styles.timelineDot} />
+                  <div className={styles.timelineContent}>
+                    <span className={styles.timelineLabel}>Payment Confirmed</span>
+                    <span className={styles.timelineDate}>{tl.paidLabel}</span>
+                  </div>
+                </div>
 
-            <div className={`${styles.timelineItem} ${['Ongoing', 'Completed'].includes(order.orderStatus) ? styles.timelineItemActive : ''}`}>
-              <div className={styles.timelineDot} />
-              <div className={styles.timelineContent}>
-                <span className={styles.timelineLabel}>Processing</span>
-                <span className={styles.timelineDate}>{['Ongoing', 'Completed'].includes(order.orderStatus) ? 'In Progress' : 'Waiting'}</span>
-              </div>
-            </div>
+                <div className={`${styles.timelineItem} ${tl.processing ? styles.timelineItemActive : ''}`}>
+                  <div className={styles.timelineDot} />
+                  <div className={styles.timelineContent}>
+                    <span className={styles.timelineLabel}>Processing</span>
+                    <span className={styles.timelineDate}>{tl.processingLabel}</span>
+                  </div>
+                </div>
 
-            <div className={`${styles.timelineItem} ${order.orderStatus === 'Completed' ? styles.timelineItemActive : ''}`}>
-              <div className={styles.timelineDot} />
-              <div className={styles.timelineContent}>
-                <span className={styles.timelineLabel}>Ready for Pickup</span>
-                <span className={styles.timelineDate}>{order.orderStatus === 'Completed' ? 'Ready' : 'Waiting'}</span>
+                <div className={`${styles.timelineItem} ${tl.ready ? styles.timelineItemActive : ''}`}>
+                  <div className={styles.timelineDot} />
+                  <div className={styles.timelineContent}>
+                    <span className={styles.timelineLabel}>Ready for Pickup</span>
+                    <span className={styles.timelineDate}>{tl.readyLabel}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* Order Information Grid */}

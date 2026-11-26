@@ -80,7 +80,10 @@ console.log('\n=== Slice 4: Firestore rules ===');
 const rules = readFileSync('firestore.rules', 'utf8');
 const block = rules.match(/match \/deathAidBeneficiaries\/\{beneficiaryId\}\s*\{([\s\S]*?)\n    \}/)?.[1] || '';
 check('beneficiaries rule block exists', block.length > 0);
-check('beneficiaries are readable by authenticated non-guest accounts', /allow read: if isAuthenticatedNonGuest\(\);/.test(block));
+check(
+  'beneficiaries are readable by Death Aid managers or verified @ctu.edu.ph members (open cases only)',
+  /allow read: if canManageDeathAid\(\)\s*\|\|\s*\(isVerifiedInstitutionalMember\(\) && resource\.data\.status == 'open'\);/.test(block)
+);
 check('only Death Aid managers write', /allow create, update: if canManageDeathAid\(\)/.test(block));
 check('write requires student, affected person and memo', ['studentName', 'affectedPersonName', 'memoPhotoDataUrl'].every((f) => block.includes(f)));
 check('status limited to open/closed/released with photo evidence required on release', /status in \['open', 'closed', 'released'\]/.test(block) && block.includes('releasePhotoDataUrl'));

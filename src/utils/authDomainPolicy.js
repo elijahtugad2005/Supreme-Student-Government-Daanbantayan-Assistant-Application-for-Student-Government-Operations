@@ -39,3 +39,24 @@ export function isVerifiedMemberSession({ role, email, emailVerified } = {}) {
   }
   return isInstitutionalCtuEmail(email) && emailVerified === true;
 }
+
+export function evaluateMemberSessionPolicy({ role, email, emailVerified } = {}) {
+  if (String(role || '').toLowerCase() !== 'member') {
+    return { allowed: true, code: null, reason: '' };
+  }
+  if (!isInstitutionalCtuEmail(email)) {
+    return {
+      allowed: false,
+      code: 'auth/invalid-institutional-domain',
+      reason: `Only official @${INSTITUTIONAL_EMAIL_DOMAIN} institutional email addresses may access Student Member accounts.`,
+    };
+  }
+  if (emailVerified !== true) {
+    return {
+      allowed: false,
+      code: 'auth/email-not-verified',
+      reason: `Please verify your @${INSTITUTIONAL_EMAIL_DOMAIN} email address using the link sent to your inbox before signing in.`,
+    };
+  }
+  return { allowed: true, code: null, reason: '' };
+}

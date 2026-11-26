@@ -383,6 +383,7 @@ export const recordSectionCollection = async ({
     throw new Error('Authentication with a verified non-guest account is required to record Death Aid collections.');
   }
 
+  const isOfficer = canManageDeathAid(recorder);
   const isPlaceholder = Boolean(!roster?.rosterId && placeholderSection);
   const useDirectAmount =
     directAmount !== null && directAmount !== undefined && String(directAmount).trim() !== '';
@@ -390,10 +391,10 @@ export const recordSectionCollection = async ({
   if (!isPlaceholder && !roster?.rosterId) {
     throw new Error('Choose a section with a verified roster.');
   }
-  if (isPlaceholder && !canManageDeathAid(recorder)) {
+  if (isPlaceholder && !isOfficer) {
     throw new Error('Only authorized TechnoCares officers can record collections for unlisted placeholder sections.');
   }
-  if (useDirectAmount && !canManageDeathAid(recorder)) {
+  if (useDirectAmount && !isOfficer) {
     throw new Error('Only authorized TechnoCares officers can record direct lump-sum cash amounts.');
   }
   if (beneficiary && beneficiary.status !== BENEFICIARY_STATUS.OPEN) {
@@ -960,9 +961,11 @@ export const getCollection = async (collectionId) => {
 };
 
 /** Verified rosters available to record a collection against. */
-export const listVerifiedRosters = async () => {
+export const listVerifiedRosters = async ({ mayorUid } = {}) => {
+  const clauses = [where('status', '==', 'verified')];
+  if (mayorUid) clauses.push(where('mayorUid', '==', mayorUid));
   const snap = await getDocs(
-    query(collection(db, 'classRosters'), where('status', '==', 'verified'))
+    query(collection(db, 'classRosters'), ...clauses)
   );
   return snap.docs.map((d) => ({ ...d.data(), rosterId: d.id })).sort((a, b) =>
     String(a.section).localeCompare(String(b.section))
@@ -991,13 +994,18 @@ export const listPendingCollections = () =>
  * Check if a section roster already has an active pending collection awaiting verification.
  * Anti-spam and duplicate-prevention failsafe.
  */
-export const getActivePendingForRoster = async (rosterId, beneficiaryCaseId = null) => {
+export const getActivePendingForRoster = async (
+  rosterId,
+  beneficiaryCaseId = null,
+  { recordedByUid } = {}
+) => {
   if (!rosterId) return null;
   try {
     const clauses = [
       where('rosterId', '==', rosterId),
       where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
     ];
+    if (recordedByUid) clauses.push(where('recordedByUid', '==', recordedByUid));
     if (beneficiaryCaseId) clauses.push(where('beneficiaryCaseId', '==', beneficiaryCaseId));
     const snap = await getDocs(query(collection(db, COLLECTION_COLLECTION), ...clauses, limit(5)));
     const docs = snap.docs.filter((d) => (beneficiaryCaseId ? true : !d.data().beneficiaryCaseId));
@@ -1009,7 +1017,11 @@ export const getActivePendingForRoster = async (rosterId, beneficiaryCaseId = nu
   }
 };
 
-export const getActivePendingForSectionKey = async (sectionKey, beneficiaryCaseId = null) => {
+export const getActivePendingForSectionKey = async (
+  sectionKey,
+  beneficiaryCaseId = null,
+  { recordedByUid } = {}
+) => {
   const cleanKey = String(sectionKey || '').toLowerCase().replace(/\s+/g, ' ').trim();
   if (!cleanKey) return null;
   try {
@@ -1017,6 +1029,7 @@ export const getActivePendingForSectionKey = async (sectionKey, beneficiaryCaseI
       where('sectionKey', '==', cleanKey),
       where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
     ];
+    if (recordedByUid) clauses.push(where('recordedByUid', '==', recordedByUid));
     if (beneficiaryCaseId) clauses.push(where('beneficiaryCaseId', '==', beneficiaryCaseId));
     const snap = await getDocs(query(collection(db, COLLECTION_COLLECTION), ...clauses, limit(5)));
     const docs = snap.docs.filter((d) => (beneficiaryCaseId ? true : !d.data().beneficiaryCaseId));

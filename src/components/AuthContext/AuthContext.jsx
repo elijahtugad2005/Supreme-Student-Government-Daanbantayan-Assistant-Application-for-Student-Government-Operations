@@ -5,13 +5,14 @@
 //   - Stores user data (email, role, name)
 //   - Provides login/logout/signup functions to all components
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { auth, db, googleProvider } from "../../firebase/firebaseConfig.js";
 // Statically imported: this module is also imported by many others, so the
 // dynamic import only produced a mixed-import warning without saving anything.
 import { getDefaultPermissionsForRole, isProfileActive } from '../../utils/permissions.js';
 import {
   INSTITUTIONAL_EMAIL_DOMAIN,
+  evaluateMemberSessionPolicy,
   isInstitutionalCtuEmail,
   validateStudentRegistrationEmail,
 } from '../../utils/authDomainPolicy.js';
@@ -75,6 +76,8 @@ export function AuthProvider({ children }) {
   const [userPermissionOverrides, setUserPermissionOverrides] = useState({});
   const [isAccountActive, setIsAccountActive] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const signupInProgressRef = useRef(false);
+  const redirectPendingRef = useRef(false);
 
   const clearAuthError = () => setAuthError(null);
 
@@ -93,6 +96,7 @@ export function AuthProvider({ children }) {
   // sends Firebase email verification, and omits client-supplied permissions map.
   // ========================================
   const signup = async (email, password, name, role = 'member', additionalData = {}) => {
+    signupInProgressRef.current = true;
     try {
       const domainCheck = validateStudentRegistrationEmail(email);
       if (!domainCheck.valid) {
@@ -155,6 +159,8 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
+    } finally {
+      signupInProgressRef.current = false;
     }
   };
 
@@ -178,17 +184,28 @@ export function AuthProvider({ children }) {
           throw createDeactivatedAccountError();
         }
 
-        // Enforce email verification for self-registered student members
-        if (userData.role === 'member' && !userCredential.user.emailVerified) {
-          try {
-            await sendEmailVerification(userCredential.user);
-          } catch {
-            // Rate-limited or already recently sent
+        // Enforce @ctu.edu.ph domain + email verification for student members
+        const memberPolicy = evaluateMemberSessionPolicy({
+          role: userData.role,
+          email: userCredential.user.email,
+          emailVerified: userCredential.user.emailVerified,
+        });
+        if (!memberPolicy.allowed) {
+          if (memberPolicy.code === 'auth/email-not-verified') {
+            try {
+              await sendEmailVerification(userCredential.user);
+            } catch {
+              // Rate-limited or already recently sent
+            }
+            clearUserProfileState({ active: true });
+            setAuthError(UNVERIFIED_EMAIL_ERROR_MESSAGE);
+            await signOut(auth);
+            throw createUnverifiedEmailError();
           }
           clearUserProfileState({ active: true });
-          setAuthError(UNVERIFIED_EMAIL_ERROR_MESSAGE);
+          setAuthError(INSTITUTIONAL_DOMAIN_ERROR_MESSAGE);
           await signOut(auth);
-          throw createUnverifiedEmailError();
+          throw createInstitutionalDomainError();
         }
 
         setIsAccountActive(true);
@@ -260,6 +277,20 @@ export function AuthProvider({ children }) {
       throw createDeactivatedAccountError();
     }
 
+    const memberPolicy = evaluateMemberSessionPolicy({
+      role: userData.role,
+      email: user.email,
+      emailVerified: user.emailVerified,
+    });
+    if (!memberPolicy.allowed) {
+      clearUserProfileState({ active: true });
+      setAuthError(memberPolicy.reason);
+      await signOut(auth);
+      throw memberPolicy.code === 'auth/email-not-verified'
+        ? createUnverifiedEmailError()
+        : createInstitutionalDomainError();
+    }
+
     await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
     setIsAccountActive(true);
     setAuthError(null);
@@ -290,6 +321,7 @@ export function AuthProvider({ children }) {
 
   // Handle redirect result (for redirect sign-in)
   const handleRedirectResult = async () => {
+    redirectPendingRef.current = true;
     try {
       const result = await getRedirectResult(auth);
       if (result) {
@@ -297,6 +329,8 @@ export function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error('Redirect result error:', error);
+    } finally {
+      redirectPendingRef.current = false;
     }
   };
 
@@ -329,8 +363,12 @@ export function AuthProvider({ children }) {
         unsubscribeUserDoc = null;
       }
 
+      if (signupInProgressRef.current) {
+        return;
+      }
+
       if (!user) {
-        // User is logged out — preserve authError if sign-out was triggered by deactivation
+        // User is logged out — preserve authError if sign-out was triggered by deactivation/policy
         setCurrentUser(null);
         setUserRole(null);
         setUserName(null);
@@ -341,10 +379,13 @@ export function AuthProvider({ children }) {
       }
 
       // Subscribe in real time to the user's Firestore profile BEFORE exposing
-      // currentUser so a deactivated account can never flash past /login.
+      // currentUser so a deactivated or unverified account can never flash past /login.
       unsubscribeUserDoc = onSnapshot(
         doc(db, 'users', user.uid),
         async (userDoc) => {
+          if (signupInProgressRef.current) {
+            return;
+          }
           try {
             if (userDoc.exists()) {
               const userData = userDoc.data();
@@ -358,6 +399,24 @@ export function AuthProvider({ children }) {
                   await signOut(auth);
                 } catch (signOutError) {
                   console.error('[auth] Forced sign-out after deactivation failed:', signOutError);
+                }
+                return;
+              }
+
+              const memberPolicy = evaluateMemberSessionPolicy({
+                role: userData.role,
+                email: user.email,
+                emailVerified: user.emailVerified,
+              });
+              if (!memberPolicy.allowed) {
+                console.warn('[auth] Member session blocked by institutional policy:', memberPolicy.code);
+                clearUserProfileState({ active: true });
+                setAuthError(memberPolicy.reason);
+                setLoading(false);
+                try {
+                  await signOut(auth);
+                } catch (signOutError) {
+                  console.error('[auth] Forced sign-out for unverified/non-CTU member failed:', signOutError);
                 }
                 return;
               }
@@ -409,20 +468,25 @@ export function AuthProvider({ children }) {
                 ensureRoleClaim(user, 'admin');
               } catch (provisionError) {
                 console.error('[auth] Could not provision a local profile:', provisionError);
-                setCurrentUser(user);
-                setUserRole(null);
-                setUserName(null);
-                setUserPermissions({});
-                setUserPermissionOverrides({});
+                clearUserProfileState({ active: true });
               }
             } else {
-              console.log('No user document found for UID:', user.uid);
-              setIsAccountActive(true);
-              setCurrentUser(user);
-              setUserRole(null);
-              setUserName(null);
-              setUserPermissions({});
-              setUserPermissionOverrides({});
+              // Never expose an unprofiled/orphan Firebase Auth session as logged in;
+              // if Google redirect is still resolving, let handleRedirectResult() finish
+              // provisioning (for @ctu.edu.ph) or rejecting & signing out (for outsiders).
+              if (redirectPendingRef.current) {
+                return;
+              }
+              console.warn('[auth] No user profile found in Firestore for UID:', user.uid);
+              clearUserProfileState({ active: true });
+              if (!isInstitutionalCtuEmail(user.email)) {
+                setAuthError(INSTITUTIONAL_DOMAIN_ERROR_MESSAGE);
+                try {
+                  await signOut(auth);
+                } catch (signOutError) {
+                  console.error('[auth] Forced sign-out for orphan non-CTU account failed:', signOutError);
+                }
+              }
             }
           } catch (error) {
             console.error('Error processing user profile snapshot:', error);

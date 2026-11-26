@@ -163,7 +163,11 @@ try {
     await db.collection('users').doc('sec-1').set({ role: 'secretary', name: 'Secretary' });
   });
 
-  const as = (uid) => testEnv.authenticatedContext(uid).firestore();
+  const MEMBER_CLAIMS = {
+    'member-mayor': { email: 'mayor@ctu.edu.ph', email_verified: true },
+    'other-member': { email: 'other@ctu.edu.ph', email_verified: true },
+  };
+  const as = (uid) => testEnv.authenticatedContext(uid, MEMBER_CLAIMS[uid]).firestore();
 
   console.log('=== 1. End-to-end exploit: Member cannot self-verify pending roster to forge Death Aid totals ===');
   await check('Member CAN create a valid pending roster proposal', () =>

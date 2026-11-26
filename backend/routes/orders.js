@@ -17,6 +17,14 @@ const router = express.Router();
 
 const createOrderLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 20 });
 const trackOrderLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 40 });
+const trackOrderIdLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 25,
+  keyGenerator: (req) => {
+    const oid = String(req.query?.orderId || '').trim().toUpperCase();
+    return oid ? `order:${oid}` : `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
+  },
+});
 
 /**
  * POST /api/orders
@@ -49,7 +57,7 @@ router.post('/', createOrderLimiter, async (req, res) => {
  * GET /api/orders/track?orderId=ORD-DB-0001&verifier=<schoolID|email|trackingCode>
  * Returns masked, privacy-safe status & item details only when both orderId and verifier match.
  */
-router.get('/track', trackOrderLimiter, async (req, res) => {
+router.get('/track', trackOrderLimiter, trackOrderIdLimiter, async (req, res) => {
   try {
     const orderId = String(req.query.orderId || '').trim();
     const verifier = String(req.query.verifier || '').trim();

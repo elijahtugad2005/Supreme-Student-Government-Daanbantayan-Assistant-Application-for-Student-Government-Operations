@@ -19,6 +19,8 @@ import { TOP_LEVEL_FUNDS, TRANSACTION_TYPES, TRANSACTION_STATUSES, toCentavos } 
 import { validateTransactionRules } from '../../utils/financeValidation.js';
 import { notifyFinanceUpdated } from '../../utils/financeLedgerReconciliation.js';
 import { filterInventoryAndFinanceReceipts } from '../../utils/receiptAccessHelpers.js';
+import { useAuth } from '../AuthContext/AuthContext.jsx';
+import { canFetchInventoryProvider } from '../../utils/providerAccessGates.js';
 
 const InventoryContext = createContext();
 
@@ -35,6 +37,17 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export function InventoryProvider({ children }) {
+  const { currentUser, userRole, userPermissionOverrides, isAccountActive } = useAuth();
+  const canFetchInventory = canFetchInventoryProvider(
+    currentUser
+      ? {
+          uid: currentUser.uid,
+          role: userRole,
+          isActive: isAccountActive,
+          permissionOverrides: userPermissionOverrides || {},
+        }
+      : null
+  );
   const [inventory, setInventory] = useState([]);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(false);
@@ -47,6 +60,7 @@ export function InventoryProvider({ children }) {
 
   // Fetch real-time available fund balances for IGF & IGP
   const fetchFundBalances = useCallback(async () => {
+    if (!canFetchInventory) return;
     try {
       const [igfSnap, igpSnap] = await Promise.all([
         getDoc(doc(db, 'fundAccounts', FUND_ACCOUNT_IDS.IGF)),
@@ -60,10 +74,11 @@ export function InventoryProvider({ children }) {
     } catch (err) {
       console.warn('Could not fetch fund balances:', err);
     }
-  }, []);
+  }, [canFetchInventory]);
 
   // Fetch all inventory items
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
+    if (!canFetchInventory) return;
     setLoading(true);
     try {
       const q = query(collection(db, 'inventory'), orderBy('createdAt', 'desc'));
@@ -78,10 +93,11 @@ export function InventoryProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [canFetchInventory]);
 
   // Fetch borrowed items
-  const fetchBorrowedItems = async () => {
+  const fetchBorrowedItems = useCallback(async () => {
+    if (!canFetchInventory) return;
     try {
       const q = query(collection(db, 'borrowingLogs'), orderBy('borrowDate', 'desc'));
       const querySnapshot = await getDocs(q);
@@ -93,11 +109,12 @@ export function InventoryProvider({ children }) {
     } catch (error) {
       console.error('Error fetching borrowed items:', error);
     }
-  };
+  }, [canFetchInventory]);
 
   // Fetch consumable / food expenses recorded from Inventory AND Finance transactions
   // carrying uploaded receipts (Google Drive / GridFS) so officers can trace all receipts in one place.
   const fetchConsumableExpenses = useCallback(async () => {
+    if (!canFetchInventory) return;
     try {
       const snap = await getDocs(collection(db, 'transactions'));
       const allTxs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -106,7 +123,7 @@ export function InventoryProvider({ children }) {
     } catch (error) {
       console.error('Error fetching inventory & finance receipt expenses:', error);
     }
-  }, []);
+  }, [canFetchInventory]);
 
   // Add category persistence
   const addCategory = useCallback((newCat) => {
@@ -488,21 +505,29 @@ export function InventoryProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (!canFetchInventory) {
+      setInventory([]);
+      setBorrowedItems([]);
+      setConsumableExpenses([]);
+      setFundBalances({ IGF: 0, IGP: 0 });
+      setLoading(false);
+      return;
+    }
     fetchInventory();
     fetchBorrowedItems();
     fetchFundBalances();
     fetchConsumableExpenses();
-  }, [fetchFundBalances, fetchConsumableExpenses]);
+  }, [canFetchInventory, fetchInventory, fetchBorrowedItems, fetchFundBalances, fetchConsumableExpenses]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
+    if (typeof window === 'undefined' || !canFetchInventory) return undefined;
     const handleFinanceSync = () => {
       fetchFundBalances();
       fetchConsumableExpenses();
     };
     window.addEventListener('ssg-finance-updated', handleFinanceSync);
     return () => window.removeEventListener('ssg-finance-updated', handleFinanceSync);
-  }, [fetchFundBalances, fetchConsumableExpenses]);
+  }, [canFetchInventory, fetchFundBalances, fetchConsumableExpenses]);
 
   const value = {
     inventory,

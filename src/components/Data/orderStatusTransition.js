@@ -86,26 +86,30 @@ export async function executeOrderStatusUpdate({ docId, newStatus, order, deps }
     const wasOnlinePaid =
       oldStatus === 'Online Paid' ||
       oldStatus === 'Paid';
+    const isServerReserved = Boolean(order.stockReserved);
     const wasClaimAction =
       oldStatus === 'Claimed' ||
       oldStatus === 'Completed' ||
-      order.claimed ||
-      order.stockClaimDeducted;
+      Boolean(order.claimed) ||
+      (!isServerReserved && Boolean(order.stockClaimDeducted));
     const isReturned = newStatus === 'Returned';
     const isPending = newStatus === 'Pending';
     const isCancelled = newStatus === 'Cancelled';
 
     // 1. Stock handling:
-    // When Claimed/Completed: deduct stock from Product Catalog and Inventory Register
+    // When Claimed/Completed: deduct stock unless already deducted or atomically reserved at checkout
     if (isClaimAction && !order.stockClaimDeducted) {
       await syncOrderStockDeduction({ order, deduct: true });
     }
 
-    // When moved to Pending, Online Paid (unclaimed), or Cancelled from a claimed state: restore stock
-    if (
-      (isCancelled || isPending || (isOnlinePaid && wasClaimAction)) &&
-      order.stockClaimDeducted
-    ) {
+    // When Cancelled: always restore deducted/reserved stock.
+    // When moved to Pending or Online Paid from a legacy claimed state: restore stock.
+    // Server-reserved orders keep their reservation across Pending <-> Online Paid <-> Claimed.
+    const shouldRestoreStock =
+      Boolean(order.stockClaimDeducted) &&
+      (isCancelled ||
+        (!isServerReserved && (isPending || (isOnlinePaid && wasClaimAction))));
+    if (shouldRestoreStock) {
       await syncOrderStockDeduction({ order, deduct: false });
     }
 
@@ -172,12 +176,16 @@ export async function executeOrderStatusUpdate({ docId, newStatus, order, deps }
       'Officer';
 
     // Defective Returned items are quarantined (NOT restored to sellable inventory),
-    // so preserve `stockClaimDeducted` on Returned transitions to prevent double deduction.
-    const nextStockClaimDeducted = isClaimAction
-      ? true
-      : isReturned
-        ? Boolean(order.stockClaimDeducted)
-        : false;
+    // and server-reserved orders keep stockClaimDeducted until Cancelled.
+    const nextStockClaimDeducted = isCancelled
+      ? false
+      : isServerReserved
+        ? Boolean(order.stockClaimDeducted || isClaimAction)
+        : isClaimAction
+          ? true
+          : isReturned
+            ? Boolean(order.stockClaimDeducted)
+            : false;
 
     await updateOrderDoc(docId, {
       orderStatus: newStatus,

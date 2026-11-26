@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FinanceContext, useFinance } from './financeContext.js';
 import { useAuth } from '../AuthContext/AuthContext';
 import { hasPermission } from '../../utils/permissions';
+import { canFetchFinanceProvider } from '../../utils/providerAccessGates';
 import financeService from '../../services/financeService';
 import {
   computeLedgerNetByAccount,
@@ -32,18 +33,25 @@ import {
 export { useFinance };
 
 export const FinanceProvider = ({ children }) => {
-  const { userRole, userName, currentUser, userPermissions, userPermissionOverrides } = useAuth();
-  const canEditFinanceAccount = hasPermission(
-    currentUser
-      ? {
-          uid: currentUser.uid,
-          role: userRole,
-          permissions: userPermissions || {},
-          permissionOverrides: userPermissionOverrides || {},
-        }
-      : null,
-    'canEditFinance'
-  );
+  const {
+    userRole,
+    userName,
+    currentUser,
+    userPermissions,
+    userPermissionOverrides,
+    isAccountActive,
+  } = useAuth();
+  const financeActor = currentUser
+    ? {
+        uid: currentUser.uid,
+        role: userRole,
+        isActive: isAccountActive,
+        permissions: userPermissions || {},
+        permissionOverrides: userPermissionOverrides || {},
+      }
+    : null;
+  const canFetchFinance = canFetchFinanceProvider(financeActor);
+  const canEditFinanceAccount = hasPermission(financeActor, 'canEditFinance');
 
   // Redesigned Core State
   const [fundAccounts, setFundAccounts] = useState([]);
@@ -220,7 +228,15 @@ export const FinanceProvider = ({ children }) => {
 
   // Fetch all redesigned data
   const refreshFinanceData = useCallback(async () => {
-    if (!currentUser) {
+    if (!currentUser || !canFetchFinance) {
+      setFundAccounts([]);
+      setBudgetAllocations([]);
+      setTransactions([]);
+      setIgpCollections([]);
+      setPreOrderBatches([]);
+      setBudgets([]);
+      setArchivedBudgets([]);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -299,7 +315,7 @@ export const FinanceProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userRole, userName, canEditFinanceAccount, computeProjections]);
+  }, [currentUser, canFetchFinance, userRole, userName, canEditFinanceAccount, computeProjections]);
 
   // Initial load + live synchronization when order/IGP modules post to IGF/IGP
   useEffect(() => {

@@ -264,7 +264,13 @@ function RecordView({ actor, say, isManager = true }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const verified = await listVerifiedRosters();
+      if (!isManager && !actor?.uid) {
+        setRosters([]);
+        return;
+      }
+      const verified = await listVerifiedRosters(
+        isManager ? undefined : { mayorUid: actor.uid }
+      );
       setRosters(verified);
       if (isManager && verified.length === 0) {
         setUsePlaceholderSection(true);
@@ -274,7 +280,7 @@ function RecordView({ actor, say, isManager = true }) {
     } finally {
       setLoading(false);
     }
-  }, [say, isManager]);
+  }, [say, isManager, actor?.uid]);
 
   useEffect(() => {
     load();
@@ -289,6 +295,7 @@ function RecordView({ actor, say, isManager = true }) {
   // Anti-Spam Failsafe: Check if chosen section (verified or placeholder) already has an active pending collection
   useEffect(() => {
     const checkBeneficiaryId = selectedBeneficiaries[0]?.beneficiaryId || null;
+    const scopeOpts = isManager ? undefined : { recordedByUid: actor?.uid };
     if (usePlaceholderSection) {
       const trimmedSec = placeholderSectionName.trim();
       if (!trimmedSec) {
@@ -297,7 +304,7 @@ function RecordView({ actor, say, isManager = true }) {
       }
       let alive = true;
       setCheckingPending(true);
-      getActivePendingForSectionKey(trimmedSec, checkBeneficiaryId)
+      getActivePendingForSectionKey(trimmedSec, checkBeneficiaryId, scopeOpts)
         .then((pending) => {
           if (alive) setActivePending(pending);
         })
@@ -310,13 +317,13 @@ function RecordView({ actor, say, isManager = true }) {
       };
     }
 
-    if (!rosterId) {
+    if (!rosterId || (!isManager && !actor?.uid)) {
       setActivePending(null);
       return;
     }
     let alive = true;
     setCheckingPending(true);
-    getActivePendingForRoster(rosterId, checkBeneficiaryId)
+    getActivePendingForRoster(rosterId, checkBeneficiaryId, scopeOpts)
       .then((pending) => {
         if (alive) setActivePending(pending);
       })
@@ -330,7 +337,7 @@ function RecordView({ actor, say, isManager = true }) {
     return () => {
       alive = false;
     };
-  }, [rosterId, selectedBeneficiaries, usePlaceholderSection, placeholderSectionName]);
+  }, [rosterId, selectedBeneficiaries, usePlaceholderSection, placeholderSectionName, isManager, actor?.uid]);
 
   const effectiveEnrolledForCalc = useMemo(() => {
     if (!usePlaceholderSection) return roster?.studentCount ?? 0;
@@ -2014,14 +2021,21 @@ function StatusListView({ status, title, empty, say, actor = null, isManager = f
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await listCollections({ status });
+      if (!isManager && !actor?.uid) {
+        setRows([]);
+        return;
+      }
+      const list = await listCollections({
+        status,
+        recordedByUid: isManager ? undefined : actor.uid,
+      });
       setRows(list);
     } catch (error) {
       say('error', `Could not load: ${error.message}`);
     } finally {
       setLoading(false);
     }
-  }, [status, say]);
+  }, [status, say, isManager, actor?.uid]);
 
   useEffect(() => {
     load();

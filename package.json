@@ -34,6 +34,8 @@
     "test:variation-pricing": "node scripts/product-variation-pricing-tdd.mjs",
     "test:event-calendar": "node scripts/event-expense-calendar-tdd.mjs",
     "test:public-orders-rbac": "node scripts/public-orders-member-rbac-tdd.mjs",
+    "test:death-aid-rosters-rbac": "node scripts/death-aid-rosters-rbac-tdd.mjs",
+    "test:public-launch": "node scripts/public-launch-hardening-tdd.mjs",
     "test:finance-transfer": "node scripts/finance-transfer-tdd.mjs",
     "test:finance-diagnostics": "node scripts/finance-full-diagnostics-tdd.mjs",
     "test:storage-rules": "node scripts/storage-rules-security-tdd.mjs",

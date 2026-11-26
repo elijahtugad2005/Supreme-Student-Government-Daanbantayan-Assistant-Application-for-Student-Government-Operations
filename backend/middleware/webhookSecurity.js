@@ -27,12 +27,16 @@ function verifyHandshakeToken(mode, providedToken, expectedToken) {
   return safeTimingEqual(String(providedToken), String(expectedToken));
 }
 
+const isStrictRuntime = () =>
+  !['development', 'test'].includes(String(process.env.NODE_ENV || '').trim().toLowerCase());
+
 /**
  * Middleware: verifies Meta X-Hub-Signature-256 HMAC against META_APP_SECRET.
+ * Fails CLOSED by default unless NODE_ENV is explicitly 'development' or 'test'.
  */
 function createMetaWebhookGuard({
   getSecret = () => process.env.META_APP_SECRET,
-  isProduction = () => process.env.NODE_ENV === 'production',
+  isProduction = isStrictRuntime,
 } = {}) {
   return (req, res, next) => {
     const secret = getSecret();
@@ -68,10 +72,11 @@ function createMetaWebhookGuard({
 
 /**
  * Middleware: verifies Telegram X-Telegram-Bot-Api-Secret-Token header against TELEGRAM_WEBHOOK_SECRET.
+ * Fails CLOSED by default unless NODE_ENV is explicitly 'development' or 'test'.
  */
 function createTelegramWebhookGuard({
   getSecret = () => process.env.TELEGRAM_WEBHOOK_SECRET,
-  isProduction = () => process.env.NODE_ENV === 'production',
+  isProduction = isStrictRuntime,
 } = {}) {
   return (req, res, next) => {
     const secret = getSecret();

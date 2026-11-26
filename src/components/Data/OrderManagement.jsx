@@ -209,7 +209,9 @@ function OrderManagement() {
       let productDoc = null;
 
       if (productId) {
-        productDoc = productsSnapshot.docs.find(d => d.data().productId === productId);
+        productDoc = productsSnapshot.docs.find(
+          (d) => d.data().productId === productId || d.id === productId
+        );
       }
       if (!productDoc && productName) {
         const targetName = productName.toLowerCase();

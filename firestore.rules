@@ -64,6 +64,7 @@ service cloud.firestore {
     // True when the caller's Firebase Auth token carries an official @ctu.edu.ph email.
     function isInstitutionalCtuEmail() {
       return request.auth != null
+        && 'email' in request.auth.token
         && request.auth.token.email is string
         && request.auth.token.email.lower().matches('^[^@\\s]+@ctu\\.edu\\.ph$');
     }
@@ -73,7 +74,7 @@ service cloud.firestore {
     function isVerifiedInstitutionalMember() {
       return myRole() == 'member'
         && isInstitutionalCtuEmail()
-        && request.auth.token.email_verified == true;
+        && request.auth.token.get('email_verified', false) == true;
     }
 
     // Authenticated account with a verified non-guest institutional/student role.
@@ -116,17 +117,32 @@ service cloud.firestore {
       return hasUserDoc() && dataHasOverride(get(userPath()).data, permission);
     }
 
-    // Roles allowed to read student lists. Mayors (who are Guests) and Members
-    // may submit a roster but must never read one back — this mirrors
-    // `canViewRosters` in src/utils/permissions.js. The Secretary is included
-    // because verifying a submission requires reading it.
+    // Roles allowed to read student lists & verified sections. Mirrors
+    // `canViewRosters` and `DEATH_AID_MANAGER_ROLES` in src/utils/permissions.js
+    // so officers who verify rosters or record Death Aid collections never hit
+    // permission-denied, while Creatives, Guests, and ungranted Members stay blocked.
     function canReadRosters() {
       return hasUserDoc() && canReadRostersData(get(userPath()).data);
     }
 
     function canReadRostersData(d) {
       return isActiveData(d) && (
-        d.get('role', null) in ['admin', 'secretary', 'governor']
+        d.get('role', null) in [
+          'admin',
+          'president',
+          'vice_president',
+          'secretary',
+          'executive_secretary',
+          'press_secretary',
+          'linkages_secretary',
+          'deputy_secretary',
+          'finance_secretary',
+          'auditor',
+          'budget_officer',
+          'governor',
+          'senator',
+          'representative'
+        ]
         || dataHasOverride(d, 'canViewRosters')
       );
     }
@@ -157,9 +173,9 @@ service cloud.firestore {
 
     // A Mayor may read exactly one roster: the one they submitted. They cannot
     // browse the roster registry, but Death Aid payment marks have to be made
-    // against their own students.
+    // against their own students. Requires a verified non-guest institutional account.
     function isOwnRoster() {
-      return isActiveUser() && resource.data.mayorUid == request.auth.uid;
+      return isAuthenticatedNonGuest() && resource.data.mayorUid == request.auth.uid;
     }
 
     // A submission is only ever a proposal. `status`, `isCurrent` and `version`
@@ -318,11 +334,25 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // AUDIT LOGS — append only, never editable or removable
+    // AUDIT LOGS — append only, staff-authored, never editable or removable
     // =========================================================================
     match /audit_logs/{logId} {
       allow read: if isAdmin() || isOfficer();
-      allow create: if isNotDeactivated();
+      allow create: if (
+        isAdmin()
+        || isOfficer()
+        || canManageOrders()
+        || canViewFinance()
+        || canManageAnnouncements()
+        || hasOverride('canManageInventory')
+      )
+        && request.resource.data.keys().hasAll(['action', 'module'])
+        && request.resource.data.action is string
+        && request.resource.data.action.size() > 0
+        && request.resource.data.action.size() <= 80
+        && request.resource.data.module is string
+        && request.resource.data.module.size() > 0
+        && request.resource.data.module.size() <= 80;
       allow update, delete: if false;
     }
 
@@ -379,10 +409,12 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // INVENTORY & BORROWING LOGS — public/signed-in readable, officer-managed writes
+    // INVENTORY & BORROWING LOGS — internal officer/commerce readable & managed.
+    // Public catalog reads `products`; `inventory` contains procurement costs,
+    // storage locations, suppliers, and Drive receipt links and must stay private.
     // =========================================================================
     match /inventory/{docId} {
-      allow read: if true;
+      allow read: if canManageOrders() || isOfficer() || isAdmin() || hasOverride('canManageInventory');
       allow write: if canManageOrders() || isAdmin() || hasOverride('canManageInventory');
     }
 
@@ -476,11 +508,17 @@ service cloud.firestore {
           )
         )
         && (
+          !('debtRecords' in r)
+          || (r.debtRecords is list && r.debtRecords.size() <= r.debtCount)
+        )
+        && (
           (
             r.rosterId is string
             && r.rosterId.size() > 0
             && rosterFor(r.rosterId).status == 'verified'
             && r.enrolledCount == rosterFor(r.rosterId).studentCount
+            && (canManageDeathAid() || rosterFor(r.rosterId).mayorUid == request.auth.uid)
+            && (!('sectionKey' in r) || r.sectionKey == rosterFor(r.rosterId).sectionKey)
           )
           || (
             canManageDeathAid()

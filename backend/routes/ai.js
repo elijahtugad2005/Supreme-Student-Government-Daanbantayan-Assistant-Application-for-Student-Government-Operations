@@ -354,8 +354,9 @@ router.post('/aiStatus', getStatus);
 router.post('/analyzeDocument', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { documentId, fileContent } = req.body;
-    if (!documentId) {
-      return res.status(400).json({ error: 'documentId is required' });
+    const { isValidFirestoreDocId } = require('../utils/firestoreIdValidator');
+    if (!documentId || !isValidFirestoreDocId(documentId)) {
+      return res.status(400).json({ error: 'Valid documentId is required' });
     }
 
     const db = getFirestore();
@@ -715,7 +716,10 @@ router.post('/analyzeDocument', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES
 router.post('/confirmAnalysis', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { documentId, apply = [], overrides = {} } = req.body;
-    if (!documentId) return res.status(400).json({ error: 'documentId is required' });
+    const { isValidFirestoreDocId } = require('../utils/firestoreIdValidator');
+    if (!documentId || !isValidFirestoreDocId(documentId)) {
+      return res.status(400).json({ error: 'Valid documentId is required' });
+    }
 
     const db = getFirestore();
     const docRef = db.collection('documents').doc(documentId);
@@ -811,8 +815,9 @@ router.post('/confirmAnalysis', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES
 router.post('/recordSignature', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { documentId, index, signed, signedByName, note } = req.body;
-    if (!documentId || typeof index !== 'number') {
-      return res.status(400).json({ error: 'documentId and index are required' });
+    const { isValidFirestoreDocId } = require('../utils/firestoreIdValidator');
+    if (!documentId || !isValidFirestoreDocId(documentId) || typeof index !== 'number') {
+      return res.status(400).json({ error: 'Valid documentId and index are required' });
     }
 
     const db = getFirestore();
@@ -888,8 +893,9 @@ router.post('/recordSignature', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES
 router.post('/correctClassification', authenticate, requireRole(DOCUMENT_ARCHIVE_ROLES), async (req, res) => {
   try {
     const { documentId, labelSlug, reason } = req.body || {};
-    if (!documentId || !labelSlug) {
-      return res.status(400).json({ error: 'documentId and labelSlug are required' });
+    const { isValidFirestoreDocId } = require('../utils/firestoreIdValidator');
+    if (!documentId || !isValidFirestoreDocId(documentId) || !labelSlug) {
+      return res.status(400).json({ error: 'Valid documentId and labelSlug are required' });
     }
 
     const db = getFirestore();

@@ -15,6 +15,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import AccessDenied from '../AccessDenied/AccessDenied.jsx';
 import { hasPermission, getRoleName, canAccessRoute } from '../../utils/permissions.js';
+import { isVerifiedMemberSession } from '../../utils/authDomainPolicy.js';
 
 function ProtectedRoute({ 
   children, 
@@ -57,6 +58,20 @@ function ProtectedRoute({
   if (isAccountActive === false) {
     return renderAccessDenied(
       'Your account has been deactivated. Please contact an SSG administrator.',
+      customAccessDenied
+    );
+  }
+
+  // Defense-in-depth: block unverified or non-@ctu.edu.ph student members
+  if (
+    !isVerifiedMemberSession({
+      role: userRole,
+      email: currentUser?.email,
+      emailVerified: currentUser?.emailVerified,
+    })
+  ) {
+    return renderAccessDenied(
+      'Please verify your @ctu.edu.ph institutional email address before accessing student member pages.',
       customAccessDenied
     );
   }

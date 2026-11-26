@@ -550,6 +550,10 @@ router.get('/', (req, res) => {
                   router.delete('/firestore/:documentId', authenticate, requireAccess(DOCUMENT_DELETE_ROLES, DOCUMENT_DELETE_OVERRIDES), async (req, res) => {
                     try {
                       const { documentId } = req.params;
+                      const { isValidFirestoreDocId } = require('../utils/firestoreIdValidator');
+                      if (!isValidFirestoreDocId(documentId)) {
+                        return res.status(400).json({ success: false, error: 'Invalid documentId format.' });
+                      }
                       const { getFirestore } = require('../services/firebase-admin');
                       const db = getFirestore();
                       const docRef = db.collection('documents').doc(documentId);

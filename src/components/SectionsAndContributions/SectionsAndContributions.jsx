@@ -5,9 +5,11 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { collection, onSnapshot, query, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, where } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../AuthContext/AuthContext.jsx';
+import { canManageDeathAid, hasPermission } from '../../utils/permissions';
 import ClassUpload from '../ClassUpload.jsx';
 import DeathAid from '../DeathAid.jsx';
 import styles from './SectionsAndContributions.module.css';
@@ -16,10 +18,16 @@ import { Sparkles } from 'lucide-react';
 
 export default function SectionsAndContributions() {
   const { theme } = useTheme();
+  const { currentUser, userRole, userPermissionOverrides } = useAuth();
   const isClassic = theme === 'dark';
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTabFromUrl = searchParams.get('tab') === 'death-aid' ? 'death-aid' : 'roster';
   const [activeTab, setActiveTab] = useState(currentTabFromUrl);
+
+  const userProfile = { role: userRole, permissionOverrides: userPermissionOverrides };
+  const isDeathAidManager = canManageDeathAid(userProfile);
+  const canViewAllRosters =
+    hasPermission(userProfile, 'canViewRosters') || isDeathAidManager;
 
   // Live lightweight count badges
   const [sectionCount, setSectionCount] = useState(null);
@@ -33,47 +41,86 @@ export default function SectionsAndContributions() {
     }
   }, [currentTabFromUrl]);
 
-  // 2. Fetch lightweight live counters for Tab Badges
+  // 2. Fetch lightweight live counters for Tab Badges (scoped to match Firestore rules)
   useEffect(() => {
     let alive = true;
+    const uid = currentUser?.uid || null;
 
-    // Listen to registered class sections
-    const unsubSections = onSnapshot(
-      query(collection(db, 'classSections'), limit(200)),
-      (snapshot) => {
-        if (alive) setSectionCount(snapshot.size);
-      },
-      () => {
-        if (alive) setSectionCount(null);
-      }
-    );
+    let unsubSections = () => {};
+    if (canViewAllRosters) {
+      unsubSections = onSnapshot(
+        query(collection(db, 'classSections'), limit(200)),
+        (snapshot) => {
+          if (alive) setSectionCount(snapshot.size);
+        },
+        () => {
+          if (alive) setSectionCount(null);
+        }
+      );
+    } else if (uid && userRole && userRole !== 'guest') {
+      unsubSections = onSnapshot(
+        query(collection(db, 'classRosters'), where('mayorUid', '==', uid), limit(200)),
+        (snapshot) => {
+          if (alive) setSectionCount(snapshot.size);
+        },
+        () => {
+          if (alive) setSectionCount(null);
+        }
+      );
+    } else {
+      setSectionCount(null);
+    }
 
-    // Listen to death aid collections
-    const unsubCollections = onSnapshot(
-      query(collection(db, 'deathAidCollections'), limit(200)),
-      (snapshot) => {
-        if (alive) {
-          setCollectionCount(snapshot.size);
-          const pending = snapshot.docs.filter(
-            (d) => d.data()?.status === 'for_verification'
-          ).length;
-          setPendingDeathAidCount(pending);
+    let unsubCollections = () => {};
+    if (isDeathAidManager) {
+      unsubCollections = onSnapshot(
+        query(collection(db, 'deathAidCollections'), limit(200)),
+        (snapshot) => {
+          if (alive) {
+            setCollectionCount(snapshot.size);
+            const pending = snapshot.docs.filter(
+              (d) => d.data()?.status === 'for_verification'
+            ).length;
+            setPendingDeathAidCount(pending);
+          }
+        },
+        () => {
+          if (alive) {
+            setCollectionCount(null);
+            setPendingDeathAidCount(0);
+          }
         }
-      },
-      () => {
-        if (alive) {
-          setCollectionCount(null);
-          setPendingDeathAidCount(0);
+      );
+    } else if (uid && userRole && userRole !== 'guest') {
+      unsubCollections = onSnapshot(
+        query(collection(db, 'deathAidCollections'), where('recordedByUid', '==', uid), limit(200)),
+        (snapshot) => {
+          if (alive) {
+            setCollectionCount(snapshot.size);
+            const pending = snapshot.docs.filter(
+              (d) => d.data()?.status === 'for_verification'
+            ).length;
+            setPendingDeathAidCount(pending);
+          }
+        },
+        () => {
+          if (alive) {
+            setCollectionCount(null);
+            setPendingDeathAidCount(0);
+          }
         }
-      }
-    );
+      );
+    } else {
+      setCollectionCount(null);
+      setPendingDeathAidCount(0);
+    }
 
     return () => {
       alive = false;
       unsubSections();
       unsubCollections();
     };
-  }, []);
+  }, [currentUser?.uid, userRole, canViewAllRosters, isDeathAidManager]);
 
   const handleTabSwitch = useCallback((tabKey) => {
     setActiveTab(tabKey);

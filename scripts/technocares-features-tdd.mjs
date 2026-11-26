@@ -458,8 +458,12 @@ async function runSlice2FirestoreRules() {
 
     const secDb = testEnv.authenticatedContext('officer-sec').firestore();
     const finDb = testEnv.authenticatedContext('officer-fin').firestore();
-    const mayorDb = testEnv.authenticatedContext('mayor-1').firestore();
-    const member2Db = testEnv.authenticatedContext('member-2').firestore();
+    const mayorDb = testEnv
+      .authenticatedContext('mayor-1', { email: 'mayor1@ctu.edu.ph', email_verified: true })
+      .firestore();
+    const member2Db = testEnv
+      .authenticatedContext('member-2', { email: 'member2@ctu.edu.ph', email_verified: true })
+      .firestore();
 
     // 2A: Finance Secretary (canManageDeathAid) CAN create a placeholder classSection
     let finCreatedPlaceholder = false;
