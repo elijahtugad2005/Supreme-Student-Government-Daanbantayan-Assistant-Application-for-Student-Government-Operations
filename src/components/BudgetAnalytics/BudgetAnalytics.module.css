@@ -197,7 +197,9 @@
   padding: 1.6rem;
   border: 1px solid var(--color-border-secondary, rgba(255, 255, 255, 0.08));
   box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.4));
-  height: 420px;
+  min-height: 420px;
+  height: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease;
@@ -1261,4 +1263,143 @@
   background: rgba(255, 255, 255, 0.05) !important;
   color: #cbd5e1 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-}
+}
+
+/* ─── Contained Chart Body & Clean Pie Distribution Legend ─── */
+.chartBody {
+  width: 100%;
+  min-height: 315px;
+  flex: 1;
+}
+
+.chartEmptyState {
+  flex: 1;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary, #9ca3af);
+}
+
+.pieLayout {
+  display: grid;
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.25rem;
+  flex: 1;
+  min-height: 280px;
+}
+
+.pieCanvasWrap {
+  width: 100%;
+  height: 260px;
+}
+
+.pieLegendList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.pieLegendRow {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.78rem;
+}
+
+.pieLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.pieLegendName {
+  color: var(--color-text-primary, #f8fafc);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pieLegendAmount {
+  color: var(--color-text-primary, #f8fafc);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pieLegendPct {
+  color: var(--color-text-secondary, #9ca3af);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
+}
+
+:global(.theme-light) .pieLegendRow {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+:global(.theme-light) .pieLegendName,
+:global(.theme-light) .pieLegendAmount {
+  color: #0f172a;
+}
+
+:global(.theme-light) .pieLegendPct {
+  color: #475569;
+}
+
+.analyticsClassic .pieLegendRow,
+:global(.theme-dark) .container .pieLegendRow {
+  background: rgba(34, 6, 11, 0.75);
+  border-color: rgba(212, 175, 55, 0.2);
+}
+
+.analyticsClassic .pieLegendName,
+:global(.theme-dark) .container .pieLegendName {
+  color: #fff6e5;
+}
+
+.analyticsClassic .pieLegendAmount,
+:global(.theme-dark) .container .pieLegendAmount {
+  color: #ffea9f;
+}
+
+.analyticsClassic .pieLegendPct,
+:global(.theme-dark) .container .pieLegendPct {
+  color: #c9a9ad;
+}
+
+@media (max-width: 720px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pieLayout {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .pieCanvasWrap {
+    height: 220px;
+  }
+}
+

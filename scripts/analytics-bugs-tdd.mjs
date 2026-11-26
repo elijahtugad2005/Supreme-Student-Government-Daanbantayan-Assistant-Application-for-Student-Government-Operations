@@ -277,6 +277,37 @@ if (typeof h2.deriveBudgetHealthStatus === 'function') {
     { fundAccountId: 'fund_igf_main', status: 'posted', transactionType: 'expense', description: 'Lanyards', amountCentavos: 20000 },
     { fundAccountId: 'fund_igf_main', status: 'reversed', transactionType: 'collection', description: 'Voided', amountCentavos: 99900 },
   ]);
+
+  // Order-ID grouping & Top-N rollup regression check (prevents 60+ hairline bars & overflowing legend)
+  const manyOrderTxs = [
+    { fundAccountId: 'fund_igf_main', status: 'posted', transactionType: 'collection', description: 'Merchandise Sales Revenue: SSGDB-001 - CTU UNIFORMS (x1)', amountCentavos: 50000 },
+    { fundAccountId: 'fund_igf_main', status: 'posted', transactionType: 'collection', description: 'Merchandise Sales Revenue: SSGDB-007 - CTU UNIFORMS (x1)', amountCentavos: 50000 },
+    { fundAccountId: 'fund_igf_main', status: 'posted', transactionType: 'collection', description: 'Merchandise Sales Revenue: SSGDB-030 - CTU Uniforms (x2)', amountCentavos: 100000 },
+    { fundAccountId: 'fund_igf_main', status: 'posted', transactionType: 'collection', description: 'Merchandise Sales Revenue: ORD-DB-0001 - Unified CTU-DB Lanyard (CoEd, CoTE) (x1)', amountCentavos: 15000 },
+    { fundAccountId: 'fund_igf_main', status: 'posted', transactionType: 'expense', receiptLabel: 'Food & Meals', description: 'Snacks', amountCentavos: 120000 },
+  ];
+  const groupedIgf = h2.buildIgfEnterpriseChartData(manyOrderTxs);
+  check(
+    'buildIgfEnterpriseChartData merges individual merchandise order IDs into clean product buckets',
+    groupedIgf.length === 3 &&
+      groupedIgf.find((r) => /CTU Uniforms/i.test(r.name))?.allocated === 2000 &&
+      groupedIgf.find((r) => /Unified CTU-DB Lanyard/i.test(r.name))?.allocated === 150 &&
+      groupedIgf.find((r) => r.name === 'Food & Meals')?.spent === 1200,
+    JSON.stringify(groupedIgf)
+  );
+
+  const rolled = h2.rollupTopChartBuckets(
+    Array.from({ length: 12 }, (_, i) => ({ name: `Item ${i + 1}`, allocated: (12 - i) * 100, spent: 0, value: (12 - i) * 100 })),
+    7
+  );
+  check(
+    'rollupTopChartBuckets caps >7 buckets into Top 7 + Other while conserving total PHP sum',
+    rolled.length === 8 &&
+      rolled[7].name === 'Other (5)' &&
+      rolled.reduce((s, r) => s + r.value, 0) === 7800,
+    JSON.stringify(rolled)
+  );
+
   check(
     'buildIgfEnterpriseChartData derives real IGF inflow/outflow and excludes reversed transactions',
     realIgf.length === 1 && realIgf[0].allocated === 500 && realIgf[0].spent === 200,

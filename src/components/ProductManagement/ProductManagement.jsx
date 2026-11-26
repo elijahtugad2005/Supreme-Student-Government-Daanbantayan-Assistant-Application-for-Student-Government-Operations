@@ -17,6 +17,11 @@ import { useTheme } from '../../contexts/ThemeContext.jsx';
 import auditService from '../../services/auditService';
 import ProductFormPanelEnhanced from './ProductFormPanelEnhanced';
 import PesoSign from '../Common/PesoSign.jsx';
+import {
+  sanitizeVariationPriceMap,
+  sanitizeCustomVariations,
+  getProductPriceRange,
+} from '../../utils/productPricing.js';
 import styles from './productmanagement.module.css';
 
 // ========================================
@@ -256,7 +261,7 @@ function DashboardView({ products, onRestock }) {
                           {product.stockAvailable === 0 ? 'Out of Stock' : `${product.stockAvailable} units`}
                         </span>
                       </td>
-                      <td className={styles.alertTablePrice}>₱{product.price?.toFixed(2)}</td>
+                      <td className={styles.alertTablePrice}>{getProductPriceRange(product).label}</td>
                       <td>
                         <button className={styles.restockBtn} onClick={() => onRestock(product)}>
                           Restock
@@ -454,7 +459,7 @@ function ProductTableView({ products, onEdit, onDelete, onNewProduct, loading })
                       IGF Inventory Synced ({product.category || 'Office Supplies'})
                     </div>
                   </td>
-                  <td className={styles.tablePrice}>₱{product.price?.toFixed(2)}</td>
+                  <td className={styles.tablePrice}>{getProductPriceRange(product).label}</td>
                   <td>
                     {product.stockAvailable === 0 ? (
                       <span className={styles.stockBadgeOut}>Out of Stock</span>
@@ -568,8 +573,9 @@ function ProductManagement() {
     stockAvailable: 0,
     hasVariations: false,
     sizeOptions: [],
+    sizePrices: {},
     colorVariations: [],
-    customVariations: [], // Array of {type: string, options: [{name: string, image: string, stock: number}]}
+    customVariations: [], // Array of {type: string, options: [{name: string, image: string, stock: number, price?: number}]}
     description: '',
     supplier: '',
     price: 0,
@@ -651,6 +657,7 @@ function ProductManagement() {
       stockAvailable: 0,
       hasVariations: false,
       sizeOptions: [],
+      sizePrices: {},
       colorVariations: [],
       customVariations: [],
       description: '',
@@ -689,6 +696,7 @@ function ProductManagement() {
       price: product.price ?? 0,
       supplier: product.supplier || '',
       sizeOptions: product.sizeOptions || [],
+      sizePrices: product.sizePrices || {},
       colorVariations: product.colorVariations || [],
       customVariations: product.customVariations || [],
       imageBase64: product.imageBase64 || '',
@@ -731,7 +739,7 @@ function ProductManagement() {
         supplier: productData.supplier.trim(),
         imageBase64: productData.imageBase64 || '',
         fundSource: 'IGF',
-        source: 'Product Management (IGF)',
+        source: 'Merchandise Management (IGF)',
         linkedProductId: productId,
         lastUpdatedBy: performer,
         createdAt: serverTimestamp(),
@@ -750,8 +758,13 @@ function ProductManagement() {
         stockAvailable: stock,
         hasVariations: productData.hasVariations,
         sizeOptions: productData.hasVariations ? productData.sizeOptions : [],
+        sizePrices: productData.hasVariations
+          ? sanitizeVariationPriceMap(productData.sizePrices, productData.sizeOptions)
+          : {},
         colorVariations: productData.hasVariations ? productData.colorVariations : [],
-        customVariations: productData.hasVariations ? productData.customVariations : [],
+        customVariations: productData.hasVariations
+          ? sanitizeCustomVariations(productData.customVariations)
+          : [],
         description: productData.description.trim(),
         price,
         supplier: productData.supplier.trim(),
@@ -810,7 +823,7 @@ function ProductManagement() {
         supplier: productData.supplier.trim(),
         imageBase64: productData.imageBase64 || '/products/default.jpg',
         fundSource: 'IGF',
-        source: 'Product Management (IGF)',
+        source: 'Merchandise Management (IGF)',
         linkedProductId: productData.productId,
         lastUpdatedBy: performer,
         updatedAt: serverTimestamp(),
@@ -852,8 +865,13 @@ function ProductManagement() {
         stockAvailable: stock,
         hasVariations: productData.hasVariations,
         sizeOptions: productData.hasVariations ? productData.sizeOptions : [],
+        sizePrices: productData.hasVariations
+          ? sanitizeVariationPriceMap(productData.sizePrices, productData.sizeOptions)
+          : {},
         colorVariations: productData.hasVariations ? productData.colorVariations : [],
-        customVariations: productData.hasVariations ? productData.customVariations : [],
+        customVariations: productData.hasVariations
+          ? sanitizeCustomVariations(productData.customVariations)
+          : [],
         description: productData.description.trim(),
         price,
         supplier: productData.supplier.trim(),
@@ -868,7 +886,7 @@ function ProductManagement() {
       await auditService.logInventoryUpdate(
         performer,
         productData.productName.trim(),
-        `Synchronized stock (${stock} units) and details via Product Management (IGF)`
+        `Synchronized stock (${stock} units) and details via Merchandise Management (IGF)`
       );
 
       showNotification('Product and Inventory record updated successfully!', 'success');

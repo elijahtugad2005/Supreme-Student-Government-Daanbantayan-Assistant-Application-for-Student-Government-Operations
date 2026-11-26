@@ -90,8 +90,12 @@ function DeathAid() {
 
   const say = useCallback((type, message) => setBanner({ type, message }), []);
 
-  // Listen to pending death aid collections in real time for live indicators
+  // Listen to pending death aid collections in real time for live indicators (officers only)
   useEffect(() => {
+    if (!isManager) {
+      setPendingCount(0);
+      return undefined;
+    }
     let alive = true;
     const q = query(
       collection(db, 'deathAidCollections'),
@@ -110,7 +114,7 @@ function DeathAid() {
       alive = false;
       unsub();
     };
-  }, []);
+  }, [isManager]);
 
   return (
     <div style={styles.container}>

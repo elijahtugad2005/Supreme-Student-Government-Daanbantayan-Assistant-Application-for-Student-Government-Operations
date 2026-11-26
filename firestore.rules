@@ -61,12 +61,28 @@ service cloud.firestore {
       return isActiveData(d) ? d.get('role', null) : null;
     }
 
+    // True when the caller's Firebase Auth token carries an official @ctu.edu.ph email.
+    function isInstitutionalCtuEmail() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.lower().matches('^[^@\\s]+@ctu\\.edu\\.ph$');
+    }
+
+    // True when a self-registered student member has BOTH a @ctu.edu.ph email AND
+    // a verified email address in their Firebase Auth token.
+    function isVerifiedInstitutionalMember() {
+      return myRole() == 'member'
+        && isInstitutionalCtuEmail()
+        && request.auth.token.email_verified == true;
+    }
+
     // Authenticated account with a verified non-guest institutional/student role.
-    // Blocks anonymous callers and guest accounts from brute-force submissions
-    // against Class Rosters, Death Aid collections, counters, and audit trails.
+    // Officers/admins pass via their assigned role; student members MUST have a
+    // verified @ctu.edu.ph institutional email so random internet signups cannot
+    // interact with Class Rosters, Death Aid drives, or audit trails.
     function isAuthenticatedNonGuest() {
       let r = myRole();
-      return r != null && r != 'guest';
+      return r != null && r != 'guest' && (r != 'member' || isVerifiedInstitutionalMember());
     }
 
     function isAdmin() {
@@ -271,6 +287,11 @@ service cloud.firestore {
           && request.auth.uid == userId
           && request.resource.data.role in ['member', 'guest']
           && (
+            request.resource.data.role == 'guest'
+            || isInstitutionalCtuEmail()
+          )
+          && !('permissions' in request.resource.data)
+          && (
             !('permissionOverrides' in request.resource.data)
             || (
               request.resource.data.permissionOverrides is map
@@ -379,21 +400,21 @@ service cloud.firestore {
     }
 
     match /borrowingLogs/{logId} {
-      allow read: if isNotDeactivated();
+      allow read: if canManageOrders() || isOfficer() || isAdmin() || hasOverride('canManageInventory');
       allow write: if canManageOrders() || isAdmin() || hasOverride('canManageInventory');
     }
 
     // =========================================================================
-    // FINANCE — officers only. Members may still see their own dues, so finance
-    // documents are readable by any active signed-in user but never written by one.
+    // FINANCE — officers & authorized finance viewers only.
+    // Self-registered members/guests must NOT read internal treasury budgets/funds.
     // =========================================================================
     match /budgets/{budgetId} {
-      allow read: if isNotDeactivated();
+      allow read: if canViewFinance() || isOfficer() || isAdmin();
       allow write: if isOfficer() || isAdmin();
     }
 
     match /funds/{fundId} {
-      allow read: if isNotDeactivated();
+      allow read: if canViewFinance() || isOfficer() || isAdmin();
       allow write: if myRole() == 'finance_secretary' 
         || myRole() == 'auditor' 
         || myRole() == 'budget_officer' 
@@ -474,10 +495,12 @@ service cloud.firestore {
     }
 
     // Official Death Aid / TechnoCare beneficiary cases (memo + affected person + release photo evidence).
-    // Readable by authenticated non-guest accounts; only Death Aid managers may publish, close, or release.
-    // Releasing a beneficiary case strictly requires handover photo evidence.
+    // Officers may read all cases (open, closed, released). Verified @ctu.edu.ph student members may
+    // ONLY read currently `open` drives — blocking unverified/outsider signups and hiding closed/released
+    // beneficiary handover records from non-officers.
     match /deathAidBeneficiaries/{beneficiaryId} {
-      allow read: if isAuthenticatedNonGuest();
+      allow read: if canManageDeathAid()
+        || (isVerifiedInstitutionalMember() && resource.data.status == 'open');
       allow create, update: if canManageDeathAid()
         && request.resource.data.studentName is string
         && request.resource.data.studentName.size() > 0
@@ -503,8 +526,10 @@ service cloud.firestore {
     }
 
     match /deathAidCollections/{collectionId} {
-      // Authenticated non-guest users only; blocks guest/unauthenticated scraping and brute-force requests.
-      allow read: if isAuthenticatedNonGuest();
+      // Officers read all campus collections; verified @ctu.edu.ph student members (Class Mayors)
+      // may ONLY read their own submitted collections — never other sections' payment/debt lists.
+      allow read: if canManageDeathAid()
+        || (isVerifiedInstitutionalMember() && resource.data.recordedByUid == request.auth.uid);
 
       // Recorded by an authenticated non-guest account (student/mayor or officer).
       // Arithmetic totals MUST strictly balance against beneficiaryCount * contributionPerStudent.
@@ -837,23 +862,22 @@ service cloud.firestore {
 
     // System & Centralized Sheet Settings
     match /settings/{settingId} {
-      allow read: if settingId == 'app' || isNotDeactivated();
+      allow read: if settingId == 'app'
+        || isAdmin()
+        || isOfficer()
+        || canManageCentralizedOrderSheet();
       allow write: if settingId == 'commerceOrderSheet'
         ? canManageCentralizedOrderSheet()
         : (isAdmin() || isOfficer() || myRole() == 'finance_secretary');
     }
 
     // Commerce / Merchandise Orders
+    // Public order creation and masked status lookup are routed exclusively through
+    // backend POST /api/orders and GET /api/orders/track (Admin SDK) to prevent PII
+    // scraping and client-side price/payment tampering.
     match /orders/{orderId} {
-      allow read: if true;
-      allow create: if canManageOrders() || isAdmin()
-        || (
-          (request.auth == null || isNotDeactivated())
-          && (
-            !('orderStatus' in request.resource.data)
-            || request.resource.data.orderStatus in ['Pending', 'Online Paid']
-          )
-        );
+      allow read: if canManageOrders() || isAdmin();
+      allow create: if canManageOrders() || isAdmin();
       allow update: if canManageOrders() || isAdmin();
       allow delete: if isAdmin() || canManageOrders();
     }
@@ -903,7 +927,7 @@ service cloud.firestore {
 
     // Pre-Order Batches (IGF merchandise and uniform runs)
     match /preOrderBatches/{batchId} {
-      allow read: if isNotDeactivated();
+      allow read: if canViewFinance() || canManageOrders() || isOfficer() || isAdmin();
       allow create: if canEditFinance() && isSignedIn();
       allow update: if canEditFinance() || canAuditClear();
       allow delete: if isAdmin();
@@ -911,20 +935,20 @@ service cloud.firestore {
 
     // Pre-Order Entries (Per-student order ledger)
     match /preOrderEntries/{entryId} {
-      allow read: if isNotDeactivated();
+      allow read: if canViewFinance() || canManageOrders() || isOfficer() || isAdmin();
       allow create, update: if canEditFinance() && isSignedIn();
       allow delete: if isAdmin();
     }
 
     // Income-Generating Projects (IGP): Lockers & Collections
     match /lockers/{lockerId} {
-      allow read: if isNotDeactivated();
+      allow read: if canViewFinance() || isOfficer() || isAdmin() || myRole() == 'governor';
       allow create, update: if (canEditFinance() || isOfficer() || myRole() == 'governor') && isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /igpCollections/{collectionId} {
-      allow read: if isNotDeactivated();
+      allow read: if canViewFinance() || isOfficer() || isAdmin() || myRole() == 'governor' || myRole() == 'representative';
       allow create: if (canEditFinance() || isOfficer() || myRole() == 'governor' || myRole() == 'representative') && isSignedIn();
       allow update, delete: if (isAdmin() || canEditFinance()) && isSignedIn();
     }

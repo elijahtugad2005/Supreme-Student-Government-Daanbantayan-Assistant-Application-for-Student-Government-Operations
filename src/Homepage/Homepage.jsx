@@ -10,6 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import useCurrentTerm from '../hooks/useCurrentTerm';
 import { SSG_ID, FALLBACK_TERM, getSections } from '../components/orgUtils';
 import CalendarWidget from '../components/CalendarWidget/CalendarWidget';
+import { getProductPriceRange } from '../utils/productPricing.js';
 import {
   HiCurrencyDollar,
   HiFolder,
@@ -947,10 +948,19 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
 
                     {/* Bottom Pricing & Action Surface */}
                     <div className={styles.productCardFooter}>
-                      <div className={styles.priceContainer}>
-                        <span className={styles.priceCurrency}>₱</span>
-                        <span className={styles.priceValue}>{product.price?.toFixed(2) || '0.00'}</span>
-                      </div>
+                      {(() => {
+                        const priceRange = getProductPriceRange(product);
+                        return (
+                          <div className={styles.priceContainer}>
+                            <span className={styles.priceCurrency}>₱</span>
+                            <span className={styles.priceValue}>
+                              {priceRange.hasRange
+                                ? `${priceRange.minPrice.toFixed(2)} – ₱${priceRange.maxPrice.toFixed(2)}`
+                                : priceRange.minPrice.toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       <button
                         type="button"

@@ -575,7 +575,7 @@ function CommerceHub() {
             onClick={() => setActiveTab('products')}
           >
             <ShoppingBag size={17} />
-            <span>Product Management</span>
+            <span>Merchandise Management</span>
             <span className={styles.tabBadge}>{products.length}</span>
           </button>
         </div>

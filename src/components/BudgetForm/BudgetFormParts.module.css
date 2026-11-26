@@ -581,6 +581,11 @@
   margin-top: 0.5rem;
 }
 
+.calError {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .meterFill,
   .meterBad,

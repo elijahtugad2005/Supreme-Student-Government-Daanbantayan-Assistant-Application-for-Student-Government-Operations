@@ -10,6 +10,11 @@ import { auth, db, googleProvider } from "../../firebase/firebaseConfig.js";
 // Statically imported: this module is also imported by many others, so the
 // dynamic import only produced a mixed-import warning without saving anything.
 import { getDefaultPermissionsForRole, isProfileActive } from '../../utils/permissions.js';
+import {
+  INSTITUTIONAL_EMAIL_DOMAIN,
+  isInstitutionalCtuEmail,
+  validateStudentRegistrationEmail,
+} from '../../utils/authDomainPolicy.js';
 import { ensureRoleClaim } from '../../services/roleClaims.js';
 import { usingEmulators } from '../../firebase/emulators.js';
 import { 
@@ -17,6 +22,7 @@ import {
   signOut, 
   onAuthStateChanged,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult
@@ -26,9 +32,27 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 const DEACTIVATED_ACCOUNT_MESSAGE =
   'Your account has been deactivated. Please contact an SSG administrator.';
 
+const INSTITUTIONAL_DOMAIN_ERROR_MESSAGE =
+  `Only official @${INSTITUTIONAL_EMAIL_DOMAIN} institutional email addresses may self-register as a Student Member. Officers with pre-provisioned accounts may still sign in normally.`;
+
+const UNVERIFIED_EMAIL_ERROR_MESSAGE =
+  `Please verify your @${INSTITUTIONAL_EMAIL_DOMAIN} email address using the link sent to your inbox before signing in.`;
+
 const createDeactivatedAccountError = () => {
   const err = new Error(DEACTIVATED_ACCOUNT_MESSAGE);
   err.code = 'auth/account-deactivated';
+  return err;
+};
+
+const createInstitutionalDomainError = () => {
+  const err = new Error(INSTITUTIONAL_DOMAIN_ERROR_MESSAGE);
+  err.code = 'auth/invalid-institutional-domain';
+  return err;
+};
+
+const createUnverifiedEmailError = () => {
+  const err = new Error(UNVERIFIED_EMAIL_ERROR_MESSAGE);
+  err.code = 'auth/email-not-verified';
   return err;
 };
 
@@ -65,25 +89,32 @@ export function AuthProvider({ children }) {
 
   // ========================================
   // SIGNUP FUNCTION
-  // Creates new user account with comprehensive schema and permissions
-  // Registered users automatically receive the 'member' role
+  // Restricts self-registration to official @ctu.edu.ph accounts,
+  // sends Firebase email verification, and omits client-supplied permissions map.
   // ========================================
   const signup = async (email, password, name, role = 'member', additionalData = {}) => {
     try {
+      const domainCheck = validateStudentRegistrationEmail(email);
+      if (!domainCheck.valid) {
+        throw createInstitutionalDomainError();
+      }
+
       // Self-registered accounts automatically get the 'member' role
       const assignedRole = role === 'guest' ? 'guest' : 'member';
 
       // Create Firebase Auth account
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
-      
-      // Get default permissions for the role
-      const defaultPermissions = getDefaultPermissionsForRole(assignedRole);
-      
-      // Sanitize additionalData so role/permissions cannot be overridden
-      const { role: _ignoredRole, permissions: _ignoredPerms, permissionOverrides: _ignoredOverrides, ...safeAdditionalData } = additionalData || {};
 
-      // Create comprehensive user document
+      // Sanitize additionalData so role/permissions cannot be overridden
+      const {
+        role: _ignoredRole,
+        permissions: _ignoredPerms,
+        permissionOverrides: _ignoredOverrides,
+        ...safeAdditionalData
+      } = additionalData || {};
+
+      // Store user profile WITHOUT client-supplied `permissions` map (enforced by firestore.rules)
       const userData = {
         ...safeAdditionalData,
         uid: user.uid,
@@ -91,38 +122,36 @@ export function AuthProvider({ children }) {
         name: name,
         studentId: safeAdditionalData.studentId || '',
         photoURL: null,
-        
-        // Role and permissions
         role: assignedRole,
-        permissions: defaultPermissions,
-        
-        // Authentication information
         provider: 'email',
-        isEmailVerified: false,
+        isEmailVerified: Boolean(user.emailVerified),
         isActive: true,
-        
-        // Timestamps
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString(),
         lastUpdatedAt: new Date().toISOString(),
-        
-        // Additional information
         department: safeAdditionalData.department || '',
         phone: safeAdditionalData.phone || '',
         address: safeAdditionalData.address || '',
         notes: safeAdditionalData.notes || ''
       };
-      
-      // Store user data in Firestore
+
       await setDoc(doc(db, 'users', user.uid), userData);
-      
-      // Set local state
-      setUserRole(assignedRole);
-      setUserName(name);
-      setUserPermissions(defaultPermissions);
-      setUserPermissionOverrides({});
-      
-      return userCredential;
+
+      // Send verification link to the @ctu.edu.ph inbox and require verification before sign-in
+      try {
+        await sendEmailVerification(user);
+      } catch (verifyErr) {
+        console.warn('[AuthContext] sendEmailVerification warning:', verifyErr.message);
+      }
+
+      clearUserProfileState({ active: true });
+      await signOut(auth);
+
+      return {
+        ...userCredential,
+        verificationRequired: true,
+        email: user.email,
+      };
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -131,13 +160,13 @@ export function AuthProvider({ children }) {
 
   // ========================================
   // LOGIN FUNCTION
-  // Authenticates user and fetches their role from Firestore
+  // Authenticates user, enforces deactivation & @ctu.edu.ph email verification for members
   // ========================================
   const login = async (email, password) => {
     try {
       setAuthError(null);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
+
       // Fetch user data from Firestore and verify account is not deactivated
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       if (userDoc.exists()) {
@@ -148,13 +177,27 @@ export function AuthProvider({ children }) {
           await signOut(auth);
           throw createDeactivatedAccountError();
         }
+
+        // Enforce email verification for self-registered student members
+        if (userData.role === 'member' && !userCredential.user.emailVerified) {
+          try {
+            await sendEmailVerification(userCredential.user);
+          } catch {
+            // Rate-limited or already recently sent
+          }
+          clearUserProfileState({ active: true });
+          setAuthError(UNVERIFIED_EMAIL_ERROR_MESSAGE);
+          await signOut(auth);
+          throw createUnverifiedEmailError();
+        }
+
         setIsAccountActive(true);
         setUserRole(userData.role);
         setUserName(userData.name || null);
-        setUserPermissions(userData.permissions || {});
+        setUserPermissions(userData.permissions || getDefaultPermissionsForRole(userData.role));
         setUserPermissionOverrides(userData.permissionOverrides || {});
       }
-      
+
       return userCredential;
     } catch (error) {
       throw error;
@@ -172,6 +215,14 @@ export function AuthProvider({ children }) {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
+      // Block brand-new non-@ctu.edu.ph Google accounts from self-provisioning `member`
+      if (!isInstitutionalCtuEmail(user.email) || !user.emailVerified) {
+        clearUserProfileState({ active: true });
+        setAuthError(INSTITUTIONAL_DOMAIN_ERROR_MESSAGE);
+        await signOut(auth);
+        throw createInstitutionalDomainError();
+      }
+
       const defaultPermissions = getDefaultPermissionsForRole('member');
       const userData = {
         uid: user.uid,
@@ -179,9 +230,8 @@ export function AuthProvider({ children }) {
         name: user.displayName || 'Google User',
         photoURL: user.photoURL,
         role: 'member',
-        permissions: defaultPermissions,
         provider: 'google',
-        isEmailVerified: user.emailVerified,
+        isEmailVerified: true,
         isActive: true,
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString(),
@@ -215,7 +265,7 @@ export function AuthProvider({ children }) {
     setAuthError(null);
     setUserRole(userData.role);
     setUserName(userData.name || user.displayName || 'Google User');
-    setUserPermissions(userData.permissions || {});
+    setUserPermissions(userData.permissions || getDefaultPermissionsForRole(userData.role));
     setUserPermissionOverrides(userData.permissionOverrides || {});
   };
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, addDoc, onSnapshot, Timestamp, doc, updateDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import financeService from '../../services/financeService';
+import { collection, onSnapshot, Timestamp, doc, updateDoc, getDocs } from 'firebase/firestore';
+import { createPublicOrder } from '../../services/orderApiService';
 import { 
   User, 
   CreditCard, 
@@ -23,6 +23,11 @@ import {
 } from 'lucide-react';
 import styles from './Order.module.css';
 import { useTheme } from '../../contexts/ThemeContext';
+import {
+  resolveProductUnitPrice,
+  computeOrderLineTotal,
+  getProductPriceRange,
+} from '../../utils/productPricing.js';
 
 function Order(props) {
   const { theme } = useTheme();
@@ -51,6 +56,7 @@ function Order(props) {
     productName: selectedProduct?.productName || '',
     size: '',
     color: '',
+    customVariations: {},
     quantity: 1,
     paymentMethod: 'Cash',
     onlinePaymentType: '',
@@ -60,6 +66,7 @@ function Order(props) {
   const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [generatedOrderId, setGeneratedOrderId] = useState('');
+  const [confirmedOrderReceipt, setConfirmedOrderReceipt] = useState(null);
   const [errors, setErrors] = useState({});
   const [copiedId, setCopiedId] = useState(false);
 
@@ -75,7 +82,10 @@ function Order(props) {
       setProducts(productsData);
 
       if (selectedProduct) {
-        setSelectedProductData(selectedProduct);
+        const freshSelected =
+          productsData.find((p) => p.productId === selectedProduct.productId) ||
+          selectedProduct;
+        setSelectedProductData(freshSelected);
       }
     });
 
@@ -96,7 +106,22 @@ function Order(props) {
       productName: product?.productName || '',
       size: '',
       color: '',
+      customVariations: {},
     }));
+  };
+
+  const handleCustomVariationChange = (varType, optionName) => {
+    setFormData((prev) => ({
+      ...prev,
+      customVariations: {
+        ...(prev.customVariations || {}),
+        [varType]: optionName,
+      },
+    }));
+    const errKey = `customVar_${varType}`;
+    if (errors[errKey]) {
+      setErrors((prev) => ({ ...prev, [errKey]: '' }));
+    }
   };
 
   // ========================================
@@ -141,17 +166,26 @@ function Order(props) {
     }
 
     if (!formData.productId) newErrors.productId = 'Please select a product';
-    if (selectedProductData?.sizeOptions?.length > 0 && !formData.size) {
+    const currentProduct =
+      products.find((p) => p.productId === formData.productId) || selectedProductData;
+    if (currentProduct?.sizeOptions?.length > 0 && !formData.size) {
       newErrors.size = 'Please select a garment size';
     }
-    if (selectedProductData?.colorVariations?.length > 0 && !formData.color) {
+    if (currentProduct?.colorVariations?.length > 0 && !formData.color) {
       newErrors.color = 'Please choose a color variation';
+    }
+    if (Array.isArray(currentProduct?.customVariations)) {
+      currentProduct.customVariations.forEach((variation) => {
+        if (variation?.options?.length > 0 && !formData.customVariations?.[variation.type]) {
+          newErrors[`customVar_${variation.type}`] = `Please select a ${variation.type}`;
+        }
+      });
     }
     if (!formData.quantity || formData.quantity < 1) {
       newErrors.quantity = 'Quantity must be at least 1';
     }
-    if (selectedProductData && formData.quantity > selectedProductData.stockAvailable) {
-      newErrors.quantity = `Only ${selectedProductData.stockAvailable} unit(s) available in current inventory`;
+    if (currentProduct && formData.quantity > currentProduct.stockAvailable) {
+      newErrors.quantity = `Only ${currentProduct.stockAvailable} unit(s) available in current inventory`;
     }
 
     if (formData.paymentMethod === 'Online') {
@@ -168,44 +202,20 @@ function Order(props) {
   };
 
   // ========================================
-  // GENERATE UNIQUE ORDER ID (Sequential Format: ORD-DB-0001)
+  // CALCULATE DYNAMIC VARIATION PRICE & TOTAL
   // ========================================
-  const generateOrderId = async () => {
-    try {
-      const ordersRef = collection(db, 'orders');
-      const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(1));
-      const querySnapshot = await getDocs(q);
-      
-      let nextNumber = 1;
-      
-      if (!querySnapshot.empty) {
-        const lastOrder = querySnapshot.docs[0].data();
-        const lastOrderId = lastOrder.orderId;
-        
-        if (lastOrderId && lastOrderId.startsWith('ORD-DB-')) {
-          const lastNumber = parseInt(lastOrderId.split('-')[2]);
-          if (!isNaN(lastNumber)) {
-            nextNumber = lastNumber + 1;
-          }
-        }
-      }
-      
-      const formattedNumber = String(nextNumber).padStart(4, '0');
-      return `ORD-DB-${formattedNumber}`;
-    } catch (error) {
-      console.error('Error generating order ID:', error);
-      const timestamp = Date.now();
-      return `ORD-DB-${timestamp}`;
-    }
-  };
+  const activeProduct =
+    products.find((p) => p.productId === formData.productId) || selectedProductData;
 
-  // ========================================
-  // CALCULATE TOTAL PRICE
-  // ========================================
-  const calculateTotal = () => {
-    if (!selectedProductData) return 0;
-    return selectedProductData.price * formData.quantity;
-  };
+  const activePricing = computeOrderLineTotal(activeProduct, {
+    size: formData.size,
+    color: formData.color,
+    selectedCustomVariations: formData.customVariations,
+    quantity: formData.quantity,
+  });
+
+  const calculateTotal = () =>
+    confirmedOrderReceipt?.productInfo?.totalPrice ?? activePricing.totalPrice;
 
   // ========================================
   // COPY ORDER ID TO CLIPBOARD
@@ -232,12 +242,65 @@ function Order(props) {
     setLoading(true);
 
     try {
-      const orderId = editingOrder ? editingOrder.orderId : await generateOrderId();
-      const docId = editingOrder ? editingOrder.docId : null;
+      if (editingOrder && editingOrder.docId) {
+        const docId = editingOrder.docId;
+        const newQuantity = parseInt(formData.quantity, 10);
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const productDoc = productsSnapshot.docs.find(
+          (d) => d.data().productId === formData.productId
+        );
 
-      const orderData = {
-        orderId: orderId,
-        customerInfo: {
+        if (productDoc) {
+          const currentStock = productDoc.data().stockAvailable || 0;
+          if (currentStock < newQuantity) {
+            alert(`Insufficient stock! Only ${currentStock} item(s) available.`);
+            setLoading(false);
+            return;
+          }
+        }
+
+        const orderData = {
+          orderId: editingOrder.orderId,
+          customerInfo: {
+            fullName: formData.fullName.trim(),
+            bachelorDegree: formData.bachelorDegree,
+            section: formData.section,
+            address: formData.address.trim(),
+            email: formData.email.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+            schoolID: formData.schoolID.trim(),
+          },
+          productInfo: {
+            productId: formData.productId,
+            productName: formData.productName,
+            size: formData.size || 'N/A',
+            color: formData.color || 'N/A',
+            ...(Object.keys(formData.customVariations || {}).length > 0
+              ? { customVariations: formData.customVariations }
+              : {}),
+            quantity: newQuantity,
+            pricePerUnit: activePricing.unitPrice,
+            totalPrice: activePricing.totalPrice,
+          },
+          paymentInfo: {
+            paymentMethod: formData.paymentMethod,
+            onlinePaymentType: formData.paymentMethod === 'Online' ? formData.onlinePaymentType : null,
+            referenceNumber: formData.paymentMethod === 'Online' ? formData.referenceNumber.trim() : null,
+          },
+          orderStatus: editingOrder.orderStatus,
+          dateOrdered: editingOrder.dateOrdered,
+          updatedAt: Timestamp.now(),
+        };
+
+        await updateDoc(doc(db, 'orders', docId), orderData);
+        alert('Order updated successfully!');
+
+        if (props.onSuccess) {
+          props.onSuccess();
+        }
+      } else {
+        // Authoritative server-side order creation (verifies variation pricing, stock, and status)
+        const createdOrder = await createPublicOrder({
           fullName: formData.fullName.trim(),
           bachelorDegree: formData.bachelorDegree,
           section: formData.section,
@@ -245,91 +308,18 @@ function Order(props) {
           email: formData.email.trim(),
           phoneNumber: formData.phoneNumber.trim(),
           schoolID: formData.schoolID.trim(),
-        },
-        productInfo: {
           productId: formData.productId,
-          productName: formData.productName,
-          size: formData.size || 'N/A',
-          color: formData.color || 'N/A',
-          quantity: parseInt(formData.quantity),
-          pricePerUnit: selectedProductData?.price || 0,
-          totalPrice: calculateTotal(),
-        },
-        paymentInfo: {
+          size: formData.size || '',
+          color: formData.color || '',
+          customVariations: formData.customVariations || {},
+          quantity: parseInt(formData.quantity, 10),
           paymentMethod: formData.paymentMethod,
-          onlinePaymentType: formData.paymentMethod === 'Online' ? formData.onlinePaymentType : null,
-          referenceNumber: formData.paymentMethod === 'Online' ? formData.referenceNumber.trim() : null,
-        },
-        orderStatus: editingOrder ? editingOrder.orderStatus : (formData.paymentMethod === 'Online' ? 'Online Paid' : 'Pending'),
-        dateOrdered: editingOrder ? editingOrder.dateOrdered : Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      };
+          onlinePaymentType: formData.paymentMethod === 'Online' ? formData.onlinePaymentType : '',
+          referenceNumber: formData.paymentMethod === 'Online' ? formData.referenceNumber.trim() : '',
+        });
 
-      if (editingOrder && docId) {
-        const newQuantity = parseInt(formData.quantity);
-        const productsSnapshot = await getDocs(collection(db, 'products'));
-        const productDoc = productsSnapshot.docs.find(
-          doc => doc.data().productId === formData.productId
-        );
-
-        if (productDoc) {
-          const currentStock = productDoc.data().stockAvailable || 0;
-          if (currentStock < newQuantity) {
-            alert(`❌ Insufficient stock! Only ${currentStock} item(s) available.`);
-            setLoading(false);
-            return;
-          }
-        }
-
-        await updateDoc(doc(db, 'orders', docId), orderData);
-        alert('✅ Order updated successfully!');
-        
-        if (props.onSuccess) {
-          props.onSuccess();
-        }
-      } else {
-        const productsSnapshot = await getDocs(collection(db, 'products'));
-        const productDoc = productsSnapshot.docs.find(
-          doc => doc.data().productId === formData.productId
-        );
-
-        if (!productDoc) {
-          alert('❌ Product was not found in catalog. Please reload.');
-          setLoading(false);
-          return;
-        }
-
-        const currentStock = productDoc.data().stockAvailable || 0;
-        const orderQuantity = parseInt(formData.quantity);
-
-        if (currentStock < orderQuantity) {
-          alert(`❌ Insufficient stock! Only ${currentStock} items available.`);
-          setLoading(false);
-          return;
-        }
-
-        orderData.createdAt = Timestamp.now();
-        const newOrderRef = await addDoc(collection(db, 'orders'), orderData);
-        
-        // If paid online, automatically synchronize merchandise revenue directly into IGF ledger
-        if (formData.paymentMethod === 'Online') {
-          try {
-            await financeService.syncOrderRevenueToIGF({
-              order: {
-                ...orderData,
-                docId: newOrderRef.id,
-                id: newOrderRef.id,
-                orderId,
-              },
-              user: { uid: 'student-portal', displayName: formData.fullName || 'Student Customer' },
-              notes: `Online checkout order #${orderId} (GCash/Online Ref: ${formData.referenceNumber || 'N/A'})`
-            });
-          } catch (igfErr) {
-            console.warn('Auto IGF sync notice on checkout:', igfErr);
-          }
-        }
-
-        setGeneratedOrderId(orderId);
+        setGeneratedOrderId(createdOrder.orderId);
+        setConfirmedOrderReceipt(createdOrder);
         setSubmitSuccess(true);
       }
 
@@ -357,6 +347,7 @@ function Order(props) {
     
     setSubmitSuccess(false);
     setGeneratedOrderId('');
+    setConfirmedOrderReceipt(null);
     setFormData({
       fullName: '',
       bachelorDegree: '',
@@ -369,6 +360,7 @@ function Order(props) {
       productName: '',
       size: '',
       color: '',
+      customVariations: {},
       quantity: 1,
       paymentMethod: 'Cash',
       onlinePaymentType: '',
@@ -397,6 +389,7 @@ function Order(props) {
         productName: order.productInfo?.productName || '',
         size: order.productInfo?.size || '',
         color: order.productInfo?.color || '',
+        customVariations: order.productInfo?.customVariations || {},
         quantity: order.productInfo?.quantity || 1,
         paymentMethod: order.paymentInfo?.paymentMethod || 'Cash',
         onlinePaymentType: order.paymentInfo?.onlinePaymentType || '',
@@ -475,13 +468,35 @@ function Order(props) {
               </div>
               <div className={styles.receiptRow}>
                 <span className={styles.receiptLabel}>Item Ordered</span>
-                <span className={styles.receiptValue}>{formData.productName} ({formData.quantity}x)</span>
+                <span className={styles.receiptValue}>
+                  {confirmedOrderReceipt?.productInfo?.productName || formData.productName} ({formData.quantity}x @ ₱{(confirmedOrderReceipt?.productInfo?.pricePerUnit ?? activePricing.unitPrice).toFixed(2)})
+                </span>
               </div>
+              {formData.size && (
+                <div className={styles.receiptRow}>
+                  <span className={styles.receiptLabel}>Size</span>
+                  <span className={styles.receiptValue}>{formData.size}</span>
+                </div>
+              )}
+              {Object.entries(formData.customVariations || {})
+                .filter(([, val]) => Boolean(val))
+                .map(([varType, optVal]) => (
+                  <div key={varType} className={styles.receiptRow}>
+                    <span className={styles.receiptLabel}>{varType}</span>
+                    <span className={styles.receiptValue}>{optVal}</span>
+                  </div>
+                ))}
+              {confirmedOrderReceipt?.trackingCode && (
+                <div className={styles.receiptRow}>
+                  <span className={styles.receiptLabel}>Verification Code</span>
+                  <span className={styles.receiptValue}>{confirmedOrderReceipt.trackingCode}</span>
+                </div>
+              )}
               <div className={styles.receiptRow}>
                 <span className={styles.receiptLabel}>Payment Method</span>
                 <span className={styles.receiptValue}>
                   {formData.paymentMethod === 'Online' 
-                    ? `Online (${formData.onlinePaymentType || 'Verified'})` 
+                    ? `Online (${formData.onlinePaymentType || 'E-Wallet'} — Pending Officer Verification)` 
                     : 'Cash on Arrival'}
                 </span>
               </div>
@@ -500,7 +515,14 @@ function Order(props) {
 
             <div className={styles.successButtons}>
               <button 
-                onClick={() => navigate('/track-order', { state: { orderId: generatedOrderId } })} 
+                onClick={() =>
+                  navigate('/track-order', {
+                    state: {
+                      orderId: generatedOrderId,
+                      verifier: formData.schoolID.trim() || confirmedOrderReceipt?.trackingCode || '',
+                    },
+                  })
+                } 
                 className={styles.trackOrderButton}
               >
                 Track Order Status <ExternalLink size={16} />
@@ -759,7 +781,7 @@ function Order(props) {
                       <option value="">Choose an SSG merchandise item</option>
                       {products.map((product) => (
                         <option key={product.productId} value={product.productId}>
-                          {product.productName} — ₱{product.price} ({product.stockAvailable} in stock)
+                          {product.productName} — {getProductPriceRange(product).label} ({product.stockAvailable} in stock)
                         </option>
                       ))}
                     </select>
@@ -768,27 +790,37 @@ function Order(props) {
 
                   {/* Size & Color Selections */}
                   <div className={styles.formRow}>
-                    {selectedProductData?.sizeOptions?.length > 0 && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Size Specification <span className={styles.reqStar}>*</span>
-                        </label>
-                        <select
-                          name="size"
-                          value={formData.size}
-                          onChange={handleChange}
-                          className={`${styles.select} ${errors.size ? styles.inputError : ''}`}
-                        >
-                          <option value="">Select Size (XS - 3XL)</option>
-                          {selectedProductData.sizeOptions.map((size, idx) => (
-                            <option key={idx} value={size}>{size}</option>
-                          ))}
-                        </select>
-                        {errors.size && <span className={styles.errorText}><AlertCircle size={13} /> {errors.size}</span>}
-                      </div>
-                    )}
+                    {activeProduct?.sizeOptions?.length > 0 && (() => {
+                      const productPriceRange = getProductPriceRange(activeProduct);
+                      return (
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>
+                            Size Specification <span className={styles.reqStar}>*</span>
+                          </label>
+                          <select
+                            name="size"
+                            value={formData.size}
+                            onChange={handleChange}
+                            className={`${styles.select} ${errors.size ? styles.inputError : ''}`}
+                          >
+                            <option value="">Select Size</option>
+                            {activeProduct.sizeOptions.map((size, idx) => {
+                              const sizeUnitPrice = resolveProductUnitPrice(activeProduct, { size });
+                              return (
+                                <option key={idx} value={size}>
+                                  {productPriceRange.hasRange
+                                    ? `${size} — ₱${sizeUnitPrice.toFixed(2)}`
+                                    : size}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          {errors.size && <span className={styles.errorText}><AlertCircle size={13} /> {errors.size}</span>}
+                        </div>
+                      );
+                    })()}
 
-                    {selectedProductData?.colorVariations?.length > 0 && (
+                    {activeProduct?.colorVariations?.length > 0 && (
                       <div className={styles.formGroup}>
                         <label className={styles.label}>
                           Color Option <span className={styles.reqStar}>*</span>
@@ -800,7 +832,7 @@ function Order(props) {
                           className={`${styles.select} ${errors.color ? styles.inputError : ''}`}
                         >
                           <option value="">Select Color Variation</option>
-                          {selectedProductData.colorVariations.map((color, idx) => (
+                          {activeProduct.colorVariations.map((color, idx) => (
                             <option key={idx} value={color}>{color}</option>
                           ))}
                         </select>
@@ -808,6 +840,50 @@ function Order(props) {
                       </div>
                     )}
                   </div>
+
+                  {/* Custom Variations (e.g., Uniform Type, Design, Style) */}
+                  {Array.isArray(activeProduct?.customVariations) &&
+                    activeProduct.customVariations.some((v) => v?.options?.length > 0) && (
+                      <div className={styles.formRow}>
+                        {activeProduct.customVariations
+                          .filter((v) => v?.options?.length > 0)
+                          .map((variation) => {
+                            const errKey = `customVar_${variation.type}`;
+                            return (
+                              <div key={variation.type} className={styles.formGroup}>
+                                <label className={styles.label}>
+                                  {variation.type} <span className={styles.reqStar}>*</span>
+                                </label>
+                                <select
+                                  value={formData.customVariations?.[variation.type] || ''}
+                                  onChange={(e) =>
+                                    handleCustomVariationChange(variation.type, e.target.value)
+                                  }
+                                  className={`${styles.select} ${errors[errKey] ? styles.inputError : ''}`}
+                                >
+                                  <option value="">Select {variation.type}</option>
+                                  {variation.options.map((opt, oIdx) => {
+                                    const optPrice = Number(opt.price);
+                                    const hasOptPrice = Number.isFinite(optPrice) && optPrice > 0;
+                                    return (
+                                      <option key={oIdx} value={opt.name}>
+                                        {hasOptPrice
+                                          ? `${opt.name} — ₱${optPrice.toFixed(2)}`
+                                          : opt.name}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                                {errors[errKey] && (
+                                  <span className={styles.errorText}>
+                                    <AlertCircle size={13} /> {errors[errKey]}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
 
                   {/* Quantity Input */}
                   <div className={styles.formGroup}>
@@ -995,7 +1071,10 @@ function Order(props) {
                       {selectedProductData.category || 'Official Merchandise'}
                     </p>
                     <div className={styles.summaryPriceUnit}>
-                      ₱{Number(selectedProductData.price || 0).toFixed(2)} <span>/ unit</span>
+                      ₱{activePricing.unitPrice.toFixed(2)} <span>/ unit</span>
+                      {activePricing.isVariationPriced && formData.size && (
+                        <span> ({formData.size} rate)</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1016,6 +1095,14 @@ function Order(props) {
                   <span>Color Option</span>
                   <strong>{formData.color || 'Standard'}</strong>
                 </div>
+                {Object.entries(formData.customVariations || {})
+                  .filter(([, val]) => Boolean(val))
+                  .map(([varType, optVal]) => (
+                    <div key={varType} className={styles.summaryDetailItem}>
+                      <span>{varType}</span>
+                      <strong>{optVal}</strong>
+                    </div>
+                  ))}
                 <div className={styles.summaryDetailItem}>
                   <span>Quantity</span>
                   <strong>{formData.quantity || 1} unit(s)</strong>

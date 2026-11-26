@@ -2527,4 +2527,148 @@
   transform: translateY(-1px) !important;
 }
 
+/* ─── Per-Size / Variation Pricing Controls ─── */
+.addSizePriceInput {
+  width: 130px;
+  flex-shrink: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--pm-border, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--pm-input-bg, #ffffff);
+  color: var(--pm-text-primary, #0f172a);
+}
+
+.sizePriceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.sizePriceRow {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 140px auto auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--pm-border, #e2e8f0);
+  background: var(--pm-card-bg, #ffffff);
+}
+
+.sizePriceLabel {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--pm-text-primary, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sizePriceInputWrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--pm-border, #cbd5e1);
+  border-radius: 7px;
+  background: var(--pm-input-bg, #f8fafc);
+  padding: 0 0.5rem;
+}
+
+.sizePricePrefix {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pm-text-secondary, #64748b);
+  margin-right: 0.25rem;
+}
+
+.sizePriceInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0.36rem 0;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--pm-text-primary, #0f172a);
+  outline: none;
+}
+
+.sizePriceBadge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.16rem 0.48rem;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.sizePriceBadgeCustom {
+  background: rgba(22, 163, 74, 0.14);
+  color: #15803d;
+}
+
+.pmClassic .addSizePriceInput,
+:global(.theme-dark) .addSizePriceInput {
+  background: rgba(15, 3, 5, 0.92);
+  border-color: rgba(212, 175, 55, 0.35);
+  color: #fff6e5;
+}
+
+.pmClassic .sizePriceRow,
+:global(.theme-dark) .sizePriceRow {
+  background: rgba(28, 5, 9, 0.88);
+  border-color: rgba(212, 175, 55, 0.26);
+}
+
+.pmClassic .sizePriceLabel,
+:global(.theme-dark) .sizePriceLabel {
+  color: #fff6e5;
+}
+
+.pmClassic .sizePriceInputWrap,
+:global(.theme-dark) .sizePriceInputWrap {
+  background: rgba(15, 3, 5, 0.92);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.pmClassic .sizePricePrefix,
+:global(.theme-dark) .sizePricePrefix {
+  color: #d4af37;
+}
+
+.pmClassic .sizePriceInput,
+:global(.theme-dark) .sizePriceInput {
+  color: #fff6e5;
+}
+
+.pmClassic .sizePriceBadge,
+:global(.theme-dark) .sizePriceBadge {
+  background: rgba(212, 175, 55, 0.12);
+  color: #c9a9ad;
+}
+
+.pmClassic .sizePriceBadgeCustom,
+:global(.theme-dark) .sizePriceBadgeCustom {
+  background: rgba(74, 222, 128, 0.18);
+  color: #4ade80;
+}
+
+@media (max-width: 540px) {
+  .sizePriceRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .sizePriceInputWrap {
+    grid-column: 1 / -1;
+  }
+
+  .addSizePriceInput {
+    width: 100%;
+  }
+}
+
+
 

@@ -37,7 +37,7 @@ function Admin() {
                     onClick={() => setActiveTab('products')}
                 >
                     <span className={styles.tabIcon}><HiCube /></span>
-                    <span className={styles.tabLabel}>Product Management</span>
+                    <span className={styles.tabLabel}>Merchandise Management</span>
                 </button>
                 <button
                     className={`${styles.tabButton} ${activeTab === 'orders' ? styles.tabActive : ''}`}

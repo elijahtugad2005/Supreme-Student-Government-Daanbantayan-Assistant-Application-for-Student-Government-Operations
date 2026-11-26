@@ -18,6 +18,10 @@ import {
 } from 'react-icons/hi';
 import styles from './Login.module.css';
 import GoogleSignInButton from './GoogleSignInButton.jsx';
+import {
+  INSTITUTIONAL_EMAIL_DOMAIN,
+  validateStudentRegistrationEmail,
+} from '../../utils/authDomainPolicy.js';
 
 /**
  * Traditional Ethnic Gold Corner Bracket SVG
@@ -63,6 +67,7 @@ function Login({ initialMode = 'login' }) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -87,6 +92,7 @@ function Login({ initialMode = 'login' }) {
 
   const switchMode = (targetMode) => {
     setError('');
+    setNotice('');
     clearAuthError?.();
     setMode(targetMode);
   };
@@ -99,6 +105,7 @@ function Login({ initialMode = 'login' }) {
 
     try {
       setError('');
+      setNotice('');
       clearAuthError?.();
 
       if (mode === 'register') {
@@ -110,8 +117,9 @@ function Login({ initialMode = 'login' }) {
           setError('Student ID is required.');
           return;
         }
-        if (!email.trim()) {
-          setError('Email address is required.');
+        const emailCheck = validateStudentRegistrationEmail(email);
+        if (!emailCheck.valid) {
+          setError(emailCheck.error);
           return;
         }
         if (!password || password.length < 6) {
@@ -128,12 +136,22 @@ function Login({ initialMode = 'login' }) {
         }
 
         setLoading(true);
-        // Registered users automatically get the 'member' role
-        await signup(email.trim(), password, fullName.trim(), 'member', {
+        // Registered institutional accounts get 'member' and must verify their @ctu.edu.ph email
+        const res = await signup(email.trim(), password, fullName.trim(), 'member', {
           studentId: studentId.trim(),
           agreedToTerms: true,
           agreedToTermsAt: new Date().toISOString(),
         });
+
+        if (res?.verificationRequired) {
+          setNotice(
+            `Verification link sent to ${res.email || email.trim()}. Please verify your @${INSTITUTIONAL_EMAIL_DOMAIN} inbox, then sign in below.`
+          );
+          setPassword('');
+          setConfirmPassword('');
+          setMode('login');
+          return;
+        }
 
         navigate(from, { replace: true });
         return;
@@ -158,6 +176,11 @@ function Login({ initialMode = 'login' }) {
         setError('Password is too weak. Please use at least 6 characters.');
       } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
+      } else if (
+        error.code === 'auth/invalid-institutional-domain' ||
+        error.code === 'auth/email-not-verified'
+      ) {
+        setError(error.message);
       } else if (error.code === 'auth/user-disabled' || error.code === 'auth/account-deactivated') {
         setError('Your account has been deactivated. Please contact an SSG administrator.');
       } else if (error.code === 'auth/too-many-requests') {
@@ -236,6 +259,24 @@ function Login({ initialMode = 'login' }) {
             </button>
           </div>
 
+          {notice && (
+            <div
+              role="status"
+              style={{
+                padding: '0.8rem 0.95rem',
+                marginBottom: '1rem',
+                borderRadius: '10px',
+                border: '1px solid rgba(74, 222, 128, 0.45)',
+                background: 'rgba(22, 163, 74, 0.14)',
+                color: '#bbf7d0',
+                fontSize: '0.84rem',
+                lineHeight: 1.45,
+              }}
+            >
+              {notice}
+            </div>
+          )}
+
           {(error || authError) && (
             <div className={styles.errorBox} role="alert">
               <span className={styles.errorIcon}>⚠️</span>
@@ -306,6 +347,11 @@ function Login({ initialMode = 'login' }) {
                   autoComplete="email"
                 />
               </div>
+              {isRegister && (
+                <small style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.74rem', color: '#dfc3c7' }}>
+                  Must be an official @{INSTITUTIONAL_EMAIL_DOMAIN} email. A verification link will be sent before login.
+                </small>
+              )}
             </div>
 
             <div className={styles.formGroup}>

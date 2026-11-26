@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../../firebase/firebaseConfig';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Package, Clock, CheckCircle, XCircle, Truck, CreditCard, MapPin, Mail, Phone, User, Calendar, AlertCircle } from 'lucide-react';
+import { Search, Package, Clock, CheckCircle, XCircle, Truck, CreditCard, User, AlertCircle, ShieldCheck } from 'lucide-react';
+import { trackPublicOrder } from '../../services/orderApiService';
 import styles from './TrackOrder.module.css';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -15,30 +14,22 @@ function TrackOrder() {
   // ========================================
   // STATE MANAGEMENT
   // ========================================
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('orderId'); // 'orderId' or 'email'
+  const [orderIdInput, setOrderIdInput] = useState('');
+  const [verifierInput, setVerifierInput] = useState('');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
 
   // ========================================
-  // AUTO-SEARCH IF ORDER ID PROVIDED IN STATE
+  // SEARCH ORDER VIA MASKED SERVER ENDPOINT
   // ========================================
-  useEffect(() => {
-    if (location.state?.orderId) {
-      setSearchQuery(location.state.orderId);
-      setSearchType('orderId');
-      handleSearch(location.state.orderId, 'orderId');
-    }
-  }, [location.state]);
+  const handleSearch = useCallback(async (orderIdVal = orderIdInput, verifierVal = verifierInput) => {
+    const cleanOrderId = String(orderIdVal || '').trim();
+    const cleanVerifier = String(verifierVal || '').trim();
 
-  // ========================================
-  // SEARCH ORDER
-  // ========================================
-  const handleSearch = async (queryValue = searchQuery, type = searchType) => {
-    if (!queryValue.trim()) {
-      setError('Please enter an Order ID or Email');
+    if (!cleanOrderId || !cleanVerifier) {
+      setError('Please enter both your Order ID and Student ID (or Email / Verification Code).');
       return;
     }
 
@@ -48,46 +39,40 @@ function TrackOrder() {
     setSearched(true);
 
     try {
-      const ordersRef = collection(db, 'orders');
-      let q;
+      const found = await trackPublicOrder({
+        orderId: cleanOrderId,
+        verifier: cleanVerifier,
+      });
 
-      if (type === 'orderId') {
-        q = query(ordersRef, where('orderId', '==', queryValue.trim()));
-      } else {
-        q = query(ordersRef, where('customerInfo.email', '==', queryValue.trim().toLowerCase()));
-      }
-
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        setError(type === 'orderId' 
-          ? 'Order not found. Please check your Order ID and try again.'
-          : 'No orders found for this email address.');
+      if (!found) {
+        setError('No matching order found. Please check your Order ID and Student ID / Email.');
         setLoading(false);
         return;
       }
 
-      // Get the first matching order (or most recent if multiple)
-      const orders = querySnapshot.docs.map(doc => ({
-        docId: doc.id,
-        ...doc.data()
-      }));
-
-      // Sort by date (newest first) if multiple orders
-      orders.sort((a, b) => {
-        const dateA = a.dateOrdered?.toDate?.() || new Date(a.createdAt);
-        const dateB = b.dateOrdered?.toDate?.() || new Date(b.createdAt);
-        return dateB - dateA;
-      });
-
-      setOrder(orders[0]);
+      setOrder(found);
       setLoading(false);
     } catch (err) {
       console.error('Error searching order:', err);
-      setError('An error occurred while searching. Please try again.');
+      setError(err.message || 'An error occurred while searching. Please try again.');
       setLoading(false);
     }
-  };
+  }, [orderIdInput, verifierInput]);
+
+  // ========================================
+  // AUTO-SEARCH IF ORDER ID & VERIFIER PROVIDED IN NAVIGATION STATE
+  // ========================================
+  useEffect(() => {
+    if (location.state?.orderId) {
+      const incomingId = location.state.orderId;
+      const incomingVerifier = location.state.verifier || '';
+      setOrderIdInput(incomingId);
+      if (incomingVerifier) {
+        setVerifierInput(incomingVerifier);
+        handleSearch(incomingId, incomingVerifier);
+      }
+    }
+  }, [location.state, handleSearch]);
 
   // ========================================
   // FORMAT DATE
@@ -173,11 +158,13 @@ function TrackOrder() {
   const getProgressPercentage = (status) => {
     switch (status) {
       case 'Pending': return 25;
-      case 'Paid': return 50;
+      case 'Paid':
+      case 'Online Paid': return 50;
       case 'Ongoing': return 75;
-      case 'Completed': return 100;
+      case 'Completed':
+      case 'Claimed': return 100;
       case 'Cancelled': return 0;
-      default: return 0;
+      default: return 25;
     }
   };
 
@@ -193,37 +180,36 @@ function TrackOrder() {
           </div>
           <h2 className={styles.searchTitle}>Track Your Order</h2>
           <p className={styles.searchSubtitle}>
-            Enter your Order ID or Email address to check your order status
+            Enter your Order ID together with your Student ID, Email, or Verification Code to protect student privacy
           </p>
         </div>
 
         <div className={styles.searchForm}>
-          {/* Search Type Toggle */}
-          <div className={styles.searchTypeToggle}>
-            <button
-              className={`${styles.toggleBtn} ${searchType === 'orderId' ? styles.toggleBtnActive : ''}`}
-              onClick={() => setSearchType('orderId')}
-            >
-              Order ID
-            </button>
-            <button
-              className={`${styles.toggleBtn} ${searchType === 'email' ? styles.toggleBtnActive : ''}`}
-              onClick={() => setSearchType('email')}
-            >
-              Email Address
-            </button>
-          </div>
-
-          {/* Search Input */}
+          {/* Order ID Input */}
           <div className={styles.searchInputWrapper}>
             <Search className={styles.searchInputIcon} size={18} />
             <input
-              type={searchType === 'email' ? 'email' : 'text'}
+              type="text"
               className={styles.searchInput}
-              placeholder={searchType === 'orderId' ? 'Enter Order ID (e.g., ORD-1234567890-123)' : 'Enter your email address'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Order ID (e.g., ORD-DB-0001)"
+              value={orderIdInput}
+              onChange={(e) => setOrderIdInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              aria-label="Order ID"
+            />
+          </div>
+
+          {/* Verifier Input */}
+          <div className={styles.searchInputWrapper}>
+            <ShieldCheck className={styles.searchInputIcon} size={18} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Student ID, Email, or Verification Code"
+              value={verifierInput}
+              onChange={(e) => setVerifierInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              aria-label="Student ID, Email, or Verification Code"
             />
           </div>
 
@@ -359,18 +345,29 @@ function TrackOrder() {
                   <span className={styles.infoValue}>{order.productInfo?.color}</span>
                 </div>
               )}
+              {order.productInfo?.customVariations &&
+                Object.entries(order.productInfo.customVariations).map(([varType, optVal]) => (
+                  <div key={varType} className={styles.infoRow}>
+                    <span className={styles.infoLabel}>{varType}</span>
+                    <span className={styles.infoValue}>{optVal}</span>
+                  </div>
+                ))}
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Quantity</span>
                 <span className={styles.infoValue}>{order.productInfo?.quantity}</span>
               </div>
               <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Unit Price</span>
+                <span className={styles.infoValue}>₱{Number(order.productInfo?.pricePerUnit || 0).toFixed(2)}</span>
+              </div>
+              <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Total Price</span>
-                <span className={styles.infoValueHighlight}>₱{order.productInfo?.totalPrice?.toFixed(2)}</span>
+                <span className={styles.infoValueHighlight}>₱{Number(order.productInfo?.totalPrice || 0).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          {/* Customer Information Card */}
+          {/* Customer Information Card (Privacy-Masked) */}
           <div className={styles.infoCard}>
             <div className={styles.infoCardHeader}>
               <User size={20} />
@@ -382,14 +379,6 @@ function TrackOrder() {
                 <span className={styles.infoValue}>{order.customerInfo?.fullName}</span>
               </div>
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Email</span>
-                <span className={styles.infoValue}>{order.customerInfo?.email}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Phone</span>
-                <span className={styles.infoValue}>{order.customerInfo?.phoneNumber}</span>
-              </div>
-              <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>School ID</span>
                 <span className={styles.infoValue}>{order.customerInfo?.schoolID}</span>
               </div>
@@ -397,6 +386,12 @@ function TrackOrder() {
                 <span className={styles.infoLabel}>Program</span>
                 <span className={styles.infoValue}>{order.customerInfo?.bachelorDegree}</span>
               </div>
+              {order.customerInfo?.section && (
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Year Level</span>
+                  <span className={styles.infoValue}>{order.customerInfo?.section}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -433,7 +428,16 @@ function TrackOrder() {
 
         {/* Action Buttons */}
         <div className={styles.actionButtons}>
-          <button className={styles.searchAgainButton} onClick={() => { setOrder(null); setSearchQuery(''); setSearched(false); setError(''); }}>
+          <button
+            className={styles.searchAgainButton}
+            onClick={() => {
+              setOrder(null);
+              setOrderIdInput('');
+              setVerifierInput('');
+              setSearched(false);
+              setError('');
+            }}
+          >
             <Search size={18} />
             Track Another Order
           </button>
@@ -458,7 +462,7 @@ function TrackOrder() {
         </div>
         <h3 className={styles.noResultsTitle}>No Order Found</h3>
         <p className={styles.noResultsText}>
-          We couldn't find an order matching your search. Please check your {searchType === 'orderId' ? 'Order ID' : 'email address'} and try again.
+          We couldn&apos;t find an order matching your Order ID and verification details. Please double-check and try again.
         </p>
       </div>
     );

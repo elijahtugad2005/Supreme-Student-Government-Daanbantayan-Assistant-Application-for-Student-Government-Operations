@@ -295,7 +295,7 @@ function OrderManagement() {
             supplier: prodData.supplier || 'SSG Operations',
             imageBase64: prodData.imageBase64 || '',
             fundSource: 'IGF',
-            source: 'Product Management (IGF)',
+            source: 'Merchandise Management (IGF)',
             linkedProductId: prodData.productId || null,
             lastUpdatedBy: performer,
             createdAt: serverTimestamp(),
@@ -808,7 +808,7 @@ function OrderManagement() {
       // Delete the order
       await deleteDoc(doc(db, 'orders', docId));
 
-      showToast(`Order #${orderId} deleted. Stock restored to Inventory and Product Management.`, 'success');
+      showToast(`Order #${orderId} deleted. Stock restored to Inventory and Merchandise Management.`, 'success');
     } catch (error) {
       console.error('Error deleting order:', error);
       showToast('Error deleting order. Please try again.', 'error');

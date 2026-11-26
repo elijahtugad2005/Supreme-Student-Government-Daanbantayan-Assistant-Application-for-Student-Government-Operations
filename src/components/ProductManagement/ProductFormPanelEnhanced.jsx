@@ -51,6 +51,7 @@ function ProductFormPanelEnhanced({
 }) {
   // Temporary input states
   const [tempSize, setTempSize] = useState('');
+  const [tempSizePrice, setTempSizePrice] = useState('');
   const [tempColor, setTempColor] = useState('');
   
   // Custom variation states
@@ -96,23 +97,64 @@ function ProductFormPanelEnhanced({
   };
 
   // ========================================
-  // SIZE OPTIONS HANDLERS
+  // SIZE OPTIONS & VARIATION PRICE HANDLERS
   // ========================================
   const handleAddSize = () => {
-    if (tempSize.trim()) {
-      setProductData((prev) => ({ 
-        ...prev, 
-        sizeOptions: [...prev.sizeOptions, tempSize.trim()] 
-      }));
-      setTempSize('');
-    }
+    const trimmed = tempSize.trim();
+    if (!trimmed) return;
+
+    const parsedPrice = parseFloat(tempSizePrice);
+    setProductData((prev) => {
+      const existing = prev.sizeOptions || [];
+      const alreadyExists = existing.some(
+        (s) => String(s).trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      const nextSizeOptions = alreadyExists ? existing : [...existing, trimmed];
+      const targetKey = alreadyExists
+        ? existing.find((s) => String(s).trim().toLowerCase() === trimmed.toLowerCase())
+        : trimmed;
+      const nextSizePrices = { ...(prev.sizePrices || {}) };
+      if (!Number.isNaN(parsedPrice) && parsedPrice > 0) {
+        nextSizePrices[targetKey] = Math.round(parsedPrice * 100) / 100;
+      }
+      return {
+        ...prev,
+        sizeOptions: nextSizeOptions,
+        sizePrices: nextSizePrices,
+      };
+    });
+    setTempSize('');
+    setTempSizePrice('');
+  };
+
+  const handleSizePriceChange = (size, rawValue) => {
+    setProductData((prev) => {
+      const nextSizePrices = { ...(prev.sizePrices || {}) };
+      if (rawValue === '' || rawValue === null || rawValue === undefined) {
+        delete nextSizePrices[size];
+      } else {
+        nextSizePrices[size] = rawValue;
+      }
+      return {
+        ...prev,
+        sizePrices: nextSizePrices,
+      };
+    });
   };
 
   const handleRemoveSize = (index) => {
-    setProductData((prev) => ({ 
-      ...prev, 
-      sizeOptions: prev.sizeOptions.filter((_, i) => i !== index) 
-    }));
+    setProductData((prev) => {
+      const removedSize = prev.sizeOptions[index];
+      const nextSizePrices = { ...(prev.sizePrices || {}) };
+      if (removedSize !== undefined) {
+        delete nextSizePrices[removedSize];
+      }
+      return {
+        ...prev,
+        sizeOptions: prev.sizeOptions.filter((_, i) => i !== index),
+        sizePrices: nextSizePrices,
+      };
+    });
   };
 
   // ========================================
@@ -178,12 +220,16 @@ function ProductFormPanelEnhanced({
     const newOption = {
       name: newVariationOption.trim(),
       image: '',
-      stock: 0
+      stock: 0,
+      price: ''
     };
 
     setProductData((prev) => {
-      const updated = [...prev.customVariations];
-      updated[variationIndex].options.push(newOption);
+      const updated = prev.customVariations.map((variation, idx) =>
+        idx === variationIndex
+          ? { ...variation, options: [...(variation.options || []), newOption] }
+          : variation
+      );
       return { ...prev, customVariations: updated };
     });
 
@@ -192,8 +238,14 @@ function ProductFormPanelEnhanced({
 
   const handleRemoveVariationOption = (variationIndex, optionIndex) => {
     setProductData((prev) => {
-      const updated = [...prev.customVariations];
-      updated[variationIndex].options = updated[variationIndex].options.filter((_, i) => i !== optionIndex);
+      const updated = prev.customVariations.map((variation, idx) =>
+        idx === variationIndex
+          ? {
+              ...variation,
+              options: variation.options.filter((_, i) => i !== optionIndex),
+            }
+          : variation
+      );
       return { ...prev, customVariations: updated };
     });
   };
@@ -211,8 +263,16 @@ function ProductFormPanelEnhanced({
       const compressedBase64 = await CompressImage(file, 800, 0.8);
       
       setProductData((prev) => {
-        const updated = [...prev.customVariations];
-        updated[variationIndex].options[optionIndex].image = compressedBase64;
+        const updated = prev.customVariations.map((variation, vIdx) =>
+          vIdx === variationIndex
+            ? {
+                ...variation,
+                options: variation.options.map((opt, oIdx) =>
+                  oIdx === optionIndex ? { ...opt, image: compressedBase64 } : opt
+                ),
+              }
+            : variation
+        );
         return { ...prev, customVariations: updated };
       });
     } catch (error) {
@@ -223,8 +283,32 @@ function ProductFormPanelEnhanced({
 
   const handleVariationOptionStockChange = (variationIndex, optionIndex, stock) => {
     setProductData((prev) => {
-      const updated = [...prev.customVariations];
-      updated[variationIndex].options[optionIndex].stock = parseInt(stock) || 0;
+      const updated = prev.customVariations.map((variation, vIdx) =>
+        vIdx === variationIndex
+          ? {
+              ...variation,
+              options: variation.options.map((opt, oIdx) =>
+                oIdx === optionIndex ? { ...opt, stock: parseInt(stock, 10) || 0 } : opt
+              ),
+            }
+          : variation
+      );
+      return { ...prev, customVariations: updated };
+    });
+  };
+
+  const handleVariationOptionPriceChange = (variationIndex, optionIndex, rawPrice) => {
+    setProductData((prev) => {
+      const updated = prev.customVariations.map((variation, vIdx) =>
+        vIdx === variationIndex
+          ? {
+              ...variation,
+              options: variation.options.map((opt, oIdx) =>
+                oIdx === optionIndex ? { ...opt, price: rawPrice } : opt
+              ),
+            }
+          : variation
+      );
       return { ...prev, customVariations: updated };
     });
   };
@@ -412,36 +496,78 @@ function ProductFormPanelEnhanced({
               <div className={styles.variationsSection}>
                 <h4 className={styles.variationsTitle}>Product Variations</h4>
 
-                {/* Size Options */}
+                {/* Size Options & Per-Size Pricing */}
                 <div className={styles.variationGroup}>
-                  <label className={styles.label}>Size Options (Optional)</label>
+                  <label className={styles.label}>Size Options &amp; Size-Based Pricing (Optional)</label>
+                  <p className={styles.helperText}>
+                    Leave a size&apos;s price blank to use the base price (₱{Number(productData.price || 0).toFixed(2)}), or enter a custom price (e.g., Regular: ₱150, Extra Large: ₱200).
+                  </p>
                   <div className={styles.addVariationContainer}>
                     <input 
                       type="text" 
                       value={tempSize} 
                       onChange={(e) => setTempSize(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSize())}
-                      placeholder="e.g., Small, Medium, Large" 
+                      placeholder="Size (e.g., Regular, XL, 2XL)" 
                       className={styles.variationInput} 
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={tempSizePrice}
+                      onChange={(e) => setTempSizePrice(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSize())}
+                      placeholder={`₱${Number(productData.price || 0).toFixed(0)} (Base)`}
+                      aria-label="Optional price for new size"
+                      className={styles.addSizePriceInput}
                     />
                     <button type="button" onClick={handleAddSize} className={styles.addButton}>
                       + Add
                     </button>
                   </div>
                   {productData.sizeOptions.length > 0 && (
-                    <div className={styles.tagsList}>
-                      {productData.sizeOptions.map((size, index) => (
-                        <div key={index} className={styles.tag}>
-                          <span>{size}</span>
-                          <button 
-                            type="button" 
-                            onClick={() => handleRemoveSize(index)} 
-                            className={styles.removeTagButton}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
+                    <div className={styles.sizePriceList}>
+                      {productData.sizeOptions.map((size, index) => {
+                        const rawSizePrice = productData.sizePrices?.[size] ?? '';
+                        const hasCustomPrice =
+                          rawSizePrice !== '' &&
+                          Number(rawSizePrice) > 0 &&
+                          Number(rawSizePrice) !== Number(productData.price || 0);
+                        return (
+                          <div key={`${size}-${index}`} className={styles.sizePriceRow}>
+                            <span className={styles.sizePriceLabel}>{size}</span>
+                            <div className={styles.sizePriceInputWrap}>
+                              <span className={styles.sizePricePrefix}>₱</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={rawSizePrice}
+                                onChange={(e) => handleSizePriceChange(size, e.target.value)}
+                                placeholder={`${Number(productData.price || 0).toFixed(2)} (Base)`}
+                                aria-label={`Price for size ${size}`}
+                                className={styles.sizePriceInput}
+                              />
+                            </div>
+                            <span
+                              className={`${styles.sizePriceBadge} ${
+                                hasCustomPrice ? styles.sizePriceBadgeCustom : ''
+                              }`}
+                            >
+                              {hasCustomPrice ? 'Custom' : 'Base'}
+                            </span>
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveSize(index)} 
+                              className={styles.removeTagButton}
+                              aria-label={`Remove size ${size}`}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -603,7 +729,7 @@ function ProductFormPanelEnhanced({
                                   )}
                                 </div>
 
-                                {/* Stock Input */}
+                                {/* Stock & Optional Price Inputs */}
                                 <div className={styles.variationOptionStockSection}>
                                   <label className={styles.variationOptionStockLabel}>Stock:</label>
                                   <input 
@@ -611,6 +737,19 @@ function ProductFormPanelEnhanced({
                                     value={option.stock}
                                     onChange={(e) => handleVariationOptionStockChange(varIndex, optIndex, e.target.value)}
                                     min="0"
+                                    className={styles.variationOptionStockInput}
+                                  />
+                                </div>
+                                <div className={styles.variationOptionStockSection}>
+                                  <label className={styles.variationOptionStockLabel}>Price (₱):</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={option.price ?? ''}
+                                    onChange={(e) => handleVariationOptionPriceChange(varIndex, optIndex, e.target.value)}
+                                    placeholder={`${Number(productData.price || 0).toFixed(2)} (Base)`}
+                                    aria-label={`Price for ${variation.type} ${option.name}`}
                                     className={styles.variationOptionStockInput}
                                   />
                                 </div>

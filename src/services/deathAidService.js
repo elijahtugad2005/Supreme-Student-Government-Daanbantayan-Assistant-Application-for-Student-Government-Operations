@@ -478,6 +478,7 @@ export const recordSectionCollection = async ({
   const { hasExactAmountOverride: _omitOverride, ...storedTotals } = totals;
 
   // Anti-Spam Failsafe: one active filing per section PER beneficiary case
+  // Non-officer submitters scope duplicate lookup to their own recordedByUid to match Firestore rules.
   const pendingClauses = isPlaceholder
     ? [
       where('sectionKey', '==', sectionInfo.sectionKey),
@@ -487,6 +488,9 @@ export const recordSectionCollection = async ({
       where('rosterId', '==', sectionInfo.rosterId),
       where('status', '==', DEATH_AID_COLLECTION_STATUS.FOR_VERIFICATION),
     ];
+  if (!isOfficer && recorder?.uid) {
+    pendingClauses.push(where('recordedByUid', '==', recorder.uid));
+  }
   if (beneficiary) pendingClauses.push(where('beneficiaryCaseId', '==', beneficiary.beneficiaryId));
   const existingPendingSnap = await getDocs(
     query(collection(db, COLLECTION_COLLECTION), ...pendingClauses, limit(5))

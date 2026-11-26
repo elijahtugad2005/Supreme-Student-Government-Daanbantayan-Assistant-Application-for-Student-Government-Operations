@@ -28,6 +28,10 @@ import {
   HiEyeOff
 } from 'react-icons/hi';
 import { fromCentavos, toCentavos, getPPMPStatus } from '../../utils/financeConstants.js';
+import {
+  isEventCategoryRequiringDate,
+  validatePpmpEventDates,
+} from '../../utils/eventExpenseCalendarHelpers.js';
 
 const QUICK_PRESETS = [
   { label: '₱5,000', value: 5000 },
@@ -284,8 +288,13 @@ const BudgetForm = ({
       newErrors.committee = 'Choose at least one committee responsible';
     }
 
-    if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
-      newErrors.dates = 'End date cannot be before start date';
+    const dateValidationError = validatePpmpEventDates({
+      category: formData.category,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+    });
+    if (dateValidationError) {
+      newErrors.dates = dateValidationError;
     }
 
     // Planned breakdown cannot exceed allocated capital
@@ -320,9 +329,13 @@ const BudgetForm = ({
       [name]: value
     }));
     
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+    // Clear error for this field (and clear required date error if switching away from Event)
+    if (errors[name] || (name === 'category' && errors.dates && !isEventCategoryRequiringDate(value))) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: '',
+        ...(name === 'category' && !isEventCategoryRequiringDate(value) ? { dates: '' } : {}),
+      }));
     }
   };
 
@@ -852,15 +865,19 @@ const BudgetForm = ({
           error={errors.breakdown}
         />
 
-        {/* Project dates */}
+        {/* Event / Project dates (Required when category is Event) */}
         <div className={styles.formGroup}>
           <span className={styles.label}>
             <HiCalendar className={styles.labelIcon} />
-            Project Dates (Optional)
+            {isEventCategoryRequiringDate(formData.category)
+              ? 'Event Date on Calendar *'
+              : 'Project Dates (Optional)'}
           </span>
           <MiniRangeCalendar
             startDate={formData.startDate}
             endDate={formData.endDate}
+            required={isEventCategoryRequiringDate(formData.category)}
+            hasError={Boolean(errors.dates)}
             onChange={({ startDate, endDate }) => {
               setFormData(prev => ({ ...prev, startDate, endDate }));
               if (errors.dates) setErrors(prev => ({ ...prev, dates: '' }));

@@ -199,8 +199,25 @@ await check('New user CANNOT self-register with permissionOverrides on create', 
     })
   )
 );
-await check('New user CAN self-register with role: member on create', () =>
-  assertSucceeds(asUser('newbie1').collection('users').doc('newbie1').set({ role: 'member', name: 'Good Newbie' }))
+await check('Outsider (@gmail.com) CANNOT self-register with role: member on create', () =>
+  assertFails(
+    testEnv
+      .authenticatedContext('outsider1', { email: 'outsider@gmail.com', email_verified: true })
+      .firestore()
+      .collection('users')
+      .doc('outsider1')
+      .set({ role: 'member', name: 'Outsider' })
+  )
+);
+await check('CTU student (@ctu.edu.ph) CAN self-register with role: member on create', () =>
+  assertSucceeds(
+    testEnv
+      .authenticatedContext('newbie1', { email: 'newbie1@ctu.edu.ph', email_verified: false })
+      .firestore()
+      .collection('users')
+      .doc('newbie1')
+      .set({ role: 'member', name: 'Good Newbie' })
+  )
 );
 await check('Member CANNOT promote themselves', () =>
   assertFails(asUser('member1').collection('users').doc('member1').update({ role: 'admin' }))
@@ -243,10 +260,14 @@ await check('Member CANNOT modify product catalog prices', () =>
 await check('Secretary CAN modify product catalog', () =>
   assertSucceeds(asUser('secretary1').collection('products').doc('prod-1').set({ productName: 'Uniform', price: 450 }))
 );
-await check('Member CAN place a Pending order', () =>
-  assertSucceeds(asUser('member1').collection('orders').doc('ord-1').set({ orderId: 'ORD-DB-0001', orderStatus: 'Pending' }))
+await check('Member CANNOT read or directly create orders in Firestore (must use backend POST /api/orders)', async () => {
+  await assertFails(asUser('member1').collection('orders').doc('ord-1').set({ orderId: 'ORD-DB-0001', orderStatus: 'Pending' }));
+  await assertFails(asUser('member1').collection('orders').doc('ord-1').get());
+});
+await check('Secretary CAN create an order directly in Firestore', () =>
+  assertSucceeds(asUser('secretary1').collection('orders').doc('ord-1').set({ orderId: 'ORD-DB-0001', orderStatus: 'Pending' }))
 );
-await check('Member CANNOT mark their own order as Completed', () =>
+await check('Member CANNOT mark an order as Completed', () =>
   assertFails(asUser('member1').collection('orders').doc('ord-1').update({ orderStatus: 'Completed' }))
 );
 await check('Anonymous CAN initialize deathAidCounters at 1 and increment by +1 only', async () => {

@@ -289,7 +289,7 @@ function App() {
                   customAccessDenied={
                     <DashboardLayout>
                       <AccessDenied
-                        message="You need product management permissions to access inventory."
+                        message="You need merchandise management permissions to access inventory."
                         requiredPermissions={['canManageProducts']}
                         showUserInfo={true}
                       />

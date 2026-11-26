@@ -425,7 +425,13 @@ const prettyDate = (s) => {
   return `${MONTHS[m - 1].slice(0, 3)} ${d}, ${y}`;
 };
 
-export const MiniRangeCalendar = ({ startDate, endDate, onChange }) => {
+export const MiniRangeCalendar = ({
+  startDate,
+  endDate,
+  onChange,
+  required = false,
+  hasError = false,
+}) => {
   const anchor = startDate ? new Date(`${startDate}T00:00:00`) : new Date();
   const [view, setView] = useState({ y: anchor.getFullYear(), m: anchor.getMonth() });
 
@@ -464,7 +470,7 @@ export const MiniRangeCalendar = ({ startDate, endDate, onChange }) => {
       : 0;
 
   return (
-    <div className={styles.cal}>
+    <div className={`${styles.cal} ${hasError ? styles.calError : ''}`}>
       <div className={styles.calNav}>
         <button type="button" className={styles.iconBtn} onClick={() => shift(-1)} aria-label="Previous month">
           <HiChevronLeft />
@@ -532,7 +538,11 @@ export const MiniRangeCalendar = ({ startDate, endDate, onChange }) => {
           </button>
         )}
       </div>
-      <p className={styles.helper}>Click a start date, then an end date. Both are optional.</p>
+      <p className={styles.helper}>
+        {required
+          ? 'Required for Event PPMPs: click the event date on the calendar (optionally click a second date for multi-day events).'
+          : 'Click a start date, then an end date. Both are optional.'}
+      </p>
     </div>
   );
 };

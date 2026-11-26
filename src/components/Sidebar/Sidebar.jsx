@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import { useTheme } from '../../contexts/ThemeContext';
 import usePermissions from '../../hooks/usePermissions.js';
+import SettingsModal from '../Settings/SettingsModal.jsx';
 import styles from './Sidebar.module.css';
 // Professional icon imports from react-icons
 import {
@@ -16,40 +17,12 @@ import {
   HiFolder,
   HiLogout,
   HiLogin,
-  HiSearch,
   HiShoppingBag,
   HiCog,
-  HiMoon,
-  HiSun,
-  HiX,
   HiLocationMarker,
   HiLockClosed,
   HiCash
 } from 'react-icons/hi';
-
-const THEMES = [
-  {
-    id: 'dark',
-    name: 'Classic Mode',
-    description: 'Original maroon editorial theme',
-    icon: HiMoon,
-    preview: 'linear-gradient(135deg, #2D0A0A 0%, #D94F1F 100%)'
-  },
-  {
-    id: 'light',
-    name: 'Light Mode',
-    description: 'Clean white theme',
-    icon: HiSun,
-    preview: 'linear-gradient(135deg, #FFFFFF 0%, #3B82F6 100%)'
-  },
-  {
-    id: 'corporate',
-    name: 'Formal Corporate Theme',
-    description: 'Blue modern minimalist',
-    icon: HiCog,
-    preview: 'linear-gradient(135deg, #060b18 0%, #2563eb 100%)'
-  }
-];
 
 const ALL_SECRETARY_ROLES = ['secretary', 'executive_secretary', 'press_secretary', 'linkages_secretary', 'deputy_secretary'];
 const ALL_FINANCE_ROLES = ['finance_secretary', 'auditor', 'budget_officer'];
@@ -120,7 +93,6 @@ function Sidebar({ isOpen, toggleSidebar }) {
 
   const handleThemeChange = useCallback((newTheme) => {
     changeTheme(newTheme);
-    setShowThemeModal(false);
   }, [changeTheme]);
 
   // Memoize active visible nav items so we do not re-filter on every render
@@ -197,14 +169,14 @@ function Sidebar({ isOpen, toggleSidebar }) {
           </ul>
 
           <div className={styles.buttonSection}>
-            {/* Theme Settings Button */}
+            {/* Settings Button (Theme + Expandable GitHub Changelogs) */}
             <button
               className={styles.settingsButton}
               onClick={() => setShowThemeModal(true)}
-              title={!isOpen ? 'Theme Settings' : ''}
+              title={!isOpen ? 'Settings & Changelogs' : ''}
             >
               <HiCog className={styles.navIcon} />
-              {isOpen && <span>Theme Settings</span>}
+              {isOpen && <span>Settings</span>}
             </button>
 
             {currentUser ? (
@@ -234,50 +206,13 @@ function Sidebar({ isOpen, toggleSidebar }) {
         {isClassic && <div className={styles.tribalBorderBottom} aria-hidden="true" />}
       </nav>
 
-      {/* Theme Settings Modal */}
-      {showThemeModal && (
-        <div className={styles.themeModalOverlay} onClick={() => setShowThemeModal(false)}>
-          <div className={`${styles.themeModal} ${isClassic ? styles.themeModalClassic : ''}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.themeModalHeader}>
-              <h2 className={styles.themeModalTitle}>Choose Theme</h2>
-              <button
-                className={styles.themeModalClose}
-                onClick={() => setShowThemeModal(false)}
-                aria-label="Close"
-              >
-                <HiX />
-              </button>
-            </div>
-
-            <div className={styles.themeModalBody}>
-              {THEMES.map((themeOption) => {
-                const IconComponent = themeOption.icon;
-                return (
-                  <button
-                    key={themeOption.id}
-                    className={`${styles.themeOption} ${theme === themeOption.id ? styles.themeOptionActive : ''}`}
-                    onClick={() => handleThemeChange(themeOption.id)}
-                  >
-                    <div
-                      className={styles.themePreview}
-                      style={{ background: themeOption.preview }}
-                    >
-                      <IconComponent className={styles.themePreviewIcon} />
-                    </div>
-                    <div className={styles.themeOptionContent}>
-                      <h3 className={styles.themeOptionName}>{themeOption.name}</h3>
-                      <p className={styles.themeOptionDesc}>{themeOption.description}</p>
-                    </div>
-                    {theme === themeOption.id && (
-                      <div className={styles.themeOptionCheck}>✓</div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Settings Modal (Appearance + Expandable Changelogs & Repository Timeline) */}
+      <SettingsModal
+        isOpen={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+        theme={theme}
+        onChangeTheme={handleThemeChange}
+      />
     </>
   );
 }

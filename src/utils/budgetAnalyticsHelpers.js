@@ -240,9 +240,89 @@ export function buildIgpEnterpriseChartData(igpCollections = []) {
 }
 
 /**
- * Build real IGF enterprise chart buckets from live posted `fund_igf_main` ledger transactions.
+ * Normalizes an IGF ledger transaction into a clean product/expense category bucket
+ * instead of creating one chart bar/slice per individual merchandise order ID.
+ * Examples:
+ *  - "Merchandise Sales Revenue: SSGDB-001 - CTU UNIFORMS (x1)" -> "CTU Uniforms"
+ *  - "Merchandise Sales Revenue: ORD-DB-0001 - Unified CTU-DB Lanyard (CoEd, CoTE) (x1)" -> "Unified CTU-DB Lanyard (CoEd, CoTE)"
+ *  - receiptLabel: "Food & Meals" -> "Food & Meals"
  */
-export function buildIgfEnterpriseChartData(transactions = []) {
+export function normalizeIgfTransactionBucket(tx = {}) {
+  const explicitLabel = String(tx?.receiptLabel || tx?.category || '').trim();
+  if (explicitLabel) return explicitLabel;
+
+  let raw = String(tx?.productName || tx?.description || '').trim();
+  if (!raw) return 'IGF Merchandise';
+
+  // Strip common merchandise sync prefixes & unique order IDs
+  raw = raw
+    .replace(/^merchandise\s+sales\s+revenue\s*:\s*/i, '')
+    .replace(/^online\s+checkout\s+order\s*#?[\w-]+\s*[-–:]*\s*/i, '')
+    .replace(/^order\s*#?[\w-]+\s*[-–:]*\s*/i, '')
+    .replace(/^(?:ORD|SSG)[A-Z0-9-]*\s*[-–:]\s*/i, '')
+    .replace(/\s*\((?:gcash|maya|online)\s+ref:[^)]*\)\s*$/i, '')
+    .replace(/\s*\(x\d+\)\s*$/i, '')
+    .replace(/\s+x\d+\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!raw) return 'IGF Merchandise';
+
+  // Convert pure ALL-CAPS strings (e.g. "CTU UNIFORMS") to clean Title Case while keeping acronyms
+  if (raw === raw.toUpperCase() && /[A-Z]{4,}/.test(raw)) {
+    const acronyms = new Set(['CTU', 'SSG', 'IGF', 'IGP', 'FSG', 'PPMP', 'COED', 'COTE', 'BSIT', 'BSHM', 'DB']);
+    raw = raw
+      .split(' ')
+      .map((word) => {
+        const clean = word.replace(/[^A-Z0-9]/g, '');
+        if (acronyms.has(clean)) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  }
+
+  return raw;
+}
+
+/**
+ * Caps chart data arrays to `maxBuckets` top entries by value/allocated,
+ * rolling remaining tail entries into a single "Other" bucket while conserving exact totals.
+ */
+export function rollupTopChartBuckets(items = [], maxBuckets = 7) {
+  const sorted = [...(items || [])]
+    .filter(Boolean)
+    .sort((a, b) => (Number(b.value ?? b.allocated) || 0) - (Number(a.value ?? a.allocated) || 0));
+
+  if (sorted.length <= maxBuckets) return sorted;
+
+  const top = sorted.slice(0, maxBuckets);
+  const rest = sorted.slice(maxBuckets);
+
+  let otherAllocatedCentavos = 0;
+  let otherSpentCentavos = 0;
+  let otherValueCentavos = 0;
+
+  for (const item of rest) {
+    otherAllocatedCentavos += Math.round((Number(item.allocated) || 0) * 100);
+    otherSpentCentavos += Math.round((Number(item.spent) || 0) * 100);
+    otherValueCentavos += Math.round((Number(item.value ?? item.allocated) || 0) * 100);
+  }
+
+  top.push({
+    name: `Other (${rest.length})`,
+    allocated: otherAllocatedCentavos / 100,
+    spent: otherSpentCentavos / 100,
+    value: otherValueCentavos / 100,
+  });
+
+  return top;
+}
+
+/**
+ * Build real IGF enterprise chart buckets from live posted `fund_igf_main` ledger transactions.
+ * Groups individual merchandise orders by normalized product/category name and rolls up long tails.
+ */
+export function buildIgfEnterpriseChartData(transactions = [], { maxBuckets = 7 } = {}) {
   const grouped = new Map();
 
   for (const tx of transactions || []) {
@@ -255,23 +335,24 @@ export function buildIgfEnterpriseChartData(transactions = []) {
     const centavos = Math.abs(Number(tx.amountCentavos) || 0);
     if (centavos <= 0) continue;
 
-    const bucket = tx.receiptLabel || tx.category || tx.description || 'IGF Merchandise';
-    if (!grouped.has(bucket)) {
-      grouped.set(bucket, { inflowCentavos: 0, outflowCentavos: 0 });
+    const label = normalizeIgfTransactionBucket(tx);
+    const key = label.toLowerCase();
+    if (!grouped.has(key)) {
+      grouped.set(key, { name: label, inflowCentavos: 0, outflowCentavos: 0 });
     }
-    const entry = grouped.get(bucket);
+    const entry = grouped.get(key);
     const isInflow = txType === 'collection' || txType === 'receipt' || txType === 'income';
     if (isInflow) entry.inflowCentavos += centavos;
     else entry.outflowCentavos += centavos;
   }
 
-  return Array.from(grouped.entries())
-    .map(([name, { inflowCentavos, outflowCentavos }]) => {
-      const allocated = Math.round(inflowCentavos) / 100;
-      const spent = Math.round(outflowCentavos) / 100;
-      return { name, allocated, spent, value: allocated || spent };
-    })
-    .sort((a, b) => b.value - a.value);
+  const buckets = Array.from(grouped.values()).map(({ name, inflowCentavos, outflowCentavos }) => {
+    const allocated = Math.round(inflowCentavos) / 100;
+    const spent = Math.round(outflowCentavos) / 100;
+    return { name, allocated, spent, value: allocated || spent };
+  });
+
+  return rollupTopChartBuckets(buckets, maxBuckets);
 }
 
 /**

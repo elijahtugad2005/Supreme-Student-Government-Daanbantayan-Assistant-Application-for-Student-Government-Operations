@@ -1,0 +1,2278 @@
+{
+  "generatedAt": "2026-11-26T07:21:41.778Z",
+  "repository": {
+    "owner": "elijahtugad2005",
+    "name": "Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations",
+    "url": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations",
+    "branch": "main"
+  },
+  "stats": {
+    "totalCommits": 121,
+    "features": 49,
+    "fixes": 28,
+    "styles": 19,
+    "securityAndTests": 10,
+    "docsAndChores": 15,
+    "contributors": [
+      "elijah-shard",
+      "Mokey Mouse"
+    ],
+    "firstCommitDate": "2025-10-12",
+    "latestCommitDate": "2026-11-26"
+  },
+  "commits": [
+    {
+      "hash": "f315e2180a93cb101c700c0d04590e1f97821565",
+      "shortHash": "f315e21",
+      "date": "2026-11-26",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-26T15:11:01+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance, documents, analytics): add ledger decrement filters, PPMP preview widget, Drive links, and post-deploy fixes",
+      "title": "add ledger decrement filters, PPMP preview widget, Drive links, and post-deploy fixes",
+      "type": "feat",
+      "scopes": [
+        "finance",
+        "documents",
+        "analytics"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Add multi-select PPMP/IGF/IGP ledger filters, balance decrement bridge, and Before -> After running balance trail",
+        "Add resizable PPMP Budget Allocation PDF preview widget and fix revoked blob URL bug on modal reopen",
+        "Add floating Drive sync indicator, DOCX limitation + PDF conversion guide, and shared officer Drive folder links",
+        "Fix Finance/Budget Analytics KPI calculations, IGP/IGF charts, order transitions, and post-deploy RBAC/OAuth hardening",
+        "Add TDD verification suites for ledger filters, preview blobs, analytics, Drive links, document access, and post-deploy hardening"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f315e2180a93cb101c700c0d04590e1f97821565"
+    },
+    {
+      "hash": "8c624376e2b7733c2a8c3658579987c33dd0ce08",
+      "shortHash": "8c62437",
+      "date": "2026-11-24",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-24T22:21:24+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(security, finance, technocares, backend): harden auth/rules/documents, fix finance ledger & transfers, add TechnoCares features, and add backend startup diagnostics",
+      "title": "harden auth/rules/documents, fix finance ledger & transfers, add TechnoCares features, and add backend startup diagnostics",
+      "type": "fix",
+      "scopes": [
+        "security",
+        "finance",
+        "technocares",
+        "backend"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/8c624376e2b7733c2a8c3658579987c33dd0ce08"
+    },
+    {
+      "hash": "8ae07d10c0e416f8ca69bf800f0fd9032cc3a1a8",
+      "shortHash": "8ae07d1",
+      "date": "2026-11-19",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-19T12:56:02+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance, igp, inventory, auth): redesign PPMP/Lockers/AccessDenied in maroon-gold, add consumables expenses, dynamic locker pricing, ledger reconciliation, and Google Auth hardening",
+      "title": "redesign PPMP/Lockers/AccessDenied in maroon-gold, add consumables expenses, dynamic locker pricing, ledger reconciliation, and Google Auth hardening",
+      "type": "feat",
+      "scopes": [
+        "finance",
+        "igp",
+        "inventory",
+        "auth"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/8ae07d10c0e416f8ca69bf800f0fd9032cc3a1a8"
+    },
+    {
+      "hash": "eaaccdfd94bfa02c4422fc8fc86c9a51137e8108",
+      "shortHash": "eaaccdf",
+      "date": "2026-11-13",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-13T11:19:05+08:00",
+      "author": "elijah-shard",
+      "subject": "style(homepage): center and fit mobile footer layout without horizontal overflow",
+      "title": "center and fit mobile footer layout without horizontal overflow",
+      "type": "style",
+      "scopes": [
+        "homepage"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/eaaccdfd94bfa02c4422fc8fc86c9a51137e8108"
+    },
+    {
+      "hash": "485846b2d69926db1eb84764965c80fcf4e0709f",
+      "shortHash": "485846b",
+      "date": "2026-11-13",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-13T11:06:36+08:00",
+      "author": "elijah-shard",
+      "subject": "style(documents): fix classic/dark theme text-clip override for bright red/green stat circles",
+      "title": "fix classic/dark theme text-clip override for bright red/green stat circles",
+      "type": "style",
+      "scopes": [
+        "documents"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/485846b2d69926db1eb84764965c80fcf4e0709f"
+    },
+    {
+      "hash": "b8947881b0c0996f8d90c0552fabfbd48de50af4",
+      "shortHash": "b894788",
+      "date": "2026-11-13",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-13T11:03:03+08:00",
+      "author": "elijah-shard",
+      "subject": "style(documents): add red circle indicator for Pending and green circle for Approved",
+      "title": "add red circle indicator for Pending and green circle for Approved",
+      "type": "style",
+      "scopes": [
+        "documents"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/b8947881b0c0996f8d90c0552fabfbd48de50af4"
+    },
+    {
+      "hash": "1851ea5b24b10db441d810025529da8f441a88c6",
+      "shortHash": "1851ea5",
+      "date": "2026-11-13",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-13T10:58:01+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(death-aid): add mobile confirmation modal on contribution submission and Nov 8-13 progress report",
+      "title": "add mobile confirmation modal on contribution submission and Nov 8-13 progress report",
+      "type": "feat",
+      "scopes": [
+        "death-aid"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1851ea5b24b10db441d810025529da8f441a88c6"
+    },
+    {
+      "hash": "528ad594c8164b30c2a3236d4f72afa5ae269581",
+      "shortHash": "528ad59",
+      "date": "2026-11-12",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-12T10:54:30+08:00",
+      "author": "elijah-shard",
+      "subject": "docs(death-aid): clarify roster submission requirement in member/guest display",
+      "title": "clarify roster submission requirement in member/guest display",
+      "type": "docs",
+      "scopes": [
+        "death-aid"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/528ad594c8164b30c2a3236d4f72afa5ae269581"
+    },
+    {
+      "hash": "e8a24d41778015214951470cebc19f3799a76b1f",
+      "shortHash": "e8a24d4",
+      "date": "2026-11-12",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-12T10:41:14+08:00",
+      "author": "elijah-shard",
+      "subject": "test(death-aid): fix vacuous rules assertions, add beneficiary-case rules coverage",
+      "title": "fix vacuous rules assertions, add beneficiary-case rules coverage",
+      "type": "test",
+      "scopes": [
+        "death-aid"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/e8a24d41778015214951470cebc19f3799a76b1f"
+    },
+    {
+      "hash": "d1166fd7061569577d44c41f9292699dde9581d9",
+      "shortHash": "d1166fd",
+      "date": "2026-11-12",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-12T10:35:30+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(death-aid): officer-published Death Aid/TechnoCare beneficiary cases with memo photo, per-case collections",
+      "title": "officer-published Death Aid/TechnoCare beneficiary cases with memo photo, per-case collections",
+      "type": "feat",
+      "scopes": [
+        "death-aid"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/d1166fd7061569577d44c41f9292699dde9581d9"
+    },
+    {
+      "hash": "390ca5fb80bf1a25b22757ab3bc2e1a9b1b1949a",
+      "shortHash": "390ca5f",
+      "date": "2026-11-11",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-11T22:16:49+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(security): remove duplicate permissive Firestore rules and enforce monotonic deathAidCounters",
+      "title": "remove duplicate permissive Firestore rules and enforce monotonic deathAidCounters",
+      "type": "fix",
+      "scopes": [
+        "security"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/390ca5fb80bf1a25b22757ab3bc2e1a9b1b1949a"
+    },
+    {
+      "hash": "91cd6bcfd1119ace4566b71c8a23aa07ed3daac9",
+      "shortHash": "91cd6bc",
+      "date": "2026-11-11",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-11T21:42:40+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(auth): add Student Account Registration, wire permissionOverrides, and unify route RBAC",
+      "title": "add Student Account Registration, wire permissionOverrides, and unify route RBAC",
+      "type": "feat",
+      "scopes": [
+        "auth"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/91cd6bcfd1119ace4566b71c8a23aa07ed3daac9"
+    },
+    {
+      "hash": "d01168234cd0a5b0a3acb4f0d28d0cf36d31a306",
+      "shortHash": "d011682",
+      "date": "2026-11-11",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-11T21:42:40+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(telegram): proxy Telegram broadcasts through Render backend and strip client token prefix",
+      "title": "proxy Telegram broadcasts through Render backend and strip client token prefix",
+      "type": "fix",
+      "scopes": [
+        "telegram"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/d01168234cd0a5b0a3acb4f0d28d0cf36d31a306"
+    },
+    {
+      "hash": "d61cd6725c04be9b6a07961339b8d70b1ed462ff",
+      "shortHash": "d61cd67",
+      "date": "2026-11-11",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-11T21:42:39+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(security): enforce officer RBAC on Document Archive & AI endpoints and add /correctClassification",
+      "title": "enforce officer RBAC on Document Archive & AI endpoints and add /correctClassification",
+      "type": "fix",
+      "scopes": [
+        "security"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/d61cd6725c04be9b6a07961339b8d70b1ed462ff"
+    },
+    {
+      "hash": "432d3b562158e1fab671eca29468d9ef3ccf32c5",
+      "shortHash": "432d3b5",
+      "date": "2026-11-06",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-06T20:51:50+08:00",
+      "author": "elijah-shard",
+      "subject": "chore(scripts): finalize campus-map 2D test suite",
+      "title": "finalize campus-map 2D test suite",
+      "type": "chore",
+      "scopes": [
+        "scripts"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/432d3b562158e1fab671eca29468d9ef3ccf32c5"
+    },
+    {
+      "hash": "c66c7b138b82d39235f239ada3eb46432278e70b",
+      "shortHash": "c66c7b1",
+      "date": "2026-11-06",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-06T20:39:14+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(map): remove 2.5D isometric view and transition to clean top-down 2D sky view",
+      "title": "remove 2.5D isometric view and transition to clean top-down 2D sky view",
+      "type": "feat",
+      "scopes": [
+        "map"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/c66c7b138b82d39235f239ada3eb46432278e70b"
+    },
+    {
+      "hash": "12a5ebfe2e69f0e420ebf492802dca953090a783",
+      "shortHash": "12a5ebf",
+      "date": "2026-11-06",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-06T20:23:41+08:00",
+      "author": "elijah-shard",
+      "subject": "test(tdd): enforce recording-only status invariants and multi-tab gid preservation in sheet sync",
+      "title": "enforce recording-only status invariants and multi-tab gid preservation in sheet sync",
+      "type": "test",
+      "scopes": [
+        "tdd"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/12a5ebfe2e69f0e420ebf492802dca953090a783"
+    },
+    {
+      "hash": "a81852d50377d250fe25428f1f172602abc38215",
+      "shortHash": "a81852d",
+      "date": "2026-11-06",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-06T20:19:39+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(commerce): resolve column collision and un-previewed sync drop in smart sheet & excel sync",
+      "title": "resolve column collision and un-previewed sync drop in smart sheet & excel sync",
+      "type": "fix",
+      "scopes": [
+        "commerce"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/a81852d50377d250fe25428f1f172602abc38215"
+    },
+    {
+      "hash": "77aea4e815edb7a58dbdb03807faca05feec02ce",
+      "shortHash": "77aea4e",
+      "date": "2026-11-06",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-06T19:57:18+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): add interactive 8-chapter Finance Handbook walkthrough modal and dashboard integration",
+      "title": "add interactive 8-chapter Finance Handbook walkthrough modal and dashboard integration",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/77aea4e815edb7a58dbdb03807faca05feec02ce"
+    },
+    {
+      "hash": "76cb146cb34ff88ca0d3de7509a0964ae68ec53e",
+      "shortHash": "76cb146",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:40:32+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(igp): add delete action and confirmation modal for misinput vending and custom collections",
+      "title": "add delete action and confirmation modal for misinput vending and custom collections",
+      "type": "feat",
+      "scopes": [
+        "igp"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/76cb146cb34ff88ca0d3de7509a0964ae68ec53e"
+    },
+    {
+      "hash": "9efbdf37f58455aff8b93b6dcb6cefa3052e63d5",
+      "shortHash": "9efbdf3",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:37:47+08:00",
+      "author": "elijah-shard",
+      "subject": "style(igp): add btnDanger and warningBox styles in IgpProjectManager module",
+      "title": "add btnDanger and warningBox styles in IgpProjectManager module",
+      "type": "style",
+      "scopes": [
+        "igp"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/9efbdf37f58455aff8b93b6dcb6cefa3052e63d5"
+    },
+    {
+      "hash": "efa9fa04c7cc080c626a6a56c861523803b1c250",
+      "shortHash": "efa9fa0",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:36:27+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(security): permit canEditFinance officers to reverse/delete igpCollections in firestore.rules",
+      "title": "permit canEditFinance officers to reverse/delete igpCollections in firestore.rules",
+      "type": "fix",
+      "scopes": [
+        "security"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/efa9fa04c7cc080c626a6a56c861523803b1c250"
+    },
+    {
+      "hash": "3e7f725c08e375c84ff934f57dd74792e4c9dd7f",
+      "shortHash": "3e7f725",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:35:57+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(igp): import deleteDoc from firebase/firestore in igpProjectService",
+      "title": "import deleteDoc from firebase/firestore in igpProjectService",
+      "type": "fix",
+      "scopes": [
+        "igp"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/3e7f725c08e375c84ff934f57dd74792e4c9dd7f"
+    },
+    {
+      "hash": "92616df61e5ec7cacf0d7939de46572bb19aa2cc",
+      "shortHash": "92616df",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:33:55+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(igp): add deleteVendingCollection with atomic fund balance reversal and audit logging",
+      "title": "add deleteVendingCollection with atomic fund balance reversal and audit logging",
+      "type": "feat",
+      "scopes": [
+        "igp"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/92616df61e5ec7cacf0d7939de46572bb19aa2cc"
+    },
+    {
+      "hash": "f993463b4e76300cf844e3b1c58aa49c451156bf",
+      "shortHash": "f993463",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:27:19+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(igp): render Collected By input field in Vending Machine modal",
+      "title": "render Collected By input field in Vending Machine modal",
+      "type": "feat",
+      "scopes": [
+        "igp"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f993463b4e76300cf844e3b1c58aa49c451156bf"
+    },
+    {
+      "hash": "423ea5c6cecd6f4cb1064f21f20c436e0fd97ebb",
+      "shortHash": "423ea5c",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:26:43+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(igp): render Assisting Officer input field in Locker Rental modal",
+      "title": "render Assisting Officer input field in Locker Rental modal",
+      "type": "feat",
+      "scopes": [
+        "igp"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/423ea5c6cecd6f4cb1064f21f20c436e0fd97ebb"
+    },
+    {
+      "hash": "11a65a7875558749b0021ec8bd52a17beae61fe2",
+      "shortHash": "11a65a7",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:25:52+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(igp): add officerName field to vending, locker rental, and custom revenue modals in IgpProjectManager",
+      "title": "add officerName field to vending, locker rental, and custom revenue modals in IgpProjectManager",
+      "type": "feat",
+      "scopes": [
+        "igp"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/11a65a7875558749b0021ec8bd52a17beae61fe2"
+    },
+    {
+      "hash": "0d9f905daa91357987041869a37c052f9ca49ddb",
+      "shortHash": "0d9f905",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:24:38+08:00",
+      "author": "elijah-shard",
+      "subject": "test(igp): add tests verifying explicit officerName input across all IGP recording actions",
+      "title": "add tests verifying explicit officerName input across all IGP recording actions",
+      "type": "test",
+      "scopes": [
+        "igp"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/0d9f905daa91357987041869a37c052f9ca49ddb"
+    },
+    {
+      "hash": "e17a8a98fd422fdcdc39170b86abf1d88e64a961",
+      "shortHash": "e17a8a9",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:23:13+08:00",
+      "author": "elijah-shard",
+      "subject": "refactor(igp): link officerName from rentalData to recordedBy and collectedBy",
+      "title": "link officerName from rentalData to recordedBy and collectedBy",
+      "type": "refactor",
+      "scopes": [
+        "igp"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/e17a8a98fd422fdcdc39170b86abf1d88e64a961"
+    },
+    {
+      "hash": "8d58859d986c8b7ea6f50db8a535e537512b61d4",
+      "shortHash": "8d58859",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:22:14+08:00",
+      "author": "elijah-shard",
+      "subject": "refactor(igp): support explicit collector name in buildCollectorInfo",
+      "title": "support explicit collector name in buildCollectorInfo",
+      "type": "refactor",
+      "scopes": [
+        "igp"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/8d58859d986c8b7ea6f50db8a535e537512b61d4"
+    },
+    {
+      "hash": "dd36bf4f46b9b0eb91d80b011d6cbde4371a792e",
+      "shortHash": "dd36bf4",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:18:31+08:00",
+      "author": "elijah-shard",
+      "subject": "test(ai): add live end-to-end GridFS document AI verification test script",
+      "title": "add live end-to-end GridFS document AI verification test script",
+      "type": "test",
+      "scopes": [
+        "ai"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/dd36bf4f46b9b0eb91d80b011d6cbde4371a792e"
+    },
+    {
+      "hash": "53a98bca4c3035ec912b7e4850cb2774b52a384b",
+      "shortHash": "53a98bc",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:12:45+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(igp): use formatCollectionAmountPHP in recent collections and audit modal tables",
+      "title": "use formatCollectionAmountPHP in recent collections and audit modal tables",
+      "type": "fix",
+      "scopes": [
+        "igp"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/53a98bca4c3035ec912b7e4850cb2774b52a384b"
+    },
+    {
+      "hash": "c83fd1ec1b95125caffae2bb674d7c2a5f1cb463",
+      "shortHash": "c83fd1e",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:12:13+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(igp): add formatCollectionAmountPHP helper in IgpProjectManager to guard against undefined toFixed",
+      "title": "add formatCollectionAmountPHP helper in IgpProjectManager to guard against undefined toFixed",
+      "type": "fix",
+      "scopes": [
+        "igp"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/c83fd1ec1b95125caffae2bb674d7c2a5f1cb463"
+    },
+    {
+      "hash": "e80d6aac8725fb715136665397a2479aef08b04e",
+      "shortHash": "e80d6aa",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:11:11+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(igp): set amountPHP in recordLockerRental and recordCustomProjectRevenue",
+      "title": "set amountPHP in recordLockerRental and recordCustomProjectRevenue",
+      "type": "fix",
+      "scopes": [
+        "igp"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/e80d6aac8725fb715136665397a2479aef08b04e"
+    },
+    {
+      "hash": "8105045c4c84cf527a2a3388f1e1b45d542b60b3",
+      "shortHash": "8105045",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:10:36+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(igp): guarantee amountPHP normalization in listCollections to prevent undefined toFixed in UI",
+      "title": "guarantee amountPHP normalization in listCollections to prevent undefined toFixed in UI",
+      "type": "fix",
+      "scopes": [
+        "igp"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/8105045c4c84cf527a2a3388f1e1b45d542b60b3"
+    },
+    {
+      "hash": "1eb5999bd104e6fb7eff06b069ac6b96a7375737",
+      "shortHash": "1eb5999",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:03:00+08:00",
+      "author": "elijah-shard",
+      "subject": "test(finance): add tests for formatGoogleSheetsDate date recovery",
+      "title": "add tests for formatGoogleSheetsDate date recovery",
+      "type": "test",
+      "scopes": [
+        "finance"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1eb5999bd104e6fb7eff06b069ac6b96a7375737"
+    },
+    {
+      "hash": "88c72b333a20dc1043881b7c6c121cda5c322728",
+      "shortHash": "88c72b3",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T18:02:28+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): add robust formatGoogleSheetsDate to prevent invalid date strings in exported ledgers",
+      "title": "add robust formatGoogleSheetsDate to prevent invalid date strings in exported ledgers",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/88c72b333a20dc1043881b7c6c121cda5c322728"
+    },
+    {
+      "hash": "a58949a5b1184943c13dfce5d7f3ee03795c5129",
+      "shortHash": "a58949a",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:55:18+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): add Google Sheets v4 royal crimson header formatting and link Chapter 3 in Paperworks",
+      "title": "add Google Sheets v4 royal crimson header formatting and link Chapter 3 in Paperworks",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/a58949a5b1184943c13dfce5d7f3ee03795c5129"
+    },
+    {
+      "hash": "d690a955abc80b8e1fd9b90b10c8f760e2958c4b",
+      "shortHash": "d690a95",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:50:36+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(finance): resolve funds.reduce is not a function by normalizing funds and passing active fundAccounts",
+      "title": "resolve funds.reduce is not a function by normalizing funds and passing active fundAccounts",
+      "type": "fix",
+      "scopes": [
+        "finance"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/d690a955abc80b8e1fd9b90b10c8f760e2958c4b"
+    },
+    {
+      "hash": "492ca0676549137ae05df1831662cfc37dc476ee",
+      "shortHash": "492ca06",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:47:43+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(finance): normalize legacy funds input in buildFiscalSheetsPayload",
+      "title": "normalize legacy funds input in buildFiscalSheetsPayload",
+      "type": "fix",
+      "scopes": [
+        "finance"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/492ca0676549137ae05df1831662cfc37dc476ee"
+    },
+    {
+      "hash": "f7e75d0023f71fe65e2acd2845e0d14cc2f84595",
+      "shortHash": "f7e75d0",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:43:55+08:00",
+      "author": "elijah-shard",
+      "subject": "style(finance, death-aid): support royal crimson classic theme in export panel and fix extension resolution in deathAidService",
+      "title": "support royal crimson classic theme in export panel and fix extension resolution in deathAidService",
+      "type": "style",
+      "scopes": [
+        "finance",
+        "death-aid"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f7e75d0023f71fe65e2acd2845e0d14cc2f84595"
+    },
+    {
+      "hash": "6054a306a3cfc19c4ebc2d9b93cc821e178207a7",
+      "shortHash": "6054a30",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:34:03+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(ai): set gemini-3.1-flash-lite as primary default model for fastest low-latency summarization",
+      "title": "set gemini-3.1-flash-lite as primary default model for fastest low-latency summarization",
+      "type": "feat",
+      "scopes": [
+        "ai"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/6054a306a3cfc19c4ebc2d9b93cc821e178207a7"
+    },
+    {
+      "hash": "a8f02f664fee735940deadc3a77e0a4d928c3172",
+      "shortHash": "a8f02f6",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:33:07+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): redesign Reports & Sheets panel with impeccable craft and dedicated CSS module",
+      "title": "redesign Reports & Sheets panel with impeccable craft and dedicated CSS module",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/a8f02f664fee735940deadc3a77e0a4d928c3172"
+    },
+    {
+      "hash": "836d37559130fad01c8c73a9b26cac03c113d4c1",
+      "shortHash": "836d375",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:30:54+08:00",
+      "author": "elijah-shard",
+      "subject": "style(finance): add styles module for FinanceReportExportPanel",
+      "title": "add styles module for FinanceReportExportPanel",
+      "type": "style",
+      "scopes": [
+        "finance"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/836d37559130fad01c8c73a9b26cac03c113d4c1"
+    },
+    {
+      "hash": "1f7f6312d438194729755a054e35fd7cfd542691",
+      "shortHash": "1f7f631",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:18:16+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(finance): tie Post Expense button display directly to canPostFinanceLedger permission",
+      "title": "tie Post Expense button display directly to canPostFinanceLedger permission",
+      "type": "fix",
+      "scopes": [
+        "finance"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1f7f6312d438194729755a054e35fd7cfd542691"
+    },
+    {
+      "hash": "eeb9e78b74a1547beb40c77bf61d6a97d8538b2c",
+      "shortHash": "eeb9e78",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:16:56+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): add ledger role permissions, eliminate alertboxes with accessible modals, and support Google Sheets fiscal export",
+      "title": "add ledger role permissions, eliminate alertboxes with accessible modals, and support Google Sheets fiscal export",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/eeb9e78b74a1547beb40c77bf61d6a97d8538b2c"
+    },
+    {
+      "hash": "f605a00a519e3af1f0bc6cd8693d55d515da761b",
+      "shortHash": "f605a00",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:05:43+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(ai): remove duplicate safeJsonParse declaration to clean startup",
+      "title": "remove duplicate safeJsonParse declaration to clean startup",
+      "type": "fix",
+      "scopes": [
+        "ai"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f605a00a519e3af1f0bc6cd8693d55d515da761b"
+    },
+    {
+      "hash": "9bca3b69a50cc453df47fe13017e44813562df45",
+      "shortHash": "9bca3b6",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:02:18+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(inventory): add IGF vs IGP fund source selector, balance checks, ledger linkage, and atomic loan transactions",
+      "title": "add IGF vs IGP fund source selector, balance checks, ledger linkage, and atomic loan transactions",
+      "type": "feat",
+      "scopes": [
+        "inventory"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/9bca3b69a50cc453df47fe13017e44813562df45"
+    },
+    {
+      "hash": "4a7fead5a0d77a7751bd2d3b8c7c53dbc97c9ab4",
+      "shortHash": "4a7fead",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:02:05+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance, igp): enforce approved fiscal ceiling query, auditor approval rights, transparent PPMP overspending and bank calibration modal",
+      "title": "enforce approved fiscal ceiling query, auditor approval rights, transparent PPMP overspending and bank calibration modal",
+      "type": "feat",
+      "scopes": [
+        "finance",
+        "igp"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/4a7fead5a0d77a7751bd2d3b8c7c53dbc97c9ab4"
+    },
+    {
+      "hash": "1c16124836599fedf7d0c4152c664d5c36875ed7",
+      "shortHash": "1c16124",
+      "date": "2026-11-05",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-05T17:01:54+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(ai, docs): modernize Gemini to 3.5/3.1 flash-lite with OpenRouter zero-cost fallbacks and drag-and-drop upload",
+      "title": "modernize Gemini to 3.5/3.1 flash-lite with OpenRouter zero-cost fallbacks and drag-and-drop upload",
+      "type": "feat",
+      "scopes": [
+        "ai",
+        "docs"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1c16124836599fedf7d0c4152c664d5c36875ed7"
+    },
+    {
+      "hash": "391e70fb18e720bdbe36b1845235db0bba4bf061",
+      "shortHash": "391e70f",
+      "date": "2026-11-04",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-04T16:08:04+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): implement IGP collection recording and campus locker management",
+      "title": "implement IGP collection recording and campus locker management",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/391e70fb18e720bdbe36b1845235db0bba4bf061"
+    },
+    {
+      "hash": "119533f5b5e3f8215a50b497f8de1be729b81d37",
+      "shortHash": "119533f",
+      "date": "2026-11-04",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-04T14:00:10+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(commerce): centralized google sheet order sync with tdd hardening and error recovery",
+      "title": "centralized google sheet order sync with tdd hardening and error recovery",
+      "type": "feat",
+      "scopes": [
+        "commerce"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/119533f5b5e3f8215a50b497f8de1be729b81d37"
+    },
+    {
+      "hash": "daef963404779de5ec435de2ee4476309f101be9",
+      "shortHash": "daef963",
+      "date": "2026-11-01",
+      "monthKey": "2026-11",
+      "isoDate": "2026-11-01T15:46:45+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(user-management): implement cursor pagination, claim sync retry, and deduplicate org views",
+      "title": "implement cursor pagination, claim sync retry, and deduplicate org views",
+      "type": "fix",
+      "scopes": [
+        "user-management"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [
+        "F-01: Add Firestore startAfter/firestoreLimit cursor pagination with UI pagination bar in UserManagement\\n- F-02: Revert Cloud Storage requirement to retain zero-bucket Base64 canvas downscaling\\n- F-03: Add exponential backoff claim retry and onUserRoleUpdated Cloud Function trigger\\n- F-04: Re-export canonical OrganizationView and OrganizationModal from UserManagement\\n- scripts: Add vault generation and semantic linking utility scripts"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/daef963404779de5ec435de2ee4476309f101be9"
+    },
+    {
+      "hash": "af0fe76aa11a0931c4b4358f6ef3c18dea7e01d0",
+      "shortHash": "af0fe76",
+      "date": "2026-10-31",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-31T20:13:23+08:00",
+      "author": "elijah-shard",
+      "subject": "test(finance): add comprehensive Firestore integrity, PPMP, and Commerce Hub diagnostic suites",
+      "title": "add comprehensive Firestore integrity, PPMP, and Commerce Hub diagnostic suites",
+      "type": "test",
+      "scopes": [
+        "finance"
+      ],
+      "category": "security_test",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/af0fe76aa11a0931c4b4358f6ef3c18dea7e01d0"
+    },
+    {
+      "hash": "8764a0d4c32748d1c992250c4d2f3bdc8105993f",
+      "shortHash": "8764a0d",
+      "date": "2026-10-31",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-31T20:12:48+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(commerce): synchronize merchandise inventory, order lifecycle, and IGF revenue flow",
+      "title": "synchronize merchandise inventory, order lifecycle, and IGF revenue flow",
+      "type": "feat",
+      "scopes": [
+        "commerce"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/8764a0d4c32748d1c992250c4d2f3bdc8105993f"
+    },
+    {
+      "hash": "e1fe52f7cef9b32f9cdc39aceaed703cd4aa6540",
+      "shortHash": "e1fe52f",
+      "date": "2026-10-31",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-31T20:11:21+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): redesign PPMP procurement matrix, fund governance, and itemized cost breakdown",
+      "title": "redesign PPMP procurement matrix, fund governance, and itemized cost breakdown",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/e1fe52f7cef9b32f9cdc39aceaed703cd4aa6540"
+    },
+    {
+      "hash": "2fee48ccb1d8549815523472469103fca51f7a9a",
+      "shortHash": "2fee48c",
+      "date": "2026-10-27",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-27T17:14:12+08:00",
+      "author": "elijah-shard",
+      "subject": "perf(bundle): eliminate build warnings, optimize vendor chunks, and fix script syntax errors",
+      "title": "eliminate build warnings, optimize vendor chunks, and fix script syntax errors",
+      "type": "perf",
+      "scopes": [
+        "bundle"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [
+        "Configure Rollup manualChunks in vite.config.js to split heavy vendor modules (Firebase, Recharts, Icons, Data parser), reducing main bundle from 2.55 MB down to 980 kB",
+        "Eliminate Rollup mixed dynamic/static import warnings in documentAiService, documentService, and DocumentAnalysis",
+        "Fix missing /heroimage.jpg background asset reference in Homepage.module.css using verified public cover assets",
+        "Fix duplicate EMULATOR_BUCKET declarations across 7 test scripts to restore automated test suite execution"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/2fee48ccb1d8549815523472469103fca51f7a9a"
+    },
+    {
+      "hash": "046104f2bbfa2552147610b3c7f46fb1d0d8d928",
+      "shortHash": "046104f",
+      "date": "2026-10-27",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-27T16:00:59+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(ui): integrate IGF order revenue linking and modernize commerce management",
+      "title": "integrate IGF order revenue linking and modernize commerce management",
+      "type": "feat",
+      "scopes": [
+        "ui"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Link Income Generated Fund (IGF) treasury balance directly to merchandise order revenue in CommerceHub",
+        "Add live IGF Treasury Integration banner and order synchronization telemetry",
+        "Modernize OrderManagement layout with pre-order batch tracking, status filter chips, and responsive data tables",
+        "Enhance visual aesthetics with Royal Maroon & Imperial Gold dark theme support"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/046104f2bbfa2552147610b3c7f46fb1d0d8d928"
+    },
+    {
+      "hash": "cbe77667161aba2ca17d6549e6e32cda0992d784",
+      "shortHash": "cbe7766",
+      "date": "2026-10-27",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-27T15:59:24+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(finance): merge budget allocation into fund accounts ledger and add FSG remittance governance",
+      "title": "merge budget allocation into fund accounts ledger and add FSG remittance governance",
+      "type": "feat",
+      "scopes": [
+        "finance"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Merge standalone New Budget Allocation into unified Fund Accounts & Ledger control view (FundGovernance)",
+        "Add inline quick-allocation actions and surplus metrics on Fiscal Year Budget and FSG Remittance fund cards",
+        "Integrate Authorized Budget Allocations table with 5-metric KPI summary, fund source badges, and direct Post Expense actions",
+        "Support FSG Remittance supplemental allocations across BudgetForm, BudgetManagement, BudgetAnalytics, and transaction forms",
+        "Implement updateBudgetAllocation and deleteBudgetAllocation in financeService with revision history and transaction safeguards",
+        "Configure firestore.rules for append-only transaction ledger, pre-order batches, and role-based finance authorities (canApproveFinance, canAuditFinance)",
+        "Provide GLOSSARY.md defining institutional fund categories and disbursement policies"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/cbe77667161aba2ca17d6549e6e32cda0992d784"
+    },
+    {
+      "hash": "1ec20192feb03af5b164edd90fdf9700a2f14034",
+      "shortHash": "1ec2019",
+      "date": "2026-10-27",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-27T15:58:40+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(death-aid): enable guest/member submissions, section mayor integration, and anti-spam protection",
+      "title": "enable guest/member submissions, section mayor integration, and anti-spam protection",
+      "type": "feat",
+      "scopes": [
+        "death-aid"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Enable guest and student member roles to file Death Aid contributions with verified submitter name and section selection",
+        "Integrate section roster workflow so a member submitting a section roster is designated as section mayor with list modification privileges",
+        "Implement anti-spam failsafe via getActivePendingForRoster to block duplicate concurrent submissions for the same section",
+        "Update deathAidService and collection audit logging to support unauthenticated submissions and officer verification",
+        "Update ProtectedRoute in App.jsx to allow public/guest submission access with tailored guidance"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1ec20192feb03af5b164edd90fdf9700a2f14034"
+    },
+    {
+      "hash": "ed49e64ca9aa41e547c5a6613a627413b9b0a6aa",
+      "shortHash": "ed49e64",
+      "date": "2026-10-27",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-27T15:58:01+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(documents): expand council role access and add research paperwork guardrails",
+      "title": "expand council role access and add research paperwork guardrails",
+      "type": "feat",
+      "scopes": [
+        "documents"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Grant Document Dashboard route access to complete Student Executive Council roles (President, VP, Secretaries, Auditor, Budget Officer)",
+        "Add Paperworks/ directory isolation rule to AGENTS.MD to safeguard research and capstone manuscripts",
+        "Update .gitignore to prevent accidental commits of internal capstone research drafts"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/ed49e64ca9aa41e547c5a6613a627413b9b0a6aa"
+    },
+    {
+      "hash": "b5ae4dad1d4fc510a697b0d7abf1143319bf5aeb",
+      "shortHash": "b5ae4da",
+      "date": "2026-10-27",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-27T15:53:28+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(bugs): resolve runtime reference errors in Document Dashboard",
+      "title": "resolve runtime reference errors in Document Dashboard",
+      "type": "fix",
+      "scopes": [
+        "bugs"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [
+        "Fix ReferenceError for undefined HiSparkles icon component in document action menus",
+        "Fix ReferenceError for undefined statusBanner function call in tone banner styling",
+        "Safely guard statusBanner evaluation to prevent render-time white screen crashes",
+        "Import MAX_FILE_BYTES from documentLabels for consistent file upload validation"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/b5ae4dad1d4fc510a697b0d7abf1143319bf5aeb"
+    },
+    {
+      "hash": "7728bcc4c3f1db444fd932957252a6f779ae7aec",
+      "shortHash": "7728bcc",
+      "date": "2026-10-26",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-26T09:25:47+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(document): fix data loss, signatory index mismatch and modal freshness vulnerabilities",
+      "title": "fix data loss, signatory index mismatch and modal freshness vulnerabilities",
+      "type": "fix",
+      "scopes": [
+        "document"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [
+        "Decouple audit logging from document upload & deletion mutation try/catch blocks to avoid false rollbacks and duplicate uploads\\n- Fix signatory checklist index validation in recordSignature Cloud Function and client fallback to inspect aiExtraction and aiSuggestion signatories when signatureChecklist is unseeded\\n- Make DocumentDetailModal reactive to live Firestore and AI updates by deriving active document via modalDocId\\n- Purge dead code (saveEdit, editing state, offices memo, isLocked, obsolete preview styles and unused icon imports)"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/7728bcc4c3f1db444fd932957252a6f779ae7aec"
+    },
+    {
+      "hash": "ca829eb340bab5606a4f06d525228949fca0f87f",
+      "shortHash": "ca829eb",
+      "date": "2026-10-26",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-26T02:38:47+08:00",
+      "author": "elijah-shard",
+      "subject": "style(header): remove logo beside sidebar for a cleaner layout",
+      "title": "remove logo beside sidebar for a cleaner layout",
+      "type": "style",
+      "scopes": [
+        "header"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/ca829eb340bab5606a4f06d525228949fca0f87f"
+    },
+    {
+      "hash": "2d8f99a516be998d2588d67ae8d140bad8c34885",
+      "shortHash": "2d8f99a",
+      "date": "2026-10-26",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-26T02:32:03+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(patches): optimize inventory modal performance and apply minor system bug fixes",
+      "title": "optimize inventory modal performance and apply minor system bug fixes",
+      "type": "fix",
+      "scopes": [
+        "patches"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/2d8f99a516be998d2588d67ae8d140bad8c34885"
+    },
+    {
+      "hash": "49657f6ddaf506945d91c7bbb12498903f1214f0",
+      "shortHash": "49657f6",
+      "date": "2026-10-26",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-26T02:31:09+08:00",
+      "author": "elijah-shard",
+      "subject": "style(theme): implement royal maroon crimson gold tribal theme across modules",
+      "title": "implement royal maroon crimson gold tribal theme across modules",
+      "type": "style",
+      "scopes": [
+        "theme"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/49657f6ddaf506945d91c7bbb12498903f1214f0"
+    },
+    {
+      "hash": "e4c30dfce16a3a9a131610489c78fd5713bdd9f7",
+      "shortHash": "e4c30df",
+      "date": "2026-10-26",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-26T02:29:57+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(map): add experimental interactive 2D campus eagle-eye map",
+      "title": "add experimental interactive 2D campus eagle-eye map",
+      "type": "feat",
+      "scopes": [
+        "map"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/e4c30dfce16a3a9a131610489c78fd5713bdd9f7"
+    },
+    {
+      "hash": "f1c3cc339e06fc260792d3a353de70f913e184fc",
+      "shortHash": "f1c3cc3",
+      "date": "2026-10-21",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-21T16:55:03+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(documents): add direct Firestore fallback and sync for signatory checklist",
+      "title": "add direct Firestore fallback and sync for signatory checklist",
+      "type": "fix",
+      "scopes": [
+        "documents"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f1c3cc339e06fc260792d3a353de70f913e184fc"
+    },
+    {
+      "hash": "ccbb8d0e539ae780fde6c5d18aca6c2c3ecb07cc",
+      "shortHash": "ccbb8d0",
+      "date": "2026-10-21",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-21T15:54:51+08:00",
+      "author": "elijah-shard",
+      "subject": "feat(backend): add root route handler for base URL",
+      "title": "add root route handler for base URL",
+      "type": "feat",
+      "scopes": [
+        "backend"
+      ],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/ccbb8d0e539ae780fde6c5d18aca6c2c3ecb07cc"
+    },
+    {
+      "hash": "41e5c91ae8f5b1e80512c0ee417f82807cf93722",
+      "shortHash": "41e5c91",
+      "date": "2026-10-21",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-21T15:46:53+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(backend): add build script for Render compatibility",
+      "title": "add build script for Render compatibility",
+      "type": "fix",
+      "scopes": [
+        "backend"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/41e5c91ae8f5b1e80512c0ee417f82807cf93722"
+    },
+    {
+      "hash": "c5df3cbb3390f08508cc9f2b4b28cf7e210c77d6",
+      "shortHash": "c5df3cb",
+      "date": "2026-10-21",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-21T15:17:26+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(build): configure dynamic base path for Vercel deployment",
+      "title": "configure dynamic base path for Vercel deployment",
+      "type": "fix",
+      "scopes": [
+        "build"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/c5df3cbb3390f08508cc9f2b4b28cf7e210c77d6"
+    },
+    {
+      "hash": "d512c1a106133e317f60442cdfabbcc44bdc94a4",
+      "shortHash": "d512c1a",
+      "date": "2026-10-21",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-21T15:00:01+08:00",
+      "author": "elijah-shard",
+      "subject": "security: remove documentation, specifications, and checklist from git tracking",
+      "title": "remove documentation, specifications, and checklist from git tracking",
+      "type": "chore",
+      "scopes": [],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/d512c1a106133e317f60442cdfabbcc44bdc94a4"
+    },
+    {
+      "hash": "493f647e46ff9866648b757d3a5e97dbfe8bcdcf",
+      "shortHash": "493f647",
+      "date": "2026-10-21",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-21T14:13:34+08:00",
+      "author": "elijah-shard",
+      "subject": "chore(deploy): add frontend and backend env test suites, SPA routing configs, and firestore role alignments",
+      "title": "add frontend and backend env test suites, SPA routing configs, and firestore role alignments",
+      "type": "chore",
+      "scopes": [
+        "deploy"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/493f647e46ff9866648b757d3a5e97dbfe8bcdcf"
+    },
+    {
+      "hash": "748f189b823ab3c78698fa2068c8409448eef424",
+      "shortHash": "748f189",
+      "date": "2026-10-21",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-21T13:14:35+08:00",
+      "author": "elijah-shard",
+      "subject": "feat: optimize inventory scrolling, add 1-click filter, and implement administrative role presets with access tiers",
+      "title": "optimize inventory scrolling, add 1-click filter, and implement administrative role presets with access tiers",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/748f189b823ab3c78698fa2068c8409448eef424"
+    },
+    {
+      "hash": "4701d134e98aab2544a48fbfb6c5d8f7af6cf585",
+      "shortHash": "4701d13",
+      "date": "2026-10-12",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-12T11:13:40+08:00",
+      "author": "elijah-shard",
+      "subject": "feat: complete UI themes overhaul, MongoDB AI doc processing, and architecture documentation",
+      "title": "complete UI themes overhaul, MongoDB AI doc processing, and architecture documentation",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/4701d134e98aab2544a48fbfb6c5d8f7af6cf585"
+    },
+    {
+      "hash": "56f7ea5000bb0835381c4ca7e4e3120685e62802",
+      "shortHash": "56f7ea5",
+      "date": "2026-10-09",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-09T12:13:39+08:00",
+      "author": "elijah-shard",
+      "subject": "fix: announcement form clearing, button UI, and Telegram reactions",
+      "title": "announcement form clearing, button UI, and Telegram reactions",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/56f7ea5000bb0835381c4ca7e4e3120685e62802"
+    },
+    {
+      "hash": "d4ccaa69a3221cf7bc8dab9a3cc8fcb4a25ae718",
+      "shortHash": "d4ccaa6",
+      "date": "2026-10-08",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-08T21:41:52+08:00",
+      "author": "elijah-shard",
+      "subject": "fix(docs): AI badge dismissible + upload step flow + verify delete endpoint",
+      "title": "AI badge dismissible + upload step flow + verify delete endpoint",
+      "type": "fix",
+      "scopes": [
+        "docs"
+      ],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/d4ccaa69a3221cf7bc8dab9a3cc8fcb4a25ae718"
+    },
+    {
+      "hash": "f1573248b2b57f2ab9502380e80564cfb1c5004b",
+      "shortHash": "f157324",
+      "date": "2026-10-08",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-08T21:03:53+08:00",
+      "author": "elijah-shard",
+      "subject": "feat: add MongoDB GridFS support to Cloud Functions for dual-storage AI document processing",
+      "title": "add MongoDB GridFS support to Cloud Functions for dual-storage AI document processing",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f1573248b2b57f2ab9502380e80564cfb1c5004b"
+    },
+    {
+      "hash": "693a2d9b0adedd8fe4025b8409106ae90c8734b7",
+      "shortHash": "693a2d9",
+      "date": "2026-10-07",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-07T19:40:35+08:00",
+      "author": "elijah-shard",
+      "subject": "Prepare for deployment",
+      "title": "Prepare for deployment",
+      "type": "chore",
+      "scopes": [],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/693a2d9b0adedd8fe4025b8409106ae90c8734b7"
+    },
+    {
+      "hash": "14b0eaaf0496a9043f777611e429f599b3571852",
+      "shortHash": "14b0eaa",
+      "date": "2026-10-03",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-03T23:10:04+08:00",
+      "author": "elijah-shard",
+      "subject": "Add document AI, per-user access control and repository tooling",
+      "title": "Add document AI, per-user access control and repository tooling",
+      "type": "docs",
+      "scopes": [
+        "docs"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [
+        "Document AI",
+        "Gemini with an OpenRouter fallback so an exhausted daily quota no longer",
+        "stops all analysis",
+        "Uploads are read automatically; title, document number, office, subject",
+        "and author are filled in without pressing a button",
+        "A signature checklist is built from the signatories the document names, with",
+        "progress measured over required signatures only",
+        "An author never signs their own paper: names found beside prepared-by,",
+        "drafted-by or recorded-by are identified and kept off the approval list",
+        "Progress and status are recomputed server-side, so the browser cannot",
+        "assert approval on an unsigned document",
+        "Document status reduced to Pending, Under Review and Approved, all",
+        "human-assignable",
+        "Institution supplied to the model so a CTU Daanbantayan letterhead is",
+        "recognised and no other institution is substituted",
+        "Access control",
+        "Per-user permission overrides: grant or revoke access for one person",
+        "without inventing a role",
+        "Role claims synced onto the ID token so Storage rules can authorise,",
+        "which is what unblocked uploads",
+        "Officer-only roster verification; a recorder cannot certify their own",
+        "remittance",
+        "Repository tooling",
+        "preflight command that checks configuration, build, emulator, providers",
+        "and the whole suite, naming the broken link",
+        "Emulator suites for rules, documents, storage claims, migration, quota,",
+        "capacity, fallback and theme tokens",
+        "Migration of legacy Base64 PDFs into Storage: dry run by default,",
+        "idempotent, never deletes the source",
+        "Theme tokens applied to every screen, verified against all three themes",
+        "Fixes",
+        "Storage rules now read the app's project id so the emulator answers",
+        "instead of returning a 404 that surfaced as a bogus CORS failure",
+        "Document status constants moved inside the function bundle; importing",
+        "them from the app worked locally and would have broken on deploy",
+        "Local file store stores blobs in IndexedDB rather than localStorage,",
+        "which could hold roughly two PDFs"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/14b0eaaf0496a9043f777611e429f599b3571852"
+    },
+    {
+      "hash": "c59dff02ee0ef8992af81ae291170dd2cc20b49b",
+      "shortHash": "c59dff0",
+      "date": "2026-10-02",
+      "monthKey": "2026-10",
+      "isoDate": "2026-10-02T22:23:55+08:00",
+      "author": "elijah-shard",
+      "subject": "Add classroom roster registry and Death Aid accountability workflow",
+      "title": "Add classroom roster registry and Death Aid accountability workflow",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Roster registry",
+        "Flexible importer for CSV/XLS/XLSX that detects Name and Section columns",
+        "by content rather than position, ignores unrelated columns, tolerates title",
+        "rows above the header, and flags duplicates and suspicious entries",
+        "Sectional browsing by college and year level with on-demand student lists",
+        "Submissions are unverified proposals until an officer approves; verified",
+        "rosters are versioned and their student lists frozen",
+        "Death Aid",
+        "Count-based collection recording: enrolled count comes from the verified",
+        "roster, the officer enters beneficiaries paid, and expected/collected/outstanding",
+        "are all derived rather than typed",
+        "Debtor records can be named, unidentified, absent or left-early, and may",
+        "be completed later without altering the counted figures",
+        "Remittance verification records the receiving officer and compares reported",
+        "against received, preserving both on a discrepancy",
+        "Outstanding balance is derived from the latest filing per section, so the",
+        "figures can never drift from the collections that produced them",
+        "Access control",
+        "Added governor role and canViewRosters, restricted roster reading to",
+        "Governors, Secretary and Admin plus a submitter's own roster",
+        "Per-user permission overrides so access can be granted or revoked for an",
+        "individual without inventing a role",
+        "Submitter rights: may amend a pending roster, withdraw their own submission,",
+        "or amend a verified roster for declared transfers, which forces re-verification",
+        "Infrastructure",
+        "firestore.rules covering the new collections, including arithmetic",
+        "invariants and an append-only audit log",
+        "firebase.json and composite indexes",
+        "Emulator-based test suites for rules, queries, calculations, roster import",
+        "and the sync call contract",
+        "Pinned rollup to 4.62.5; 4.63 breaks Vite 7 builds",
+        "Moved off the unmaintained npm xlsx mirror to SheetJS CE 0.20.3, clearing the",
+        "prototype pollution and ReDoS advisories in file parsing",
+        "Forced @grpc/grpc-js to 1.14.5, since Firebase still pins the vulnerable range"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/c59dff02ee0ef8992af81ae291170dd2cc20b49b"
+    },
+    {
+      "hash": "95565768efe1a1c6cdf452b91078e191297c15b3",
+      "shortHash": "9556576",
+      "date": "2026-09-27",
+      "monthKey": "2026-09",
+      "isoDate": "2026-09-27T09:17:31+08:00",
+      "author": "elijah-shard",
+      "subject": "Update UI with Maroon Editorial Theme and enhanced features",
+      "title": "Update UI with Maroon Editorial Theme and enhanced features",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/95565768efe1a1c6cdf452b91078e191297c15b3"
+    },
+    {
+      "hash": "af45ac53fd943b967189fdcdace4a279f748bf11",
+      "shortHash": "af45ac5",
+      "date": "2026-05-04",
+      "monthKey": "2026-05",
+      "isoDate": "2026-05-04T17:02:47+08:00",
+      "author": "elijah-shard",
+      "subject": "Added animation in the Dashboard , Fix Stock not decrementing when order",
+      "title": "Added animation in the Dashboard , Fix Stock not decrementing when order",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/af45ac53fd943b967189fdcdace4a279f748bf11"
+    },
+    {
+      "hash": "e2d7e35b3785b34829de3bf6b35a8c85fcea26ae",
+      "shortHash": "e2d7e35",
+      "date": "2026-05-04",
+      "monthKey": "2026-05",
+      "isoDate": "2026-05-04T15:04:57+08:00",
+      "author": "elijah-shard",
+      "subject": "fixed forms , order form bug fix , animation in homepage",
+      "title": "fixed forms , order form bug fix , animation in homepage",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/e2d7e35b3785b34829de3bf6b35a8c85fcea26ae"
+    },
+    {
+      "hash": "bc8204234f14c3c29a82de32b285196fd6259538",
+      "shortHash": "bc82042",
+      "date": "2026-05-04",
+      "monthKey": "2026-05",
+      "isoDate": "2026-05-04T12:37:17+08:00",
+      "author": "elijah-shard",
+      "subject": "Improvised Global UI - Fixed Forms and Layouts - Order Tracking Implemetation and Commercehub",
+      "title": "Improvised Global UI - Fixed Forms and Layouts - Order Tracking Implemetation and Commercehub",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/bc8204234f14c3c29a82de32b285196fd6259538"
+    },
+    {
+      "hash": "00115cf4c5754fa948664bda1a57e06c32fc7fc6",
+      "shortHash": "00115cf",
+      "date": "2026-05-01",
+      "monthKey": "2026-05",
+      "isoDate": "2026-05-01T01:39:50+08:00",
+      "author": "elijah-shard",
+      "subject": "fixed sidebar responsiveness / improved Admin Dashboard / Mobile Responsive Layout",
+      "title": "fixed sidebar responsiveness / improved Admin Dashboard / Mobile Responsive Layout",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/00115cf4c5754fa948664bda1a57e06c32fc7fc6"
+    },
+    {
+      "hash": "31dd6727db99107ce2b71ee843bc45d258bd1f05",
+      "shortHash": "31dd672",
+      "date": "2025-12-06",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-06T11:02:34+08:00",
+      "author": "elijah-shard",
+      "subject": "Added new opitons in member-position",
+      "title": "Added new opitons in member-position",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/31dd6727db99107ce2b71ee843bc45d258bd1f05"
+    },
+    {
+      "hash": "1ce570ba0e8d4e885638983d1a4e7b2ac9c5a56a",
+      "shortHash": "1ce570b",
+      "date": "2025-12-04",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-04T00:57:50+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Shrinking Scroll Header , Admin Dashboard Layout Fix , Changed Padding ,Color Scheme to Darker  Tone",
+      "title": "Added Shrinking Scroll Header , Admin Dashboard Layout Fix , Changed Padding ,Color Scheme to Darker  Tone",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1ce570ba0e8d4e885638983d1a4e7b2ac9c5a56a"
+    },
+    {
+      "hash": "91b3ad2c170b1a8d6d5c089cfec23bb36e4b73ea",
+      "shortHash": "91b3ad2",
+      "date": "2025-12-03",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-03T11:28:10+08:00",
+      "author": "elijah-shard",
+      "subject": "added Slider Animation in homepage",
+      "title": "added Slider Animation in homepage",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/91b3ad2c170b1a8d6d5c089cfec23bb36e4b73ea"
+    },
+    {
+      "hash": "e4b9e091568c8eb664f87f5e088b1ed4e4d9652e",
+      "shortHash": "e4b9e09",
+      "date": "2025-12-03",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-03T02:06:36+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Announcement Slider - fis color of Inventory",
+      "title": "Added Announcement Slider - fis color of Inventory",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/e4b9e091568c8eb664f87f5e088b1ed4e4d9652e"
+    },
+    {
+      "hash": "aca93301505a183c4b15c6b4e151c7e61d71f1a7",
+      "shortHash": "aca9330",
+      "date": "2025-12-03",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-03T01:41:01+08:00",
+      "author": "elijah-shard",
+      "subject": "Fixes U/I for desktop",
+      "title": "Fixes U/I for desktop",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/aca93301505a183c4b15c6b4e151c7e61d71f1a7"
+    },
+    {
+      "hash": "cdea5a890a4617642c6c1e9c76705eb620cd184a",
+      "shortHash": "cdea5a8",
+      "date": "2025-12-03",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-03T00:03:30+08:00",
+      "author": "elijah-shard",
+      "subject": "Fixed issue in page publishin",
+      "title": "Fixed issue in page publishin",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/cdea5a890a4617642c6c1e9c76705eb620cd184a"
+    },
+    {
+      "hash": "65cadca401fe713ae1838036d44de49fedd63243",
+      "shortHash": "65cadca",
+      "date": "2025-12-02",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-02T23:58:35+08:00",
+      "author": "elijah-shard",
+      "subject": "Fix U/I mobile port view",
+      "title": "Fix U/I mobile port view",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/65cadca401fe713ae1838036d44de49fedd63243"
+    },
+    {
+      "hash": "7d7402644001a88e108ea41dce225e472fd21069",
+      "shortHash": "7d74026",
+      "date": "2025-12-02",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-02T23:54:36+08:00",
+      "author": "elijah-shard",
+      "subject": "U/I fix mobile view port and provided Global U/I fix",
+      "title": "U/I fix mobile view port and provided Global U/I fix",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/7d7402644001a88e108ea41dce225e472fd21069"
+    },
+    {
+      "hash": "a18b43712b7a874ddd1da7a57b84b493f6d46b4d",
+      "shortHash": "a18b437",
+      "date": "2025-12-02",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-02T00:23:35+08:00",
+      "author": "Mokey Mouse",
+      "subject": "Delete src/assets/logotext.png",
+      "title": "Delete src/assets/logotext.png",
+      "type": "chore",
+      "scopes": [],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [
+        "Deleted Logot text"
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/a18b43712b7a874ddd1da7a57b84b493f6d46b4d"
+    },
+    {
+      "hash": "a5db7b2c451d96c39b5dc1d7deb3f28169ce9668",
+      "shortHash": "a5db7b2",
+      "date": "2025-12-02",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-02T00:01:33+08:00",
+      "author": "elijah-shard",
+      "subject": "added package deployment",
+      "title": "added package deployment",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/a5db7b2c451d96c39b5dc1d7deb3f28169ce9668"
+    },
+    {
+      "hash": "ef44cfc9d98271285373749d9f2ac659e45c9793",
+      "shortHash": "ef44cfc",
+      "date": "2025-12-01",
+      "monthKey": "2025-12",
+      "isoDate": "2025-12-01T23:30:06+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Finance Pages and Inventory Pages with Database fetch Implementation",
+      "title": "Added Finance Pages and Inventory Pages with Database fetch Implementation",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/ef44cfc9d98271285373749d9f2ac659e45c9793"
+    },
+    {
+      "hash": "9460399baa2563737d1cd0b65183da21507d52db",
+      "shortHash": "9460399",
+      "date": "2025-11-27",
+      "monthKey": "2025-11",
+      "isoDate": "2025-11-27T23:07:22+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Router Authentication , Basic Login and Based Role Authentication, Dynamic Side Bar",
+      "title": "Added Router Authentication , Basic Login and Based Role Authentication, Dynamic Side Bar",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/9460399baa2563737d1cd0b65183da21507d52db"
+    },
+    {
+      "hash": "2997d1c239cb0350bf9d50b059c7102b976570cf",
+      "shortHash": "2997d1c",
+      "date": "2025-11-25",
+      "monthKey": "2025-11",
+      "isoDate": "2025-11-25T22:18:56+08:00",
+      "author": "elijah-shard",
+      "subject": "Provided Base64 to image upload for dynamically and Compression for Database Compatability",
+      "title": "Provided Base64 to image upload for dynamically and Compression for Database Compatability",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/2997d1c239cb0350bf9d50b059c7102b976570cf"
+    },
+    {
+      "hash": "cbe4baa8821bf0ee995e9ef559f8ec02f581ea34",
+      "shortHash": "cbe4baa",
+      "date": "2025-11-18",
+      "monthKey": "2025-11",
+      "isoDate": "2025-11-18T16:21:37+08:00",
+      "author": "elijah-shard",
+      "subject": "Updated Merge , Added Announcemnt and CSV File Handling",
+      "title": "Updated Merge , Added Announcemnt and CSV File Handling",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/cbe4baa8821bf0ee995e9ef559f8ec02f581ea34"
+    },
+    {
+      "hash": "5ba7c4dfc78e8d2bf3fcfbaca9565f26b2be7ea3",
+      "shortHash": "5ba7c4d",
+      "date": "2025-11-18",
+      "monthKey": "2025-11",
+      "isoDate": "2025-11-18T16:12:21+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Announcement Component and CSV Upload",
+      "title": "Added Announcement Component and CSV Upload",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/5ba7c4dfc78e8d2bf3fcfbaca9565f26b2be7ea3"
+    },
+    {
+      "hash": "1848f05279e2c9ffb540fd9f80c23ebfcca7558b",
+      "shortHash": "1848f05",
+      "date": "2025-10-26",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-26T13:10:20+08:00",
+      "author": "Mokey Mouse",
+      "subject": "Add project title and welcome message",
+      "title": "Add project title and welcome message",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Added project title and welcome section to README."
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1848f05279e2c9ffb540fd9f80c23ebfcca7558b"
+    },
+    {
+      "hash": "3282f98f9aa3473e8dd25ec335c2b30c7fa8abc8",
+      "shortHash": "3282f98",
+      "date": "2025-10-26",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-26T12:55:03+08:00",
+      "author": "Mokey Mouse",
+      "subject": "Add overview and chapters for SSG Office Assistant App",
+      "title": "Add overview and chapters for SSG Office Assistant App",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [
+        "Introduced a comprehensive overview of the SSG Office Assistant App, detailing its features and structure. Added chapters for navigation to specific topics."
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/3282f98f9aa3473e8dd25ec335c2b30c7fa8abc8"
+    },
+    {
+      "hash": "1eb4085aaf5cf35f642a13b5bbafa97e50a1994b",
+      "shortHash": "1eb4085",
+      "date": "2025-10-26",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-26T12:34:16+08:00",
+      "author": "elijah-shard",
+      "subject": "added Tutorial markdown for introduction",
+      "title": "added Tutorial markdown for introduction",
+      "type": "docs",
+      "scopes": [
+        "docs"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/1eb4085aaf5cf35f642a13b5bbafa97e50a1994b"
+    },
+    {
+      "hash": "f930146f312dd61eaf789974c5991803571ca960",
+      "shortHash": "f930146",
+      "date": "2025-10-26",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-26T12:32:43+08:00",
+      "author": "elijah-shard",
+      "subject": "added Tutorial markdown",
+      "title": "added Tutorial markdown",
+      "type": "docs",
+      "scopes": [
+        "docs"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f930146f312dd61eaf789974c5991803571ca960"
+    },
+    {
+      "hash": "f6898522a327d54bb03ae9118613a6886c518ccc",
+      "shortHash": "f689852",
+      "date": "2025-10-25",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-25T23:42:11+08:00",
+      "author": "elijah-shard",
+      "subject": "added README.md to gitignore",
+      "title": "added README.md to gitignore",
+      "type": "docs",
+      "scopes": [
+        "docs"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/f6898522a327d54bb03ae9118613a6886c518ccc"
+    },
+    {
+      "hash": "ef09552dc3be8995e5d75a3a12d1697e7d1b6a19",
+      "shortHash": "ef09552",
+      "date": "2025-10-25",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-25T23:40:39+08:00",
+      "author": "Mokey Mouse",
+      "subject": "Update last updated date and clean up README",
+      "title": "Update last updated date and clean up README",
+      "type": "docs",
+      "scopes": [
+        "docs"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [
+        "Updated last updated date and removed repository link."
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/ef09552dc3be8995e5d75a3a12d1697e7d1b6a19"
+    },
+    {
+      "hash": "11bb3ad3e99fc80140ef221551dddab6b6ec9395",
+      "shortHash": "11bb3ad",
+      "date": "2025-10-25",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-25T23:39:29+08:00",
+      "author": "elijah-shard",
+      "subject": "added Data.jsx to handle orders , fix the issue in the global css where horizontal cutoff in the far right of the app",
+      "title": "added Data.jsx to handle orders , fix the issue in the global css where horizontal cutoff in the far right of the app",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/11bb3ad3e99fc80140ef221551dddab6b6ec9395"
+    },
+    {
+      "hash": "9c5bbd63cf79ef43d149ef971817480b9f0f3890",
+      "shortHash": "9c5bbd6",
+      "date": "2025-10-25",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-25T18:43:12+08:00",
+      "author": "elijah-shard",
+      "subject": "centered the div",
+      "title": "centered the div",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/9c5bbd63cf79ef43d149ef971817480b9f0f3890"
+    },
+    {
+      "hash": "c053aa435793a94e1062a50d2da821d0c2cf23d5",
+      "shortHash": "c053aa4",
+      "date": "2025-10-25",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-25T18:09:00+08:00",
+      "author": "elijah-shard",
+      "subject": "Added E-Commerce Application and Integration to Database",
+      "title": "Added E-Commerce Application and Integration to Database",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/c053aa435793a94e1062a50d2da821d0c2cf23d5"
+    },
+    {
+      "hash": "bc30b2860cbbb82c4b759bffcb419e76129c073d",
+      "shortHash": "bc30b28",
+      "date": "2025-10-24",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-24T23:58:26+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Homepage and dynamic member display",
+      "title": "Added Homepage and dynamic member display",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/bc30b2860cbbb82c4b759bffcb419e76129c073d"
+    },
+    {
+      "hash": "17dbc04dec5580964814fdfe783f7ea868024699",
+      "shortHash": "17dbc04",
+      "date": "2025-10-22",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-22T16:58:32+08:00",
+      "author": "elijah-shard",
+      "subject": "Updated memberlist.jsx - fixed bug (Invalid ID) for some reason",
+      "title": "Updated memberlist.jsx - fixed bug (Invalid ID) for some reason",
+      "type": "fix",
+      "scopes": [],
+      "category": "fix",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/17dbc04dec5580964814fdfe783f7ea868024699"
+    },
+    {
+      "hash": "569ee08e8474ae91e763342b98985cfd1e34b368",
+      "shortHash": "569ee08",
+      "date": "2025-10-22",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-22T16:41:30+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Firebase implmentation",
+      "title": "Added Firebase implmentation",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/569ee08e8474ae91e763342b98985cfd1e34b368"
+    },
+    {
+      "hash": "745d9a650926575617bb0bb90732632073e8bec1",
+      "shortHash": "745d9a6",
+      "date": "2025-10-17",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-17T15:33:44+08:00",
+      "author": "elijah-shard",
+      "subject": "provided new inline functions edit and delete buttons and css improvements",
+      "title": "provided new inline functions edit and delete buttons and css improvements",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/745d9a650926575617bb0bb90732632073e8bec1"
+    },
+    {
+      "hash": "24ecde52136ec974e911875a027bb00de3ec2f7d",
+      "shortHash": "24ecde5",
+      "date": "2025-10-17",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-17T15:28:08+08:00",
+      "author": "elijah-shard",
+      "subject": "Provided memberlist inline edting function and css improvements",
+      "title": "Provided memberlist inline edting function and css improvements",
+      "type": "style",
+      "scopes": [
+        "ui"
+      ],
+      "category": "style",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/24ecde52136ec974e911875a027bb00de3ec2f7d"
+    },
+    {
+      "hash": "8188f70e0347b33e024350db046787a3ce22ab19",
+      "shortHash": "8188f70",
+      "date": "2025-10-16",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-16T16:29:08+08:00",
+      "author": "Mokey Mouse",
+      "subject": "Fix formatting issues in README.md",
+      "title": "Fix formatting issues in README.md",
+      "type": "docs",
+      "scopes": [
+        "docs"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [
+        "Updated README to improve formatting and clarity."
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/8188f70e0347b33e024350db046787a3ce22ab19"
+    },
+    {
+      "hash": "82e9a308dd560ccce309d5a7581aeb2ec1828b8b",
+      "shortHash": "82e9a30",
+      "date": "2025-10-16",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-16T16:28:21+08:00",
+      "author": "Mokey Mouse",
+      "subject": "Modify README with logo and formatting changes",
+      "title": "Modify README with logo and formatting changes",
+      "type": "docs",
+      "scopes": [
+        "docs"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [
+        "Updated the README to include a logo and improved formatting."
+      ],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/82e9a308dd560ccce309d5a7581aeb2ec1828b8b"
+    },
+    {
+      "hash": "d64e411e9b01b1e18fdafdbb4a8013ee209314d2",
+      "shortHash": "d64e411",
+      "date": "2025-10-16",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-16T16:19:44+08:00",
+      "author": "elijah-shard",
+      "subject": "Added Member dasboard , Updated Read Me Progress file",
+      "title": "Added Member dasboard , Updated Read Me Progress file",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/d64e411e9b01b1e18fdafdbb4a8013ee209314d2"
+    },
+    {
+      "hash": "8a2480e24e33cae52cf5fac13ac1eb8c5baf16a2",
+      "shortHash": "8a2480e",
+      "date": "2025-10-13",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-13T23:16:34+08:00",
+      "author": "elijah-shard",
+      "subject": "admin dashboardt title",
+      "title": "admin dashboardt title",
+      "type": "chore",
+      "scopes": [],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/8a2480e24e33cae52cf5fac13ac1eb8c5baf16a2"
+    },
+    {
+      "hash": "b89ff3ef28ba0e9fa3031cef24eae6f7db89c381",
+      "shortHash": "b89ff3e",
+      "date": "2025-10-13",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-13T22:43:42+08:00",
+      "author": "elijah-shard",
+      "subject": "added image upload to card implemenation",
+      "title": "added image upload to card implemenation",
+      "type": "feat",
+      "scopes": [],
+      "category": "feature",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/b89ff3ef28ba0e9fa3031cef24eae6f7db89c381"
+    },
+    {
+      "hash": "322939c8c36b3e537ebead76078dff4fc737a427",
+      "shortHash": "322939c",
+      "date": "2025-10-12",
+      "monthKey": "2025-10",
+      "isoDate": "2025-10-12T20:42:31+08:00",
+      "author": "elijah-shard",
+      "subject": "Initial commit",
+      "title": "Initial commit",
+      "type": "chore",
+      "scopes": [
+        "repo"
+      ],
+      "category": "docs_chore",
+      "breaking": false,
+      "bodyLines": [],
+      "commitUrl": "https://github.com/elijahtugad2005/Supreme-Student-Government-Daanbantayan-Assistant-Application-for-Student-Government-Operations/commit/322939c8c36b3e537ebead76078dff4fc737a427"
+    }
+  ]
+}

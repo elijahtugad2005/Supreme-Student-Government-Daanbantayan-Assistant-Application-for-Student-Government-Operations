@@ -8,6 +8,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const helmet = require('helmet');
 const axios = require('axios');
 require('dotenv').config();
 
@@ -15,15 +16,38 @@ require('dotenv').config();
 const { initializeFirebaseAdmin } = require('./services/firebase-admin');
 const { getDatabase, closeConnection } = require('./services/mongodb');
 const { runStartupDiagnostics } = require('./utils/startupDiagnostics');
+const {
+  verifyHandshakeToken,
+  createMetaWebhookGuard,
+  createTelegramWebhookGuard,
+} = require('./middleware/webhookSecurity');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Render / reverse-proxy awareness for accurate client IP rate limiting
+app.set('trust proxy', 1);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // MIDDLEWARE
 // ──────────────────────────────────────────────────────────────────────────────
 
-app.use(bodyParser.json({ limit: '10mb' }));
+// HTTP security headers (crossOriginResourcePolicy: 'cross-origin' allows PDF/receipt previews across origins)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
+  })
+);
+
+app.use(
+  bodyParser.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // CORS — allow the Vite dev server and any configured production origins
@@ -74,7 +98,8 @@ app.get('/', (req, res) => {
       health: '/health',
       documents: '/api/documents',
       ai: '/api/ai',
-      telegram: '/api/telegram'
+      telegram: '/api/telegram',
+      orders: '/api/orders'
     }
   });
 });
@@ -103,6 +128,9 @@ app.use('/api/ai', aiRouter);
 const telegramRouter = require('./routes/telegram');
 app.use('/api/telegram', telegramRouter);
 
+const ordersRouter = require('./routes/orders');
+app.use('/api/orders', ordersRouter);
+
 // ──────────────────────────────────────────────────────────────────────────────
 // TELEGRAM / MESSENGER WEBHOOK ENDPOINTS (Legacy — kept for notifications)
 // ──────────────────────────────────────────────────────────────────────────────
@@ -117,19 +145,23 @@ if (!VERIFY_TOKEN) {
   console.warn('[Server] WARNING: VERIFY_TOKEN not set — webhook verification disabled.');
 }
 
+const verifyMetaWebhook = createMetaWebhookGuard();
+const verifyTelegramWebhook = createTelegramWebhookGuard();
+
 // Webhook verification (GET) — Facebook/Messenger handshake
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
+  const verified = verifyHandshakeToken(mode, token, VERIFY_TOKEN);
 
   console.log(`[${new Date().toISOString()}] Webhook verification attempt:`, {
     mode,
-    tokenMatch: token === VERIFY_TOKEN,
+    tokenMatch: verified,
     challengePresent: !!challenge
   });
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+  if (verified) {
     console.log(`[${new Date().toISOString()}] Webhook verified successfully`);
     res.status(200).send(challenge);
   } else {
@@ -138,8 +170,8 @@ app.get('/webhook', (req, res) => {
   }
 });
 
-// Webhook event receiver (POST)
-app.post('/webhook', (req, res) => {
+// Webhook event receiver (POST) — protected by X-Hub-Signature-256 HMAC verification
+app.post('/webhook', verifyMetaWebhook, (req, res) => {
   // Acknowledge immediately; Facebook requires a fast 200
   res.status(200).send('EVENT_RECEIVED');
 
@@ -166,7 +198,7 @@ app.post('/webhook', (req, res) => {
 // TELEGRAM WEBHOOK — Inline Keyboard Callback Handler
 // ──────────────────────────────────────────────────────────────────────────────
 
-app.post('/telegram-webhook', async (req, res) => {
+app.post('/telegram-webhook', verifyTelegramWebhook, async (req, res) => {
   // Acknowledge immediately
   res.status(200).send('OK');
 
@@ -220,10 +252,11 @@ app.post('/telegram-webhook', async (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error('[Server] Unhandled error:', err.message);
+  const isDev = process.env.NODE_ENV === 'development';
   res.status(500).json({
     success: false,
     error: 'Internal server error',
-    message: err.message
+    ...(isDev ? { message: err.message } : {})
   });
 });
 
