@@ -16,8 +16,28 @@ const BACKEND_URL = import.meta.env.VITE_MONGODB_BACKEND_URL || 'http://localhos
  */
 const getAuthToken = async () => {
   const user = auth.currentUser;
-  if (!user) throw new Error('User must be signed in to upload documents');
+  if (!user) {
+    const err = new Error('Please sign in to access documents.');
+    err.code = 'auth/unauthenticated';
+    throw err;
+  }
   return await user.getIdToken();
+};
+
+const describeDownloadStatus = (status) => {
+  if (status === 401) {
+    return 'Session expired or unauthorized (401). Please sign in again.';
+  }
+  if (status === 403) {
+    return 'Access denied (403). Your role does not have permission to view or download this document.';
+  }
+  if (status === 404) {
+    return 'File binary not found on server (404). It may have been deleted or stored in another backend.';
+  }
+  if (status >= 500) {
+    return `Document backend server error (${status}). Please try again shortly.`;
+  }
+  return `Failed to load document (HTTP ${status}).`;
 };
 
 /**
@@ -26,6 +46,7 @@ const getAuthToken = async () => {
 export const mongoStore = {
   name: 'mongodb',
   _urls: new Map(),
+  _blobs: new Map(),
 
   /**
    * Upload file to MongoDB GridFS via backend API
@@ -36,7 +57,7 @@ export const mongoStore = {
    */
   async put(path, file, onProgress) {
     const token = await getAuthToken();
-    
+
     const formData = new FormData();
     formData.append('file', file);
     if (path) {
@@ -45,10 +66,10 @@ export const mongoStore = {
     if (file?.name) {
       formData.append('title', file.name);
     }
-    
+
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      
+
       // Track upload progress
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
@@ -56,7 +77,7 @@ export const mongoStore = {
           onProgress?.(Math.min(percentComplete, 99));
         }
       });
-      
+
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           onProgress?.(100);
@@ -77,15 +98,15 @@ export const mongoStore = {
           }
         }
       });
-      
+
       xhr.addEventListener('error', () => {
         reject(new Error('Network error during upload. Check if backend is running.'));
       });
-      
+
       xhr.addEventListener('abort', () => {
         reject(new Error('Upload cancelled'));
       });
-      
+
       xhr.open('POST', `${BACKEND_URL}/api/documents/upload`);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.send(formData);
@@ -106,22 +127,41 @@ export const mongoStore = {
   async getUrl(fileId, options = {}) {
     if (!fileId) return null;
 
-    if (options.fresh && this._urls.has(fileId)) {
-      URL.revokeObjectURL(this._urls.get(fileId));
-      this._urls.delete(fileId);
+    if (options.fresh) {
+      if (this._urls.has(fileId)) {
+        URL.revokeObjectURL(this._urls.get(fileId));
+        this._urls.delete(fileId);
+      }
+      this._blobs.delete(fileId);
     }
 
-    if (!options.fresh && this._urls.has(fileId)) {
+    // Mint a fresh guaranteed-live blob: URL from cached Blob bytes (0ms, zero network)
+    // so remounted PDF iframes in Edge/Chrome never hit a revoked/evicted blob: URL.
+    if (options.freshBlobUrl && !options.fresh && this._blobs.has(fileId)) {
+      const cachedBlob = this._blobs.get(fileId);
+      const objectUrl = URL.createObjectURL(cachedBlob);
+      this._urls.set(fileId, objectUrl);
+      return objectUrl;
+    }
+
+    if (!options.fresh && !options.freshBlobUrl && this._urls.has(fileId)) {
       return this._urls.get(fileId);
     }
 
     try {
       const blob = await this.get(fileId, options);
       if (!blob) return null;
+      // Keep bounded in-memory Blob cache (max 15 files) for instant, non-revokable previews
+      if (this._blobs.size >= 15 && !this._blobs.has(fileId)) {
+        const oldestKey = this._blobs.keys().next().value;
+        this._blobs.delete(oldestKey);
+      }
+      this._blobs.set(fileId, blob);
       const objectUrl = URL.createObjectURL(blob);
       this._urls.set(fileId, objectUrl);
       return objectUrl;
     } catch (error) {
+      if (options.throwOnError) throw error;
       console.error('MongoDB getUrl error:', error);
       return null;
     }
@@ -145,7 +185,14 @@ export const mongoStore = {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        if (options.throwOnError) {
+          const err = new Error(describeDownloadStatus(response.status));
+          err.status = response.status;
+          throw err;
+        }
+        return null;
+      }
       const blob = await response.blob();
       const contentType = response.headers?.get?.('content-type');
       if (contentType && !blob.type) {
@@ -153,6 +200,12 @@ export const mongoStore = {
       }
       return blob;
     } catch (error) {
+      if (options.throwOnError) {
+        if (error?.status || error?.code === 'auth/unauthenticated') throw error;
+        throw new Error(
+          'Could not reach document backend server. Please check your connection or verify the backend is online.'
+        );
+      }
       console.error('MongoDB get error:', error);
       return null;
     }
@@ -202,6 +255,7 @@ export const mongoStore = {
       URL.revokeObjectURL(this._urls.get(fileId));
       this._urls.delete(fileId);
     }
+    this._blobs.delete(fileId);
   },
 
   /**

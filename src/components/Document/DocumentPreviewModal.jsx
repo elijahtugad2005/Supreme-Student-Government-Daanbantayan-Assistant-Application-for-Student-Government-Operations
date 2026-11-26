@@ -3,7 +3,15 @@
 // Replaces inline iframe/image viewer with a clean, focused, distraction-free modal dialog.
 
 import React from 'react';
-import { HiX, HiDownload, HiRefresh, HiExclamationCircle, HiEye, HiDocumentText } from 'react-icons/hi';
+import {
+  HiX,
+  HiDownload,
+  HiRefresh,
+  HiExclamationCircle,
+  HiEye,
+  HiDocumentText,
+  HiExternalLink,
+} from 'react-icons/hi';
 import { T } from '../../utils/themeStyles';
 import { formatBytes } from '../../utils/documentLabels';
 import stylesModule from './DocumentDashboard.module.css';
@@ -19,6 +27,7 @@ export default function DocumentPreviewModal({
   onClose,
   onRetry,
   onDownload,
+  onOpenInDrive,
   onIframeLoad,
 }) {
   if (!isOpen || !doc) return null;
@@ -26,6 +35,10 @@ export default function DocumentPreviewModal({
   const isImage =
     /\.(png|jpe?g|webp|gif)$/i.test(doc.originalFileName || '') ||
     (doc.mimeType && doc.mimeType.startsWith('image/'));
+
+  const isWordDoc =
+    /\.(docx?)$/i.test(doc.originalFileName || '') ||
+    /wordprocessingml|msword/i.test(doc.mimeType || '');
 
   return (
     <div className={stylesModule.modalOverlay} style={previewModalStyles.backdrop} onClick={onClose} role="dialog" aria-modal="true">
@@ -68,31 +81,93 @@ export default function DocumentPreviewModal({
         {/* Viewer Content Area */}
         <div style={previewModalStyles.contentArea}>
           {previewError ? (
-            <div style={previewModalStyles.errorBox}>
-              <HiExclamationCircle style={{ fontSize: '2rem', color: T.error, flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <p style={previewModalStyles.errorTitle}>{previewError}</p>
-                <p style={previewModalStyles.errorSub}>
-                  The viewer could not render this document inline. You can retry streaming or download the file to view locally.
-                </p>
+            isWordDoc ? (
+              <div style={previewModalStyles.wordLimitPanel}>
+                <div style={previewModalStyles.wordLimitHeader}>
+                  <HiExclamationCircle style={{ fontSize: '2rem', color: '#f59e0b', flexShrink: 0 }} />
+                  <div>
+                    <h3 style={previewModalStyles.wordLimitTitle}>
+                      The software has limitations for viewing Word files or DOCX files
+                    </h3>
+                    <p style={previewModalStyles.wordLimitLead}>
+                      Please use a PDF file for easier upload and instant in-browser viewing.
+                    </p>
+                    <p style={previewModalStyles.wordLimitTech}>
+                      Technical details: {previewError}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={previewModalStyles.guideCard}>
+                  <div style={previewModalStyles.guideHeading}>
+                    How to convert Word (.docx) to PDF
+                  </div>
+                  <div style={previewModalStyles.guideGrid}>
+                    <div style={previewModalStyles.guideStepBox}>
+                      <div style={previewModalStyles.guideAppLabel}>Microsoft Office (Word)</div>
+                      <p style={previewModalStyles.guideSteps}>
+                        Open document &rarr; <strong>File</strong> &rarr; <strong>Export</strong> &rarr;{' '}
+                        <strong>Create PDF/XPS</strong> (or <strong>File</strong> &rarr;{' '}
+                        <strong>Save As</strong> &rarr; select <strong>PDF</strong>).
+                      </p>
+                    </div>
+                    <div style={previewModalStyles.guideStepBox}>
+                      <div style={previewModalStyles.guideAppLabel}>Google Docs / Google Sheets</div>
+                      <p style={previewModalStyles.guideSteps}>
+                        Open document &rarr; <strong>File</strong> &rarr; <strong>Download</strong> &rarr;{' '}
+                        <strong>PDF Document (.pdf)</strong> (or <strong>File</strong> &rarr;{' '}
+                        <strong>Export</strong> &rarr; <strong>PDF</strong>).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => onDownload(doc)}
+                    style={previewModalStyles.downloadBtn}
+                  >
+                    <HiDownload /> Download DOCX File
+                  </button>
+                  {doc.mongoFileId && typeof onOpenInDrive === 'function' && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenInDrive(doc)}
+                      style={previewModalStyles.retryBtn}
+                    >
+                      <HiExternalLink /> Open in Google Drive
+                    </button>
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
-                <button
-                  type="button"
-                  onClick={() => onRetry(doc)}
-                  style={previewModalStyles.retryBtn}
-                >
-                  <HiRefresh /> Retry
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDownload(doc)}
-                  style={previewModalStyles.downloadBtn}
-                >
-                  <HiDownload /> Download File
-                </button>
+            ) : (
+              <div style={previewModalStyles.errorBox}>
+                <HiExclamationCircle style={{ fontSize: '2rem', color: T.error, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <p style={previewModalStyles.errorTitle}>Unable to preview this document inline</p>
+                  <p style={previewModalStyles.errorSub}>
+                    Technical details: {previewError}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => onRetry(doc)}
+                    style={previewModalStyles.retryBtn}
+                  >
+                    <HiRefresh /> Retry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDownload(doc)}
+                    style={previewModalStyles.downloadBtn}
+                  >
+                    <HiDownload /> Download File
+                  </button>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             <div style={previewModalStyles.viewerFrame}>
               {(previewLoading || (!iframeLoaded && previewUrl)) && (
@@ -339,6 +414,83 @@ const previewModalStyles = {
     gap: '1rem',
     alignItems: 'center',
     textAlign: 'center',
+  },
+  wordLimitPanel: {
+    margin: '2rem auto',
+    maxWidth: '720px',
+    width: 'calc(100% - 2rem)',
+    padding: '1.5rem',
+    borderRadius: '12px',
+    backgroundColor: 'rgba(245, 158, 11, 0.09)',
+    border: '1px solid rgba(245, 158, 11, 0.42)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.15rem',
+    overflowY: 'auto',
+  },
+  wordLimitHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.85rem',
+  },
+  wordLimitTitle: {
+    margin: '0 0 0.35rem',
+    fontSize: '1.06rem',
+    fontWeight: 700,
+    color: '#fef3c7',
+    lineHeight: 1.3,
+  },
+  wordLimitLead: {
+    margin: '0 0 0.4rem',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    color: '#f8fafc',
+    lineHeight: 1.45,
+  },
+  wordLimitTech: {
+    margin: 0,
+    fontSize: '0.78rem',
+    color: '#cbd5e1',
+    lineHeight: 1.45,
+  },
+  guideCard: {
+    padding: '1rem 1.1rem',
+    borderRadius: '10px',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    border: '1px solid rgba(148, 163, 184, 0.25)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
+  },
+  guideHeading: {
+    fontSize: '0.82rem',
+    fontWeight: 700,
+    color: '#ffea9f',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  },
+  guideGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '0.75rem',
+  },
+  guideStepBox: {
+    padding: '0.75rem 0.9rem',
+    borderRadius: '8px',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+  },
+  guideAppLabel: {
+    fontSize: '0.82rem',
+    fontWeight: 700,
+    color: '#f8fafc',
+    marginBottom: '0.3rem',
+  },
+  guideSteps: {
+    margin: 0,
+    fontSize: '0.8rem',
+    color: '#cbd5e1',
+    lineHeight: 1.5,
   },
   errorTitle: {
     margin: 0,

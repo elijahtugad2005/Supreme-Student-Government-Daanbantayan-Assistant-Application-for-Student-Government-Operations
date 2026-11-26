@@ -36,7 +36,13 @@ export function computeOrderStatistics(orders = []) {
   });
   const unclaimedOrders = orders.filter((o) => {
     const raw = normalizeOrderStatusUpper(o.orderStatus);
-    return !o.claimed && raw !== 'CLAIMED' && raw !== 'COMPLETED';
+    return (
+      !o.claimed &&
+      raw !== 'CLAIMED' &&
+      raw !== 'COMPLETED' &&
+      raw !== 'CANCELLED' &&
+      raw !== 'RETURNED'
+    );
   });
 
   const claimedRevenue = claimedOrders.reduce(
@@ -165,12 +171,20 @@ export async function executeOrderStatusUpdate({ docId, newStatus, order, deps }
       currentUser?.email ||
       'Officer';
 
+    // Defective Returned items are quarantined (NOT restored to sellable inventory),
+    // so preserve `stockClaimDeducted` on Returned transitions to prevent double deduction.
+    const nextStockClaimDeducted = isClaimAction
+      ? true
+      : isReturned
+        ? Boolean(order.stockClaimDeducted)
+        : false;
+
     await updateOrderDoc(docId, {
       orderStatus: newStatus,
       claimed: isClaimAction,
       claimedAt: isClaimAction ? nowIso : (order.claimedAt || null),
       claimedBy: isClaimAction ? performer : (order.claimedBy || null),
-      stockClaimDeducted: isClaimAction,
+      stockClaimDeducted: nextStockClaimDeducted,
       igfSynced: igfSynced ?? false,
       returnedAt: isReturned ? nowIso : order.returnedAt || null,
       updatedAt: nowIso,

@@ -271,6 +271,58 @@ async function deleteMirror(driveFileId) {
   }
 }
 
+/**
+ * Build canonical Google Drive folder URL from a folder ID.
+ */
+function buildFolderUrl(folderId) {
+  if (!folderId || typeof folderId !== 'string') return null;
+  const trimmed = folderId.trim();
+  if (!trimmed) return null;
+  return `https://drive.google.com/drive/folders/${encodeURIComponent(trimmed)}`;
+}
+
+/**
+ * Resolve Google Drive folder links for the Documents and/or Receipts subfolders.
+ * Never throws; returns enabled:false when Drive mirroring is not configured.
+ * @param {'all'|'documents'|'receipts'} [scope='all']
+ */
+async function getFolderLinks(scope = 'all') {
+  if (!isEnabled()) {
+    return { enabled: false, documentsFolder: null, receiptsFolder: null };
+  }
+
+  const normalized = String(scope || 'all').toLowerCase();
+  const wantDocs = normalized === 'all' || normalized === 'documents';
+  const wantReceipts = normalized === 'all' || normalized === 'receipts';
+
+  let documentsFolder = null;
+  let receiptsFolder = null;
+
+  if (wantDocs) {
+    try {
+      const id = await getDocumentsSubfolderId();
+      if (id) {
+        documentsFolder = { id, name: SUBFOLDER_NAME, url: buildFolderUrl(id) };
+      }
+    } catch (err) {
+      console.warn('[DriveSync] getFolderLinks(documents) failed:', err.message);
+    }
+  }
+
+  if (wantReceipts) {
+    try {
+      const id = await getReceiptsSubfolderId();
+      if (id) {
+        receiptsFolder = { id, name: RECEIPTS_SUBFOLDER_NAME, url: buildFolderUrl(id) };
+      }
+    } catch (err) {
+      console.warn('[DriveSync] getFolderLinks(receipts) failed:', err.message);
+    }
+  }
+
+  return { enabled: true, documentsFolder, receiptsFolder };
+}
+
 module.exports = {
   isEnabled,
   authMode,
@@ -281,4 +333,6 @@ module.exports = {
   getDocumentsSubfolderId,
   getReceiptsSubfolderId,
   getNamedSubfolderId,
+  buildFolderUrl,
+  getFolderLinks,
 };

@@ -1361,3 +1361,693 @@
   background: rgba(122, 18, 29, 0.4) !important;
   color: #fff6e5 !important;
 }
+
+/* ─── QoL Append-Only Ledger Filter Bar, Decrement Bridge & Running Trail ─── */
+.ledgerSubCaption {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.ledgerHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ledgerDriveLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0284c7;
+  text-decoration: none;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(2, 132, 199, 0.25);
+  background: rgba(2, 132, 199, 0.06);
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.ledgerDriveLink:hover {
+  background: rgba(2, 132, 199, 0.12);
+  border-color: rgba(2, 132, 199, 0.45);
+}
+
+.ledgerEntryCount {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledgerFilterBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.ledgerFilterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ledgerFilterLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.ledgerPoolChips {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.ledgerPoolChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.78rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.ledgerPoolChip:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.ledgerPoolChipActive {
+  background: #7a121d;
+  border-color: #7a121d;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(122, 18, 29, 0.22);
+}
+
+.ledgerPoolChipActive:hover {
+  background: #610d16;
+  border-color: #610d16;
+}
+
+.ledgerChipCount {
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+}
+
+.ledgerPoolChipActive .ledgerChipCount {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.ledgerControlsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ledgerDirectionGroup {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 10px;
+  background: #e2e8f0;
+  gap: 0.2rem;
+}
+
+.ledgerDirectionBtn {
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.34rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ledgerDirectionBtn:hover {
+  color: #0f172a;
+}
+
+.ledgerDirectionBtnActive {
+  background: #ffffff;
+  color: #7a121d;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
+
+.ledgerUtilityBtns {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.ledgerUtilBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.36rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ledgerUtilBtn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.ledgerUtilBtnActive {
+  background: rgba(122, 18, 29, 0.09);
+  border-color: rgba(122, 18, 29, 0.4);
+  color: #7a121d;
+}
+
+.ledgerResetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.36rem 0.72rem;
+  border-radius: 8px;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.07);
+  color: #b91c1c;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ledgerResetBtn:hover {
+  background: rgba(220, 38, 38, 0.14);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+/* Balance Decrement Bridge Strip */
+.ledgerBridgeStrip {
+  padding: 0.95rem 1.15rem;
+  margin-bottom: 1.1rem;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.ledgerBridgeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.ledgerBridgeScope {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7a121d;
+}
+
+.ledgerBridgeSpentPct {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledgerBridgeEquation {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.ledgerBridgeStep {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 115px;
+}
+
+.ledgerBridgeStepResult {
+  padding: 0.35rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.25);
+}
+
+.ledgerBridgeStepLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.ledgerBridgeValueBase,
+.ledgerBridgeValueIn,
+.ledgerBridgeValueOut,
+.ledgerBridgeValueNet {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+
+.ledgerBridgeValueBase {
+  color: #0f172a;
+}
+
+.ledgerBridgeValueIn {
+  color: #15803d;
+}
+
+.ledgerBridgeValueOut {
+  color: #b91c1c;
+}
+
+.ledgerBridgeValueNet {
+  color: #15803d;
+}
+
+.ledgerBridgeOp {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.ledgerBridgeMeterTrack {
+  height: 4px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+  margin-top: 0.75rem;
+}
+
+.ledgerBridgeMeterFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #b91c1c 0%, #d97706 100%);
+  transition: width 0.28s ease;
+}
+
+.ledgerBridgeBreakdown {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ledgerBridgeSnapChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledgerBridgeSnapName {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ledgerBridgeSnapVal {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Ledger Table Enhancements & Running Trail Column */
+.ledgerTableWrap {
+  overflow-x: auto;
+}
+
+.ledgerEmptyState {
+  text-align: center;
+  padding: 2rem 1.25rem;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ledgerEmptyText {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ledgerRowVoided {
+  opacity: 0.72;
+}
+
+.ledgerFundCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.22rem;
+}
+
+.ledgerFundName {
+  font-weight: 500;
+}
+
+.ledgerPoolTag {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.42rem;
+  border-radius: 6px;
+  background: rgba(122, 18, 29, 0.09);
+  color: #7a121d;
+  border: 1px solid rgba(122, 18, 29, 0.2);
+}
+
+.balanceTrailCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.balanceTrailLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.82rem;
+}
+
+.balanceTrailBefore {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.balanceTrailArrowOut {
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.balanceTrailArrowIn {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.balanceTrailAfterOut {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.balanceTrailAfterIn {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.balanceTrailVoided {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.balanceTrailMeta {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ─── Dark Theme (Royal Maroon & Gold) Overrides for QoL Ledger Filter & Bridge ─── */
+:global(.theme-dark) .ledgerSubCaption {
+  color: #c9a9ad;
+}
+
+:global(.theme-dark) .ledgerDriveLink {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+:global(.theme-dark) .ledgerDriveLink:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(125, 211, 252, 0.55);
+}
+
+:global(.theme-dark) .ledgerEntryCount {
+  color: #e6d1d4;
+}
+
+:global(.theme-dark) .ledgerFilterBar {
+  background: rgba(24, 3, 7, 0.78);
+  border-color: rgba(212, 175, 55, 0.22);
+}
+
+:global(.theme-dark) .ledgerFilterLabel {
+  color: #d4af37;
+}
+
+:global(.theme-dark) .ledgerPoolChip {
+  background: rgba(40, 6, 11, 0.85);
+  border-color: rgba(212, 175, 55, 0.25);
+  color: #f3e6e8;
+}
+
+:global(.theme-dark) .ledgerPoolChip:hover {
+  background: rgba(74, 10, 19, 0.9);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+:global(.theme-dark) .ledgerPoolChipActive {
+  background: linear-gradient(135deg, #8b1523 0%, #580812 100%);
+  border-color: #d4af37;
+  color: #ffea9f;
+  box-shadow: 0 2px 12px rgba(212, 175, 55, 0.22);
+}
+
+:global(.theme-dark) .ledgerChipCount {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global(.theme-dark) .ledgerPoolChipActive .ledgerChipCount {
+  background: rgba(212, 175, 55, 0.24);
+  color: #fff6e5;
+}
+
+:global(.theme-dark) .ledgerDirectionGroup {
+  background: rgba(18, 2, 5, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+:global(.theme-dark) .ledgerDirectionBtn {
+  color: #c9a9ad;
+}
+
+:global(.theme-dark) .ledgerDirectionBtn:hover {
+  color: #fff6e5;
+}
+
+:global(.theme-dark) .ledgerDirectionBtnActive {
+  background: rgba(122, 18, 29, 0.85);
+  color: #ffea9f;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+:global(.theme-dark) .ledgerUtilBtn {
+  background: rgba(36, 5, 10, 0.8);
+  border-color: rgba(212, 175, 55, 0.24);
+  color: #e6d1d4;
+}
+
+:global(.theme-dark) .ledgerUtilBtn:hover {
+  background: rgba(65, 9, 17, 0.9);
+  border-color: rgba(212, 175, 55, 0.45);
+  color: #fff6e5;
+}
+
+:global(.theme-dark) .ledgerUtilBtnActive {
+  background: rgba(212, 175, 55, 0.16);
+  border-color: #d4af37;
+  color: #ffea9f;
+}
+
+:global(.theme-dark) .ledgerResetBtn {
+  background: rgba(248, 113, 113, 0.14);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+:global(.theme-dark) .ledgerResetBtn:hover {
+  background: rgba(248, 113, 113, 0.22);
+  border-color: #f87171;
+}
+
+:global(.theme-dark) .ledgerBridgeStrip {
+  background: rgba(20, 3, 6, 0.82);
+  border-color: rgba(212, 175, 55, 0.28);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
+}
+
+:global(.theme-dark) .ledgerBridgeScope {
+  color: #d4af37;
+}
+
+:global(.theme-dark) .ledgerBridgeSpentPct {
+  color: #e6d1d4;
+}
+
+:global(.theme-dark) .ledgerBridgeStepLabel {
+  color: #c9a9ad;
+}
+
+:global(.theme-dark) .ledgerBridgeValueBase {
+  color: #fff6e5;
+}
+
+:global(.theme-dark) .ledgerBridgeValueIn {
+  color: #4ade80;
+}
+
+:global(.theme-dark) .ledgerBridgeValueOut {
+  color: #f87171;
+}
+
+:global(.theme-dark) .ledgerBridgeStepResult {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.32);
+}
+
+:global(.theme-dark) .ledgerBridgeValueNet {
+  color: #4ade80;
+}
+
+:global(.theme-dark) .ledgerBridgeOp {
+  color: rgba(212, 175, 55, 0.65);
+}
+
+:global(.theme-dark) .ledgerBridgeMeterTrack {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global(.theme-dark) .ledgerBridgeMeterFill {
+  background: linear-gradient(90deg, #f87171 0%, #d4af37 100%);
+}
+
+:global(.theme-dark) .ledgerBridgeBreakdown {
+  border-top-color: rgba(212, 175, 55, 0.16);
+}
+
+:global(.theme-dark) .ledgerBridgeSnapChip {
+  background: rgba(36, 5, 10, 0.85);
+  border-color: rgba(212, 175, 55, 0.22);
+}
+
+:global(.theme-dark) .ledgerBridgeSnapName {
+  color: #c9a9ad;
+}
+
+:global(.theme-dark) .ledgerBridgeSnapVal {
+  color: #ffea9f;
+}
+
+:global(.theme-dark) .ledgerEmptyState {
+  color: #c9a9ad;
+}
+
+:global(.theme-dark) .ledgerPoolTag {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.35);
+  color: #ffea9f;
+}
+
+:global(.theme-dark) .balanceTrailBefore {
+  color: #c9a9ad;
+}
+
+:global(.theme-dark) .balanceTrailArrowOut {
+  color: #f87171;
+}
+
+:global(.theme-dark) .balanceTrailArrowIn {
+  color: #4ade80;
+}
+
+:global(.theme-dark) .balanceTrailAfterOut {
+  color: #fff6e5;
+}
+
+:global(.theme-dark) .balanceTrailAfterIn {
+  color: #4ade80;
+}
+
+:global(.theme-dark) .balanceTrailVoided,
+:global(.theme-dark) .balanceTrailMeta {
+  color: #b8989c;
+}
+
+@media (max-width: 640px) {
+  .ledgerControlsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ledgerDirectionGroup {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ledgerDirectionBtn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .ledgerBridgeEquation {
+    gap: 0.55rem;
+  }
+
+  .ledgerBridgeStep {
+    min-width: 96px;
+  }
+}

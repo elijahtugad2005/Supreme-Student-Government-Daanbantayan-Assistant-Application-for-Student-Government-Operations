@@ -29,6 +29,23 @@ import {
   deriveAllocationTxDefaults,
   resolveReceiptUploadOutcome,
 } from '../../utils/ledgerTxFormHelpers.js';
+import {
+  LEDGER_POOL_ORDER,
+  LEDGER_POOL_META,
+  LEDGER_DIRECTIONS,
+  toggleLedgerPool,
+  computeLedgerRunningTrail,
+  filterLedgerTrail,
+  computeLedgerBridgeSummary,
+  computeLedgerPoolCounts,
+} from '../../utils/ledgerRunningBalance.js';
+import { driveStore } from '../../services/fileStore/driveStore.js';
+import { mongoStore } from '../../services/fileStore/mongoStore.js';
+import {
+  hasViewableReceipt,
+  isDirectBrowserReceiptUrl,
+  openReceiptProof,
+} from '../../utils/receiptAccessHelpers.js';
 import styles from './FundGovernance.module.css';
 import BankCalibrationModal from './BankCalibrationModal.jsx';
 import { ReversalModal, RestoreAllocationModal } from './FinanceLedgerModal.jsx';
@@ -45,6 +62,13 @@ import {
   HiPencil,
   HiChevronDown,
   HiChevronUp,
+  HiFilter,
+  HiArrowRight,
+  HiSwitchVertical,
+  HiEyeOff,
+  HiEye,
+  HiFolder,
+  HiExternalLink,
 } from 'react-icons/hi';
 
 const FundGovernance = () => {
@@ -99,7 +123,38 @@ const FundGovernance = () => {
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const [receiptUploadProgress, setReceiptUploadProgress] = useState(0);
   const [receiptUploadNotice, setReceiptUploadNotice] = useState('');
+  const [receiptsDriveFolder, setReceiptsDriveFolder] = useState(null);
   const [showOptionalTxFields, setShowOptionalTxFields] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setReceiptsDriveFolder(null);
+      return undefined;
+    }
+    let alive = true;
+    driveStore
+      .getFolders({ folder: 'receipts' })
+      .then((res) => {
+        if (!alive) return;
+        setReceiptsDriveFolder(res?.enabled && res.receiptsFolder?.url ? res.receiptsFolder : null);
+      })
+      .catch(() => {
+        if (alive) setReceiptsDriveFolder(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [currentUser]);
+
+  const handleOpenLedgerReceipt = async (tx) => {
+    try {
+      await openReceiptProof(tx, {
+        getBlobUrl: (fileId, opts) => mongoStore.getUrl(fileId, opts),
+      });
+    } catch (err) {
+      setSubmitError(err?.message || 'Could not open receipt file.');
+    }
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReversalModalOpen, setIsReversalModalOpen] = useState(false);
@@ -131,6 +186,61 @@ const FundGovernance = () => {
   const [fundBalanceError, setFundBalanceError] = useState(null);
   const [isSavingFundBalance, setIsSavingFundBalance] = useState(false);
   const [allocFundFilter, setAllocFundFilter] = useState('All'); // 'All' | 'fund_fiscal_year_budget' | 'fund_fsg_remittance'
+
+  // QoL Append-Only Financial Ledger Filter & Running Decrement State
+  const [ledgerSelectedPools, setLedgerSelectedPools] = useState([]); // [] = All Funds, or subset of ['PPMP', 'IGF', 'IGP']
+  const [ledgerDirection, setLedgerDirection] = useState(LEDGER_DIRECTIONS.ALL);
+  const [ledgerHideReversed, setLedgerHideReversed] = useState(false);
+  const [ledgerSortOrder, setLedgerSortOrder] = useState('newest'); // 'newest' | 'oldest'
+
+  const ledgerTrailResult = useMemo(
+    () => computeLedgerRunningTrail(visibleTransactions, fundAccounts, igpCollections),
+    [visibleTransactions, fundAccounts, igpCollections]
+  );
+
+  const ledgerPoolCounts = useMemo(
+    () =>
+      computeLedgerPoolCounts(ledgerTrailResult.rows, {
+        direction: ledgerDirection,
+        hideReversed: ledgerHideReversed,
+      }),
+    [ledgerTrailResult.rows, ledgerDirection, ledgerHideReversed]
+  );
+
+  const filteredLedgerRows = useMemo(
+    () =>
+      filterLedgerTrail(ledgerTrailResult.rows, {
+        selectedPools: ledgerSelectedPools,
+        direction: ledgerDirection,
+        hideReversed: ledgerHideReversed,
+        sortOrder: ledgerSortOrder,
+      }),
+    [
+      ledgerTrailResult.rows,
+      ledgerSelectedPools,
+      ledgerDirection,
+      ledgerHideReversed,
+      ledgerSortOrder,
+    ]
+  );
+
+  const ledgerBridgeSummary = useMemo(
+    () => computeLedgerBridgeSummary(ledgerTrailResult, ledgerSelectedPools, fundAccounts),
+    [ledgerTrailResult, ledgerSelectedPools, fundAccounts]
+  );
+
+  const hasActiveLedgerFilters =
+    ledgerSelectedPools.length > 0 ||
+    ledgerDirection !== LEDGER_DIRECTIONS.ALL ||
+    ledgerHideReversed ||
+    ledgerSortOrder !== 'newest';
+
+  const handleResetLedgerFilters = () => {
+    setLedgerSelectedPools([]);
+    setLedgerDirection(LEDGER_DIRECTIONS.ALL);
+    setLedgerHideReversed(false);
+    setLedgerSortOrder('newest');
+  };
 
   // Form State for new Transaction
   const [txForm, setTxForm] = useState({
@@ -879,18 +989,271 @@ const FundGovernance = () => {
       {/* Append-Only Transaction Ledger */}
       <div className={styles.tableCard}>
         <div className={styles.tableHeader}>
-          <h2 className={styles.tableTitle}>Append-Only Financial Ledger</h2>
-          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            {visibleTransactions.length} immutable entries recorded
-          </span>
+          <div>
+            <h2 className={styles.tableTitle}>Append-Only Financial Ledger</h2>
+            <p className={styles.ledgerSubCaption}>
+              Filter by PPMP, IGF, IGP, or combine multiple pools to trace exact balance decrements.
+            </p>
+          </div>
+          <div className={styles.ledgerHeaderActions}>
+            {receiptsDriveFolder?.url && (
+              <a
+                href={receiptsDriveFolder.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.ledgerDriveLink}
+                title="Open shared Google Drive Receipts folder (linked with Inventory)"
+              >
+                <HiFolder size={14} aria-hidden="true" />
+                <span>Receipts Folder (Drive)</span>
+                <HiExternalLink size={13} aria-hidden="true" />
+              </a>
+            )}
+            <span className={styles.ledgerEntryCount}>
+              {filteredLedgerRows.length === visibleTransactions.length
+                ? `${visibleTransactions.length} immutable entries`
+                : `Showing ${filteredLedgerRows.length} of ${visibleTransactions.length} entries`}
+            </span>
+          </div>
+        </div>
+
+        {/* QoL Ledger Filter Bar */}
+        <div className={styles.ledgerFilterBar} role="region" aria-label="Ledger filters">
+          <div className={styles.ledgerFilterGroup}>
+            <span className={styles.ledgerFilterLabel}>
+              <HiFilter size={13} aria-hidden="true" />
+              Fund Pool
+            </span>
+            <div className={styles.ledgerPoolChips} role="group" aria-label="Filter by fund pool">
+              <button
+                type="button"
+                aria-pressed={ledgerSelectedPools.length === 0}
+                className={`${styles.ledgerPoolChip} ${
+                  ledgerSelectedPools.length === 0 ? styles.ledgerPoolChipActive : ''
+                }`}
+                onClick={() => setLedgerSelectedPools([])}
+              >
+                <span>All Funds</span>
+                <span className={styles.ledgerChipCount}>{ledgerPoolCounts.ALL}</span>
+              </button>
+              {LEDGER_POOL_ORDER.map((poolKey) => {
+                const meta = LEDGER_POOL_META[poolKey];
+                const isSelected = ledgerSelectedPools.includes(poolKey);
+                return (
+                  <button
+                    key={poolKey}
+                    type="button"
+                    aria-pressed={isSelected}
+                    title={`Toggle ${meta.fullLabel} (select multiple to combine)`}
+                    className={`${styles.ledgerPoolChip} ${
+                      isSelected ? styles.ledgerPoolChipActive : ''
+                    }`}
+                    onClick={() =>
+                      setLedgerSelectedPools((prev) => toggleLedgerPool(prev, poolKey))
+                    }
+                  >
+                    <span>{meta.label}</span>
+                    <span className={styles.ledgerChipCount}>
+                      {ledgerPoolCounts[poolKey] || 0}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={styles.ledgerControlsRow}>
+            <div
+              className={styles.ledgerDirectionGroup}
+              role="group"
+              aria-label="Filter by transaction direction"
+            >
+              {[
+                { key: LEDGER_DIRECTIONS.ALL, label: 'All' },
+                { key: LEDGER_DIRECTIONS.EXPENSES, label: 'Expenses Only' },
+                { key: LEDGER_DIRECTIONS.INFLOWS, label: 'Inflows Only' },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  aria-pressed={ledgerDirection === opt.key}
+                  className={`${styles.ledgerDirectionBtn} ${
+                    ledgerDirection === opt.key ? styles.ledgerDirectionBtnActive : ''
+                  }`}
+                  onClick={() => setLedgerDirection(opt.key)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.ledgerUtilityBtns}>
+              <button
+                type="button"
+                aria-pressed={ledgerHideReversed}
+                className={`${styles.ledgerUtilBtn} ${
+                  ledgerHideReversed ? styles.ledgerUtilBtnActive : ''
+                }`}
+                onClick={() => setLedgerHideReversed((prev) => !prev)}
+                title="Hide reversed and voided offset rows for a clean decrement sequence"
+              >
+                {ledgerHideReversed ? (
+                  <HiEyeOff size={14} aria-hidden="true" />
+                ) : (
+                  <HiEye size={14} aria-hidden="true" />
+                )}
+                <span>{ledgerHideReversed ? 'Reversed Hidden' : 'Hide Reversed'}</span>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.ledgerUtilBtn} ${
+                  ledgerSortOrder === 'oldest' ? styles.ledgerUtilBtnActive : ''
+                }`}
+                onClick={() =>
+                  setLedgerSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'))
+                }
+                title="Switch between newest-first and chronological countdown order"
+              >
+                <HiSwitchVertical size={14} aria-hidden="true" />
+                <span>{ledgerSortOrder === 'oldest' ? 'Oldest → Newest' : 'Newest First'}</span>
+              </button>
+
+              {hasActiveLedgerFilters && (
+                <button
+                  type="button"
+                  className={styles.ledgerResetBtn}
+                  onClick={handleResetLedgerFilters}
+                >
+                  <HiX size={13} aria-hidden="true" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Balance Decrement Bridge Strip */}
+        <div
+          className={styles.ledgerBridgeStrip}
+          role="region"
+          aria-label="Fund balance decrement summary"
+        >
+          <div className={styles.ledgerBridgeHeader}>
+            <span className={styles.ledgerBridgeScope}>{ledgerBridgeSummary.scopeLabel}</span>
+            <span className={styles.ledgerBridgeSpentPct}>
+              {ledgerBridgeSummary.spentPercent.toFixed(1)}% utilized
+            </span>
+          </div>
+
+          <div className={styles.ledgerBridgeEquation}>
+            {ledgerBridgeSummary.startingCentavos > 0 && (
+              <div className={styles.ledgerBridgeStep}>
+                <span className={styles.ledgerBridgeStepLabel}>
+                  {ledgerSelectedPools.length === 1 && ledgerSelectedPools[0] === 'PPMP'
+                    ? 'Budget Ceiling'
+                    : 'Opening / Ceiling'}
+                </span>
+                <span className={styles.ledgerBridgeValueBase}>
+                  {formatPHP(ledgerBridgeSummary.startingCentavos, true)}
+                </span>
+              </div>
+            )}
+
+            {ledgerBridgeSummary.startingCentavos > 0 &&
+              ledgerBridgeSummary.inflowsCentavos > 0 && (
+                <span className={styles.ledgerBridgeOp} aria-hidden="true">
+                  +
+                </span>
+              )}
+
+            {(ledgerBridgeSummary.inflowsCentavos > 0 ||
+              ledgerBridgeSummary.startingCentavos === 0) && (
+              <div className={styles.ledgerBridgeStep}>
+                <span className={styles.ledgerBridgeStepLabel}>
+                  {ledgerBridgeSummary.inflowCount > 0
+                    ? `Inflows (${ledgerBridgeSummary.inflowCount})`
+                    : 'Total Collections'}
+                </span>
+                <span className={styles.ledgerBridgeValueIn}>
+                  {formatPHP(ledgerBridgeSummary.inflowsCentavos, true)}
+                </span>
+              </div>
+            )}
+
+            <span className={styles.ledgerBridgeOp} aria-hidden="true">
+              −
+            </span>
+
+            <div className={styles.ledgerBridgeStep}>
+              <span className={styles.ledgerBridgeStepLabel}>
+                {ledgerBridgeSummary.expenseCount > 0
+                  ? `Expenses (${ledgerBridgeSummary.expenseCount})`
+                  : 'Expenses'}
+              </span>
+              <span className={styles.ledgerBridgeValueOut}>
+                {formatPHP(ledgerBridgeSummary.expensesCentavos, true)}
+              </span>
+            </div>
+
+            <span className={styles.ledgerBridgeOp} aria-hidden="true">
+              =
+            </span>
+
+            <div className={`${styles.ledgerBridgeStep} ${styles.ledgerBridgeStepResult}`}>
+              <span className={styles.ledgerBridgeStepLabel}>Remaining Balance</span>
+              <span className={styles.ledgerBridgeValueNet}>
+                {formatPHP(ledgerBridgeSummary.remainingCentavos, true)}
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.ledgerBridgeMeterTrack} aria-hidden="true">
+            <div
+              className={styles.ledgerBridgeMeterFill}
+              style={{ width: `${Math.min(100, ledgerBridgeSummary.spentPercent)}%` }}
+            />
+          </div>
+
+          {ledgerBridgeSummary.perAccountSnapshots.length > 1 && (
+            <div className={styles.ledgerBridgeBreakdown}>
+              {ledgerBridgeSummary.perAccountSnapshots.map((snap) => (
+                <span key={snap.id} className={styles.ledgerBridgeSnapChip}>
+                  <span className={styles.ledgerBridgeSnapName}>{snap.name}:</span>
+                  <span className={styles.ledgerBridgeSnapVal}>
+                    {formatPHP(snap.remainingCentavos, true)}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {visibleTransactions.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+          <div className={styles.ledgerEmptyState}>
             No transactions posted yet. Post an authorized expense or IGF/IGP collection to build the ledger.
           </div>
+        ) : filteredLedgerRows.length === 0 ? (
+          <div className={styles.ledgerEmptyState}>
+            <p className={styles.ledgerEmptyText}>
+              No ledger entries match the current filter ({ledgerBridgeSummary.scopeLabel}
+              {ledgerDirection === LEDGER_DIRECTIONS.EXPENSES
+                ? ' · Expenses Only'
+                : ledgerDirection === LEDGER_DIRECTIONS.INFLOWS
+                  ? ' · Inflows Only'
+                  : ''}
+              ).
+            </p>
+            <button
+              type="button"
+              className={styles.ledgerResetBtn}
+              onClick={handleResetLedgerFilters}
+            >
+              Show All Entries
+            </button>
+          </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className={styles.ledgerTableWrap}>
             <table className={styles.ledgerTable}>
               <thead>
                 <tr>
@@ -901,30 +1264,43 @@ const FundGovernance = () => {
                   <th>Type &amp; Purpose</th>
                   <th>Description</th>
                   <th>Amount</th>
+                  <th>Balance Trail (Before → After)</th>
                   <th>Status</th>
                   {canReverseFinanceLedger && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {visibleTransactions.map((tx) => {
-                  const revOrigType = String(tx.reversedTransactionType || '').toLowerCase();
-                  const isCollectionReversal =
-                    tx.transactionType === TRANSACTION_TYPES.REVERSAL &&
-                    (revOrigType === TRANSACTION_TYPES.COLLECTION ||
-                      revOrigType === TRANSACTION_TYPES.RECEIPT ||
-                      tx.source === 'MERCHANDISE_ORDER_REVERSAL' ||
-                      tx.source === 'IGP_COLLECTION_REVERSAL');
-                  const isOutflow =
-                    tx.transactionType === TRANSACTION_TYPES.EXPENSE ||
-                    tx.transactionType === TRANSACTION_TYPES.PAYMENT ||
-                    tx.transactionType === TRANSACTION_TYPES.REFUND ||
-                    tx.transactionType === TRANSACTION_TYPES.TRANSFER ||
-                    isCollectionReversal;
+                {filteredLedgerRows.map((row) => {
+                  const { tx } = row;
+                  const activePoolSet =
+                    ledgerSelectedPools.length > 0 ? new Set(ledgerSelectedPools) : null;
+                  const isInboundTransferView =
+                    Boolean(row.destinationTrail) &&
+                    Boolean(activePoolSet) &&
+                    !activePoolSet.has(row.pool) &&
+                    activePoolSet.has(row.destinationTrail.pool);
+                  const displayIsOutflow = isInboundTransferView ? false : row.isOutflow;
+                  const displayBeforeCentavos = isInboundTransferView
+                    ? row.destinationTrail.beforeCentavos
+                    : row.beforeCentavos;
+                  const displayAfterCentavos = isInboundTransferView
+                    ? row.destinationTrail.afterCentavos
+                    : row.afterCentavos;
+                  const displayDeltaCentavos = isInboundTransferView
+                    ? row.destinationTrail.deltaCentavos
+                    : row.effectiveDeltaCentavos;
+
                   const matchedFundAcc = fundAccounts.find((a) => a.id === tx.fundAccountId);
+                  const destFundAcc = row.destinationTrail
+                    ? fundAccounts.find((a) => a.id === row.destinationTrail.accountId)
+                    : null;
                   const txStorageLocation = inferTransactionStorageLocation(tx, matchedFundAcc);
 
                   return (
-                    <tr key={tx.id}>
+                    <tr
+                      key={tx.id}
+                      className={row.isVoidedPair ? styles.ledgerRowVoided : undefined}
+                    >
                       <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>
                         {tx.refNumber || tx.id.slice(0, 8)}
                       </td>
@@ -934,9 +1310,16 @@ const FundGovernance = () => {
                           : new Date().toLocaleDateString()}
                       </td>
                       <td>
-                        <span style={{ fontWeight: 500 }}>
-                          {TOP_LEVEL_FUND_LABELS[tx.fundCategory] || tx.fundCategory}
-                        </span>
+                        <div className={styles.ledgerFundCell}>
+                          <span className={styles.ledgerFundName}>
+                            {isInboundTransferView && destFundAcc
+                              ? destFundAcc.name
+                              : TOP_LEVEL_FUND_LABELS[tx.fundCategory] || tx.fundCategory}
+                          </span>
+                          <span className={styles.ledgerPoolTag}>
+                            {isInboundTransferView ? row.destinationTrail.pool : row.pool}
+                          </span>
+                        </div>
                       </td>
                       <td>
                         <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
@@ -952,7 +1335,7 @@ const FundGovernance = () => {
                             textTransform: 'capitalize',
                           }}
                         >
-                          {tx.transactionType}
+                          {isInboundTransferView ? 'Transfer In' : tx.transactionType}
                         </div>
                       </td>
                       <td>
@@ -966,7 +1349,7 @@ const FundGovernance = () => {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.74rem' }}>
                             {tx.receiptLabel && (
                               <span style={{ padding: '0.1rem 0.45rem', borderRadius: '999px', background: 'rgba(212, 175, 55, 0.16)', color: '#fbbf24' }}>
-                                🏷️ {tx.receiptLabel}
+                                {tx.receiptLabel}
                               </span>
                             )}
                             {tx.receiptOrNumber && (
@@ -979,24 +1362,79 @@ const FundGovernance = () => {
                                 • {tx.receiptDetails}
                               </span>
                             )}
-                            {(tx.receiptDriveLink || tx.receiptUrl) && (
-                              <a
-                                href={tx.receiptDriveLink || tx.receiptUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: '#38bdf8', textDecoration: 'underline', fontWeight: 600 }}
+                            {hasViewableReceipt(tx) && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenLedgerReceipt(tx)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: 0,
+                                  color: '#38bdf8',
+                                  textDecoration: 'underline',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  fontSize: 'inherit',
+                                }}
                               >
-                                📎 View Receipt (Drive)
-                              </a>
+                                {isDirectBrowserReceiptUrl(tx.receiptDriveLink) ? 'View Receipt (Drive)' : 'View Receipt'}
+                              </button>
                             )}
                           </div>
                         )}
                       </td>
                       <td>
-                        <span className={isOutflow ? styles.amountOut : styles.amountIn}>
-                          {isOutflow ? '-' : '+'}
+                        <span className={displayIsOutflow ? styles.amountOut : styles.amountIn}>
+                          {displayIsOutflow ? '-' : '+'}
                           {formatPHP(tx.amountCentavos || 0, true)}
                         </span>
+                      </td>
+                      <td>
+                        {row.isVoidedPair ? (
+                          <div className={styles.balanceTrailCell}>
+                            <span className={styles.balanceTrailVoided}>
+                              {formatPHP(displayAfterCentavos, true)}
+                            </span>
+                            <span className={styles.balanceTrailMeta}>
+                              {row.isPairedReversal ? 'Reversal offset (₱0 net)' : 'Voided (₱0 net)'}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className={styles.balanceTrailCell}>
+                            <div className={styles.balanceTrailLine}>
+                              <span className={styles.balanceTrailBefore}>
+                                {formatPHP(displayBeforeCentavos, true)}
+                              </span>
+                              <HiArrowRight
+                                size={12}
+                                className={
+                                  displayDeltaCentavos < 0
+                                    ? styles.balanceTrailArrowOut
+                                    : styles.balanceTrailArrowIn
+                                }
+                                aria-hidden="true"
+                              />
+                              <span
+                                className={
+                                  displayDeltaCentavos < 0
+                                    ? styles.balanceTrailAfterOut
+                                    : styles.balanceTrailAfterIn
+                                }
+                              >
+                                {formatPHP(displayAfterCentavos, true)}
+                              </span>
+                            </div>
+                            {!isInboundTransferView &&
+                              row.destinationTrail &&
+                              row.destinationTrail.deltaCentavos !== 0 && (
+                                <span className={styles.balanceTrailMeta}>
+                                  {destFundAcc?.name || row.destinationTrail.pool}:{' '}
+                                  {formatPHP(row.destinationTrail.beforeCentavos, true)} →{' '}
+                                  {formatPHP(row.destinationTrail.afterCentavos, true)}
+                                </span>
+                              )}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <span
@@ -1404,11 +1842,17 @@ const FundGovernance = () => {
                               setReceiptUploadProgress(0);
                               setReceiptUploadNotice('Attaching receipt proof...');
                               try {
+                                const itemLabel =
+                                  txForm.description?.trim() ||
+                                  txForm.receiptDetails?.trim() ||
+                                  txForm.receiptLabel ||
+                                  'Finance Expense';
                                 const outcome = await resolveReceiptUploadOutcome({
                                   file,
                                   meta: {
-                                    title: `Receipt_${txForm.receiptLabel || 'Expense'}_${file.name}`,
+                                    itemName: itemLabel,
                                     office: 'SSG Finance',
+                                    receiptSource: 'Finance',
                                   },
                                   uploadFn: uploadReceiptToDrive,
                                   onProgress: (pct) => setReceiptUploadProgress(pct),

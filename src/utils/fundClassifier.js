@@ -54,14 +54,14 @@ export function classifyBudgetFund(b) {
  */
 export const DEFAULT_ENTERPRISE_DISTRIBUTIONS = {
   IGP: (totalIgp = 0) => [
-    { name: 'Vending Machines', allocated: totalIgp * 0.45, spent: 0, value: totalIgp * 0.45 || 1 },
-    { name: 'Campus Lockers (HM)', allocated: totalIgp * 0.30, spent: 0, value: totalIgp * 0.30 || 1 },
-    { name: 'Campus Lockers (ED)', allocated: totalIgp * 0.25, spent: 0, value: totalIgp * 0.25 || 1 },
+    { name: 'Vending Machines', allocated: totalIgp * 0.45, spent: 0, value: totalIgp * 0.45 },
+    { name: 'Campus Lockers (HM)', allocated: totalIgp * 0.30, spent: 0, value: totalIgp * 0.30 },
+    { name: 'Campus Lockers (ED)', allocated: totalIgp * 0.25, spent: 0, value: totalIgp * 0.25 },
   ],
   IGF: (totalIgf = 0) => [
-    { name: 'Uniforms & Apparel', allocated: totalIgf * 0.50, spent: 0, value: totalIgf * 0.50 || 1 },
-    { name: 'Lanyards & Badges', allocated: totalIgf * 0.30, spent: 0, value: totalIgf * 0.30 || 1 },
-    { name: 'Student Accessories', allocated: totalIgf * 0.20, spent: 0, value: totalIgf * 0.20 || 1 },
+    { name: 'Uniforms & Apparel', allocated: totalIgf * 0.50, spent: 0, value: totalIgf * 0.50 },
+    { name: 'Lanyards & Badges', allocated: totalIgf * 0.30, spent: 0, value: totalIgf * 0.30 },
+    { name: 'Student Accessories', allocated: totalIgf * 0.20, spent: 0, value: totalIgf * 0.20 },
   ],
 };
 

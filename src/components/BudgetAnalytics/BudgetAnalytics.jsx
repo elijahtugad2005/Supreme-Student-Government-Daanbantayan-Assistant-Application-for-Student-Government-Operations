@@ -7,8 +7,16 @@ import {
   isBudgetIGF,
   isBudgetIGP,
   isBudgetPPMP,
-  DEFAULT_ENTERPRISE_DISTRIBUTIONS,
 } from '../../utils/fundClassifier.js';
+import {
+  deriveBudgetHealthStatus,
+  filterAnalyticsBudgets,
+  extractUniqueCommittees,
+  buildBudgetCsvContent,
+  buildCsvFilename,
+  buildIgpEnterpriseChartData,
+  buildIgfEnterpriseChartData,
+} from '../../utils/budgetAnalyticsHelpers.js';
 import styles from './BudgetAnalytics.module.css';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -32,7 +40,7 @@ import {
 } from 'react-icons/hi';
 
 const BudgetAnalytics = () => {
-  const { budgets, statistics, loading, fetchBudgets } = useFinance();
+  const { budgets, statistics, transactions = [], igpCollections = [], loading, fetchBudgets } = useFinance();
   const { theme, isLight } = useTheme();
   const isClassic = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,10 +65,10 @@ const BudgetAnalytics = () => {
 
     if (!scopedBudgets.length) {
       if (chartFundDomain === FUND_DOMAINS.IGP) {
-        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGP(statistics.igpBalance || 0);
+        return buildIgpEnterpriseChartData(igpCollections);
       }
       if (chartFundDomain === FUND_DOMAINS.IGF) {
-        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGF(statistics.igfBalance || 0);
+        return buildIgfEnterpriseChartData(transactions);
       }
       return [];
     }
@@ -75,7 +83,7 @@ const BudgetAnalytics = () => {
     }, {});
 
     return Object.values(grouped).sort((a, b) => b.allocated - a.allocated);
-  }, [budgets, chartFundDomain, statistics.igpBalance, statistics.igfBalance]);
+  }, [budgets, chartFundDomain, igpCollections, transactions]);
 
   // 2. Prepare Data for Pie Chart (Distribution by Committee / Initiative, filtered by Fund Domain)
   const committeePieData = useMemo(() => {
@@ -89,10 +97,10 @@ const BudgetAnalytics = () => {
 
     if (!scopedBudgets.length) {
       if (chartFundDomain === FUND_DOMAINS.IGP) {
-        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGP(statistics.igpBalance || 0);
+        return buildIgpEnterpriseChartData(igpCollections);
       }
       if (chartFundDomain === FUND_DOMAINS.IGF) {
-        return DEFAULT_ENTERPRISE_DISTRIBUTIONS.IGF(statistics.igfBalance || 0);
+        return buildIgfEnterpriseChartData(transactions);
       }
       return [];
     }
@@ -105,29 +113,21 @@ const BudgetAnalytics = () => {
     }, {});
 
     return Object.values(grouped);
-  }, [budgets, chartFundDomain, statistics.igpBalance, statistics.igfBalance]);
+  }, [budgets, chartFundDomain, igpCollections, transactions]);
+
+  const committeeOptions = useMemo(() => extractUniqueCommittees(budgets), [budgets]);
 
   // --- Filter Logic for Sheet ---
-  const filteredBudgets = useMemo(() => {
-    return budgets.filter(budget => {
-      const matchesSearch = budget.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            budget.resolution?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            budget.category?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCommittee = filterCommittee === 'All' || budget.committee === filterCommittee;
-      const matchesStatus = filterStatus === 'All' || budget.status === filterStatus;
-      const isFSG = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
-      const isIGF = budget.fundAccountId === 'fund_igf_main' || budget.fundCategory === 'IGF';
-      const isIGP = budget.fundAccountId === 'fund_igp_main' || budget.fundCategory === 'IGP';
-      const isFiscal = (!isFSG && !isIGF && !isIGP) || budget.fundAccountId === 'fund_fiscal_year_budget';
-
-      let matchesFund = true;
-      if (filterFund === 'fund_fiscal_year_budget') matchesFund = isFiscal;
-      else if (filterFund === 'fund_fsg_remittance') matchesFund = isFSG;
-      else if (filterFund === 'fund_igf_main') matchesFund = isIGF;
-      else if (filterFund === 'fund_igp_main') matchesFund = isIGP;
-      return matchesSearch && matchesCommittee && matchesStatus && matchesFund;
-    });
-  }, [budgets, searchTerm, filterCommittee, filterStatus, filterFund]);
+  const filteredBudgets = useMemo(
+    () =>
+      filterAnalyticsBudgets(budgets, {
+        searchTerm,
+        filterFund,
+        filterCommittee,
+        filterStatus,
+      }),
+    [budgets, searchTerm, filterCommittee, filterStatus, filterFund]
+  );
 
   // --- Helpers ---
   const formatCurrency = (val) => `₱${(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -143,34 +143,22 @@ const BudgetAnalytics = () => {
   };
 
   const copyBudgetDetails = (budget) => {
-    const isFSG = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
-    const text = `Project: ${budget.eventName} (${budget.resolution || 'N/A'})\nFund Source: ${budget.fundName || (budget.isFSG ? 'FSG Remittance' : 'Fiscal Year Budget')}\nCommittee: ${budget.committee}\nAllocated: ${formatCurrency(budget.allocated)}\nSpent: ${formatCurrency(budget.spent)}\nRemaining: ${formatCurrency(budget.remaining)}\nStatus: ${budget.status}`;
+    const healthStatus = deriveBudgetHealthStatus(budget);
+    const text = `Project: ${budget.eventName} (${budget.resolution || 'N/A'})\nFund Source: ${budget.fundName || (isBudgetFSG(budget) ? 'FSG Remittance' : 'Fiscal Year Budget')}\nCommittee: ${budget.committee}\nAllocated: ${formatCurrency(budget.allocated)}\nSpent: ${formatCurrency(budget.spent)}\nRemaining: ${formatCurrency(budget.remaining)}\nStatus: ${healthStatus}`;
     navigator.clipboard.writeText(text);
     setCopiedId(budget.id);
     setTimeout(() => setCopiedId(null), 1500);
   };
 
   const exportToCSV = () => {
-    const headers = ['Event Name', 'Fund Source', 'Category', 'Committee', 'Allocated', 'Spent', 'Remaining', 'Status'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredBudgets.map(b => [
-        `"${b.eventName}"`,
-        `"${b.fundName || (b.isFSG ? 'FSG Remittance' : 'Fiscal Year Budget')}"`,
-        b.category,
-        b.committee,
-        b.allocated,
-        b.spent,
-        b.remaining,
-        b.status
-      ].join(','))
-    ].join('\n');
-
+    const csvContent = buildBudgetCsvContent(filteredBudgets);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Budget_Report_${new Date().toLocaleDateString()}.csv`;
+    link.href = url;
+    link.download = buildCsvFilename(new Date());
     link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   // Chart Colors (Adaptive: Light mode has Swiss Industrial high contrast; Classic Mode has rich imperial gold and royal maroon)
   const COLORS = useMemo(() => {
@@ -576,9 +564,9 @@ const BudgetAnalytics = () => {
                 onChange={(e) => setFilterCommittee(e.target.value)}
             >
                 <option value="All">All Committees</option>
-                <option value="General">General</option>
-                <option value="Executive Board">Executive Board</option>
-                <option value="Finance Committee">Finance Committee</option>
+                {committeeOptions.map((committee) => (
+                  <option key={committee} value={committee}>{committee}</option>
+                ))}
             </select>
 
             <select 
@@ -591,6 +579,7 @@ const BudgetAnalytics = () => {
                 <option value="Almost Spent">Almost Spent</option>
                 <option value="Fully Spent">Fully Spent</option>
                 <option value="Over Budget">Over Budget</option>
+                <option value="Draft">Draft</option>
             </select>
           </div>
         </div>
@@ -611,7 +600,8 @@ const BudgetAnalytics = () => {
             <tbody>
               {filteredBudgets.length > 0 ? (
                 filteredBudgets.map((budget) => {
-                  const isFSGBudget = budget.fundAccountId === 'fund_fsg_remittance' || budget.isFSG;
+                  const isFSGBudget = isBudgetFSG(budget);
+                  const healthStatus = deriveBudgetHealthStatus(budget);
                   return (
                     <tr key={budget.id}>
                       <td>
@@ -645,8 +635,8 @@ const BudgetAnalytics = () => {
                       <td className={styles.monoSums}>{formatCurrency(budget.allocated)}</td>
                       <td className={styles.monoSpent}>{formatCurrency(budget.spent)}</td>
                       <td>
-                        <span className={`${styles.statusBadge} ${getStatusClass(budget.status)}`}>
-                          {budget.status}
+                        <span className={`${styles.statusBadge} ${getStatusClass(healthStatus)}`}>
+                          {healthStatus}
                         </span>
                       </td>
                       <td className={styles.monoDate}>{budget.createdAt ? new Date(budget.createdAt).toLocaleDateString() : '-'}</td>

@@ -12,6 +12,7 @@ import {
   computeAuthoritativeFundBalanceCentavos,
   filterValidLedgerTransactions,
 } from '../../utils/financeLedgerReconciliation';
+import { computeBudgetStatistics } from '../../utils/budgetAnalyticsHelpers.js';
 import {
   TOP_LEVEL_FUNDS,
   TOP_LEVEL_FUND_LABELS,
@@ -202,53 +203,19 @@ export const FinanceProvider = ({ children }) => {
     setBudgets(activeBudgets);
     setArchivedBudgets(archivedList);
 
-    // Compute stats on active allocations only
-    let totalAlloc = 0;
-    let totalSp = 0;
-    let fiscalAllocated = 0;
-    let fiscalSpent = 0;
-    let fsgAllocated = 0;
-    let fsgSpent = 0;
-    const catMap = {};
-    const comMap = {};
-
-    activeBudgets.forEach((b) => {
-      totalAlloc += b.allocated;
-      totalSp += b.spent;
-      if (b.isFSG) {
-        fsgAllocated += b.allocated;
-        fsgSpent += b.spent;
-      } else {
-        fiscalAllocated += b.allocated;
-        fiscalSpent += b.spent;
-      }
-      catMap[b.category] = (catMap[b.category] || 0) + b.allocated;
-      comMap[b.committee] = (comMap[b.committee] || 0) + b.allocated;
-    });
-
+    // Compute authoritative KPI stats on active, approved budgets (excluding draft/IGF/IGP from Fiscal)
     const fiscalAcc = accounts.find((a) => a.id === 'fund_fiscal_year_budget');
     const fiscalCeiling = fromCentavos(fiscalAcc?.appropriatedCeilingCentavos || 0);
     const fiscalHolding = fromCentavos(fiscalAcc?.balanceCentavos || 0);
 
-    setStatistics({
-      totalAllocated: totalAlloc,
-      totalSpent: totalSp,
-      totalRemaining: Math.max(0, totalAlloc - totalSp),
-      fiscalAllocated,
-      fiscalSpent,
-      fiscalRemaining: Math.max(0, fiscalAllocated - fiscalSpent),
-      fiscalCeiling,
-      fiscalHolding,
-      fiscalUnallocatedReserve: Math.max(0, fiscalCeiling - fiscalAllocated),
-      fsgAllocated,
-      fsgSpent,
-      fsgRemaining: Math.max(0, fsgAllocated - fsgSpent),
-      igfBalance,
-      igpBalance,
-      budgetCount: activeBudgets.length,
-      categories: catMap,
-      committees: comMap,
-    });
+    setStatistics(
+      computeBudgetStatistics(activeBudgets, {
+        fiscalCeiling,
+        fiscalHolding,
+        igfBalance,
+        igpBalance,
+      })
+    );
   }, []);
 
   // Fetch all redesigned data

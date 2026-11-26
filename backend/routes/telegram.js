@@ -7,8 +7,9 @@ const axios = require('axios');
 const router = express.Router();
 const {
   authenticate,
-  requireRole,
+  requireAccess,
   ANNOUNCEMENT_ROLES,
+  ANNOUNCEMENT_OVERRIDES,
 } = require('../middleware/auth');
 
 const TELEGRAM_API = 'https://api.telegram.org';
@@ -112,164 +113,164 @@ router.get('/status', (req, res) => {
  * POST /api/telegram/send
  * Dispatches an announcement (HTML text + optional photo) to a configured Telegram channel.
  */
-router.post('/send', authenticate, requireRole(ANNOUNCEMENT_ROLES), async (req, res) => {
-  const { channel, message, imageBase64 } = req.body || {};
+  router.post('/send', authenticate, requireAccess(ANNOUNCEMENT_ROLES, ANNOUNCEMENT_OVERRIDES), async (req, res) => {
+    const { channel, message, imageBase64 } = req.body || {};
 
-  if (!channel || !CHANNEL_LABELS[channel]) {
-    return res.status(400).json({
-      success: false,
-      ok: false,
-      error: `"${channel || ''}" is not a known Telegram channel.`,
-    });
-  }
-
-  if (!message || typeof message !== 'string' || !message.trim()) {
-    return res.status(400).json({
-      success: false,
-      ok: false,
-      error: 'Announcement message text is required.',
-    });
-  }
-
-  const token = getBotToken();
-  if (!token) {
-    return res.status(503).json({
-      success: false,
-      ok: false,
-      error: 'Telegram is not configured on the server (TELEGRAM_BOT_TOKEN).',
-    });
-  }
-
-  const chatId = getChatId(channel);
-  if (!chatId) {
-    return res.status(503).json({
-      success: false,
-      ok: false,
-      error: `No channel ID configured on the server for ${CHANNEL_LABELS[channel]}.`,
-    });
-  }
-
-  let messageId = null;
-  try {
-    const response = await callTelegramApi(token, 'sendMessage', {
-      chat_id: chatId,
-      text: message,
-      parse_mode: 'HTML',
-      disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: '❤️ Seen',
-              callback_data: 'reaction_heart',
-            },
-          ],
-        ],
-      },
-    });
-    const payload = response?.data;
-    if (!payload?.ok) {
-      const desc = redactToken(payload?.description || 'Telegram sendMessage failed.', token);
-      return res.status(502).json({ success: false, ok: false, error: desc });
+    if (!channel || !CHANNEL_LABELS[channel]) {
+      return res.status(400).json({
+        success: false,
+        ok: false,
+        error: `"${channel || ''}" is not a known Telegram channel.`,
+      });
     }
-    messageId = payload.result?.message_id ?? null;
-  } catch (err) {
-    const rawDesc = err?.response?.data?.description || err.message || 'Could not reach Telegram.';
-    const safeDesc = redactToken(rawDesc, token);
-    return res.status(502).json({ success: false, ok: false, error: safeDesc });
-  }
 
-  if (!imageBase64) {
-    return res.status(200).json({
-      success: true,
-      ok: true,
-      messageId,
-      photo: { status: 'skipped' },
-    });
-  }
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        ok: false,
+        error: 'Announcement message text is required.',
+      });
+    }
 
-  try {
-    const form = buildPhotoFormData(chatId, imageBase64);
-    await callTelegramApi(token, 'sendPhoto', form, true);
-    return res.status(200).json({
-      success: true,
-      ok: true,
-      messageId,
-      photo: { status: 'sent' },
-    });
-  } catch (photoErr) {
-    const rawDesc =
-      photoErr?.response?.data?.description ||
-      photoErr.message ||
-      'The photo could not be sent.';
-    return res.status(200).json({
-      success: true,
-      ok: true,
-      messageId,
-      photo: {
-        status: 'failed',
-        error: redactToken(rawDesc, token),
-      },
-    });
-  }
-});
+    const token = getBotToken();
+    if (!token) {
+      return res.status(503).json({
+        success: false,
+        ok: false,
+        error: 'Telegram is not configured on the server (TELEGRAM_BOT_TOKEN).',
+      });
+    }
 
-/**
- * POST /api/telegram/delete
- * Removes a previously sent Telegram message from the target channel.
- */
-router.post('/delete', authenticate, requireRole(ANNOUNCEMENT_ROLES), async (req, res) => {
-  const { channel, messageId } = req.body || {};
+    const chatId = getChatId(channel);
+    if (!chatId) {
+      return res.status(503).json({
+        success: false,
+        ok: false,
+        error: `No channel ID configured on the server for ${CHANNEL_LABELS[channel]}.`,
+      });
+    }
 
-  if (!channel || !CHANNEL_LABELS[channel]) {
-    return res.status(400).json({
-      success: false,
-      ok: false,
-      deleted: false,
-      error: `"${channel || ''}" is not a known Telegram channel.`,
-    });
-  }
-  if (!messageId) {
-    return res.status(200).json({
-      success: false,
-      ok: false,
-      deleted: false,
-      error: 'No Telegram message was recorded for this channel.',
-    });
-  }
+    let messageId = null;
+    try {
+      const response = await callTelegramApi(token, 'sendMessage', {
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '❤️ Seen',
+                callback_data: 'reaction_heart',
+              },
+            ],
+          ],
+        },
+      });
+      const payload = response?.data;
+      if (!payload?.ok) {
+        const desc = redactToken(payload?.description || 'Telegram sendMessage failed.', token);
+        return res.status(502).json({ success: false, ok: false, error: desc });
+      }
+      messageId = payload.result?.message_id ?? null;
+    } catch (err) {
+      const rawDesc = err?.response?.data?.description || err.message || 'Could not reach Telegram.';
+      const safeDesc = redactToken(rawDesc, token);
+      return res.status(502).json({ success: false, ok: false, error: safeDesc });
+    }
 
-  const token = getBotToken();
-  const chatId = getChatId(channel);
-  if (!token || !chatId) {
-    return res.status(200).json({
-      success: false,
-      ok: false,
-      deleted: false,
-      error: 'Telegram is not configured on the server.',
-    });
-  }
+    if (!imageBase64) {
+      return res.status(200).json({
+        success: true,
+        ok: true,
+        messageId,
+        photo: { status: 'skipped' },
+      });
+    }
 
-  try {
-    await callTelegramApi(token, 'deleteMessage', {
-      chat_id: chatId,
-      message_id: messageId,
-    });
-    return res.status(200).json({ success: true, ok: true, deleted: true });
-  } catch (err) {
-    const rawDesc =
-      err?.response?.data?.description ||
-      err.message ||
-      'The message could not be deleted.';
-    return res.status(200).json({
-      success: false,
-      ok: false,
-      deleted: false,
-      error: redactToken(rawDesc, token),
-    });
-  }
-});
+    try {
+      const form = buildPhotoFormData(chatId, imageBase64);
+      await callTelegramApi(token, 'sendPhoto', form, true);
+      return res.status(200).json({
+        success: true,
+        ok: true,
+        messageId,
+        photo: { status: 'sent' },
+      });
+    } catch (photoErr) {
+      const rawDesc =
+        photoErr?.response?.data?.description ||
+        photoErr.message ||
+        'The photo could not be sent.';
+      return res.status(200).json({
+        success: true,
+        ok: true,
+        messageId,
+        photo: {
+          status: 'failed',
+          error: redactToken(rawDesc, token),
+        },
+      });
+    }
+  });
 
-router.__setTransportForTest = setTransportForTest;
+  /**
+   * POST /api/telegram/delete
+   * Removes a previously sent Telegram message from the target channel.
+   */
+    router.post('/delete', authenticate, requireAccess(ANNOUNCEMENT_ROLES, ANNOUNCEMENT_OVERRIDES), async (req, res) => {
+      const { channel, messageId } = req.body || {};
 
-module.exports = router;
+      if (!channel || !CHANNEL_LABELS[channel]) {
+        return res.status(400).json({
+          success: false,
+          ok: false,
+          deleted: false,
+          error: `"${channel || ''}" is not a known Telegram channel.`,
+        });
+      }
+      if (!messageId) {
+        return res.status(200).json({
+          success: false,
+          ok: false,
+          deleted: false,
+          error: 'No Telegram message was recorded for this channel.',
+        });
+      }
+
+      const token = getBotToken();
+      const chatId = getChatId(channel);
+      if (!token || !chatId) {
+        return res.status(200).json({
+          success: false,
+          ok: false,
+          deleted: false,
+          error: 'Telegram is not configured on the server.',
+        });
+      }
+
+      try {
+        await callTelegramApi(token, 'deleteMessage', {
+          chat_id: chatId,
+          message_id: messageId,
+        });
+        return res.status(200).json({ success: true, ok: true, deleted: true });
+      } catch (err) {
+        const rawDesc =
+          err?.response?.data?.description ||
+          err.message ||
+          'The message could not be deleted.';
+        return res.status(200).json({
+          success: false,
+          ok: false,
+          deleted: false,
+          error: redactToken(rawDesc, token),
+        });
+      }
+    });
+
+    router.__setTransportForTest = setTransportForTest;
+
+    module.exports = router;
 

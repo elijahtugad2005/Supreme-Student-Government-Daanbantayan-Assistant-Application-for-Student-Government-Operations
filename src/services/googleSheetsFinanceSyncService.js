@@ -77,13 +77,23 @@ export async function requestGoogleSheetsToken(interactive = true) {
   });
 
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (fn, val) => {
+      if (settled) return;
+      settled = true;
+      fn(val);
+    };
+
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: GOOGLE_SHEETS_RW_SCOPE,
       prompt: interactive ? 'consent' : '',
       callback: (response) => {
         if (response.error) {
-          reject(new Error(`Google authorization error: ${response.error_description || response.error}`));
+          finish(
+            reject,
+            new Error(`Google authorization error: ${response.error_description || response.error}`)
+          );
           return;
         }
         const expiresInSeconds = Number(response.expires_in) || 3600;
@@ -91,7 +101,17 @@ export async function requestGoogleSheetsToken(interactive = true) {
           accessToken: response.access_token,
           expiresAt: Date.now() + expiresInSeconds * 1000,
         };
-        resolve(response.access_token);
+        finish(resolve, response.access_token);
+      },
+      error_callback: (errResp) => {
+        const type = errResp?.type || 'popup_error';
+        const message =
+          type === 'popup_closed'
+            ? 'Google sign-in popup was closed before authorization completed.'
+            : type === 'popup_failed_to_open'
+              ? 'Google sign-in popup was blocked by your browser. Please allow popups and try again.'
+              : `Google authorization cancelled (${type}).`;
+        finish(reject, new Error(message));
       },
     });
 
@@ -175,12 +195,12 @@ export function buildFiscalSheetsPayload({ funds = [], budgets = [], transaction
   const fundsList = Array.isArray(funds)
     ? funds
     : Object.entries(funds || {}).map(([key, val]) => ({
-        id: key,
-        displayName: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-        balanceCentavos: typeof val === 'number' ? toCentavos(val) : (val?.balanceCentavos || 0),
-        bankAccountReference: val?.bankAccountReference || 'General Depository',
-        fiscalYear: val?.fiscalYear || '2026–2027',
-      }));
+      id: key,
+      displayName: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+      balanceCentavos: typeof val === 'number' ? toCentavos(val) : (val?.balanceCentavos || 0),
+      bankAccountReference: val?.bankAccountReference || 'General Depository',
+      fiscalYear: val?.fiscalYear || '2026–2027',
+    }));
 
   const resolveAllocatedCentavos = (b) => {
     if (b?.approvedAmountCentavos !== undefined) return Number(b.approvedAmountCentavos || 0);

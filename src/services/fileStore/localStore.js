@@ -134,12 +134,14 @@ export const localStore = {
    * Object URL for preview and download. The caller owns revoking it; URLs are
    * cached per path and reused so repeated previews do not leak a blob per render.
    */
-  async getUrl(path) {
+  async getUrl(path, options = {}) {
     const blob = await this.get(path);
     if (!blob) return null;
     if (!localStore._urls) localStore._urls = new Map();
-    const existing = localStore._urls.get(path);
-    if (existing) return existing;
+    if (!options.fresh && !options.freshBlobUrl) {
+      const existing = localStore._urls.get(path);
+      if (existing) return existing;
+    }
     const url = URL.createObjectURL(blob);
     localStore._urls.set(path, url);
     return url;

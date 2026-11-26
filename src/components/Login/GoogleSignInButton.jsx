@@ -34,14 +34,22 @@ const GOOGLE_AUTH_ERROR_MESSAGES = {
 
 const REDIRECT_FALLBACK_CODES = new Set([
   'auth/popup-blocked',
+  'auth/popup-closed-by-user',
+  'auth/cancelled-popup-request',
   'auth/internal-error',
   'auth/web-storage-unsupported',
 ]);
+
+const isEmbeddedInAppBrowser = () => {
+  if (typeof navigator === 'undefined') return false;
+  return /FBAN|FBAV|Instagram|Messenger|Line\/|TikTok|wv\)/i.test(navigator.userAgent || '');
+};
 
 function GoogleSignInButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [offerRedirect, setOfferRedirect] = useState(false);
+  const inAppWebView = isEmbeddedInAppBrowser();
 
   const { loginWithGooglePopup, loginWithGoogleRedirect } = useAuth();
   const navigate = useNavigate();
@@ -81,6 +89,11 @@ function GoogleSignInButton() {
 
   return (
     <div className={styles.googleSignInContainer}>
+      {inAppWebView && (
+        <div className={styles.googleErrorBox} style={{ marginBottom: '0.5rem' }}>
+          In-app browser detected (Messenger / Instagram). Google Sign-In may be blocked here — tap the menu and choose &ldquo;Open in Chrome / Safari&rdquo; if login fails.
+        </div>
+      )}
       {error && (
         <div className={styles.googleErrorBox}>
           <div>⚠️ {error}</div>

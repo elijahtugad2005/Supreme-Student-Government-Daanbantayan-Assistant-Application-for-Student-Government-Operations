@@ -78,19 +78,22 @@ const ConsumableExpenseDialog = ({
     setUploadingReceipt(true);
     setUploadProgress(15);
     try {
+      const itemName = formData.name.trim() || formData.receiptLabel || 'Consumable Expense';
       const uploaded = await uploadReceiptToDrive(
         file,
         {
-          title: formData.name || file.name,
+          itemName,
           orNumber: formData.receiptOrNumber,
           label: formData.receiptLabel,
+          office: 'SSG Inventory - Consumables',
+          receiptSource: 'Inventory - Consumables',
         },
         (pct) => setUploadProgress(pct)
       );
       setFormData((prev) => ({
         ...prev,
         receiptDriveLink: uploaded.driveWebViewLink || '',
-        receiptFileId: uploaded.driveFileId || '',
+        receiptFileId: uploaded.fileId || uploaded.driveFileId || '',
       }));
     } catch (err) {
       setError(err.message || 'Failed to upload receipt to Google Drive Receipts folder.');

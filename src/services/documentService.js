@@ -319,12 +319,21 @@ export const subscribeToLabels = (onData, onError) =>
 export const getDocumentUrl = async (document, options = {}) => {
   if (!document) return null;
 
-  // MongoDB path — use the GridFS fileId stored in Firestore.
+  // Dispatch to the store that ORIGINALLY holds the binary (matching deleteDocument)
   if (document.storageType === 'mongodb' && document.mongoFileId) {
-    return fileStore.getUrl(document.mongoFileId, options);
+    return mongoStore.getUrl(document.mongoFileId, options);
+  }
+  if (document.storageType === 'firebase' && document.storagePath) {
+    return firebaseStore.getUrl(document.storagePath, options);
+  }
+  if (document.storageType === 'local' && document.storagePath) {
+    return localStore.getUrl(document.storagePath, options);
   }
 
-  // Legacy path — local IndexedDB or Firebase Cloud Storage.
+  // Fallback for legacy records with missing storageType
+  if (document.mongoFileId) {
+    return mongoStore.getUrl(document.mongoFileId, options);
+  }
   if (document.storagePath) {
     return fileStore.getUrl(document.storagePath, options);
   }

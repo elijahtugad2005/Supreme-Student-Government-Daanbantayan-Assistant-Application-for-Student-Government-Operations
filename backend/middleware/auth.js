@@ -125,6 +125,10 @@ async function authenticate(req, res, next) {
       email: decodedToken.email,
       name: userProfile?.name || decodedToken.name || decodedToken.email?.split('@')[0] || 'Unknown',
       role: userProfile?.role || decodedToken.role || 'member',
+      permissionOverrides:
+        userProfile?.permissionOverrides && typeof userProfile.permissionOverrides === 'object'
+          ? userProfile.permissionOverrides
+          : null,
       emailVerified: decodedToken.email_verified,
       isActive: true
     };
@@ -214,13 +218,26 @@ async function optionalAuthenticate(req, res, next) {
 }
 
 /**
- * Role-based authorization middleware
- * Use after authenticate() middleware.
- * Verifies the user is active and resolves the authoritative role from
- * Firestore users/{uid} when needed.
+ * Role + permissionOverrides authorization middleware.
+ * Mirrors Firestore rules & client `hasPermission()` so officers granted granular
+ * `permissionOverrides` (e.g., `canExportData`, `canSendNotifications`) are never
+ * blocked by Express with HTTP 403 while deactivated accounts (`isActive === false`)
+ * remain strictly rejected.
  */
-function requireRole(...allowedRoles) {
-  const flatRoles = allowedRoles.flat();
+function requireAccess(allowedRoles = [], allowedOverrideKeys = []) {
+  const flatRoles = Array.isArray(allowedRoles) ? allowedRoles.flat() : [allowedRoles];
+  const flatOverrides = Array.isArray(allowedOverrideKeys) ? allowedOverrideKeys.flat() : [allowedOverrideKeys];
+
+  const hasMatchingAccess = (user) => {
+    if (!user) return false;
+    if (flatRoles.includes(user.role)) return true;
+    const overrides = user.permissionOverrides;
+    if (overrides && typeof overrides === 'object' && flatOverrides.length > 0) {
+      return flatOverrides.some((key) => overrides[key] === true);
+    }
+    return false;
+  };
+
   return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -238,7 +255,7 @@ function requireRole(...allowedRoles) {
       });
     }
 
-    if ((req.user.isActive !== true || !flatRoles.includes(req.user.role)) && req.user.uid) {
+    if ((req.user.isActive !== true || !hasMatchingAccess(req.user)) && req.user.uid) {
       const userData = await loadUserProfile(req.user.uid);
       if (userData) {
         if (userData.isActive === false) {
@@ -251,11 +268,14 @@ function requireRole(...allowedRoles) {
         }
         if (userData.role) req.user.role = userData.role;
         if (userData.name) req.user.name = userData.name;
+        if (userData.permissionOverrides && typeof userData.permissionOverrides === 'object') {
+          req.user.permissionOverrides = userData.permissionOverrides;
+        }
         req.user.isActive = true;
       }
     }
 
-    if (!flatRoles.includes(req.user.role)) {
+    if (!hasMatchingAccess(req.user)) {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions',
@@ -267,11 +287,28 @@ function requireRole(...allowedRoles) {
   };
 }
 
+/**
+ * Role-based authorization middleware (backward-compatible wrapper around requireAccess)
+ */
+function requireRole(...allowedRoles) {
+  return requireAccess(allowedRoles.flat(), []);
+}
+
+const DOCUMENT_UPLOAD_ROLES = [...DOCUMENT_ARCHIVE_ROLES, 'governor'];
+const DOCUMENT_ARCHIVE_OVERRIDES = ['canExportData', 'canManageProducts', 'canEditFinance'];
+const DOCUMENT_DELETE_OVERRIDES = ['canDeleteData'];
+const ANNOUNCEMENT_OVERRIDES = ['canSendNotifications', 'canManageAnnouncements', 'canCreateAnnouncements'];
+
 module.exports = {
   authenticate,
   optionalAuthenticate,
   requireRole,
+  requireAccess,
   DOCUMENT_ARCHIVE_ROLES,
+  DOCUMENT_UPLOAD_ROLES,
   DOCUMENT_DELETE_ROLES,
+  DOCUMENT_ARCHIVE_OVERRIDES,
+  DOCUMENT_DELETE_OVERRIDES,
   ANNOUNCEMENT_ROLES,
+  ANNOUNCEMENT_OVERRIDES,
 };

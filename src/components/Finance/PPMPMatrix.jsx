@@ -9,7 +9,12 @@ import {
   formatPHP,
   fromCentavos,
 } from '../../utils/financeConstants.js';
+import {
+  filterPpmpEligibleBudgets,
+  computePpmpStatusCounts,
+} from '../../utils/budgetAnalyticsHelpers.js';
 import BudgetForm from '../BudgetForm/BudgetForm.jsx';
+import { BudgetAllocationSplitModal } from '../BudgetForm/DocumentPreviewWidget.jsx';
 import PPMPInspectorDrawer from './PPMPInspectorDrawer.jsx';
 import styles from './PPMPMatrix.module.css';
 import {
@@ -90,35 +95,26 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
       ? fsgCeilingCentavos
       : fiscalCeilingCentavos + fsgCeilingCentavos;
 
-  // Filter to active PPMP allocations (Fiscal Year Budget & FSG Remittance ONLY; IGF/IGP strictly excluded)
+  // Active non-archived PPMP allocations (used for top macro KPIs so viewing Archived never corrupts ceiling/reserve KPIs)
+  const activePpmpAllocations = useMemo(
+    () =>
+      filterPpmpEligibleBudgets(budgets || [], {
+        activeFundSource,
+        includeArchived: false,
+      }),
+    [budgets, activeFundSource]
+  );
+
+  // Visible table pool (switches to archivedBudgets only when statusFilter === 'archived')
   const ppmpAllocations = useMemo(() => {
-    const sourceList = statusFilter === 'archived' ? (archivedBudgets || []) : (budgets || []);
-    return sourceList.filter((b) => {
-      // Exclude archived allocations from active view
-      if (statusFilter !== 'archived') {
-        if (b.status === 'archived' || b.isActive === false || b.raw?.status === 'archived' || b.raw?.isActive === false) {
-          return false;
-        }
-      }
-      const fundId = b.fundAccountId || b.raw?.fundAccountId || (b.isFSG ? 'fund_fsg_remittance' : 'fund_fiscal_year_budget');
-      // Strictly exclude IGF & IGP
-      if (
-        fundId === 'fund_igf_main' ||
-        fundId === 'fund_igp_main' ||
-        b.fundCategory === 'IGF' ||
-        b.fundCategory === 'IGP'
-      ) {
-        return false;
-      }
-      if (activeFundSource === 'FISCAL') {
-        return fundId === 'fund_fiscal_year_budget' && !b.isFSG;
-      }
-      if (activeFundSource === 'FSG') {
-        return fundId === 'fund_fsg_remittance' || b.isFSG;
-      }
-      return fundId === 'fund_fiscal_year_budget' || fundId === 'fund_fsg_remittance' || b.isFSG;
-    });
-  }, [budgets, archivedBudgets, activeFundSource, statusFilter]);
+    if (statusFilter === 'archived') {
+      return filterPpmpEligibleBudgets(archivedBudgets || [], {
+        activeFundSource,
+        includeArchived: true,
+      });
+    }
+    return activePpmpAllocations;
+  }, [activePpmpAllocations, archivedBudgets, activeFundSource, statusFilter]);
 
   // Keep inspected item synced with live allocation state
   const liveInspectingItem = useMemo(() => {
@@ -126,21 +122,21 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
     return ppmpAllocations.find((b) => b.id === inspectingPPMPItem.id) || inspectingPPMPItem;
   }, [ppmpAllocations, inspectingPPMPItem]);
 
-  // Aggregate PPMP totals (planned estimations)
+  // Aggregate PPMP totals strictly on ACTIVE non-archived allocations
   const totalPPMPPlannedCentavos = useMemo(() => {
-    return ppmpAllocations.reduce(
+    return activePpmpAllocations.reduce(
       (acc, curr) => acc + (curr.raw?.approvedAmountCentavos || Math.round((curr.allocated || 0) * 100)),
       0
     );
-  }, [ppmpAllocations]);
+  }, [activePpmpAllocations]);
 
-  // Aggregate PPMP spent totals (posted ledger disbursements)
+  // Aggregate PPMP spent totals strictly on ACTIVE non-archived allocations
   const totalPPMPSpentCentavos = useMemo(() => {
-    return ppmpAllocations.reduce(
+    return activePpmpAllocations.reduce(
       (acc, curr) => acc + (curr.raw?.spentAmountCentavos || Math.round((curr.spent || 0) * 100)),
       0
     );
-  }, [ppmpAllocations]);
+  }, [activePpmpAllocations]);
 
   const isOverAllocated = activeMacroCeilingCentavos > 0 && totalPPMPPlannedCentavos > activeMacroCeilingCentavos;
   const overAllocatedDeficitCentavos = Math.max(0, totalPPMPPlannedCentavos - activeMacroCeilingCentavos);
@@ -182,17 +178,11 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
     });
   }, [ppmpAllocations, activeCategoryTab, statusFilter, searchQuery]);
 
-  // Status counts
-  const statusCounts = useMemo(() => {
-    const counts = { ALL: (budgets || []).length, fresh: 0, partially_used: 0, depleted: 0, archived: (archivedBudgets || []).length };
-    (budgets || []).forEach((item) => {
-      if (item.status === 'archived' || item.isActive === false) return;
-      if (item.ppmpStatus === PPMP_STATUSES.FRESH) counts.fresh += 1;
-      else if (item.ppmpStatus === PPMP_STATUSES.PARTIALLY_USED) counts.partially_used += 1;
-      else if (item.ppmpStatus === PPMP_STATUSES.DEPLETED) counts.depleted += 1;
-    });
-    return counts;
-  }, [budgets, archivedBudgets]);
+  // Status counts (strictly scoped to activeFundSource and excluding IGF/IGP enterprise records)
+  const statusCounts = useMemo(
+    () => computePpmpStatusCounts(budgets, archivedBudgets, activeFundSource),
+    [budgets, archivedBudgets, activeFundSource]
+  );
 
   // Category counts
   const categoryCounts = useMemo(() => {
@@ -921,79 +911,29 @@ const PPMPMatrix = ({ onSelectPPMPItem = null }) => {
         </div>
       )}
 
-      {/* ─── Allocation Modal (BudgetForm) ─── */}
-      {isAllocationModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(5px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '1rem',
-          }}
-          onClick={() => {
-            setIsAllocationModalOpen(false);
-            setSelectedAllocationForEdit(null);
-          }}
-        >
-          <div
-            style={{
-              background: 'transparent',
-              borderRadius: '18px',
-              maxWidth: '900px',
-              width: '100%',
-              maxHeight: '92vh',
-              overflowY: 'auto',
-              padding: 0,
-              position: 'relative',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
+      {/* ─── Allocation Modal (BudgetForm + Resizable Side PDF Preview Widget) ─── */}
+      <BudgetAllocationSplitModal
+        isOpen={isAllocationModalOpen}
+        initialDocumentId={selectedAllocationForEdit?.resolutionDocumentId || null}
+        onClose={() => {
+          setIsAllocationModalOpen(false);
+          setSelectedAllocationForEdit(null);
+        }}
+        renderForm={(workspaceProps) => (
+          <BudgetForm
+            editingBudget={selectedAllocationForEdit}
+            defaultFundAccountId={
+              activeFundSource === 'FSG' ? 'fund_fsg_remittance' : 'fund_fiscal_year_budget'
+            }
+            onSuccess={() => {
+              setIsAllocationModalOpen(false);
+              setSelectedAllocationForEdit(null);
+              refreshFinanceData();
             }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              style={{
-                position: 'absolute',
-                top: '1.1rem',
-                right: '1.1rem',
-                zIndex: 20,
-                width: '36px',
-                height: '36px',
-                display: 'inline-grid',
-                placeItems: 'center',
-                background: 'rgba(44, 11, 20, 0.9)',
-                border: '1px solid rgba(212, 175, 55, 0.4)',
-                color: '#ffea9f',
-                cursor: 'pointer',
-                borderRadius: '10px',
-              }}
-              onClick={() => {
-                setIsAllocationModalOpen(false);
-                setSelectedAllocationForEdit(null);
-              }}
-              aria-label="Close Allocation Modal"
-            >
-              <HiX size={20} />
-            </button>
-            <BudgetForm
-              editingBudget={selectedAllocationForEdit}
-              defaultFundAccountId={activeFundSource === 'FSG' ? 'fund_fsg_remittance' : 'fund_fiscal_year_budget'}
-              onSuccess={() => {
-                setIsAllocationModalOpen(false);
-                setSelectedAllocationForEdit(null);
-                refreshFinanceData();
-              }}
-            />
-          </div>
-        </div>
-      )}
+            {...workspaceProps}
+          />
+        )}
+      />
 
       {/* ─── Sub-Line Item Inspector & Disbursement Drawer (Ticket 04) ─── */}
       {liveInspectingItem && (

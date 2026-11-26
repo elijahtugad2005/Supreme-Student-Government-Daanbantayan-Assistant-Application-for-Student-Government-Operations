@@ -235,12 +235,21 @@ export const financeService = {
     if (!user) throw new Error('You must be signed in to upload a receipt to Google Drive.');
     const token = await user.getIdToken();
 
+    const rawItemName = String(meta.itemName || meta.title || '')
+      .replace(/^\[[^\]]+\]\s*/i, '')
+      .replace(/^receipts?\s*[-_:]\s*/i, '')
+      .replace(/\s*-\s*receipts?$/i, '')
+      .trim();
+    const fallbackStem = String(file.name || 'Item').replace(/\.[^.]+$/, '').trim() || 'Item';
+    const cleanItemName = rawItemName || fallbackStem;
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', 'Receipts');
     formData.append('documentType', 'receipt');
-    formData.append('title', meta.title || `Receipt - ${file.name}`);
+    formData.append('title', cleanItemName);
     if (meta.office) formData.append('office', meta.office);
+    if (meta.receiptSource) formData.append('receiptSource', meta.receiptSource);
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();

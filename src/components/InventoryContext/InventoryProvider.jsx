@@ -18,6 +18,7 @@ import financeService from '../../services/financeService.js';
 import { TOP_LEVEL_FUNDS, TRANSACTION_TYPES, TRANSACTION_STATUSES, toCentavos } from '../../utils/financeConstants.js';
 import { validateTransactionRules } from '../../utils/financeValidation.js';
 import { notifyFinanceUpdated } from '../../utils/financeLedgerReconciliation.js';
+import { filterInventoryAndFinanceReceipts } from '../../utils/receiptAccessHelpers.js';
 
 const InventoryContext = createContext();
 
@@ -94,24 +95,16 @@ export function InventoryProvider({ children }) {
     }
   };
 
-  // Fetch consumable / food expenses recorded from Inventory
+  // Fetch consumable / food expenses recorded from Inventory AND Finance transactions
+  // carrying uploaded receipts (Google Drive / GridFS) so officers can trace all receipts in one place.
   const fetchConsumableExpenses = useCallback(async () => {
     try {
-      const q = query(
-        collection(db, 'transactions'),
-        where('source', '==', 'INVENTORY_CONSUMABLE_EXPENSE')
-      );
-      const snap = await getDocs(q);
-      const rows = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => {
-          const tA = a.createdAt?.toMillis?.() || 0;
-          const tB = b.createdAt?.toMillis?.() || 0;
-          return tB - tA;
-        });
+      const snap = await getDocs(collection(db, 'transactions'));
+      const allTxs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const rows = filterInventoryAndFinanceReceipts(allTxs);
       setConsumableExpenses(rows);
     } catch (error) {
-      console.error('Error fetching consumable expenses:', error);
+      console.error('Error fetching inventory & finance receipt expenses:', error);
     }
   }, []);
 
@@ -180,8 +173,10 @@ export function InventoryProvider({ children }) {
             payeeOrPayer: itemData.lastUpdatedBy || 'Authorized Officer',
             description: `Procured ${quantity} units of "${itemData.name}" @ ₱${amount.toFixed(2)}/unit`,
             storageLocation: defaultStorage,
-            receiptUrl: itemData.receipt || '',
-            receiptOrNumber: itemData.receipt || '',
+            receiptUrl: itemData.receiptDriveLink || itemData.receipt || '',
+            receiptDriveLink: itemData.receiptDriveLink || '',
+            receiptFileId: itemData.receiptFileId || '',
+            receiptOrNumber: itemData.receiptOrNumber || '',
             receiptLabel: 'Equipment & Physical Assets',
             receiptDetails: itemData.description || `Inventory procurement: ${itemData.name}`,
             createdBy: itemData.lastUpdatedBy || 'Authorized Officer',
@@ -204,7 +199,9 @@ export function InventoryProvider({ children }) {
           reorderPoint: parseInt(itemData.minQuantity, 10) || 5,
           storageLocation: (itemData.storageLocation || 'Unassigned').trim(),
           description: (itemData.description || '').trim(),
-          receipt: itemData.receipt || '',
+          receipt: itemData.receiptDriveLink || itemData.receipt || '',
+          receiptDriveLink: itemData.receiptDriveLink || '',
+          receiptFileId: itemData.receiptFileId || '',
           fundSource,
           isIGFOrigin: fundSource === 'IGF',
           borrowedCount: 0,

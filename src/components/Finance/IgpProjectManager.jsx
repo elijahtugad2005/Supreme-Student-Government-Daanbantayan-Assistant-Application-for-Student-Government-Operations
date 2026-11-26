@@ -19,6 +19,7 @@ import {
   LOCKER_STATUSES,
   IGP_PROJECT_TYPES,
 } from '../../services/igpProjectService.js';
+import { computeIgpCollectionMetrics } from '../../utils/budgetAnalyticsHelpers.js';
 import styles from './IgpProjectManager.module.css';
 
 /**
@@ -154,30 +155,11 @@ export default function IgpProjectManager({ user = null, onNavigateToMap = null,
     loadData();
   }, [loadData]);
 
-  // Summary computations
-  const metrics = useMemo(() => {
-    let vendingCentavos = 0;
-    let lockersCentavos = 0;
-    let customCentavos = 0;
-
-    for (const c of collections) {
-      if (c.projectType === IGP_PROJECT_TYPES.VENDING_MACHINE) vendingCentavos += c.amountCentavos || 0;
-      else if (c.projectType === IGP_PROJECT_TYPES.LOCKER_RENTAL) lockersCentavos += c.amountCentavos || 0;
-      else if (c.projectType === IGP_PROJECT_TYPES.FUTURE_IGP) customCentavos += c.amountCentavos || 0;
-    }
-
-    const occupied = lockers.filter((l) => l.status === LOCKER_STATUSES.OCCUPIED).length;
-
-    return {
-      totalPHP: (vendingCentavos + lockersCentavos + customCentavos) / 100,
-      vendingPHP: vendingCentavos / 100,
-      lockersPHP: lockersCentavos / 100,
-      customPHP: customCentavos / 100,
-      occupiedLockers: occupied,
-      availableLockers: lockers.length - occupied,
-      totalLockers: lockers.length,
-    };
-  }, [collections, lockers]);
+  // Summary computations (supports both amountCentavos and legacy amountPHP-only records)
+  const metrics = useMemo(
+    () => computeIgpCollectionMetrics(collections, lockers),
+    [collections, lockers]
+  );
 
   const handleVendingSubmit = async (e) => {
     e.preventDefault();

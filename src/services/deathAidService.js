@@ -21,6 +21,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
@@ -1026,8 +1027,19 @@ export const getActivePendingForSectionKey = async (sectionKey, beneficiaryCaseI
 export const listRemittances = async ({ status } = {}) => {
   try {
     const clauses = status ? [where('status', '==', status)] : [];
-    const snap = await getDocs(query(collection(db, REMITTANCE_COLLECTION), ...clauses, limit(200)));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst('receivedAt'));
+    try {
+      const snap = await getDocs(
+        query(collection(db, REMITTANCE_COLLECTION), ...clauses, orderBy('receivedAt', 'desc'), limit(200))
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst('receivedAt'));
+    } catch (indexErr) {
+      // Fallback if composite index for (status, receivedAt) is not yet deployed
+      if (status && indexErr?.code === 'failed-precondition') {
+        const snap = await getDocs(query(collection(db, REMITTANCE_COLLECTION), ...clauses, limit(200)));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst('receivedAt'));
+      }
+      throw indexErr;
+    }
   } catch (error) {
     throw rethrowWithSpec('remittances', error);
   }
@@ -1036,8 +1048,18 @@ export const listRemittances = async ({ status } = {}) => {
 export const listAuditLog = async (collectionId) => {
   try {
     const clauses = collectionId ? [where('collectionId', '==', collectionId)] : [];
-    const snap = await getDocs(query(collection(db, AUDIT_COLLECTION), ...clauses, limit(500)));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst('at'));
+    try {
+      const snap = await getDocs(
+        query(collection(db, AUDIT_COLLECTION), ...clauses, orderBy('at', 'desc'), limit(500))
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst('at'));
+    } catch (indexErr) {
+      if (collectionId && indexErr?.code === 'failed-precondition') {
+        const snap = await getDocs(query(collection(db, AUDIT_COLLECTION), ...clauses, limit(500)));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(newestFirst('at'));
+      }
+      throw indexErr;
+    }
   } catch (error) {
     throw rethrowWithSpec('audit', error);
   }

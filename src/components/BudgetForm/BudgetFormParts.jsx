@@ -5,6 +5,7 @@ import {
   HiChevronRight,
   HiDocumentText,
   HiDownload,
+  HiEye,
   HiPlus,
   HiTrash,
   HiX,
@@ -226,7 +227,7 @@ export const CommitteePicker = ({ value, onChange }) => {
 
 const MANUAL = '__manual__';
 
-export const ResolutionPicker = ({ resolution, documentId, onChange }) => {
+export const ResolutionPicker = ({ resolution, documentId, onChange, onPreviewDocument = null }) => {
   const [docs, setDocs] = useState([]);
   const [dlError, setDlError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -368,9 +369,19 @@ export const ResolutionPicker = ({ resolution, documentId, onChange }) => {
             </ul>
           )}
         </div>
+        {selected && typeof onPreviewDocument === 'function' && (
+          <button
+            type="button"
+            className={styles.downloadBtn}
+            onClick={() => onPreviewDocument(selected)}
+            title="Preview this resolution side-by-side beside the allocation form"
+          >
+            <HiEye /> Preview PDF
+          </button>
+        )}
         {selected && (
           <button type="button" className={styles.downloadBtn} onClick={handleDownload} disabled={busy}>
-            <HiDownload /> {busy ? 'Opening…' : 'Download resolution'}
+            <HiDownload /> {busy ? 'Opening…' : 'Download'}
           </button>
         )}
       </div>

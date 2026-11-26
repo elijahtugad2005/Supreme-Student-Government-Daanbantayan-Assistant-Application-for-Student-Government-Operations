@@ -84,11 +84,14 @@ export const formatAcceptedTypes = () =>
   ACCEPTED_FORMATS.map((f) => f.ext.replace('.', '').toUpperCase()).join(', ');
 
 export const canPreviewInline = (fileNameOrType) => {
-  const value = String(fileNameOrType || '').toLowerCase();
+  const value = String(fileNameOrType || '').toLowerCase().trim();
   if (!value) return false;
+  const mime = value.split(';')[0].trim();
   const name = value.includes('/') ? '' : value;
-  const ext = name ? `.${name.split('.').pop()}` : '';
-  return ACCEPTED_FORMATS.filter((f) => f.previewable).some((f) => f.ext === ext || value.includes(f.ext));
+  const ext = name && name.includes('.') ? `.${name.split('.').pop()}` : '';
+  return ACCEPTED_FORMATS.filter((f) => f.previewable).some(
+    (f) => f.mime === mime || (ext && f.ext === ext)
+  );
 };
 
 /**

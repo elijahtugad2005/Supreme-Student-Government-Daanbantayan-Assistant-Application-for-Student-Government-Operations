@@ -23,7 +23,9 @@ import {
   HiSave,
   HiExclamationCircle,
   HiInformationCircle,
-  HiOfficeBuilding
+  HiOfficeBuilding,
+  HiEye,
+  HiEyeOff
 } from 'react-icons/hi';
 import { fromCentavos, toCentavos, getPPMPStatus } from '../../utils/financeConstants.js';
 
@@ -35,7 +37,16 @@ const QUICK_PRESETS = [
   { label: '₱100,000', value: 100000 },
 ];
 
-const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_year_budget', onSuccess = () => {} }) => {
+const BudgetForm = ({
+  editingBudget = null,
+  defaultFundAccountId = 'fund_fiscal_year_budget',
+  onSuccess = () => {},
+  onPreviewDocument = null,
+  onTogglePreviewWidget = null,
+  isPreviewWidgetOpen = false,
+  externalLinkedDoc = null,
+  onResolutionLinked = null,
+}) => {
   const { userName, userRole, currentUser } = useAuth();
   const { theme } = useTheme();
   const isClassic = theme === 'dark';
@@ -160,6 +171,16 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
       }));
     }
   }, [editingBudget, defaultFundAccountId]);
+
+  // Sync resolution linked directly from the side Document Preview Widget
+  useEffect(() => {
+    if (!externalLinkedDoc?.id) return;
+    setFormData((prev) => ({
+      ...prev,
+      resolution: externalLinkedDoc.resolution || prev.resolution,
+      resolutionDocumentId: externalLinkedDoc.id,
+    }));
+  }, [externalLinkedDoc]);
 
   // Calculate remaining amount
   const calculateRemaining = () => {
@@ -493,7 +514,32 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
     <div className={`${styles.container} ${isClassic ? styles.formClassic : ''}`}>
       {/* Header */}
       <div className={styles.header}>
-        <div className={styles.headerBadge}>{isClassic ? 'SSG APPROPRIATIONS & ALLOCATION CONTROL' : 'FINANCIAL ALLOCATION CONTROL'}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.6rem', paddingRight: '2.4rem' }}>
+          <div className={styles.headerBadge}>{isClassic ? 'SSG APPROPRIATIONS & ALLOCATION CONTROL' : 'FINANCIAL ALLOCATION CONTROL'}</div>
+          {typeof onTogglePreviewWidget === 'function' && (
+            <button
+              type="button"
+              onClick={onTogglePreviewWidget}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.38rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid rgba(212, 175, 55, 0.45)',
+                background: isPreviewWidgetOpen ? 'rgba(212, 175, 55, 0.22)' : 'rgba(212, 175, 55, 0.1)',
+                color: isClassic ? '#ffea9f' : '#7a121d',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+              title="Toggle side-by-side PDF preview widget"
+            >
+              {isPreviewWidgetOpen ? <HiEyeOff aria-hidden="true" /> : <HiEye aria-hidden="true" />}
+              <span>{isPreviewWidgetOpen ? 'Hide PDF Preview' : 'Preview Attached PDF'}</span>
+            </button>
+          )}
+        </div>
         <h2 className={styles.title}>
           <HiCurrencyDollar className={styles.titleIcon} />
           {editingBudget ? 'Edit Budget Allocation' : 'New Budget Allocation'}
@@ -832,9 +878,11 @@ const BudgetForm = ({ editingBudget = null, defaultFundAccountId = 'fund_fiscal_
           <ResolutionPicker
             resolution={formData.resolution}
             documentId={formData.resolutionDocumentId}
-            onChange={({ resolution, resolutionDocumentId }) =>
-              setFormData(prev => ({ ...prev, resolution, resolutionDocumentId }))
-            }
+            onPreviewDocument={onPreviewDocument}
+            onChange={({ resolution, resolutionDocumentId }) => {
+              setFormData(prev => ({ ...prev, resolution, resolutionDocumentId }));
+              onResolutionLinked?.(resolutionDocumentId || null);
+            }}
           />
         </div>
 

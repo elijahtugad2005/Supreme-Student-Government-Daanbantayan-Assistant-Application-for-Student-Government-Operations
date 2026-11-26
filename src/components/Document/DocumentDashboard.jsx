@@ -7,6 +7,7 @@
 // enriches documents that already exist rather than becoming a prerequisite for
 // having any.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -31,7 +32,8 @@ import {
 } from '../../services/documentService';
 import auditService from '../../services/auditService';
 import { S, T, statusPill, statusBanner } from '../../utils/themeStyles';
-import { fileStore, storageWarning } from '../../services/fileStore';
+import { fileStore, isMongoMode, storageWarning } from '../../services/fileStore';
+import { driveStore } from '../../services/fileStore/driveStore';
 import AiStatusBadge from './AiStatusBadge.jsx';
 import DocumentAnalysis from './DocumentAnalysis.jsx';
 import DocumentDetailModal from './DocumentDetailModal.jsx';
@@ -49,6 +51,10 @@ import {
   HiSearch,
   HiPencil,
   HiSparkles,
+  HiExternalLink,
+  HiCheckCircle,
+  HiExclamationCircle,
+  HiCloudUpload,
 } from 'react-icons/hi';
 
 const STATUS_TONE = {
@@ -94,6 +100,10 @@ function DocumentDashboard() {
   // ── Feedback progress animations for file actions ──
   const [downloadingDocId, setDownloadingDocId] = useState(null);
   const [deletingDocId, setDeletingDocId] = useState(null);
+  const [openingDriveDocId, setOpeningDriveDocId] = useState(null);
+  const [driveStatusById, setDriveStatusById] = useState({});
+  const [documentsDriveFolder, setDocumentsDriveFolder] = useState(null);
+  const bannerTimerRef = useRef(null);
 
   // ── Detail / preview ──
   const [openId, setOpenId] = useState('');
@@ -109,7 +119,40 @@ function DocumentDashboard() {
   const [previewDoc, setPreviewDoc] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const say = useCallback((type, message) => setBanner({ type, message }), []);
+  const dismissBanner = useCallback(() => {
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+    setBanner(null);
+  }, []);
+
+  const say = useCallback((type, message, options = {}) => {
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+    setBanner({
+      type,
+      message,
+      title: options.title || null,
+      actionLabel: options.actionLabel || null,
+      actionHref: options.actionHref || null,
+    });
+    const shouldAutoDismiss =
+      options.persist !== true && (type === 'success' || type === 'info');
+    if (shouldAutoDismiss) {
+      const duration = options.actionHref ? 10000 : 5500;
+      bannerTimerRef.current = setTimeout(() => {
+        setBanner(null);
+        bannerTimerRef.current = null;
+      }, duration);
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+  }, []);
 
   // ── Load ──
   useEffect(() => {
@@ -141,6 +184,103 @@ function DocumentDashboard() {
       fileStore.revokeAll?.();
     };
   }, [say]);
+
+  // Fetch officer Google Drive Documents folder link when Synced Storage is configured
+  useEffect(() => {
+    if (!currentUser || !isMongoMode) {
+      setDocumentsDriveFolder(null);
+      return undefined;
+    }
+    let alive = true;
+    driveStore
+      .getFolders({ folder: 'documents' })
+      .then((res) => {
+        if (!alive) return;
+        setDocumentsDriveFolder(
+          res?.enabled && res.documentsFolder?.url ? res.documentsFolder : null
+        );
+      })
+      .catch(() => {
+        if (alive) setDocumentsDriveFolder(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [currentUser]);
+
+  const handleOpenInDrive = useCallback(
+    async (doc) => {
+      if (!doc?.mongoFileId) {
+        say(
+          'error',
+          'This document is not stored in MongoDB GridFS Synced Storage. Use Download to open it directly.',
+          { title: 'Google Drive unavailable' }
+        );
+        return;
+      }
+      const docLabel = doc.title || doc.originalFileName || 'this document';
+      setOpeningDriveDocId(doc.id);
+      setDriveStatusById((prev) => ({ ...prev, [doc.id]: { state: 'checking' } }));
+      say('syncing', `Checking whether “${docLabel}” is already in the Google Drive Documents folder…`, {
+        title: 'Checking Google Drive',
+        persist: true,
+      });
+
+      try {
+        let link = await driveStore.getUrl(doc.mongoFileId);
+        let syncedJustNow = false;
+
+        if (!link) {
+          syncedJustNow = true;
+          setDriveStatusById((prev) => ({ ...prev, [doc.id]: { state: 'syncing' } }));
+          say(
+            'syncing',
+            `Not in Google Drive yet — automatically copying “${docLabel}” to the Documents folder. No manual upload needed.`,
+            { title: 'Syncing to Google Drive', persist: true }
+          );
+          const synced = await driveStore.resync(doc.mongoFileId);
+          link = synced?.webViewLink || null;
+        }
+
+        if (link && /^https:\/\/drive\.google\.com\//i.test(link)) {
+          setDriveStatusById((prev) => ({ ...prev, [doc.id]: { state: 'synced', link } }));
+          const popup = window.open(link, '_blank', 'noopener,noreferrer');
+          say(
+            'success',
+            syncedJustNow
+              ? popup
+                ? `“${docLabel}” was automatically synced to Google Drive (Documents) and opened in a new tab.`
+                : `“${docLabel}” was synced to Google Drive (Documents). Use the button below if your browser blocked the new tab.`
+              : popup
+                ? `Opened “${docLabel}” from the Google Drive Documents folder.`
+                : `“${docLabel}” is ready in Google Drive. Use the button below if your browser blocked the new tab.`,
+            {
+              title: syncedJustNow ? 'Synced to Google Drive' : 'Opened in Google Drive',
+              actionLabel: 'Open in Drive',
+              actionHref: link,
+            }
+          );
+        } else {
+          setDriveStatusById((prev) => ({ ...prev, [doc.id]: { state: 'failed' } }));
+          say(
+            'error',
+            'Google Drive sync is currently unavailable for this document. Use Download to access the file directly.',
+            { title: 'Google Drive sync unavailable' }
+          );
+        }
+      } catch (err) {
+        setDriveStatusById((prev) => ({ ...prev, [doc.id]: { state: 'failed' } }));
+        say(
+          'error',
+          `${err?.message || 'Could not sync this document to Google Drive.'} Use Download to access the file directly or retry.`,
+          { title: 'Google Drive sync failed' }
+        );
+      } finally {
+        setOpeningDriveDocId(null);
+      }
+    },
+    [say]
+  );
 
   // Clear autoAnalyseId when document is updated in Firestore or is no longer processing
   useEffect(() => {
@@ -257,8 +397,8 @@ function DocumentDashboard() {
     try {
       const performer = actor?.name || actor?.email || 'Authorized Officer';
       await auditService.logDocumentAdd(
-        performer, 
-        docTitle, 
+        performer,
+        docTitle,
         (docLabels && docLabels.length > 0) ? docLabels.join(', ') : 'Institutional'
       );
     } catch (auditError) {
@@ -308,20 +448,30 @@ function DocumentDashboard() {
     const currentReq = { aborted: false };
     previewAbortRef.current = currentReq;
 
-    // Safety timeout guard (6s max)
-    const timeoutTimer = setTimeout(() => {
-      if (!currentReq.aborted) {
-        setPreviewLoading(false);
-        // Automatically make iframe visible if URL exists
-        setIframeLoaded(true);
-      }
-    }, 6000);
+      // Render free-tier cold-start guard: never flash a blank iframe at 6s while
+      // `getDocumentUrl` is still waking the backend; advance progress smoothly and
+      // enforce a generous 60s hard timeout instead.
+      const coldStartHintTimer = setTimeout(() => {
+        if (!currentReq.aborted) {
+          setPreviewProgress((p) => (p < 75 ? 75 : p));
+        }
+      }, 6000);
+      const hardTimeoutTimer = setTimeout(() => {
+        if (!currentReq.aborted) {
+          currentReq.aborted = true;
+          setPreviewLoading(false);
+          setPreviewError(
+            'Document server took too long to respond (cold start). Please click Retry or use Download.'
+          );
+        }
+    }, 60000);
 
     try {
-      const url = await getDocumentUrl(doc, { disposition: 'inline', fresh: Boolean(force) });
+      const url = await getDocumentUrl(doc, { disposition: 'inline', fresh: Boolean(force), freshBlobUrl: true, throwOnError: true });
       if (currentReq.aborted) return;
 
-      clearTimeout(timeoutTimer);
+      clearTimeout(coldStartHintTimer);
+      clearTimeout(hardTimeoutTimer);
       setPreviewProgress(100);
 
       if (!url) {
@@ -341,7 +491,8 @@ function DocumentDashboard() {
       }, 250);
     } catch (error) {
       if (currentReq.aborted) return;
-      clearTimeout(timeoutTimer);
+      clearTimeout(coldStartHintTimer);
+      clearTimeout(hardTimeoutTimer);
       setPreviewLoading(false);
       setPreviewError(error.message || 'Failed to load preview.');
     }
@@ -363,7 +514,7 @@ function DocumentDashboard() {
   const download = async (document) => {
     setDownloadingDocId(document.id);
     try {
-      const url = await getDocumentUrl(document, { disposition: 'attachment' });
+      const url = await getDocumentUrl(document, { disposition: 'attachment', throwOnError: true });
       if (!url) throw new Error('No file is attached to this document.');
       const link = window.document.createElement('a');
       link.href = url;
@@ -415,6 +566,7 @@ function DocumentDashboard() {
     setBusy(true);
     setDeletingDocId(document.id);
     setConfirmDelete(null);
+    previewCache.current.delete(document.id);
     if (openId === document.id) {
       setOpenId('');
       setPreviewUrl(null);
@@ -463,7 +615,7 @@ function DocumentDashboard() {
 
       <header className={stylesModule.headerWrap} style={styles.header}>
         <HiDocumentText className={stylesModule.headerIcon} style={styles.headerIcon} />
-        <div>
+        <div style={{ flex: 1 }}>
           <div className={stylesModule.eyebrowBadge}>
             <span>{isClassic ? 'SSG OFFICIAL ARCHIVE & LEGISLATIVE VAULT' : 'ADMINISTRATIVE ARCHIVE'}</span>
           </div>
@@ -473,29 +625,92 @@ function DocumentDashboard() {
             next phase — everything filed now becomes AI-processable.
           </p>
         </div>
+        {documentsDriveFolder?.url && (
+          <a
+            href={documentsDriveFolder.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={stylesModule.btnSecondary}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.55rem 0.9rem',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontWeight: 600,
+              fontSize: '0.84rem',
+              whiteSpace: 'nowrap',
+              alignSelf: 'center',
+            }}
+            title="Open the shared Google Drive Documents folder for SSG officers"
+          >
+            <HiFolderOpen style={{ fontSize: '1.05rem' }} />
+            <span>Documents Folder (Drive)</span>
+            <HiExternalLink style={{ fontSize: '0.9rem' }} />
+          </a>
+        )}
       </header>
 
       <AiStatusBadge />
 
       {storageWarning && (
         <div className={stylesModule.storageNotice} style={styles.storageNotice}>
-          <strong>Local storage mode.</strong> {storageWarning}
+          <strong>{isMongoMode ? 'MongoDB GridFS mode.' : 'Local storage mode.'}</strong> {storageWarning}
         </div>
       )}
 
-      {banner && (
-        <div
-          className={`${stylesModule.alertBanner} ${
-            banner.type === 'error' ? stylesModule.alertBannerError : stylesModule.alertBannerSuccess
-          }`}
-          style={styles.banner(banner.type)}
-        >
-          <span>{banner.message}</span>
-          <button onClick={() => setBanner(null)} className={stylesModule.bannerCloseBtn} style={styles.bannerClose}>
-            <HiX />
-          </button>
-        </div>
-      )}
+      {banner &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            role={banner.type === 'error' ? 'alert' : 'status'}
+            aria-live={banner.type === 'error' ? 'assertive' : 'polite'}
+            className={`${stylesModule.floatingStatusToast} ${
+              banner.type === 'error'
+                ? stylesModule.floatingToastError
+                : banner.type === 'syncing' || banner.type === 'info'
+                  ? stylesModule.floatingToastSyncing
+                  : stylesModule.floatingToastSuccess
+            }`}
+          >
+            <div className={stylesModule.floatingToastIcon} aria-hidden="true">
+              {banner.type === 'syncing' ? (
+                <span className={stylesModule.spinningCircle} />
+              ) : banner.type === 'error' ? (
+                <HiExclamationCircle />
+              ) : (
+                <HiCheckCircle />
+              )}
+            </div>
+            <div className={stylesModule.floatingToastBody}>
+              {banner.title && (
+                <div className={stylesModule.floatingToastTitle}>{banner.title}</div>
+              )}
+              <div className={stylesModule.floatingToastMessage}>{banner.message}</div>
+              {banner.actionHref && banner.actionLabel && (
+                <a
+                  href={banner.actionHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={stylesModule.floatingToastAction}
+                >
+                  <span>{banner.actionLabel}</span>
+                  <HiExternalLink aria-hidden="true" />
+                </a>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={dismissBanner}
+              aria-label="Dismiss notification"
+              className={stylesModule.floatingToastClose}
+            >
+              <HiX />
+            </button>
+          </div>,
+          document.body
+        )}
 
       <div className={stylesModule.statsGrid} style={styles.stats}>
         <Stat label="Documents" value={counts.total} />
@@ -571,9 +786,8 @@ function DocumentDashboard() {
                 type="button"
                 title={l.description}
                 onClick={() => toggleFormLabel(l.id)}
-                className={`${stylesModule.brutalistChip} ${
-                  form.labels.includes(l.id) ? stylesModule.brutalistChipActive : ''
-                }`}
+                className={`${stylesModule.brutalistChip} ${form.labels.includes(l.id) ? stylesModule.brutalistChipActive : ''
+                  }`}
                 style={{
                   ...styles.chip,
                   ...(form.labels.includes(l.id) ? styles.chipActive : {}),
@@ -634,7 +848,8 @@ function DocumentDashboard() {
               Accepted formats: {ACCEPT_ATTRIBUTE.replace(/,/g, ', ')} · Up to {formatBytes(MAX_FILE_BYTES)}
             </div>
             <div className={stylesModule.pdfRecommendationBadge}>
-              📄 [It is recommended for PDF files]
+              <HiDocumentText aria-hidden="true" />
+              <span>Highly recommended: Use PDF format for your document</span>
             </div>
           </div>
           {fileError && <p style={styles.errorText}>{fileError}</p>}
@@ -647,6 +862,27 @@ function DocumentDashboard() {
               <span className={stylesModule.stepBadge} style={styles.stepNumber}>2</span>
               <span className={stylesModule.stepHeadline} style={styles.stepTitle}>Confirm and upload</span>
             </div>
+            {/\.(docx?)$/i.test(file.name || '') && (
+              <div className={stylesModule.wordNoticeCard} role="note">
+                <div className={stylesModule.wordNoticeTitle}>
+                  <HiExclamationCircle aria-hidden="true" />
+                  <span>The software has limitations for viewing Word (.doc / .docx) files</span>
+                </div>
+                <p className={stylesModule.wordNoticeLead}>
+                  Please use a PDF file for easier upload and instant in-browser viewing.
+                </p>
+                <p className={stylesModule.wordNoticeTech}>
+                  Technical note: Web browsers cannot render Word (.docx/.doc) binaries inline without downloading or opening in Google Drive.
+                </p>
+                <div className={stylesModule.pdfConvertGuide}>
+                  <div className={stylesModule.pdfConvertGuideTitle}>Quick guide: Convert DOCX to PDF</div>
+                  <ul className={stylesModule.pdfConvertList}>
+                    <li><strong>Microsoft Office (Word):</strong> File &rarr; Export &rarr; Create PDF/XPS (or File &rarr; Save As &rarr; PDF)</li>
+                    <li><strong>Google Docs / Google Sheets:</strong> File &rarr; Download &rarr; PDF Document (.pdf) (or File &rarr; Export &rarr; PDF)</li>
+                  </ul>
+                </div>
+              </div>
+            )}
             <div className={stylesModule.selectedFileFrame} style={styles.selectedFile}>
               <div style={styles.fileInfo}>
                 <strong>{file.name}</strong>
@@ -666,10 +902,10 @@ function DocumentDashboard() {
                         {uploadStepState === 'reading'
                           ? 'Reading file buffer…'
                           : uploadStepState === 'uploading'
-                          ? 'Uploading bytes…'
-                          : uploadStepState === 'analyzing'
-                          ? 'Evaluating content…'
-                          : 'Processing…'}
+                            ? 'Uploading bytes…'
+                            : uploadStepState === 'analyzing'
+                              ? 'Evaluating content…'
+                              : 'Processing…'}
                       </span>
                     </>
                   ) : (
@@ -685,8 +921,8 @@ function DocumentDashboard() {
                       {uploadStepState === 'reading'
                         ? 'PHASE 1: INGESTION'
                         : uploadStepState === 'uploading'
-                        ? `PHASE 2: STREAMING ${progress || 0}%`
-                        : 'PHASE 3: AI SCANNING'}
+                          ? `PHASE 2: STREAMING ${progress || 0}%`
+                          : 'PHASE 3: AI SCANNING'}
                     </span>
                   </div>
                 )}
@@ -699,9 +935,17 @@ function DocumentDashboard() {
 
       {/* ── Filters ── */}
       <section className={stylesModule.brutalistCard} style={styles.card}>
-        <h2 className={stylesModule.cardSectionTitle} style={styles.sectionTitle}>
-          <HiFolderOpen /> Archive ({visible.length} of {documents.length})
-        </h2>
+        <div className={stylesModule.archiveHeaderRow}>
+          <h2 className={stylesModule.cardSectionTitle} style={{ ...styles.sectionTitle, marginBottom: 0 }}>
+            <HiFolderOpen /> Archive ({visible.length} of {documents.length})
+          </h2>
+          {isMongoMode && (
+            <span className={stylesModule.archiveDriveHint}>
+              <HiCloudUpload aria-hidden="true" />
+              <span>Clicking Drive opens the mirrored copy or syncs it to Google Drive automatically.</span>
+            </span>
+          )}
+        </div>
 
         <div style={styles.filterRow}>
           <div style={styles.searchWrap}>
@@ -755,9 +999,8 @@ function DocumentDashboard() {
                   prev.includes(l.id) ? prev.filter((x) => x !== l.id) : [...prev, l.id]
                 )
               }
-              className={`${stylesModule.brutalistChip} ${
-                labelFilter.includes(l.id) ? stylesModule.brutalistChipActive : ''
-              }`}
+              className={`${stylesModule.brutalistChip} ${labelFilter.includes(l.id) ? stylesModule.brutalistChipActive : ''
+                }`}
               style={{
                 ...styles.chip,
                 ...(labelFilter.includes(l.id) ? styles.chipActive : {}),
@@ -843,91 +1086,89 @@ function DocumentDashboard() {
                 </div>
 
                 <div style={styles.rowActions}>
-                      <button
-                        type="button"
-                        title={
-                          document.aiState === 'ready_for_review'
-                            ? 'View AI analysis and suggestions'
-                            : document.aiState === 'approved'
-                            ? 'AI suggestions verified'
-                            : isDocAnalyzing
+                  <button
+                    type="button"
+                    title={
+                      document.aiState === 'ready_for_review'
+                        ? 'View AI analysis and suggestions'
+                        : document.aiState === 'approved'
+                          ? 'AI suggestions verified'
+                          : isDocAnalyzing
                             ? 'Analysing document with AI…'
                             : 'Analyse this document with AI'
+                    }
+                    onClick={() => {
+                      const nextOpen = openId === document.id ? '' : document.id;
+                      setOpenId(nextOpen);
+                      if (nextOpen) {
+                        loadPreview(document);
+                        if (
+                          document.aiState !== 'processing' &&
+                          (!document.aiSuggestion && !document.aiExtraction) &&
+                          document.aiState !== 'approved' &&
+                          document.aiState !== 'ready_for_review'
+                        ) {
+                          setAutoAnalyseId(document.id);
                         }
-                        onClick={() => {
-                          const nextOpen = openId === document.id ? '' : document.id;
-                          setOpenId(nextOpen);
-                          if (nextOpen) {
-                            loadPreview(document);
-                            if (
-                              document.aiState !== 'processing' &&
-                              (!document.aiSuggestion && !document.aiExtraction) &&
-                              document.aiState !== 'approved' &&
-                              document.aiState !== 'ready_for_review'
-                            ) {
-                              setAutoAnalyseId(document.id);
-                            }
-                          } else {
-                            if (autoAnalyseId === document.id) {
-                              setAutoAnalyseId('');
-                            }
-                            setPreviewUrl(null);
-                            setPreviewError('');
-                            setPreviewLoading(false);
-                            setIframeLoaded(false);
-                          }
-                        }}
-                        className={`${stylesModule.actionBtn} ${
-                          isDocAnalyzing
-                            ? stylesModule.aiTriggerBtnActive
-                            : stylesModule.aiTriggerBtn
-                        }`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.35rem 0.65rem',
-                          borderRadius: '6px',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          border: `1px solid ${
-                            document.aiState === 'approved'
-                              ? '#22c55e'
-                              : document.aiState === 'ready_for_review'
-                              ? '#3b82f6'
-                              : 'rgba(99, 102, 241, 0.6)'
-                          }`,
-                          backgroundColor:
-                            document.aiState === 'approved'
-                              ? 'rgba(34, 197, 94, 0.15)'
-                              : document.aiState === 'ready_for_review'
-                              ? 'rgba(59, 130, 246, 0.18)'
-                              : 'rgba(99, 102, 241, 0.15)',
-                          color:
-                            document.aiState === 'approved'
-                              ? '#4ade80'
-                              : document.aiState === 'ready_for_review'
-                              ? '#93c5fd'
-                              : '#a5b4fc',
-                          transition: 'all 0.15s ease-in-out',
-                        }}
-                      >
-                        {isDocAnalyzing ? (
-                          <span className={stylesModule.spinningCircle} />
-                        ) : (
-                          <HiSparkles style={{ fontSize: '0.95rem' }} />
-                        )}
-                        <span>
-                          {document.aiState === 'ready_for_review'
-                            ? 'Review AI'
-                            : document.aiState === 'approved'
-                            ? 'AI Verified'
-                            : isDocAnalyzing
+                      } else {
+                        if (autoAnalyseId === document.id) {
+                          setAutoAnalyseId('');
+                        }
+                        setPreviewUrl(null);
+                        setPreviewError('');
+                        setPreviewLoading(false);
+                        setIframeLoaded(false);
+                      }
+                    }}
+                    className={`${stylesModule.actionBtn} ${isDocAnalyzing
+                        ? stylesModule.aiTriggerBtnActive
+                        : stylesModule.aiTriggerBtn
+                      }`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: `1px solid ${document.aiState === 'approved'
+                          ? '#22c55e'
+                          : document.aiState === 'ready_for_review'
+                            ? '#3b82f6'
+                            : 'rgba(99, 102, 241, 0.6)'
+                        }`,
+                      backgroundColor:
+                        document.aiState === 'approved'
+                          ? 'rgba(34, 197, 94, 0.15)'
+                          : document.aiState === 'ready_for_review'
+                            ? 'rgba(59, 130, 246, 0.18)'
+                            : 'rgba(99, 102, 241, 0.15)',
+                      color:
+                        document.aiState === 'approved'
+                          ? '#4ade80'
+                          : document.aiState === 'ready_for_review'
+                            ? '#93c5fd'
+                            : '#a5b4fc',
+                      transition: 'all 0.15s ease-in-out',
+                    }}
+                  >
+                    {isDocAnalyzing ? (
+                      <span className={stylesModule.spinningCircle} />
+                    ) : (
+                      <HiSparkles style={{ fontSize: '0.95rem' }} />
+                    )}
+                    <span>
+                      {document.aiState === 'ready_for_review'
+                        ? 'Review AI'
+                        : document.aiState === 'approved'
+                          ? 'AI Verified'
+                          : isDocAnalyzing
                             ? 'Analysing…'
                             : 'Analyze'}
-                        </span>
-                      </button>
+                    </span>
+                  </button>
 
                   <IconBtn title="Preview document" onClick={() => openPreviewModal(document)}>
                     {previewDoc?.id === document.id && previewLoading ? (
@@ -943,6 +1184,53 @@ function DocumentDashboard() {
                       <HiDownload />
                     )}
                   </IconBtn>
+                  {document.mongoFileId && (() => {
+                    const driveMeta = driveStatusById[document.id];
+                    const isChecking = openingDriveDocId === document.id && driveMeta?.state === 'checking';
+                    const isSyncing = openingDriveDocId === document.id && driveMeta?.state === 'syncing';
+                    const isSynced = driveMeta?.state === 'synced';
+                    const isBusy = openingDriveDocId === document.id;
+                    return (
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        title={
+                          isSyncing
+                            ? 'Automatically uploading a copy to Google Drive (Documents)…'
+                            : isChecking
+                              ? 'Checking Google Drive mirror…'
+                              : isSynced
+                                ? 'Open synced copy in Google Drive'
+                                : 'Open in Google Drive (auto-syncs to Drive if not mirrored yet)'
+                        }
+                        onClick={() => handleOpenInDrive(document)}
+                        className={`${stylesModule.driveActionBtn} ${
+                          isBusy
+                            ? stylesModule.driveActionBtnBusy
+                            : isSynced
+                              ? stylesModule.driveActionBtnSynced
+                              : ''
+                        }`}
+                      >
+                        {isBusy ? (
+                          <span className={stylesModule.spinningCircle} aria-hidden="true" />
+                        ) : isSynced ? (
+                          <HiCheckCircle aria-hidden="true" />
+                        ) : (
+                          <HiExternalLink aria-hidden="true" />
+                        )}
+                        <span>
+                          {isSyncing
+                            ? 'Syncing…'
+                            : isChecking
+                              ? 'Checking…'
+                              : isSynced
+                                ? 'In Drive'
+                                : 'Drive'}
+                        </span>
+                      </button>
+                    );
+                  })()}
                   <IconBtn
                     title="View details & edit"
                     onClick={() => setModalDocId(document.id)}
@@ -1033,6 +1321,7 @@ function DocumentDashboard() {
         onClose={closePreviewModal}
         onRetry={(doc) => loadPreview(doc, true)}
         onDownload={download}
+        onOpenInDrive={handleOpenInDrive}
         onIframeLoad={(loaded, errorMsg) => {
           setIframeLoaded(loaded);
           setPreviewLoading(false);

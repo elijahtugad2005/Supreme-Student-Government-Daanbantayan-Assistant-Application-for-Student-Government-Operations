@@ -24,8 +24,17 @@ import {
   Sparkles,
   ShieldCheck,
   FileText,
-  Receipt
+  Receipt,
+  ExternalLink,
+  FolderOpen
 } from 'lucide-react';
+import { driveStore } from '../../services/fileStore/driveStore';
+import { mongoStore } from '../../services/fileStore/mongoStore';
+import {
+  hasViewableReceipt,
+  isDirectBrowserReceiptUrl,
+  openReceiptProof,
+} from '../../utils/receiptAccessHelpers';
 import ConsumableExpenseDialog from './ConsumableExpenseDialog';
 import styles from './InventoryManagement.module.css';
 
@@ -103,6 +112,52 @@ const InventoryManagement = () => {
 
   // Higher access only can permanently Delete items
   const canDelete = HIGHER_ACCESS_ROLES.includes(userRole);
+
+  // Officer Google Drive Receipts folder link & receipt origin filter
+  const [receiptsDriveFolder, setReceiptsDriveFolder] = useState(null);
+  const [receiptOriginFilter, setReceiptOriginFilter] = useState('ALL'); // 'ALL' | 'Inventory' | 'Finance'
+
+  useEffect(() => {
+    if (!canEdit) {
+      setReceiptsDriveFolder(null);
+      return undefined;
+    }
+    let alive = true;
+    driveStore
+      .getFolders({ folder: 'receipts' })
+      .then((res) => {
+        if (!alive) return;
+        setReceiptsDriveFolder(res?.enabled && res.receiptsFolder?.url ? res.receiptsFolder : null);
+      })
+      .catch(() => {
+        if (alive) setReceiptsDriveFolder(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [canEdit]);
+
+  const handleOpenReceiptProof = useCallback(
+    async (record) => {
+      try {
+        await openReceiptProof(record, {
+          getBlobUrl: (fileId, opts) => mongoStore.getUrl(fileId, opts),
+        });
+      } catch (err) {
+        showToast(err?.message || 'Unable to open receipt file.');
+      }
+    },
+    [showToast]
+  );
+
+  const filteredReceiptExpenses = useMemo(() => {
+    if (receiptOriginFilter === 'ALL') return consumableExpenses;
+    return consumableExpenses.filter((exp) => {
+      const origin = exp.receiptOrigin || (exp.source === 'INVENTORY_CONSUMABLE_EXPENSE' ? 'Inventory - Consumables' : 'Finance');
+      if (receiptOriginFilter === 'Finance') return origin === 'Finance';
+      return origin !== 'Finance';
+    });
+  }, [consumableExpenses, receiptOriginFilter]);
 
   const handleOpenDialog = useCallback((item = null) => {
     setSelectedItem(item);
@@ -310,25 +365,43 @@ const InventoryManagement = () => {
           </p>
         </div>
 
-        {canEdit && (tabValue === 0 || tabValue === 3) && (
+        {canEdit && (
           <div className={styles.headerActions} style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              onClick={() => setOpenExpenseDialog(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-            >
-              <Receipt size={16} />
-              <span>Record Food / Consumable Expense</span>
-            </button>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => handleOpenDialog()}
-            >
-              <Plus size={16} strokeWidth={2.4} />
-              <span>Add Inventory Item</span>
-            </button>
+            {receiptsDriveFolder?.url && (
+              <a
+                href={receiptsDriveFolder.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.secondaryButton}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', textDecoration: 'none' }}
+                title="Open the shared Google Drive Receipts folder (Finance & Inventory)"
+              >
+                <FolderOpen size={16} />
+                <span>Receipts Folder (Drive)</span>
+                <ExternalLink size={13} />
+              </a>
+            )}
+            {(tabValue === 0 || tabValue === 3) && (
+              <>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => setOpenExpenseDialog(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                >
+                  <Receipt size={16} />
+                  <span>Record Food / Consumable Expense</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => handleOpenDialog()}
+                >
+                  <Plus size={16} strokeWidth={2.4} />
+                  <span>Add Inventory Item</span>
+                </button>
+              </>
+            )}
           </div>
         )}
       </header>
@@ -456,7 +529,7 @@ const InventoryManagement = () => {
             onClick={() => setTabValue(3)}
           >
             <Receipt size={17} className={styles.tabIcon} />
-            <span>Consumables &amp; Food Expenses ({consumableExpenses.length})</span>
+            <span>Consumables &amp; Receipts ({consumableExpenses.length})</span>
           </button>
         </div>
       </nav>
@@ -583,6 +656,7 @@ const InventoryManagement = () => {
                         onBorrow={handleOpenBorrowDialog}
                         onEdit={handleOpenDialog}
                         onDelete={handleDeleteItem}
+                        onOpenReceipt={handleOpenReceiptProof}
                         formatCurrency={formatCurrency}
                       />
                     ))}
@@ -690,9 +764,59 @@ const InventoryManagement = () => {
         </section>
       )}
 
-      {/* TAB 3: CONSUMABLES & FOOD EXPENSES */}
+      {/* TAB 3: CONSUMABLES, FOOD & LINKED FINANCE RECEIPTS */}
       {tabValue === 3 && (
         <section className={styles.tabSection}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.65rem',
+              marginBottom: '0.85rem',
+            }}
+          >
+            <div style={{ display: 'inline-flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {['ALL', 'Inventory', 'Finance'].map((originKey) => (
+                <button
+                  key={originKey}
+                  type="button"
+                  onClick={() => setReceiptOriginFilter(originKey)}
+                  className={
+                    receiptOriginFilter === originKey ? styles.primaryButton : styles.secondaryButton
+                  }
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                >
+                  {originKey === 'ALL'
+                    ? `All Receipts (${consumableExpenses.length})`
+                    : originKey === 'Finance'
+                    ? 'From Finance'
+                    : 'From Inventory'}
+                </button>
+              ))}
+            </div>
+            {receiptsDriveFolder?.url && (
+              <a
+                href={receiptsDriveFolder.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.secondaryButton}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.8rem',
+                  padding: '0.35rem 0.75rem',
+                  textDecoration: 'none',
+                }}
+              >
+                <FolderOpen size={14} />
+                <span>Open Google Drive Receipts Folder</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
           <div className={styles.tableCard}>
             <div className={styles.tableContainer}>
               <table className={styles.table}>
@@ -700,7 +824,8 @@ const InventoryManagement = () => {
                   <tr>
                     <th>Ref #</th>
                     <th>Date</th>
-                    <th>Food / Consumable Item</th>
+                    <th>Origin</th>
+                    <th>Expense / Receipt Item</th>
                     <th>Label</th>
                     <th>Fund Source</th>
                     <th className={styles.textRight}>Total Cost</th>
@@ -709,27 +834,64 @@ const InventoryManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {consumableExpenses.length === 0 ? (
+                  {filteredReceiptExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan="8">
+                      <td colSpan="9">
                         <div className={styles.emptyState}>
                           <Receipt size={38} className={styles.emptyIcon} />
-                          <h3>No Consumable or Food Expenses Recorded</h3>
+                          <h3>No Consumable or Linked Finance Receipts Found</h3>
                           <p>
-                            Record food, snacks, or event preparation consumables (e.g., Chooks-to-Go lunch) using &ldquo;Record Food / Consumable Expense&rdquo;.
+                            Record food or consumables here, or upload receipt photos in Finance — they automatically archive to Google Drive Receipts and appear here with their source tag.
                           </p>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    consumableExpenses.map((exp) => {
-                      const fundLabel = exp.fundAccountId === 'fund_igp_main' ? 'IGP' : 'IGF';
+                    filteredReceiptExpenses.map((exp) => {
+                      const fundLabel =
+                        exp.fundAccountId === 'fund_igp_main'
+                          ? 'IGP'
+                          : exp.fundAccountId === 'fund_fiscal_year_budget'
+                          ? 'Fiscal'
+                          : exp.fundAccountId === 'fund_fsg_remittance'
+                          ? 'FSG'
+                          : 'IGF';
+                      const originLabel =
+                        exp.receiptOrigin ||
+                        (exp.source === 'INVENTORY_CONSUMABLE_EXPENSE'
+                          ? 'Inventory - Consumables'
+                          : 'Finance');
+                      const isFromFinance = originLabel === 'Finance';
+                      const canOpenProof = hasViewableReceipt(exp);
+                      const isDirectDrive = isDirectBrowserReceiptUrl(exp.receiptDriveLink);
                       return (
                         <tr key={exp.id}>
                           <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>
                             {exp.refNumber || exp.id.slice(0, 8)}
                           </td>
                           <td>{formatDate(exp.createdAt)}</td>
+                          <td>
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                color: isFromFinance ? '#38bdf8' : '#a78bfa',
+                                background: isFromFinance
+                                  ? 'rgba(56, 189, 248, 0.14)'
+                                  : 'rgba(167, 139, 250, 0.14)',
+                                border: `1px solid ${
+                                  isFromFinance
+                                    ? 'rgba(56, 189, 248, 0.35)'
+                                    : 'rgba(167, 139, 250, 0.35)'
+                                }`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {isFromFinance ? 'Finance' : 'Inventory'}
+                            </span>
+                          </td>
                           <td>
                             <div className={styles.itemNameWrapper}>
                               <span className={styles.itemNameText}>{exp.description || exp.expensePurpose}</span>
@@ -739,7 +901,7 @@ const InventoryManagement = () => {
                             </div>
                           </td>
                           <td>
-                            <span className={styles.categoryBadge}>{exp.receiptLabel || 'Food & Meals'}</span>
+                            <span className={styles.categoryBadge}>{exp.receiptLabel || (isFromFinance ? 'Finance Receipt' : 'Food & Meals')}</span>
                           </td>
                           <td>
                             <span
@@ -764,15 +926,27 @@ const InventoryManagement = () => {
                           <td>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.78rem' }}>
                               {exp.receiptOrNumber && <span>OR #: {exp.receiptOrNumber}</span>}
-                              {(exp.receiptDriveLink || exp.receiptUrl) && (
-                                <a
-                                  href={exp.receiptDriveLink || exp.receiptUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ color: '#38bdf8', textDecoration: 'underline', fontWeight: 600 }}
+                              {canOpenProof && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReceiptProof(exp)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
+                                    textAlign: 'left',
+                                    color: '#38bdf8',
+                                    textDecoration: 'underline',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
                                 >
-                                  View Receipt (Drive)
-                                </a>
+                                  <span>{isDirectDrive ? 'View Receipt (Drive)' : 'View Receipt'}</span>
+                                  <ExternalLink size={12} />
+                                </button>
                               )}
                             </div>
                           </td>
@@ -804,6 +978,7 @@ const InventoryManagement = () => {
           onClose={handleCloseDialog}
           onSave={handleSaveItem}
           convertImageToBase64={convertImageToBase64}
+          uploadReceiptToDrive={uploadReceiptToDrive}
         />
       )}
 
@@ -868,10 +1043,13 @@ const InventoryRow = memo(function InventoryRow({
   onBorrow,
   onEdit,
   onDelete,
+  onOpenReceipt,
   formatCurrency,
 }) {
   const isLow = item.quantity <= (item.minQuantity || 5) && item.quantity > 0;
   const isOut = item.quantity === 0;
+  const hasReceipt = hasViewableReceipt(item);
+  const isDriveReceipt = isDirectBrowserReceiptUrl(item.receiptDriveLink);
 
   return (
     <tr className={isLow ? styles.lowStockRow : isOut ? styles.outOfStockRow : ''}>
@@ -913,6 +1091,32 @@ const InventoryRow = memo(function InventoryRow({
             <span className={styles.itemDescriptionText}>
               {item.description}
             </span>
+          )}
+          {hasReceipt && (
+            <button
+              type="button"
+              onClick={() => onOpenReceipt?.(item)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                marginTop: '3px',
+                color: '#38bdf8',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                width: 'fit-content',
+              }}
+              title="Open attached purchase receipt"
+            >
+              <Paperclip size={11} />
+              <span>{isDriveReceipt ? 'Receipt (Drive)' : 'View Receipt'}</span>
+              <ExternalLink size={11} />
+            </button>
           )}
         </div>
       </td>
@@ -1053,6 +1257,7 @@ const AssetDialog = memo(function AssetDialog({
   onClose,
   onSave,
   convertImageToBase64,
+  uploadReceiptToDrive,
 }) {
   const [formData, setFormData] = useState(() => ({
     name: item?.name || '',
@@ -1062,10 +1267,15 @@ const AssetDialog = memo(function AssetDialog({
     storageLocation: item?.storageLocation || '',
     amount: item?.amount ?? 0,
     receipt: item?.receipt || '',
+    receiptDriveLink: item?.receiptDriveLink || '',
+    receiptFileId: item?.receiptFileId || '',
     description: item?.description || '',
     minQuantity: item?.minQuantity ?? 5,
   }));
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [receiptProgress, setReceiptProgress] = useState(0);
+  const [receiptError, setReceiptError] = useState('');
 
   useEffect(() => {
     if (item) {
@@ -1077,6 +1287,8 @@ const AssetDialog = memo(function AssetDialog({
         storageLocation: item.storageLocation || '',
         amount: item.amount ?? 0,
         receipt: item.receipt || '',
+        receiptDriveLink: item.receiptDriveLink || '',
+        receiptFileId: item.receiptFileId || '',
         description: item.description || '',
         minQuantity: item.minQuantity ?? 5,
       });
@@ -1089,10 +1301,15 @@ const AssetDialog = memo(function AssetDialog({
         storageLocation: '',
         amount: 0,
         receipt: '',
+        receiptDriveLink: '',
+        receiptFileId: '',
         description: '',
         minQuantity: 5,
       });
     }
+    setReceiptError('');
+    setUploadingReceipt(false);
+    setReceiptProgress(0);
   }, [item, categories]);
 
   useEffect(() => {
@@ -1120,14 +1337,38 @@ const AssetDialog = memo(function AssetDialog({
 
   const handleReceiptUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      try {
+    if (!file) return;
+    setReceiptError('');
+    setUploadingReceipt(true);
+    setReceiptProgress(15);
+    try {
+      if (typeof uploadReceiptToDrive === 'function') {
+        const itemName = formData.name.trim() || formData.category || 'Inventory Asset';
+        const uploaded = await uploadReceiptToDrive(
+          file,
+          {
+            itemName,
+            office: 'SSG Inventory',
+            receiptSource: 'Inventory',
+          },
+          (pct) => setReceiptProgress(pct)
+        );
+        const link = uploaded.driveWebViewLink || uploaded.downloadUrl || '';
+        setFormData((prev) => ({
+          ...prev,
+          receipt: link,
+          receiptDriveLink: uploaded.driveWebViewLink || '',
+          receiptFileId: uploaded.fileId || uploaded.driveFileId || '',
+        }));
+      } else {
         const base64 = await convertImageToBase64(file);
         setFormData((prev) => ({ ...prev, receipt: base64 }));
-      } catch (error) {
-        console.error('Error converting image:', error);
-        alert('Error uploading receipt: ' + error.message);
       }
+    } catch (error) {
+      console.error('Error uploading inventory receipt:', error);
+      setReceiptError(error.message || 'Failed to upload receipt to Google Drive Receipts folder.');
+    } finally {
+      setUploadingReceipt(false);
     }
   };
 
@@ -1377,18 +1618,42 @@ const AssetDialog = memo(function AssetDialog({
           <div className={styles.formGroup}>
             <label className={styles.fileUploadLabel}>
               <span className={styles.fileUploadButton}>
-                <Paperclip size={15} /> Upload Receipt or Invoice (Optional)
+                <Paperclip size={15} />
+                {uploadingReceipt
+                  ? `Uploading to Google Drive Receipts (${receiptProgress}%)...`
+                  : 'Upload Receipt Photo / PDF (Google Drive → Receipts)'}
               </span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
                 onChange={handleReceiptUpload}
+                disabled={uploadingReceipt}
                 className={styles.fileInput}
               />
             </label>
-            {formData.receipt && (
+            {receiptError && (
+              <span style={{ color: '#f87171', fontSize: '0.82rem', marginTop: '4px', display: 'block' }}>
+                {receiptError}
+              </span>
+            )}
+            {(formData.receiptDriveLink || formData.receipt) && (
               <span className={styles.fileUploadStatus}>
-                <CheckCircle2 size={14} /> Receipt document attached
+                <CheckCircle2 size={14} />{' '}
+                {formData.receiptDriveLink ? (
+                  <>
+                    Saved to Google Drive Receipts:{' '}
+                    <a
+                      href={formData.receiptDriveLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#38bdf8', textDecoration: 'underline', marginLeft: '4px' }}
+                    >
+                      View Receipt
+                    </a>
+                  </>
+                ) : (
+                  'Receipt document attached'
+                )}
               </span>
             )}
           </div>
@@ -1402,9 +1667,9 @@ const AssetDialog = memo(function AssetDialog({
             >
               Cancel
             </button>
-            <button type="submit" className={styles.primaryButton} disabled={submitting}>
+            <button type="submit" className={styles.primaryButton} disabled={submitting || uploadingReceipt}>
               <Check size={16} />
-              <span>{submitting ? 'Saving...' : item ? 'Update Asset Record' : 'Save New Item'}</span>
+              <span>{uploadingReceipt ? 'Uploading Receipt...' : submitting ? 'Saving...' : item ? 'Update Asset Record' : 'Save New Item'}</span>
             </button>
           </div>
         </form>

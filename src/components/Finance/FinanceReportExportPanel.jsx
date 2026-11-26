@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { 
-  FileSpreadsheet, 
-  ExternalLink, 
-  DownloadCloud, 
-  CheckCircle2, 
-  AlertCircle, 
-  Layers, 
+import React, { useState, useEffect } from 'react';
+import {
+  FileSpreadsheet,
+  ExternalLink,
+  DownloadCloud,
+  CheckCircle2,
+  AlertCircle,
+  Layers,
   ShieldCheck,
   RefreshCw,
   FolderPlus,
@@ -16,10 +16,10 @@ import {
 import { useFinance } from '../FinanceContext/FinanceProvider.jsx';
 import { useAuth } from '../AuthContext/AuthContext.jsx';
 import usePermissions from '../../hooks/usePermissions.js';
-import { 
-  exportFiscalPackageToGoogleSheets, 
-  getGoogleConnectionStatus, 
-  isGoogleOAuthConfigured 
+import {
+  exportFiscalPackageToGoogleSheets,
+  getGoogleConnectionStatus,
+  isGoogleOAuthConfigured
 } from '../../services/googleSheetsFinanceSyncService.js';
 import styles from './FinanceReportExportPanel.module.css';
 
@@ -41,8 +41,15 @@ export const FinanceReportExportPanel = () => {
   const [exportResult, setExportResult] = useState(null);
   const [exportError, setExportError] = useState(null);
 
-  const connectionStatus = getGoogleConnectionStatus();
+  const [connectionStatus, setConnectionStatus] = useState(() => getGoogleConnectionStatus());
   const isConfigured = isGoogleOAuthConfigured();
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setConnectionStatus(getGoogleConnectionStatus());
+    }, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleExport = async (e) => {
     e.preventDefault();
@@ -68,6 +75,7 @@ export const FinanceReportExportPanel = () => {
       setExportError(err.message || 'Export failed.');
     } finally {
       setIsExporting(false);
+      setConnectionStatus(getGoogleConnectionStatus());
     }
   };
 
