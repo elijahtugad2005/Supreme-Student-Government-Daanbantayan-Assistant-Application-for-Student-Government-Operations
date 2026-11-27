@@ -469,7 +469,7 @@ try {
   console.log('\n=== Slice 4: AuthContext & ProtectedRoute member verification + redirect race ===');
   const policyMod = await import(`${pathToFileURL(join(ROOT, 'src', 'utils', 'authDomainPolicy.js')).href}?t=${Date.now()}`);
 
-  await check('authDomainPolicy exports evaluateMemberSessionPolicy handling verified/unverified/non-CTU/officers', async () => {
+  await check('authDomainPolicy exports evaluateMemberSessionPolicy handling verified/unverified/gmail/officers', async () => {
     if (typeof policyMod.evaluateMemberSessionPolicy !== 'function') {
       throw new Error('evaluateMemberSessionPolicy is not exported from authDomainPolicy.js');
     }
@@ -480,12 +480,17 @@ try {
     });
     const unverifiedMember = policyMod.evaluateMemberSessionPolicy({
       role: 'member',
-      email: 'juan@ctu.edu.ph',
+      email: 'juan@gmail.com',
       emailVerified: false,
     });
-    const nonCtuMember = policyMod.evaluateMemberSessionPolicy({
+    const gmailMember = policyMod.evaluateMemberSessionPolicy({
       role: 'member',
-      email: 'outsider@gmail.com',
+      email: 'student.demo@gmail.com',
+      emailVerified: true,
+    });
+    const invalidEmailMember = policyMod.evaluateMemberSessionPolicy({
+      role: 'member',
+      email: 'not-an-email',
       emailVerified: true,
     });
     const officerGmail = policyMod.evaluateMemberSessionPolicy({
@@ -494,11 +499,12 @@ try {
       emailVerified: false,
     });
     if (!okMember.allowed) throw new Error('Verified @ctu.edu.ph member should be allowed');
+    if (!gmailMember.allowed) throw new Error('Verified @gmail.com member should be allowed during demonstration mode');
     if (unverifiedMember.allowed || unverifiedMember.code !== 'auth/email-not-verified') {
       throw new Error(`Expected auth/email-not-verified for unverified member, got ${JSON.stringify(unverifiedMember)}`);
     }
-    if (nonCtuMember.allowed || nonCtuMember.code !== 'auth/invalid-institutional-domain') {
-      throw new Error(`Expected auth/invalid-institutional-domain for non-CTU member, got ${JSON.stringify(nonCtuMember)}`);
+    if (invalidEmailMember.allowed || invalidEmailMember.code !== 'auth/invalid-institutional-domain') {
+      throw new Error(`Expected auth/invalid-institutional-domain for malformed email, got ${JSON.stringify(invalidEmailMember)}`);
     }
     if (!officerGmail.allowed) throw new Error('Pre-provisioned officer must remain allowed regardless of email domain');
   });

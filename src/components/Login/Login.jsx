@@ -145,7 +145,7 @@ function Login({ initialMode = 'login' }) {
 
         if (res?.verificationRequired) {
           setNotice(
-            `Verification link sent to ${res.email || email.trim()}. Please verify your @${INSTITUTIONAL_EMAIL_DOMAIN} inbox, then sign in below.`
+            `Verification link sent to ${res.email || email.trim()}. Please verify your email inbox, then sign in below.`
           );
           setPassword('');
           setConfirmPassword('');
@@ -332,7 +332,7 @@ function Login({ initialMode = 'login' }) {
 
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor="login-email">
-                Institutional Email {isRegister ? '*' : ''}
+                Email Address {isRegister ? '*' : ''}
               </label>
               <div className={styles.inputWrapper}>
                 <HiMail className={styles.inputIcon} aria-hidden="true" />
@@ -341,7 +341,7 @@ function Login({ initialMode = 'login' }) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@ctu.edu.ph"
+                  placeholder="you@gmail.com"
                   className={styles.input}
                   required
                   autoComplete="email"
@@ -349,7 +349,7 @@ function Login({ initialMode = 'login' }) {
               </div>
               {isRegister && (
                 <small style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.74rem', color: '#dfc3c7' }}>
-                  Must be an official @{INSTITUTIONAL_EMAIL_DOMAIN} email. A verification link will be sent before login.
+                  Use your Gmail or institutional email. A verification link will be sent before login.
                 </small>
               )}
             </div>

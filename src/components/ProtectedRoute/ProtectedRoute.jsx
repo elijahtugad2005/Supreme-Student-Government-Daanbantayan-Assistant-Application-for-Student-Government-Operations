@@ -62,7 +62,7 @@ function ProtectedRoute({
     );
   }
 
-  // Defense-in-depth: block unverified or non-@ctu.edu.ph student members
+  // Defense-in-depth: block unverified student members
   if (
     !isVerifiedMemberSession({
       role: userRole,
@@ -71,7 +71,7 @@ function ProtectedRoute({
     })
   ) {
     return renderAccessDenied(
-      'Please verify your @ctu.edu.ph institutional email address before accessing student member pages.',
+      'Please verify your email address before accessing student member pages.',
       customAccessDenied
     );
   }

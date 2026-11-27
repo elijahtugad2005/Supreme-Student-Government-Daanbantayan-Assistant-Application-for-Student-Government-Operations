@@ -73,17 +73,17 @@ const ensureFirestoreEmulator = async () => {
   const envHost = process.env.FIRESTORE_EMULATOR_HOST;
   if (envHost) {
     const [h, p] = envHost.split(':');
-    return { host: h, port: Number(p), stop: async () => {} };
+    return { host: h, port: Number(p), stop: async () => { } };
   }
   if (await isPortOpen('127.0.0.1', 8080)) {
-    return { host: '127.0.0.1', port: 8080, stop: async () => {} };
+    return { host: '127.0.0.1', port: 8080, stop: async () => { } };
   }
   const cacheDir = path.join(homedir(), '.cache', 'firebase', 'emulators');
   const jar = existsSync(cacheDir)
     ? readdirSync(cacheDir)
-        .filter((f) => /^cloud-firestore-emulator-.*\.jar$/.test(f))
-        .sort()
-        .pop()
+      .filter((f) => /^cloud-firestore-emulator-.*\.jar$/.test(f))
+      .sort()
+      .pop()
     : null;
   if (!jar) {
     throw new Error(`Firestore emulator JAR not found in ${cacheDir}`);
@@ -368,7 +368,7 @@ if (existsSync(orderServicePath)) {
     const res = {
       status(code) {
         status = code;
-        return { json: () => {} };
+        return { json: () => { } };
       },
     };
     const next = () => {
@@ -467,12 +467,18 @@ try {
     await assertFails(verifiedMember().collection('deathAidCollections').doc('dac-other').get());
   });
 
-  await check('Non-@ctu.edu.ph outsider CANNOT self-register as member; CTU student CANNOT smuggle permissions map', async () => {
-    await assertFails(
-      asUser('outsider-1', { email: 'hacker@gmail.com', email_verified: true })
+  await check('Gmail & CTU students CAN self-register as member; neither can escalate role or smuggle permissions map', async () => {
+    await assertSucceeds(
+      asUser('demo-gmail-1', { email: 'student.demo@gmail.com', email_verified: true })
         .collection('users')
-        .doc('outsider-1')
-        .set({ role: 'member', email: 'hacker@gmail.com' })
+        .doc('demo-gmail-1')
+        .set({ role: 'member', email: 'student.demo@gmail.com' })
+    );
+    await assertFails(
+      asUser('demo-gmail-admin', { email: 'hacker@gmail.com', email_verified: true })
+        .collection('users')
+        .doc('demo-gmail-admin')
+        .set({ role: 'admin', email: 'hacker@gmail.com' })
     );
     await assertFails(
       asUser('new-student', { email: 'new@ctu.edu.ph', email_verified: false })
@@ -538,7 +544,7 @@ await check('backend/server.js mounts /api/orders, helmet headers, and webhook s
   let tgPassed = false;
   tgGuard(
     { headers: { 'x-telegram-bot-api-secret-token': 'wrong' } },
-    { status: (c) => { tgStatus = c; return { json: () => {} }; } },
+    { status: (c) => { tgStatus = c; return { json: () => { } }; } },
     () => { tgPassed = true; }
   );
   assert.equal(tgStatus, 401);
@@ -546,7 +552,7 @@ await check('backend/server.js mounts /api/orders, helmet headers, and webhook s
 
   tgGuard(
     { headers: { 'x-telegram-bot-api-secret-token': 'tg-secret-123' } },
-    { status: (c) => { tgStatus = c; return { json: () => {} }; } },
+    { status: (c) => { tgStatus = c; return { json: () => { } }; } },
     () => { tgPassed = true; }
   );
   assert.equal(tgPassed, true);
@@ -561,7 +567,7 @@ await check('backend/server.js mounts /api/orders, helmet headers, and webhook s
   let metaPassed = false;
   metaGuard(
     { rawBody, headers: { 'x-hub-signature-256': validSig } },
-    { status: () => ({ json: () => {} }) },
+    { status: () => ({ json: () => { } }) },
     () => { metaPassed = true; }
   );
   assert.equal(metaPassed, true);
@@ -569,8 +575,8 @@ await check('backend/server.js mounts /api/orders, helmet headers, and webhook s
   let prodUnsetStatus = 200;
   wh.createMetaWebhookGuard({ getSecret: () => '', isProduction: () => true })(
     { rawBody, headers: {} },
-    { status: (c) => { prodUnsetStatus = c; return { json: () => {} }; } },
-    () => {}
+    { status: (c) => { prodUnsetStatus = c; return { json: () => { } }; } },
+    () => { }
   );
   assert.equal(prodUnsetStatus, 403);
 });
@@ -588,19 +594,20 @@ await check('TrackOrder.jsx routes public tracking through trackPublicOrder (no 
   assert.equal(/collection\s*\(\s*db\s*,\s*['"]orders['"]/.test(trackSrc), false);
 });
 
-await check('authDomainPolicy, Login.jsx, and AuthContext.jsx enforce @ctu.edu.ph & email verification on signup', async () => {
+await check('authDomainPolicy, Login.jsx, and AuthContext.jsx allow Gmail/CTU & enforce email verification on signup', async () => {
   const policy = await import(`file:///${path.join(ROOT, 'src/utils/authDomainPolicy.js').replace(/\\/g, '/')}?t=${Date.now()}`);
   assert.equal(policy.isInstitutionalCtuEmail('juan.delacruz@ctu.edu.ph'), true);
   assert.equal(policy.isInstitutionalCtuEmail('STUDENT@CTU.EDU.PH'), true);
   assert.equal(policy.isInstitutionalCtuEmail('outsider@gmail.com'), false);
   assert.equal(policy.isInstitutionalCtuEmail('evil@ctu.edu.ph.attacker.com'), false);
-  assert.equal(policy.validateStudentRegistrationEmail('outsider@gmail.com').valid, false);
+  assert.equal(policy.validateStudentRegistrationEmail('student.demo@gmail.com').valid, true);
+  assert.equal(policy.validateStudentRegistrationEmail('not-an-email').valid, false);
 
   const loginSrc = readFileSync(path.join(ROOT, 'src/components/Login/Login.jsx'), 'utf8');
   const authSrc = readFileSync(path.join(ROOT, 'src/components/AuthContext/AuthContext.jsx'), 'utf8');
   assert.match(loginSrc, /validateStudentRegistrationEmail/);
   assert.match(authSrc, /sendEmailVerification/);
-  assert.match(authSrc, /isInstitutionalCtuEmail/);
+  assert.match(authSrc, /isAllowedRegistrationEmail/);
   assert.equal(/permissions:\s*defaultPermissions/.test(authSrc), false);
 });
 

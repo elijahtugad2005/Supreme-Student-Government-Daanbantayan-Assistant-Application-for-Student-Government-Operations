@@ -12,8 +12,9 @@ import { auth, db, googleProvider } from "../../firebase/firebaseConfig.js";
 import { getDefaultPermissionsForRole, isProfileActive } from '../../utils/permissions.js';
 import {
   INSTITUTIONAL_EMAIL_DOMAIN,
+  REQUIRE_INSTITUTIONAL_CTU_EMAIL,
   evaluateMemberSessionPolicy,
-  isInstitutionalCtuEmail,
+  isAllowedRegistrationEmail,
   validateStudentRegistrationEmail,
 } from '../../utils/authDomainPolicy.js';
 import { ensureRoleClaim } from '../../services/roleClaims.js';
@@ -33,11 +34,13 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 const DEACTIVATED_ACCOUNT_MESSAGE =
   'Your account has been deactivated. Please contact an SSG administrator.';
 
-const INSTITUTIONAL_DOMAIN_ERROR_MESSAGE =
-  `Only official @${INSTITUTIONAL_EMAIL_DOMAIN} institutional email addresses may self-register as a Student Member. Officers with pre-provisioned accounts may still sign in normally.`;
+const INSTITUTIONAL_DOMAIN_ERROR_MESSAGE = REQUIRE_INSTITUTIONAL_CTU_EMAIL
+  ? `Only official @${INSTITUTIONAL_EMAIL_DOMAIN} institutional email addresses may self-register as a Student Member. Officers with pre-provisioned accounts may still sign in normally.`
+  : 'Please sign in with a valid email address.';
 
-const UNVERIFIED_EMAIL_ERROR_MESSAGE =
-  `Please verify your @${INSTITUTIONAL_EMAIL_DOMAIN} email address using the link sent to your inbox before signing in.`;
+const UNVERIFIED_EMAIL_ERROR_MESSAGE = REQUIRE_INSTITUTIONAL_CTU_EMAIL
+  ? `Please verify your @${INSTITUTIONAL_EMAIL_DOMAIN} email address using the link sent to your inbox before signing in.`
+  : 'Please verify your email address using the link sent to your inbox before signing in.';
 
 const createDeactivatedAccountError = () => {
   const err = new Error(DEACTIVATED_ACCOUNT_MESSAGE);
@@ -232,8 +235,8 @@ export function AuthProvider({ children }) {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
-      // Block brand-new non-@ctu.edu.ph Google accounts from self-provisioning `member`
-      if (!isInstitutionalCtuEmail(user.email) || !user.emailVerified) {
+      // Enforce registration email policy + verified email before self-provisioning `member`
+      if (!isAllowedRegistrationEmail(user.email) || !user.emailVerified) {
         clearUserProfileState({ active: true });
         setAuthError(INSTITUTIONAL_DOMAIN_ERROR_MESSAGE);
         await signOut(auth);
@@ -479,12 +482,12 @@ export function AuthProvider({ children }) {
               }
               console.warn('[auth] No user profile found in Firestore for UID:', user.uid);
               clearUserProfileState({ active: true });
-              if (!isInstitutionalCtuEmail(user.email)) {
+              if (!isAllowedRegistrationEmail(user.email)) {
                 setAuthError(INSTITUTIONAL_DOMAIN_ERROR_MESSAGE);
                 try {
                   await signOut(auth);
                 } catch (signOutError) {
-                  console.error('[auth] Forced sign-out for orphan non-CTU account failed:', signOutError);
+                  console.error('[auth] Forced sign-out for orphan account failed:', signOutError);
                 }
               }
             }
