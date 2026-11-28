@@ -1304,6 +1304,17 @@
   display: block;
 }
 
+.newsExpandedGallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.newsExpandedGallery .announcementExpandedMedia img {
+  max-height: 200px;
+}
+
 .announcementExpandedDesc {
   font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
   font-size: 0.92rem;

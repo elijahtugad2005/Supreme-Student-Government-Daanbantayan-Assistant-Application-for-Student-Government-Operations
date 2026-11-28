@@ -42,6 +42,7 @@ import {
 import {
   HOMEPAGE_ANNOUNCEMENTS_PAGE_SIZE,
   sortHomepageAnnouncements,
+  sortHomepageNews,
   paginateHomepageAnnouncements,
   toggleExpandedAnnouncement
 } from '../utils/homepageAnnouncements';
@@ -287,10 +288,10 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
   const [orgs, setOrgs] = useState([]);
   const [activeOrgId, setActiveOrgId] = useState(null);
 
-  // News articles state
+  // News articles state (displayed below Latest Announcements using the same card layout)
   const [newsArticles, setNewsArticles] = useState([]);
-  const [newsSlideIndex, setNewsSlideIndex] = useState(0);
-  const [newsImageIndex, setNewsImageIndex] = useState(0);
+  const [expandedNewsId, setExpandedNewsId] = useState(null);
+  const [newsPage, setNewsPage] = useState(1);
 
   // Scroll-to-top visibility
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -303,7 +304,6 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
   const heroSectionRef = useRef(null);
   const newsSectionRef = useRef(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
-  const [isNewsVisible, setIsNewsVisible] = useState(true);
 
   // Hero text animation state
   const [heroTextIndex, setHeroTextIndex] = useState(0);
@@ -462,20 +462,39 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
 
   /* ── Firebase: News Articles ── */
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "newsArticles"), (snap) => {
-      const allNews = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // Filter out expired articles
-      const activeNews = allNews.filter((article) => {
-        if (!article.expiryDate) return true;
-        return new Date(article.expiryDate) > new Date();
-      });
-      activeNews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setNewsArticles(activeNews);
-    });
+    const unsub = onSnapshot(
+      collection(db, "newsArticles"),
+      (snap) => {
+        const allNews = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setNewsArticles(sortHomepageNews(allNews));
+      },
+      (err) => {
+        console.error('[Homepage] Error loading newsArticles:', err);
+      }
+    );
     return () => unsub();
   }, []);
 
-  /* ── Viewport Observers for Hero & News to pause off-screen timers ── */
+  const newsPageData = useMemo(
+    () =>
+      paginateHomepageAnnouncements(
+        newsArticles,
+        newsPage,
+        HOMEPAGE_ANNOUNCEMENTS_PAGE_SIZE
+      ),
+    [newsArticles, newsPage]
+  );
+
+  const handleToggleNews = useCallback((id) => {
+    setExpandedNewsId((prev) => toggleExpandedAnnouncement(prev, id));
+  }, []);
+
+  const handleNewsPageChange = useCallback((nextPage) => {
+    setNewsPage(nextPage);
+    setExpandedNewsId(null);
+  }, []);
+
+  /* ── Viewport Observer for Hero to pause off-screen text timer ── */
   useEffect(() => {
     if (!window.IntersectionObserver) return;
     const heroObserver = new IntersectionObserver(
@@ -485,18 +504,10 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
     const heroEl = heroSectionRef.current;
     if (heroEl) heroObserver.observe(heroEl);
 
-    const newsObserver = new IntersectionObserver(
-      ([entry]) => setIsNewsVisible(entry.isIntersecting),
-      { threshold: 0.1 }
-    );
-    const newsEl = newsSectionRef.current;
-    if (newsEl) newsObserver.observe(newsEl);
-
     return () => {
       if (heroEl) heroObserver.unobserve(heroEl);
-      if (newsEl) newsObserver.unobserve(newsEl);
     };
-  }, [newsArticles.length]);
+  }, []);
 
   /* ── Hero Text Animation (pauses when hero is scrolled off-screen) ── */
   useEffect(() => {
@@ -539,27 +550,6 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  /* ── News Slideshow: Auto-advance articles (pauses when off-screen) ── */
-  useEffect(() => {
-    if (newsArticles.length === 0 || !isNewsVisible) return;
-    const interval = setInterval(() => {
-      setNewsSlideIndex((prev) => (prev + 1) % newsArticles.length);
-      setNewsImageIndex(0);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [newsArticles.length, isNewsVisible]);
-
-  /* ── News Slideshow: Auto-advance images within article ── */
-  useEffect(() => {
-    if (newsArticles.length === 0 || !isNewsVisible) return;
-    const currentArticle = newsArticles[newsSlideIndex];
-    if (!currentArticle?.images || currentArticle.images.length <= 1) return;
-    const interval = setInterval(() => {
-      setNewsImageIndex((prev) => (prev + 1) % currentArticle.images.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [newsSlideIndex, newsArticles, isNewsVisible]);
 
   /* ── Helpers ── */
   const handleOrderNow = (product) => navigate('/order', { state: { product } });
@@ -985,77 +975,6 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
       <hr className={styles.sectionRule} />
 
       {/* ══════════════════════════════════════
-          WHAT'S NEW — News Slideshow
-      ══════════════════════════════════════ */}
-      {newsArticles.length > 0 && (
-        <section ref={newsSectionRef} className={styles.whatsNewSection}>
-          <header className={styles.sectionHeader}>
-            <span className={styles.sectionEyebrow}>WHAT'S NEW</span>
-            <h2 className={styles.sectionTitle}>Latest News</h2>
-            <p className={styles.sectionSubtitle}>Stay informed with the latest updates and stories</p>
-          </header>
-
-          <div className={styles.newsSlideshow}>
-            {/* Slides */}
-            {newsArticles.map((article, idx) => (
-              <div
-                key={article.id}
-                className={`${styles.newsSlide} ${idx === newsSlideIndex ? styles.newsSlideActive : ''}`}
-              >
-                {/* Image background carousel */}
-                <div className={styles.newsSlideImageWrapper}>
-                  {article.images?.map((img, imgIdx) => (
-                    <img
-                      key={imgIdx}
-                      src={img}
-                      alt={`${article.title} photo ${imgIdx + 1}`}
-                      className={`${styles.newsSlideImage} ${idx === newsSlideIndex && imgIdx === newsImageIndex ? styles.newsSlideImageActive : ''}`}
-                    />
-                  ))}
-                  <div className={styles.newsSlideOverlay}></div>
-                </div>
-
-                {/* Content overlay */}
-                <div className={styles.newsSlideContent}>
-                  <span className={`${styles.newsSlideTag} ${styles[`newsTag${article.tag?.charAt(0).toUpperCase()}${article.tag?.slice(1)}`]}`}>
-                    {article.tag?.toUpperCase()}
-                  </span>
-                  <h3 className={styles.newsSlideTitle}>{article.title}</h3>
-                  <p className={styles.newsSlideDescription}>{article.description}</p>
-                  {article.images?.length > 1 && (
-                    <div className={styles.newsImageDots}>
-                      {article.images.map((_, dotIdx) => (
-                        <span
-                          key={dotIdx}
-                          className={`${styles.newsImageDot} ${idx === newsSlideIndex && dotIdx === newsImageIndex ? styles.newsImageDotActive : ''}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Article navigation dots */}
-            {newsArticles.length > 1 && (
-              <div className={styles.newsSlideDots}>
-                {newsArticles.map((_, idx) => (
-                  <button
-                    key={idx}
-                    className={`${styles.newsSlideDot} ${idx === newsSlideIndex ? styles.newsSlideDotActive : ''}`}
-                    onClick={() => { setNewsSlideIndex(idx); setNewsImageIndex(0); }}
-                    aria-label={`Go to news ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      <hr className={styles.sectionRule} />
-
-      {/* ══════════════════════════════════════
           ANNOUNCEMENTS — 5-at-a-time editorial grid
       ══════════════════════════════════════ */}
       <section ref={announcementsRef} className={styles.announcementsSection}>
@@ -1363,6 +1282,326 @@ function Homepage({ toggleSidebar, sidebarOpen }) {
               <FiArrowRight className={styles.archiveArrow} />
             </button>
           </div>
+        )}
+      </section>
+
+      <hr className={styles.sectionRule} />
+
+      {/* ══════════════════════════════════════
+          LATEST NEWS — Same 5-at-a-time editorial card layout as Announcements
+      ══════════════════════════════════════ */}
+      <section ref={newsSectionRef} className={styles.announcementsSection} aria-label="Latest Campus News">
+        <header className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Latest News</h2>
+          <p className={styles.sectionSubtitle}>Campus dispatches, policy highlights, and student government stories</p>
+        </header>
+
+        {newsPageData.totalItems === 0 ? (
+          <p className={styles.stateText}>No campus news stories at the moment.</p>
+        ) : (
+          <>
+            <div
+              className={`${styles.announcementsGrid} ${
+                newsPageData.secondary.length === 0 ? styles.announcementsGridSingle : ''
+              }`}
+            >
+              {/* Featured News — 1st article on the active page */}
+              {newsPageData.featured && (() => {
+                const featuredNews = newsPageData.featured;
+                const isFeaturedExpanded = expandedNewsId === featuredNews.id;
+                const coverImage = Array.isArray(featuredNews.images) ? featuredNews.images[0] : null;
+                const extraImages = Array.isArray(featuredNews.images) ? featuredNews.images.slice(1) : [];
+
+                return (
+                  <article
+                    className={`${styles.announcementCard} ${styles.announcementFeatured} ${
+                      isFeaturedExpanded ? styles.announcementCardExpanded : ''
+                    }`}
+                  >
+                    {coverImage && (
+                      <div
+                        className={`${styles.announcementFeaturedImage} ${
+                          isFeaturedExpanded ? styles.announcementFeaturedImageExpanded : ''
+                        }`}
+                      >
+                        <img
+                          src={coverImage}
+                          alt={featuredNews.title}
+                          className={styles.announcementImage}
+                          onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                        />
+                        {!isFeaturedExpanded && <div className={styles.announcementImageOverlay} />}
+                      </div>
+                    )}
+
+                    <div className={styles.announcementCardBody}>
+                      <div className={styles.announcementMetaRow}>
+                        <span className={styles.announcementCategory}>
+                          {getCategoryLabel(featuredNews.tag || 'News')}
+                        </span>
+                        <span className={styles.announcementDateLine}>
+                          <FiCalendar className={styles.announcementMetaIcon} aria-hidden="true" />
+                          <span>{formatDate(featuredNews.createdAt)}</span>
+                        </span>
+                      </div>
+
+                      <h3 className={styles.announcementTitle}>{featuredNews.title}</h3>
+
+                      {!isFeaturedExpanded && featuredNews.description && (
+                        <p className={styles.announcementExcerpt}>{featuredNews.description}</p>
+                      )}
+
+                      <button
+                        type="button"
+                        className={styles.announcementToggle}
+                        onClick={() => handleToggleNews(featuredNews.id)}
+                        aria-expanded={isFeaturedExpanded}
+                        aria-controls={`news-body-${featuredNews.id}`}
+                      >
+                        <span>{isFeaturedExpanded ? 'Show Less' : 'Read Full Story'}</span>
+                        <FiChevronDown
+                          className={`${styles.announcementChevron} ${
+                            isFeaturedExpanded ? styles.announcementChevronOpen : ''
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </div>
+
+                    {isFeaturedExpanded && (
+                      <div
+                        id={`news-body-${featuredNews.id}`}
+                        className={styles.announcementExpanded}
+                      >
+                        {featuredNews.description ? (
+                          <p className={styles.announcementExpandedDesc}>{featuredNews.description}</p>
+                        ) : (
+                          <p className={styles.announcementEmptyBody}>
+                            No additional details provided for this story.
+                          </p>
+                        )}
+
+                        {extraImages.length > 0 && (
+                          <div className={styles.newsExpandedGallery}>
+                            {extraImages.map((imgSrc, imgIdx) => (
+                              <div key={imgIdx} className={styles.announcementExpandedMedia}>
+                                <img
+                                  src={imgSrc}
+                                  alt={`${featuredNews.title} photo ${imgIdx + 2}`}
+                                  onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className={styles.announcementDetailsBar}>
+                          <span className={styles.announcementDetailChip}>
+                            <FiTag aria-hidden="true" />
+                            <span>{getCategoryLabel(featuredNews.tag || 'News')}</span>
+                          </span>
+                          <span className={styles.announcementDetailChip}>
+                            <FiCalendar aria-hidden="true" />
+                            <span>Published {formatDate(featuredNews.createdAt)}</span>
+                          </span>
+                          {featuredNews.expiryDate && (
+                            <span className={styles.announcementDetailChip}>
+                              <FiClock aria-hidden="true" />
+                              <span>Active until {formatDate(featuredNews.expiryDate)}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                );
+              })()}
+
+              {/* Secondary News — up to 4 modular expandable cards alongside Featured */}
+              {newsPageData.secondary.length > 0 && (
+                <div className={styles.announcementList}>
+                  {newsPageData.secondary.map((article) => {
+                    const isItemExpanded = expandedNewsId === article.id;
+                    const coverImage = Array.isArray(article.images) ? article.images[0] : null;
+                    const allImages = Array.isArray(article.images) ? article.images : [];
+
+                    return (
+                      <article
+                        key={article.id}
+                        className={`${styles.announcementListItem} ${
+                          isItemExpanded ? styles.announcementListItemExpanded : ''
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          className={styles.announcementItemHeader}
+                          onClick={() => handleToggleNews(article.id)}
+                          aria-expanded={isItemExpanded}
+                          aria-controls={`news-body-${article.id}`}
+                        >
+                          <div className={styles.announcementListLeft}>
+                            {coverImage && (
+                              <div className={styles.announcementListThumb}>
+                                <img
+                                  src={coverImage}
+                                  alt=""
+                                  onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                                />
+                              </div>
+                            )}
+                            <div className={styles.announcementListMeta}>
+                              <span className={styles.announcementCategory}>
+                                {getCategoryLabel(article.tag || 'News')}
+                              </span>
+                              <h4 className={styles.announcementListTitle}>{article.title}</h4>
+                              <p className={styles.announcementDateLine}>
+                                <FiCalendar className={styles.announcementMetaIcon} aria-hidden="true" />
+                                <span>{formatDate(article.createdAt)}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`${styles.announcementListToggle} ${
+                              isItemExpanded ? styles.announcementListToggleOpen : ''
+                            }`}
+                            aria-hidden="true"
+                          >
+                            <FiChevronDown />
+                          </span>
+                        </button>
+
+                        {isItemExpanded && (
+                          <div
+                            id={`news-body-${article.id}`}
+                            className={styles.announcementExpanded}
+                          >
+                            {allImages.length === 1 && (
+                              <div className={styles.announcementExpandedMedia}>
+                                <img
+                                  src={allImages[0]}
+                                  alt={article.title}
+                                  onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                                />
+                              </div>
+                            )}
+
+                            {allImages.length > 1 && (
+                              <div className={styles.newsExpandedGallery}>
+                                {allImages.map((imgSrc, imgIdx) => (
+                                  <div key={imgIdx} className={styles.announcementExpandedMedia}>
+                                    <img
+                                      src={imgSrc}
+                                      alt={`${article.title} photo ${imgIdx + 1}`}
+                                      onError={(e) => { e.target.src = '/AnnouncementPic/default.jpg'; }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {article.description ? (
+                              <p className={styles.announcementExpandedDesc}>{article.description}</p>
+                            ) : (
+                              <p className={styles.announcementEmptyBody}>
+                                No additional details provided for this story.
+                              </p>
+                            )}
+
+                            <div className={styles.announcementExpandedFooter}>
+                              <div className={styles.announcementDetailsBar}>
+                                <span className={styles.announcementDetailChip}>
+                                  <FiTag aria-hidden="true" />
+                                  <span>{getCategoryLabel(article.tag || 'News')}</span>
+                                </span>
+                                <span className={styles.announcementDetailChip}>
+                                  <FiCalendar aria-hidden="true" />
+                                  <span>Published {formatDate(article.createdAt)}</span>
+                                </span>
+                                {article.expiryDate && (
+                                  <span className={styles.announcementDetailChip}>
+                                    <FiClock aria-hidden="true" />
+                                    <span>Active until {formatDate(article.expiryDate)}</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                className={styles.announcementCollapseBtn}
+                                onClick={() => handleToggleNews(article.id)}
+                              >
+                                Show Less
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 5-Per-Page Pagination Bar */}
+            {newsPageData.totalPages > 1 && (
+              <nav
+                className={styles.announcementsPagination}
+                aria-label="Latest news pagination"
+              >
+                <span className={styles.paginationStatus}>
+                  Showing {newsPageData.startItem}–{newsPageData.endItem} of{' '}
+                  {newsPageData.totalItems}
+                </span>
+
+                <div className={styles.paginationControls}>
+                  <button
+                    type="button"
+                    className={styles.paginationNavBtn}
+                    onClick={() => handleNewsPageChange(newsPageData.currentPage - 1)}
+                    disabled={newsPageData.currentPage <= 1}
+                    aria-label="Previous news page"
+                  >
+                    <FiChevronLeft aria-hidden="true" />
+                    <span>Prev</span>
+                  </button>
+
+                  <div className={styles.paginationNumbers}>
+                    {Array.from({ length: newsPageData.totalPages }, (_, i) => i + 1).map(
+                      (pageNum) => {
+                        const isActive = pageNum === newsPageData.currentPage;
+                        return (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => handleNewsPageChange(pageNum)}
+                            className={`${styles.paginationPageBtn} ${
+                              isActive ? styles.paginationPageBtnActive : ''
+                            }`}
+                            aria-current={isActive ? 'page' : undefined}
+                            aria-label={`News page ${pageNum}`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.paginationNavBtn}
+                    onClick={() => handleNewsPageChange(newsPageData.currentPage + 1)}
+                    disabled={newsPageData.currentPage >= newsPageData.totalPages}
+                    aria-label="Next news page"
+                  >
+                    <span>Next</span>
+                    <FiChevronRight aria-hidden="true" />
+                  </button>
+                </div>
+              </nav>
+            )}
+          </>
         )}
       </section>
 

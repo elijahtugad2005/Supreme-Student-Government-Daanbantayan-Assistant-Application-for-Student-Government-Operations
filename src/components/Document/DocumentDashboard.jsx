@@ -52,6 +52,7 @@ import {
   HiPencil,
   HiSparkles,
   HiExternalLink,
+  HiCheck,
   HiCheckCircle,
   HiExclamationCircle,
   HiCloudUpload,
@@ -315,6 +316,17 @@ function DocumentDashboard() {
       out[s] = documents.filter((d) => d.status === s).length;
     });
     return out;
+  }, [documents]);
+
+  const labelCounts = useMemo(() => {
+    const map = {};
+    documents.forEach((docItem) => {
+      const seen = new Set(Array.isArray(docItem.labels) ? docItem.labels : []);
+      seen.forEach((lid) => {
+        map[lid] = (map[lid] || 0) + 1;
+      });
+    });
+    return map;
   }, [documents]);
 
   const activeModalDoc = useMemo(
@@ -778,25 +790,31 @@ function DocumentDashboard() {
         </div>
 
         <div style={styles.labelRow}>
-          <span className={stylesModule.brutalistFieldLabel} style={styles.label}>Labels</span>
+          <span className={stylesModule.brutalistFieldLabel} style={styles.label}>
+            Labels {form.labels.length > 0 ? `(${form.labels.length} selected)` : '(Click to select)'}
+          </span>
           <div style={styles.chipRow}>
-            {activeLabels.map((l) => (
-              <button
-                key={l.id}
-                type="button"
-                title={l.description}
-                onClick={() => toggleFormLabel(l.id)}
-                className={`${stylesModule.brutalistChip} ${form.labels.includes(l.id) ? stylesModule.brutalistChipActive : ''
-                  }`}
-                style={{
-                  ...styles.chip,
-                  ...(form.labels.includes(l.id) ? styles.chipActive : {}),
-                }}
-                disabled={busy}
-              >
-                {l.name}
-              </button>
-            ))}
+            {activeLabels.map((l) => {
+              const isSelected = form.labels.includes(l.id);
+              return (
+                <button
+                  key={l.id}
+                  type="button"
+                  title={l.description}
+                  aria-pressed={isSelected}
+                  onClick={() => toggleFormLabel(l.id)}
+                  className={`${stylesModule.brutalistChip} ${isSelected ? stylesModule.brutalistChipActive : ''}`}
+                  style={{
+                    ...styles.chip,
+                    ...(isSelected ? styles.chipActive : {}),
+                  }}
+                  disabled={busy}
+                >
+                  {isSelected ? <HiCheck aria-hidden="true" /> : <HiTag aria-hidden="true" />}
+                  <span>{l.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -988,27 +1006,93 @@ function DocumentDashboard() {
           )}
         </div>
 
-        <div style={styles.chipRow}>
-          {activeLabels.map((l) => (
+        <div className={stylesModule.labelFilterBlock}>
+          <div className={stylesModule.labelFilterHeader}>
+            <span className={stylesModule.labelFilterGuide}>
+              Filter by label (click to toggle)
+            </span>
+            {labelFilter.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setLabelFilter([])}
+                className={stylesModule.clearLabelsLink}
+              >
+                <HiX aria-hidden="true" />
+                <span>Clear {labelFilter.length} selected</span>
+              </button>
+            )}
+          </div>
+
+          <div style={styles.chipRow} role="group" aria-label="Filter documents by label">
             <button
-              key={l.id}
               type="button"
-              title={l.description}
-              onClick={() =>
-                setLabelFilter((prev) =>
-                  prev.includes(l.id) ? prev.filter((x) => x !== l.id) : [...prev, l.id]
-                )
-              }
-              className={`${stylesModule.brutalistChip} ${labelFilter.includes(l.id) ? stylesModule.brutalistChipActive : ''
-                }`}
+              aria-pressed={labelFilter.length === 0}
+              onClick={() => setLabelFilter([])}
+              className={`${stylesModule.brutalistChip} ${labelFilter.length === 0 ? stylesModule.brutalistChipActive : ''}`}
               style={{
                 ...styles.chip,
-                ...(labelFilter.includes(l.id) ? styles.chipActive : {}),
+                ...(labelFilter.length === 0 ? styles.chipActive : {}),
               }}
             >
-              <HiTag /> {l.name}
+              {labelFilter.length === 0 && <HiCheck aria-hidden="true" />}
+              <span>All Labels</span>
+              <span className={stylesModule.chipCount}>{documents.length}</span>
             </button>
-          ))}
+
+            {activeLabels.map((l) => {
+              const isSelected = labelFilter.includes(l.id);
+              const count = labelCounts[l.id] || 0;
+              return (
+                <button
+                  key={l.id}
+                  type="button"
+                  title={l.description}
+                  aria-pressed={isSelected}
+                  onClick={() =>
+                    setLabelFilter((prev) =>
+                      prev.includes(l.id) ? prev.filter((x) => x !== l.id) : [...prev, l.id]
+                    )
+                  }
+                  className={`${stylesModule.brutalistChip} ${isSelected ? stylesModule.brutalistChipActive : ''} ${
+                    !isSelected && count === 0 ? stylesModule.brutalistChipEmpty : ''
+                  }`}
+                  style={{
+                    ...styles.chip,
+                    ...(isSelected ? styles.chipActive : {}),
+                  }}
+                >
+                  {isSelected ? <HiCheck aria-hidden="true" /> : <HiTag aria-hidden="true" />}
+                  <span>{l.name}</span>
+                  <span className={stylesModule.chipCount}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {labelFilter.length > 0 && (
+            <div className={stylesModule.activeFilterBar} role="status" aria-live="polite">
+              <span className={stylesModule.activeFilterLabel}>
+                Showing {visible.length} of {documents.length} matching:
+              </span>
+              <div className={stylesModule.activeFilterTokens}>
+                {labelFilter.map((lid) => {
+                  const lbl = activeLabels.find((x) => x.id === lid);
+                  return (
+                    <button
+                      key={lid}
+                      type="button"
+                      onClick={() => setLabelFilter((prev) => prev.filter((x) => x !== lid))}
+                      className={stylesModule.activeFilterToken}
+                      title={`Remove ${lbl?.name || lid} filter`}
+                    >
+                      <span>{lbl?.name || lid}</span>
+                      <HiX aria-hidden="true" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -1018,7 +1102,21 @@ function DocumentDashboard() {
         <p style={styles.helper}>Preparing the archive…</p>
       ) : visible.length === 0 ? (
         <div style={styles.empty}>
-          <p>{documents.length === 0 ? 'No documents yet. Upload the first one above.' : 'No documents match these filters.'}</p>
+          <p>{documents.length === 0 ? 'No documents yet. Upload the first one above.' : 'No documents match the selected filters.'}</p>
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setTerm('');
+                setStatusFilter('');
+                setLabelFilter([]);
+              }}
+              className={stylesModule.btnSecondary}
+              style={{ ...styles.secondary, marginTop: '0.75rem' }}
+            >
+              <HiX aria-hidden="true" /> Reset all filters
+            </button>
+          )}
         </div>
       ) : (
         visible.map((document) => {

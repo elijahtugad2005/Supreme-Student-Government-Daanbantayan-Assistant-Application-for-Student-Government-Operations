@@ -65,3 +65,35 @@ export function paginateHomepageAnnouncements(
 export function toggleExpandedAnnouncement(currentExpandedId, targetId) {
   return currentExpandedId === targetId ? null : targetId;
 }
+
+/**
+ * Determine whether a news article's expiryDate has passed.
+ * Date-only strings (YYYY-MM-DD) remain active through the end of that local calendar day (23:59:59.999)
+ * instead of expiring early at UTC midnight.
+ */
+export function isNewsArticleExpired(expiryDate, now = new Date()) {
+  if (!expiryDate) return false;
+  if (typeof expiryDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(expiryDate.trim())) {
+    const [year, month, day] = expiryDate.trim().split('-').map(Number);
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+    return endOfDay.getTime() < now.getTime();
+  }
+  const parsed = toTimestamp(expiryDate);
+  if (!parsed) return false;
+  return parsed < now.getTime();
+}
+
+/**
+ * Filter out expired news articles and sort newest-first by createdAt (falling back to updatedAt).
+ */
+export function sortHomepageNews(articles = [], now = new Date()) {
+  if (!Array.isArray(articles)) return [];
+  return articles
+    .filter((article) => article && !isNewsArticleExpired(article.expiryDate, now))
+    .slice()
+    .sort((a, b) => {
+      const createdDiff = toTimestamp(b.createdAt) - toTimestamp(a.createdAt);
+      if (createdDiff !== 0) return createdDiff;
+      return toTimestamp(b.updatedAt) - toTimestamp(a.updatedAt);
+    });
+}

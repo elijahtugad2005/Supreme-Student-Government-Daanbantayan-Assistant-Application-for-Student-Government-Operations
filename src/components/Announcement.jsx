@@ -4,6 +4,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, Timestamp } 
 import { useAuth } from './AuthContext/AuthContext.jsx';
 import { useTheme } from '../contexts/ThemeContext';
 import auditService from '../services/auditService';
+import { isNewsArticleExpired } from '../utils/homepageAnnouncements';
 import styles from './Announcement.module.css';
 import GlassModal from './GlassModal/GlassModal';
 import CalendarWidget from './CalendarWidget/CalendarWidget';
@@ -144,10 +145,11 @@ function Announcement() {
   // News Articles
   const [newsArticles, setNewsArticles] = useState([]);
   const [editingNewsId, setEditingNewsId] = useState(null);
+  const newsFormRef = useRef(null);
   const [newsForm, setNewsForm] = useState({
     title: '',
     description: '',
-    tag: 'event',
+    tag: 'news',
     images: [],
     expiryDate: '',
   });
@@ -1041,6 +1043,59 @@ const handleImageChange = async (e) => {
     setNewsImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  const promoteNewsCoverImage = (index) => {
+    if (index <= 0) return;
+    setNewsForm((prev) => {
+      if (index >= prev.images.length) return prev;
+      const next = [...prev.images];
+      const [chosen] = next.splice(index, 1);
+      next.unshift(chosen);
+      return { ...prev, images: next };
+    });
+    setNewsImagePreviews((prev) => {
+      if (index >= prev.length) return prev;
+      const next = [...prev];
+      const [chosen] = next.splice(index, 1);
+      next.unshift(chosen);
+      return next;
+    });
+  };
+
+  const applyNewsExpiryPreset = (daysFromNow) => {
+    if (!daysFromNow) {
+      setNewsForm((prev) => ({ ...prev, expiryDate: '' }));
+      return;
+    }
+    const target = new Date();
+    target.setDate(target.getDate() + daysFromNow);
+    target.setHours(23, 59, 0, 0);
+    const pad = (n) => String(n).padStart(2, '0');
+    const formatted = `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+    setNewsForm((prev) => ({ ...prev, expiryDate: formatted }));
+  };
+
+  const handleQuickRepublishNews = async (article) => {
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'newsArticles', article.id), {
+        expiryDate: '',
+        updatedAt: new Date().toISOString(),
+      });
+      if (editingNewsId === article.id) {
+        setNewsForm((prev) => ({ ...prev, expiryDate: '' }));
+      }
+      await notify({
+        tone: 'success',
+        title: 'Story live on Homepage',
+        message: `Cleared expiry on "${article.title}". It is now visible under Latest News.`,
+      });
+    } catch (error) {
+      console.error('Error republishing news:', error);
+      await notify({ tone: 'error', title: 'Could not republish', message: 'Please try again.' });
+    }
+    setLoading(false);
+  };
+
   const handleAddNews = async (e) => {
     e.preventDefault();
     if (newsForm.images.length < 1) {
@@ -1061,7 +1116,14 @@ const handleImageChange = async (e) => {
         expiryDate: newsForm.expiryDate || '',
         createdAt: new Date().toISOString(),
       });
-      await notify({ tone: 'success', title: 'News published', message: `"${newsForm.title}" is now live on the Homepage.` });
+      const expiredOnSave = isArticleExpired(newsForm.expiryDate);
+      await notify({
+        tone: expiredOnSave ? 'warning' : 'success',
+        title: expiredOnSave ? 'Saved as expired' : 'News published',
+        message: expiredOnSave
+          ? `"${newsForm.title}" was saved, but its expiry date is in the past so it is hidden from the Homepage.`
+          : `"${newsForm.title}" is now live under Latest News on the Homepage.`,
+      });
       resetNewsForm();
     } catch (error) {
       console.error('Error adding news:', error);
@@ -1073,14 +1135,16 @@ const handleImageChange = async (e) => {
   const handleEditNews = (article) => {
     setEditingNewsId(article.id);
     setNewsForm({
-      title: article.title,
-      description: article.description,
-      tag: article.tag,
+      title: article.title || '',
+      description: article.description || '',
+      tag: article.tag || 'news',
       images: article.images || [],
       expiryDate: article.expiryDate || '',
     });
     setNewsImagePreviews(article.images || []);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      newsFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   const handleUpdateNews = async (e) => {
@@ -1104,7 +1168,14 @@ const handleImageChange = async (e) => {
         expiryDate: newsForm.expiryDate || '',
         updatedAt: new Date().toISOString(),
       });
-      await notify({ tone: 'success', title: 'News updated', message: `"${newsForm.title}" was updated.` });
+      const expiredOnSave = isArticleExpired(newsForm.expiryDate);
+      await notify({
+        tone: expiredOnSave ? 'warning' : 'success',
+        title: expiredOnSave ? 'Updated (still expired)' : 'News updated',
+        message: expiredOnSave
+          ? `"${newsForm.title}" was updated, but its expiry date is still in the past. Clear Expiry to show it on the Homepage.`
+          : `"${newsForm.title}" was updated and is live on the Homepage.`,
+      });
       resetNewsForm();
     } catch (error) {
       console.error('Error updating news:', error);
@@ -1125,6 +1196,9 @@ const handleImageChange = async (e) => {
     if (!confirmed) return;
     try {
       await deleteDoc(doc(db, 'newsArticles', id));
+      if (editingNewsId === id) {
+        resetNewsForm();
+      }
       await notify({ tone: 'success', title: 'Deleted', message: `"${title}" was removed.` });
     } catch (error) {
       console.error('Error deleting news:', error);
@@ -1133,7 +1207,7 @@ const handleImageChange = async (e) => {
   };
 
   const resetNewsForm = () => {
-    setNewsForm({ title: '', description: '', tag: 'event', images: [], expiryDate: '' });
+    setNewsForm({ title: '', description: '', tag: 'news', images: [], expiryDate: '' });
     setNewsImagePreviews([]);
     setEditingNewsId(null);
   };
@@ -1147,10 +1221,7 @@ const handleImageChange = async (e) => {
     }
   };
 
-  const isArticleExpired = (expiryDate) => {
-    if (!expiryDate) return false;
-    return new Date(expiryDate) < new Date();
-  };
+  const isArticleExpired = (expiryDate) => isNewsArticleExpired(expiryDate);
 
   
 
@@ -2165,233 +2236,529 @@ const handleImageChange = async (e) => {
       )}
 
       {/* NEWS TAB */}
-      {activeTab === 'news' && (
-        <div>
-          {/* ADD/EDIT NEWS FORM */}
-          <div className={styles.formWrapper}>
-            <h3 className={styles.sectionTitle}>
-              {editingNewsId ? '✏️ Edit News Article' : '➕ Create News Article'}
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--ann-text-muted, #888)', marginBottom: '1rem' }}>
-              News articles appear in the "What's New" section on the Homepage. Add photos, a tag, and an optional expiry date.
-            </p>
+      {activeTab === 'news' && (() => {
+        const isFormExpiryPast = Boolean(newsForm.expiryDate) && isArticleExpired(newsForm.expiryDate);
+        const activeNewsCount = newsArticles.filter((a) => !isArticleExpired(a.expiryDate)).length;
+        const expiredNewsCount = newsArticles.length - activeNewsCount;
 
-            <form onSubmit={editingNewsId ? handleUpdateNews : handleAddNews} className={styles.form}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Article Title <span className={styles.required}>*</span>
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={newsForm.title}
-                  onChange={handleNewsChange}
-                  placeholder="e.g., SSG General Assembly 2025"
-                  className={styles.input}
-                  required
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Description <span className={styles.required}>*</span>
-                </label>
-                <textarea
-                  name="description"
-                  value={newsForm.description}
-                  onChange={handleNewsChange}
-                  placeholder="Write a brief summary of this news..."
-                  rows="3"
-                  className={styles.textarea}
-                  required
-                />
-              </div>
-
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Tag <span className={styles.required}>*</span>
-                  </label>
-                  <select
-                    name="tag"
-                    value={newsForm.tag}
-                    onChange={handleNewsChange}
-                    className={styles.select}
-                  >
-                    <option value="event">🎉 Event</option>
-                    <option value="policy">📋 Policy</option>
-                    <option value="news">📰 News</option>
-                  </select>
+        return (
+          <div className={styles.announcementsTabContent}>
+            {/* ADD / EDIT NEWS COMPOSER */}
+            <section
+              ref={newsFormRef}
+              className={`${styles.formWrapper} ${editingNewsId ? styles.formEditingActive : ''}`}
+            >
+              <div className={styles.formHeader}>
+                <div className={styles.formHeaderLeft}>
+                  <div className={styles.formIconBubble}>
+                    <FiActivity className={styles.formBubbleIcon} />
+                  </div>
+                  <div>
+                    <h2 className={styles.sectionTitle}>
+                      {editingNewsId ? 'Edit News Article' : 'Compose News Article'}
+                    </h2>
+                    <p className={styles.newsComposerSubtitle}>
+                      Published stories appear in the Latest News section directly under Latest Announcements on the Homepage.
+                    </p>
+                  </div>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Expiry Date (Optional)</label>
-                  <input
-                    type="datetime-local"
-                    name="expiryDate"
-                    value={newsForm.expiryDate}
-                    onChange={handleNewsChange}
-                    className={styles.input}
-                  />
-                  <p className={styles.helperText}>
-                    Article will be hidden from the homepage after this date.
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Photos <span className={styles.required}>*</span>
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleNewsImageChange}
-                  className={styles.fileInput}
-                />
-                <p className={styles.helperText}>
-                  Add at least 1 photo (recommended 3+). JPG/PNG, auto-compressed.
-                </p>
-
-                {newsImagePreviews.length > 0 && (
-                  <div className={styles.multiImageGrid}>
-                    {newsImagePreviews.map((img, index) => (
-                      <div key={index} className={styles.multiImageCard}>
-                        <img src={img} alt={`Photo ${index + 1}`} className={styles.multiImageThumb} />
-                        <button
-                          type="button"
-                          onClick={() => removeNewsImage(index)}
-                          className={styles.multiImageRemove}
-                        >
-                          ✕
-                        </button>
-                        <span className={styles.multiImageIndex}>#{index + 1}</span>
-                      </div>
-                    ))}
+                {editingNewsId && (
+                  <div className={styles.editModeIndicatorWrapper}>
+                    <div className={styles.editModeIndicator}>
+                      <span className={styles.pulsingDot} />
+                      <span>Editing Story</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={resetNewsForm}
+                      className={styles.exitEditBtn}
+                      title="Exit edit mode and reset form"
+                    >
+                      <FiX /> Exit
+                    </button>
                   </div>
                 )}
               </div>
 
-              <div className={styles.buttonGroup}>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={styles.submitButton}
-                >
-                  {loading
-                    ? '⏳ Processing...'
-                    : editingNewsId
-                      ? '💾 Update Article'
-                      : '📰 Publish Article'}
-                </button>
+              <form onSubmit={editingNewsId ? handleUpdateNews : handleAddNews} className={styles.form}>
+                {/* CARD 1: STORY CONTENT & TAG */}
+                <div className={styles.formCard}>
+                  <div className={styles.formCardHeader}>
+                    <FiTag className={styles.cardHeaderIcon} />
+                    <span>Story Details &amp; Category</span>
+                  </div>
 
-                {editingNewsId && (
-                  <button
-                    type="button"
-                    onClick={resetNewsForm}
-                    className={styles.cancelButton}
-                  >
-                    ❌ Cancel
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="news-title-input">
+                      Article Headline <span className={styles.required}>*</span>
+                    </label>
+                    <input
+                      id="news-title-input"
+                      type="text"
+                      name="title"
+                      value={newsForm.title}
+                      onChange={handleNewsChange}
+                      placeholder="e.g., CTU-DB Produces Two National Topnotchers"
+                      className={styles.input}
+                      required
+                    />
+                  </div>
 
-          {/* NEWS ARTICLES LIST */}
-          <div className={styles.announcementsWrapper}>
-            <h3 className={styles.sectionTitle}>All News Articles</h3>
-
-            {newsArticles.length === 0 ? (
-              <div className={styles.emptyState}>
-                <p className={styles.emptyText}>No news articles yet. Publish your first one above!</p>
-              </div>
-            ) : (
-              <div className={styles.announcementsList}>
-                {newsArticles.map((article) => (
-                  <div key={article.id} className={styles.announcementCard}>
-                    <div
-                      className={styles.announcementHeader}
-                      onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
-                    >
-                      <div className={styles.announcementHeaderLeft}>
-                        <h4 className={styles.announcementTitle}>{article.title}</h4>
-                        <div className={styles.announcementMeta}>
-                          <span className={`${styles.newsTagBadge} ${getNewsTagStyle(article.tag)}`}>
-                            {article.tag}
-                          </span>
-                          {article.expiryDate && (
-                            isArticleExpired(article.expiryDate)
-                              ? <span className={styles.expiredBadge}>⏰ Expired</span>
-                              : <span className={styles.expiryBadge}>⏳ Expires {new Date(article.expiryDate).toLocaleDateString()}</span>
-                          )}
-                          <span className={styles.announcementDate}>
-                            📅 {formatDate(article.createdAt?.split('T')[0] || '')}
-                          </span>
-                        </div>
-                      </div>
-                      <div className={`${styles.expandIcon} ${expandedId === article.id ? styles.expandIconExpanded : ''}`}>
-                        ▼
-                      </div>
+                  <div className={styles.formGroup}>
+                    <div className={styles.newsLabelRow}>
+                      <label className={styles.label} htmlFor="news-desc-input">
+                        Story Summary / Body <span className={styles.required}>*</span>
+                      </label>
+                      <span className={styles.newsCharCount}>
+                        {newsForm.description.length} chars
+                      </span>
                     </div>
+                    <textarea
+                      id="news-desc-input"
+                      name="description"
+                      value={newsForm.description}
+                      onChange={handleNewsChange}
+                      placeholder="Write the full campus news dispatch..."
+                      rows="4"
+                      className={styles.textarea}
+                      required
+                    />
+                  </div>
 
-                    {/* Show first image as preview */}
-                    {article.images?.[0] && (
-                      <div className={styles.announcementImageWrapper}>
+                  <div className={styles.formGroup}>
+                    <span className={styles.label}>
+                      Story Tag <span className={styles.required}>*</span>
+                    </span>
+                    <div className={styles.newsTagPills} role="radiogroup" aria-label="Story Tag">
+                      {[
+                        { value: 'news', label: 'News' },
+                        { value: 'event', label: 'Event' },
+                        { value: 'policy', label: 'Policy' },
+                      ].map((opt) => {
+                        const isSelected = newsForm.tag === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            onClick={() => setNewsForm((prev) => ({ ...prev, tag: opt.value }))}
+                            className={`${styles.newsTagPillBtn} ${isSelected ? styles.newsTagPillBtnActive : ''}`}
+                          >
+                            {isSelected && <FiCheck aria-hidden="true" />}
+                            <span>{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CARD 2: HOMEPAGE VISIBILITY & EXPIRY */}
+                <div className={styles.formCard}>
+                  <div className={styles.formCardHeader}>
+                    <FiGlobe className={styles.cardHeaderIcon} />
+                    <span>Homepage Visibility &amp; Auto-Expiry</span>
+                    <span
+                      className={`${styles.newsVisibilityPill} ${
+                        isFormExpiryPast ? styles.newsVisibilityPillExpired : styles.newsVisibilityPillLive
+                      }`}
+                    >
+                      {isFormExpiryPast ? (
+                        <>
+                          <FiAlertCircle aria-hidden="true" />
+                          <span>Hidden (Expired)</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiCheckCircle aria-hidden="true" />
+                          <span>Visible on Homepage</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className={styles.newsExpiryPresets} role="group" aria-label="Expiry quick presets">
+                    <button
+                      type="button"
+                      onClick={() => applyNewsExpiryPreset(null)}
+                      className={`${styles.newsPresetBtn} ${!newsForm.expiryDate ? styles.newsPresetBtnActive : ''}`}
+                    >
+                      No Expiry (Always Live)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyNewsExpiryPreset(7)}
+                      className={styles.newsPresetBtn}
+                    >
+                      +7 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyNewsExpiryPreset(14)}
+                      className={styles.newsPresetBtn}
+                    >
+                      +14 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyNewsExpiryPreset(30)}
+                      className={styles.newsPresetBtn}
+                    >
+                      +30 Days
+                    </button>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="news-expiry-input">
+                      Auto-Hide After Date (Optional)
+                    </label>
+                    <div className={styles.newsExpiryInputRow}>
+                      <input
+                        id="news-expiry-input"
+                        type="datetime-local"
+                        name="expiryDate"
+                        value={newsForm.expiryDate}
+                        onChange={handleNewsChange}
+                        className={`${styles.input} ${isFormExpiryPast ? styles.inputError : ''}`}
+                      />
+                      {newsForm.expiryDate && (
+                        <button
+                          type="button"
+                          onClick={() => applyNewsExpiryPreset(null)}
+                          className={styles.newsClearExpiryBtn}
+                          title="Remove expiry date so this story stays live on the Homepage"
+                        >
+                          <FiX aria-hidden="true" />
+                          <span>Clear</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className={styles.helperText}>
+                      Leave blank to keep the story visible on the Homepage indefinitely.
+                    </p>
+                  </div>
+
+                  {isFormExpiryPast && (
+                    <div className={styles.newsExpiryWarning} role="alert">
+                      <div className={styles.newsExpiryWarningText}>
+                        <FiAlertCircle aria-hidden="true" />
+                        <span>
+                          This expiry date is already in the past, so this article is hidden from the Homepage.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applyNewsExpiryPreset(null)}
+                        className={styles.newsExpiryWarningAction}
+                      >
+                        Clear Expiry &amp; Make Live
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* CARD 3: PHOTO GALLERY */}
+                <div className={styles.formCard}>
+                  <div className={styles.formCardHeader}>
+                    <FiImage className={styles.cardHeaderIcon} />
+                    <span>Story Photos ({newsImagePreviews.length})</span>
+                  </div>
+
+                  <label className={styles.newsUploadDropzone} htmlFor="news-photos-input">
+                    <FiUploadCloud className={styles.newsUploadIcon} aria-hidden="true" />
+                    <span className={styles.newsUploadTitle}>
+                      {newsImagePreviews.length > 0 ? 'Add More Photos' : 'Select Story Photos'}
+                    </span>
+                    <span className={styles.newsUploadHint}>
+                      At least 1 photo required (JPG/PNG, auto-compressed). Photo #1 is used as the Homepage cover.
+                    </span>
+                    <input
+                      id="news-photos-input"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleNewsImageChange}
+                      className={styles.newsFileInputHidden}
+                    />
+                  </label>
+
+                  {newsImagePreviews.length > 0 && (
+                    <div className={styles.multiImageGrid}>
+                      {newsImagePreviews.map((img, index) => (
+                        <div
+                          key={index}
+                          className={`${styles.multiImageCard} ${index === 0 ? styles.multiImageCardCover : ''}`}
+                        >
+                          <img src={img} alt={`Photo ${index + 1}`} className={styles.multiImageThumb} />
+                          <button
+                            type="button"
+                            onClick={() => removeNewsImage(index)}
+                            className={styles.multiImageRemove}
+                            aria-label={`Remove photo ${index + 1}`}
+                            title="Remove photo"
+                          >
+                            <FiX aria-hidden="true" />
+                          </button>
+                          {index === 0 ? (
+                            <span className={styles.newsCoverBadge}>COVER</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => promoteNewsCoverImage(index)}
+                              className={styles.newsSetCoverBtn}
+                              title="Use as Homepage cover photo"
+                            >
+                              Set Cover
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* CARD 4: LIVE HOMEPAGE CARD PREVIEW */}
+                <div className={styles.formCard}>
+                  <div className={styles.formCardHeader}>
+                    <FiEye className={styles.cardHeaderIcon} />
+                    <span>Live Homepage Card Preview</span>
+                  </div>
+
+                  <div className={styles.newsPreviewCard}>
+                    {newsImagePreviews[0] ? (
+                      <div className={styles.newsPreviewMedia}>
                         <img
-                          src={article.images[0]}
-                          alt={article.title}
-                          className={styles.announcementImage}
-                          onError={(e) => { e.target.style.display = 'none'; }}
+                          src={newsImagePreviews[0]}
+                          alt={newsForm.title || 'Story cover preview'}
+                          className={styles.newsPreviewImg}
                         />
+                      </div>
+                    ) : (
+                      <div className={styles.newsPreviewMediaEmpty}>
+                        <FiImage aria-hidden="true" />
+                        <span>Upload a photo above to preview the cover image</span>
                       </div>
                     )}
 
-                    {expandedId === article.id && (
-                      <div className={styles.announcementBody}>
-                        <div className={styles.announcementDetail}>
-                          <strong className={styles.detailLabel}>Description:</strong>
-                          <p className={styles.detailValue}>{article.description}</p>
+                    <div className={styles.newsPreviewBody}>
+                      <div className={styles.newsPreviewMeta}>
+                        <span className={`${styles.newsTagBadge} ${getNewsTagStyle(newsForm.tag)}`}>
+                          {newsForm.tag || 'news'}
+                        </span>
+                        <span className={styles.newsPreviewDate}>
+                          <FiCalendar aria-hidden="true" />
+                          <span>{formatDate(new Date().toISOString().split('T')[0])}</span>
+                        </span>
+                        {isFormExpiryPast && (
+                          <span className={styles.expiredBadge}>
+                            <FiAlertCircle aria-hidden="true" />
+                            <span>Hidden on Homepage</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className={styles.newsPreviewTitle}>
+                        {newsForm.title.trim() || 'Your headline will appear here'}
+                      </h4>
+
+                      <p className={styles.newsPreviewExcerpt}>
+                        {newsForm.description.trim() ||
+                          'Write a short summary above to preview how students will read this story under Latest News on the Homepage.'}
+                      </p>
+
+                      {newsImagePreviews.length > 1 && (
+                        <span className={styles.newsPreviewPhotoCount}>
+                          +{newsImagePreviews.length - 1} more photo{newsImagePreviews.length - 1 > 1 ? 's' : ''} in gallery
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.buttonGroup}>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={styles.submitButton}
+                  >
+                    {loading ? (
+                      <>
+                        <FiRefreshCw aria-hidden="true" />
+                        <span>Saving...</span>
+                      </>
+                    ) : editingNewsId ? (
+                      <>
+                        <FiSave aria-hidden="true" />
+                        <span>Save Changes</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiCheckCircle aria-hidden="true" />
+                        <span>Publish News Story</span>
+                      </>
+                    )}
+                  </button>
+
+                  {editingNewsId && (
+                    <button
+                      type="button"
+                      onClick={resetNewsForm}
+                      className={styles.cancelButton}
+                    >
+                      <FiX aria-hidden="true" />
+                      <span>Cancel Edit</span>
+                    </button>
+                  )}
+                </div>
+              </form>
+            </section>
+
+            {/* NEWS ARTICLES LIST */}
+            <section className={styles.announcementsWrapper}>
+              <div className={styles.newsListHeader}>
+                <h3 className={styles.sectionTitle}>All News Articles</h3>
+                <div className={styles.newsListStats}>
+                  <span className={styles.newsStatLive}>{activeNewsCount} Live</span>
+                  {expiredNewsCount > 0 && (
+                    <span className={styles.newsStatExpired}>{expiredNewsCount} Expired</span>
+                  )}
+                </div>
+              </div>
+
+              {newsArticles.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyText}>No news articles yet. Publish your first one above.</p>
+                </div>
+              ) : (
+                <div className={styles.announcementsList}>
+                  {newsArticles.map((article) => {
+                    const expired = isArticleExpired(article.expiryDate);
+                    const isBeingEdited = editingNewsId === article.id;
+
+                    return (
+                      <div
+                        key={article.id}
+                        className={`${styles.announcementCard} ${isBeingEdited ? styles.newsCardEditing : ''}`}
+                      >
+                        <div
+                          className={styles.announcementHeader}
+                          onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
+                        >
+                          <div className={styles.announcementHeaderLeft}>
+                            <h4 className={styles.announcementTitle}>{article.title}</h4>
+                            <div className={styles.announcementMeta}>
+                              <span className={`${styles.newsTagBadge} ${getNewsTagStyle(article.tag)}`}>
+                                {article.tag || 'news'}
+                              </span>
+                              {isBeingEdited && (
+                                <span className={styles.newsEditingChip}>Editing</span>
+                              )}
+                              {article.expiryDate ? (
+                                expired ? (
+                                  <span className={styles.expiredBadge}>
+                                    <FiAlertCircle aria-hidden="true" />
+                                    <span>Expired (Hidden)</span>
+                                  </span>
+                                ) : (
+                                  <span className={styles.expiryBadge}>
+                                    <FiClock aria-hidden="true" />
+                                    <span>Expires {new Date(article.expiryDate).toLocaleDateString()}</span>
+                                  </span>
+                                )
+                              ) : (
+                                <span className={styles.newsLiveBadge}>
+                                  <FiCheckCircle aria-hidden="true" />
+                                  <span>Live on Homepage</span>
+                                </span>
+                              )}
+                              <span className={styles.announcementDate}>
+                                <FiCalendar aria-hidden="true" />
+                                <span>{formatDate(article.createdAt?.split('T')[0] || '')}</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className={`${styles.expandIcon} ${expandedId === article.id ? styles.expandIconExpanded : ''}`}>
+                            <FiChevronDown aria-hidden="true" />
+                          </div>
                         </div>
 
-                        {article.images?.length > 1 && (
-                          <div className={styles.announcementDetail}>
-                            <strong className={styles.detailLabel}>All Photos ({article.images.length}):</strong>
-                            <div className={styles.multiImageGrid}>
-                              {article.images.map((img, idx) => (
-                                <div key={idx} className={styles.multiImageCard}>
-                                  <img src={img} alt={`Photo ${idx + 1}`} className={styles.multiImageThumb} />
-                                  <span className={styles.multiImageIndex}>#{idx + 1}</span>
-                                </div>
-                              ))}
-                            </div>
+                        {/* Show first image as preview */}
+                        {article.images?.[0] && (
+                          <div className={styles.announcementImageWrapper}>
+                            <img
+                              src={article.images[0]}
+                              alt={article.title}
+                              className={styles.announcementImage}
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
                           </div>
                         )}
 
-                        <div className={styles.announcementActions}>
-                          <button
-                            onClick={() => handleEditNews(article)}
-                            className={styles.editButton}
-                          >
-                            ✏️ Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteNews(article.id, article.title)}
-                            className={styles.deleteButton}
-                          >
-                            🗑️ Delete
-                          </button>
-                        </div>
+                        {expandedId === article.id && (
+                          <div className={styles.announcementBody}>
+                            <div className={styles.announcementDetail}>
+                              <strong className={styles.detailLabel}>Summary:</strong>
+                              <p className={styles.detailValue}>{article.description}</p>
+                            </div>
+
+                            {article.images?.length > 1 && (
+                              <div className={styles.announcementDetail}>
+                                <strong className={styles.detailLabel}>All Photos ({article.images.length}):</strong>
+                                <div className={styles.multiImageGrid}>
+                                  {article.images.map((img, idx) => (
+                                    <div key={idx} className={styles.multiImageCard}>
+                                      <img src={img} alt={`Photo ${idx + 1}`} className={styles.multiImageThumb} />
+                                      <span className={styles.multiImageIndex}>
+                                        {idx === 0 ? 'COVER' : `#${idx + 1}`}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className={styles.announcementActions}>
+                              {expired && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickRepublishNews(article)}
+                                  disabled={loading}
+                                  className={styles.newsRepublishBtn}
+                                >
+                                  <FiRefreshCw aria-hidden="true" />
+                                  <span>Republish Live</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleEditNews(article)}
+                                className={styles.actionBtnEdit}
+                              >
+                                <FiEdit3 aria-hidden="true" />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteNews(article.id, article.title)}
+                                className={styles.actionBtnDelete}
+                              >
+                                <FiTrash2 aria-hidden="true" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* GLASS DIALOG — replaces every window.alert / window.confirm */}
       <GlassModal
